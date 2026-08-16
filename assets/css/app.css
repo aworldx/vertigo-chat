@@ -1,0 +1,204 @@
+/* Назначение файла: главный CSS-бандл приложения, подключает Tailwind, темы и стили Phoenix LiveView. */
+
+/* See the Tailwind configuration guide for advanced usage
+   https://tailwindcss.com/docs/configuration */
+
+@import "tailwindcss" source(none);
+@import "phoenix-colocated/chat/colocated.css";
+@source "../css";
+@source "../js";
+@source "../../lib/chat_web";
+/* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
+@source "../../_build/dev/phoenix-colocated/chat/*/";
+
+/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
+   The heroicons installation itself is managed by your mix.exs */
+@plugin "../vendor/heroicons";
+
+/* daisyUI Tailwind Plugin. */
+@plugin "daisyui/packages/bundle/daisyui" {
+  themes: false;
+}
+
+/* daisyUI theme plugin.
+  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
+  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+@plugin "daisyui/packages/bundle/daisyui-theme" {
+  name: "dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: oklch(30.33% 0.016 252.42);
+  --color-base-200: oklch(25.26% 0.014 253.1);
+  --color-base-300: oklch(20.15% 0.012 254.09);
+  --color-base-content: oklch(97.807% 0.029 256.847);
+  --color-primary: oklch(58% 0.233 277.117);
+  --color-primary-content: oklch(96% 0.018 272.314);
+  --color-secondary: oklch(58% 0.233 277.117);
+  --color-secondary-content: oklch(96% 0.018 272.314);
+  --color-accent: oklch(60% 0.25 292.717);
+  --color-accent-content: oklch(96% 0.016 293.756);
+  --color-neutral: oklch(37% 0.044 257.287);
+  --color-neutral-content: oklch(98% 0.003 247.858);
+  --color-info: oklch(58% 0.158 241.966);
+  --color-info-content: oklch(97% 0.013 236.62);
+  --color-success: oklch(60% 0.118 184.704);
+  --color-success-content: oklch(98% 0.014 180.72);
+  --color-warning: oklch(66% 0.179 58.318);
+  --color-warning-content: oklch(98% 0.022 95.277);
+  --color-error: oklch(58% 0.253 17.585);
+  --color-error-content: oklch(96% 0.015 12.422);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1.5px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/packages/bundle/daisyui-theme" {
+  name: "light";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: oklch(98% 0 0);
+  --color-base-200: oklch(96% 0.001 286.375);
+  --color-base-300: oklch(92% 0.004 286.32);
+  --color-base-content: oklch(21% 0.006 285.885);
+  --color-primary: oklch(70% 0.213 47.604);
+  --color-primary-content: oklch(98% 0.016 73.684);
+  --color-secondary: oklch(55% 0.027 264.364);
+  --color-secondary-content: oklch(98% 0.002 247.839);
+  --color-accent: oklch(0% 0 0);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(44% 0.017 285.786);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-info: oklch(62% 0.214 259.815);
+  --color-info-content: oklch(97% 0.014 254.604);
+  --color-success: oklch(70% 0.14 182.503);
+  --color-success-content: oklch(98% 0.014 180.72);
+  --color-warning: oklch(66% 0.179 58.318);
+  --color-warning-content: oklch(98% 0.022 95.277);
+  --color-error: oklch(58% 0.253 17.585);
+  --color-error-content: oklch(96% 0.015 12.422);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1.5px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Add variants based on LiveView classes */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+
+/* Use the data attribute for dark mode  */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Make LiveView wrapper divs transparent for layout */
+[data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* This file is for your main application CSS */
+
+.chat-message-author,
+.chat-user-nickname,
+.chat-current-nickname,
+.chat-preview-nickname {
+  color: var(--nick-dark);
+}
+
+.chat-message-body,
+.chat-preview-text {
+  color: var(--text-dark);
+}
+
+.chat-shell[data-chat-mode="light"] .chat-message-author,
+.chat-shell[data-chat-mode="light"] .chat-user-nickname,
+.chat-shell[data-chat-mode="light"] .chat-current-nickname,
+.chat-shell[data-chat-mode="light"] .chat-preview-nickname {
+  color: var(--nick-light);
+}
+
+.chat-shell[data-chat-mode="light"] .chat-message-body,
+.chat-shell[data-chat-mode="light"] .chat-preview-text {
+  color: var(--text-light);
+}
+
+.chat-shell[data-chat-mode="light"] {
+  background: #f8fafc;
+  color: #111827;
+}
+
+.chat-shell[data-chat-mode="light"] .bg-zinc-950,
+.chat-shell[data-chat-mode="light"] .bg-zinc-900,
+.chat-shell[data-chat-mode="light"] .bg-zinc-900\/80,
+.chat-shell[data-chat-mode="light"] .bg-zinc-950\/70 {
+  background-color: #ffffff;
+}
+
+.chat-shell[data-chat-mode="light"] .border-zinc-800,
+.chat-shell[data-chat-mode="light"] .border-zinc-700 {
+  border-color: #d1d5db;
+}
+
+.chat-shell[data-chat-mode="light"] .text-zinc-100,
+.chat-shell[data-chat-mode="light"] .text-zinc-300 {
+  color: #111827;
+}
+
+.chat-shell[data-chat-mode="light"] .text-zinc-400,
+.chat-shell[data-chat-mode="light"] .text-zinc-500 {
+  color: #4b5563;
+}
+
+.chat-shell[data-chat-mode="light"] input,
+.chat-shell[data-chat-mode="light"] select {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+.chat-shell[data-chat-theme="night_sky"] {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(59, 130, 246, 0.2), transparent 28rem),
+    radial-gradient(circle at 82% 4%, rgba(14, 165, 233, 0.12), transparent 22rem),
+    linear-gradient(135deg, #020617 0%, #071a33 46%, #0b1120 100%);
+  color: #dbeafe;
+}
+
+.chat-shell[data-chat-theme="night_sky"] header,
+.chat-shell[data-chat-theme="night_sky"] .bg-zinc-900,
+.chat-shell[data-chat-theme="night_sky"] .bg-zinc-900\/80 {
+  background-color: rgba(8, 25, 54, 0.92);
+}
+
+.chat-shell[data-chat-theme="night_sky"] .bg-zinc-950,
+.chat-shell[data-chat-theme="night_sky"] .bg-zinc-950\/70 {
+  background-color: rgba(2, 12, 32, 0.9);
+}
+
+.chat-shell[data-chat-theme="night_sky"] .border-zinc-800,
+.chat-shell[data-chat-theme="night_sky"] .border-zinc-700 {
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
+.chat-shell[data-chat-theme="night_sky"] .text-zinc-100,
+.chat-shell[data-chat-theme="night_sky"] .text-zinc-300 {
+  color: #dbeafe;
+}
+
+.chat-shell[data-chat-theme="night_sky"] .text-zinc-400,
+.chat-shell[data-chat-theme="night_sky"] .text-zinc-500 {
+  color: #93c5fd;
+}
+
+.chat-shell[data-chat-theme="night_sky"] input,
+.chat-shell[data-chat-theme="night_sky"] select {
+  background-color: rgba(2, 12, 32, 0.96);
+  color: #dbeafe;
+}

@@ -1,0 +1,13 @@
+# Назначение файла: тесты JSON-ответов для ошибок API.
+defmodule ChatWeb.ErrorJSONTest do
+  use ChatWeb.ConnCase, async: true
+
+  test "renders 404" do
+    assert ChatWeb.ErrorJSON.render("404.json", %{}) == %{errors: %{detail: "Not Found"}}
+  end
+
+  test "renders 500" do
+    assert ChatWeb.ErrorJSON.render("500.json", %{}) ==
+             %{errors: %{detail: "Internal Server Error"}}
+  end
+end
