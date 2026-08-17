@@ -47,7 +47,24 @@ defmodule ChatWeb.GalleryLive do
        |> stream_insert(:photos, photo, at: 0)
        |> put_flash(:info, "Фотография добавлена в альбом.")}
     else
-      _reason -> {:noreply, put_flash(socket, :error, "Не удалось загрузить фотографию.")}
+      {:error, :daily_photo_limit_reached} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Дневной лимит — #{Gallery.max_photos_per_day()} фотографий. Попробуй завтра."
+         )}
+
+      {:error, :photo_limit_reached} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "В альбоме одного автора может быть не больше #{Gallery.max_photos_per_user()} фотографий."
+         )}
+
+      _reason ->
+        {:noreply, put_flash(socket, :error, "Не удалось загрузить фотографию.")}
     end
   end
 

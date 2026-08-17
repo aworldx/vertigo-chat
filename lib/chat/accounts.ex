@@ -11,8 +11,11 @@ defmodule Chat.Accounts do
   alias Chat.Chatlans
   alias Chat.Profiles
   alias Chat.Repo
+  alias Chat.Security
 
-  def register_user(attrs) do
+  def register_user(attrs), do: register_user(attrs, nil)
+
+  def register_user(attrs, registration_identity) do
     nickname = Chatlans.normalize_nickname(attrs["nickname"] || attrs[:nickname], nil)
 
     attrs =
@@ -20,14 +23,15 @@ defmodule Chat.Accounts do
       |> stringify_keys()
       |> Map.put("nickname", nickname)
 
-    Repo.transaction(fn ->
-      with {:ok, user} <- %User{} |> User.registration_changeset(attrs) |> Repo.insert(),
-           {:ok, _profile} <- Profiles.create_for_user(user) do
-        user
-      else
-        {:error, changeset} -> Repo.rollback(changeset)
-      end
-    end)
+    changeset = User.registration_changeset(%User{}, attrs)
+
+    cond do
+      not changeset.valid? ->
+        {:error, changeset}
+
+      true ->
+        register_valid_user(changeset, registration_identity)
+    end
   end
 
   def registered_nickname?(nickname) do
@@ -72,6 +76,19 @@ defmodule Chat.Accounts do
       Password.verify(password, user.password_hash) -> {:ok, user}
       true -> {:error, :invalid_password}
     end
+  end
+
+  defp register_valid_user(changeset, registration_identity) do
+    Repo.transaction(fn ->
+      with {:ok, user} <- Repo.insert(changeset),
+           {:ok, _profile} <- Profiles.create_for_user(user),
+           :ok <- Security.claim_registration(registration_identity) do
+        user
+      else
+        {:error, :registration_limit_reached} -> Repo.rollback(:rate_limited)
+        {:error, failed_changeset} -> Repo.rollback(failed_changeset)
+      end
+    end)
   end
 
   defp normalize_password(password) when is_binary(password), do: password

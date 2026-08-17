@@ -8,6 +8,9 @@ defmodule Chat.Library do
   alias Chat.Library.Article
   alias Chat.Repo
 
+  @max_articles_per_user 50
+  @max_articles_per_day 10
+
   def list_articles(opts \\ []) do
     author_id = Keyword.get(opts, :author_id)
     series = normalize_series(Keyword.get(opts, :series))
@@ -59,9 +62,35 @@ defmodule Chat.Library do
   end
 
   def create_article(%User{} = user, attrs) do
-    %Article{user_id: user.id}
-    |> Article.changeset(attrs)
-    |> Repo.insert()
+    Repo.transaction(fn ->
+      lock_user!(user.id)
+
+      total = Repo.aggregate(from(article in Article, where: article.user_id == ^user.id), :count)
+
+      daily =
+        Repo.aggregate(
+          from(article in Article,
+            where:
+              article.user_id == ^user.id and
+                article.inserted_at >= ago(1, "day")
+          ),
+          :count
+        )
+
+      cond do
+        total >= @max_articles_per_user ->
+          Repo.rollback(:article_limit_reached)
+
+        daily >= @max_articles_per_day ->
+          Repo.rollback(:daily_article_limit_reached)
+
+        true ->
+          case %Article{user_id: user.id} |> Article.changeset(attrs) |> Repo.insert() do
+            {:ok, article} -> article
+            {:error, changeset} -> Repo.rollback(changeset)
+          end
+      end
+    end)
     |> preload_result()
   end
 
@@ -77,6 +106,8 @@ defmodule Chat.Library do
   def update_article(_user, _article, _attrs), do: {:error, :forbidden}
 
   def max_body_length, do: Article.max_body_length()
+  def max_articles_per_user, do: @max_articles_per_user
+  def max_articles_per_day, do: @max_articles_per_day
 
   defp maybe_filter_series(query, author_id, series)
        when is_integer(author_id) and is_binary(series) do
@@ -108,4 +139,8 @@ defmodule Chat.Library do
 
   defp preload_result({:ok, article}), do: {:ok, Repo.preload(article, :user)}
   defp preload_result(error), do: error
+
+  defp lock_user!(user_id) do
+    Repo.one!(from(user in User, where: user.id == ^user_id, lock: "FOR UPDATE"))
+  end
 end

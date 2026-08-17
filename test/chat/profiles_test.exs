@@ -83,6 +83,8 @@ defmodule Chat.ProfilesTest do
              Profiles.list_profiles(search: nil, page: "invalid", page_size: 0)
 
     assert %{page: 1} = Profiles.list_profiles(page: nil)
+
+    assert %{profiles: []} = Profiles.list_profiles(search: "%' OR 1=1 --")
   end
 
   test "stores a valid profile photo for its owner" do
@@ -90,8 +92,8 @@ defmodule Chat.ProfilesTest do
       Accounts.register_user(%{"nickname" => "photo_writer", "password" => "secret123"})
 
     {:ok, profile} = Profiles.get_by_nickname(owner.nickname)
-    assert {:ok, updated} = Profiles.put_photo(owner, profile, <<1, 2, 3>>, "image/png")
-    assert updated.photo == <<1, 2, 3>>
+    assert {:ok, updated} = Profiles.put_photo(owner, profile, png_bytes(), "image/png")
+    assert updated.photo == png_bytes()
     assert updated.photo_content_type == "image/png"
   end
 
@@ -103,4 +105,6 @@ defmodule Chat.ProfilesTest do
 
     assert Profiles.change_profile(%Profile{}, %{}).valid?
   end
+
+  defp png_bytes, do: <<0x89, "PNG\r\n", 0x1A, "\n", "test">>
 end

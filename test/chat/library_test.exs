@@ -79,6 +79,20 @@ defmodule Chat.LibraryTest do
     assert {:error, :not_found} = Library.get_article(nil)
   end
 
+  test "enforces the daily article quota in the context" do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "article_quota", "password" => "secret123"})
+
+    for index <- 1..Library.max_articles_per_day() do
+      assert {:ok, _article} = Library.create_article(author, valid_attrs("Статья #{index}"))
+    end
+
+    assert {:error, :daily_article_limit_reached} =
+             Library.create_article(author, valid_attrs("Лишняя статья"))
+
+    assert Library.max_articles_per_user() == 50
+  end
+
   defp valid_attrs(title), do: %{"title" => title, "body" => "Текст статьи"}
 
   defp series_attrs(title, series, part_number) do

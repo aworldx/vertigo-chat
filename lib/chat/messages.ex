@@ -8,9 +8,11 @@ defmodule Chat.Messages do
   """
 
   alias Chat.Appearance
+  alias Chat.Security
   alias Chat.Themes
 
   @default_room_id "lobby"
+  @max_body_length 1_000
 
   def subscribe(room_id \\ @default_room_id) do
     Phoenix.PubSub.subscribe(Chat.PubSub, room_topic(room_id))
@@ -18,59 +20,35 @@ defmodule Chat.Messages do
 
   def send_public_message(author, room_id \\ @default_room_id, attrs)
 
-  def send_public_message(author, room_id, %{
-        "body" => body,
-        "theme_id" => theme_id,
-        "appearance" => appearance
-      })
+  def send_public_message(
+        author,
+        room_id,
+        %{
+          "body" => body,
+          "theme_id" => theme_id,
+          "appearance" => appearance
+        } = attrs
+      )
       when is_binary(body) do
-    body = String.trim(body)
-
-    if body == "" do
-      {:error, :empty_body}
-    else
-      message =
-        build_message(
-          author,
-          body,
-          Themes.normalize_theme_id(theme_id),
-          Appearance.normalize(appearance)
-        )
-
-      :ok =
-        Phoenix.PubSub.broadcast(
-          Chat.PubSub,
-          room_topic(room_id),
-          {:message_created, message}
-        )
-
-      {:ok, message}
-    end
+    deliver_message(
+      author,
+      room_id,
+      body,
+      Themes.normalize_theme_id(theme_id),
+      Appearance.normalize(appearance),
+      Map.get(attrs, "_security_identity", {room_id, author})
+    )
   end
 
-  def send_public_message(author, room_id, %{"body" => body}) when is_binary(body) do
-    body = String.trim(body)
-
-    if body == "" do
-      {:error, :empty_body}
-    else
-      message =
-        build_message(
-          author,
-          body,
-          Themes.default_theme_id(),
-          Appearance.default()
-        )
-
-      :ok =
-        Phoenix.PubSub.broadcast(
-          Chat.PubSub,
-          room_topic(room_id),
-          {:message_created, message}
-        )
-
-      {:ok, message}
-    end
+  def send_public_message(author, room_id, %{"body" => body} = attrs) when is_binary(body) do
+    deliver_message(
+      author,
+      room_id,
+      body,
+      Themes.default_theme_id(),
+      Appearance.default(),
+      Map.get(attrs, "_security_identity", {room_id, author})
+    )
   end
 
   def send_public_message(_author, _room_id, _attrs), do: {:error, :invalid_message}
@@ -91,6 +69,39 @@ defmodule Chat.Messages do
   end
 
   def room_topic(room_id), do: "room:#{room_id}"
+
+  def max_body_length, do: @max_body_length
+
+  defp deliver_message(author, room_id, body, theme_id, appearance, security_identity) do
+    body = String.trim(body)
+
+    cond do
+      body == "" ->
+        {:error, :empty_body}
+
+      String.length(body) > @max_body_length ->
+        {:error, :message_too_long}
+
+      true ->
+        case Security.allow_message(security_identity) do
+          :ok -> broadcast_message(author, room_id, body, theme_id, appearance)
+          {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
+        end
+    end
+  end
+
+  defp broadcast_message(author, room_id, body, theme_id, appearance) do
+    message = build_message(author, body, theme_id, appearance)
+
+    :ok =
+      Phoenix.PubSub.broadcast(
+        Chat.PubSub,
+        room_topic(room_id),
+        {:message_created, message}
+      )
+
+    {:ok, message}
+  end
 
   defp build_message(author, body, theme_id, appearance) do
     %{

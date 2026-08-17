@@ -80,6 +80,30 @@ defmodule Chat.MessagesTest do
       assert {:error, :invalid_message} =
                Messages.send_public_message("alice", "test-room", %{})
     end
+
+    test "limits message length and rapid spam" do
+      identity = {:test_sender, System.unique_integer([:positive])}
+
+      assert {:error, :message_too_long} =
+               Messages.send_public_message("alice", "secure-room", %{
+                 "body" => String.duplicate("я", Messages.max_body_length() + 1),
+                 "_security_identity" => identity
+               })
+
+      for index <- 1..3 do
+        assert {:ok, _message} =
+                 Messages.send_public_message("alice", "secure-room", %{
+                   "body" => "message #{index}",
+                   "_security_identity" => identity
+                 })
+      end
+
+      assert {:error, :rate_limited} =
+               Messages.send_public_message("alice", "secure-room", %{
+                 "body" => "spam",
+                 "_security_identity" => identity
+               })
+    end
   end
 
   test "room_topic/1 returns the canonical realtime topic" do

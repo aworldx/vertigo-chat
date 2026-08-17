@@ -4,12 +4,14 @@ defmodule Chat.GalleryTest do
 
   alias Chat.Accounts
   alias Chat.Gallery
+  alias Chat.Gallery.Photo
+  alias Chat.Repo
 
   test "stores a photo in its own table with its uploader" do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "photographer", "password" => "secret123"})
 
-    assert {:ok, photo} = Gallery.upload_photo(user, <<1, 2, 3>>, "image/webp")
+    assert {:ok, photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
     assert photo.user.nickname == "photographer"
 
     assert [stored] = Gallery.list_photos()
@@ -25,5 +27,45 @@ defmodule Chat.GalleryTest do
 
     assert {:error, :invalid_photo} =
              Gallery.upload_photo(user, :binary.copy(<<0>>, 2_000_001), "image/webp")
+
+    assert {:error, :invalid_photo} =
+             Gallery.upload_photo(user, "not really an image", "image/webp")
   end
+
+  test "enforces the daily photo quota in the context" do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "photo_quota", "password" => "secret123"})
+
+    for _index <- 1..Gallery.max_photos_per_day() do
+      assert {:ok, _photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
+    end
+
+    assert {:error, :daily_photo_limit_reached} =
+             Gallery.upload_photo(user, webp_bytes(), "image/webp")
+  end
+
+  test "enforces the total photo quota in the context" do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "total_photo_quota", "password" => "secret123"})
+
+    inserted_at = DateTime.utc_now() |> DateTime.add(-172_800) |> DateTime.truncate(:second)
+
+    rows =
+      for _index <- 1..Gallery.max_photos_per_user() do
+        %{
+          user_id: user.id,
+          image: webp_bytes(),
+          content_type: "image/webp",
+          inserted_at: inserted_at,
+          updated_at: inserted_at
+        }
+      end
+
+    Repo.insert_all(Photo, rows)
+
+    assert {:error, :photo_limit_reached} =
+             Gallery.upload_photo(user, webp_bytes(), "image/webp")
+  end
+
+  defp webp_bytes, do: <<"RIFF", 0, 0, 0, 0, "WEBP", "test">>
 end

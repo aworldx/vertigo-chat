@@ -5,6 +5,7 @@ defmodule Chat.Profiles do
   alias Chat.Accounts.User
   alias Chat.Profiles.Profile
   alias Chat.Repo
+  alias Chat.Uploads
 
   import Ecto.Query
 
@@ -85,11 +86,14 @@ defmodule Chat.Profiles do
   def update_profile(_actor, _profile, _attrs), do: {:error, :forbidden}
 
   def put_photo(%User{id: user_id}, %Profile{user_id: user_id} = profile, bytes, content_type)
-      when is_binary(bytes) and byte_size(bytes) <= 1_500_000 and
-             content_type in ["image/jpeg", "image/png", "image/webp"] do
-    profile
-    |> Profile.photo_changeset(bytes, content_type)
-    |> Repo.update()
+      when is_binary(bytes) and byte_size(bytes) <= 1_500_000 do
+    if Uploads.valid_image?(bytes, content_type) do
+      profile
+      |> Profile.photo_changeset(bytes, content_type)
+      |> Repo.update()
+    else
+      {:error, :invalid_photo}
+    end
   end
 
   def put_photo(_actor, _profile, _bytes, _content_type), do: {:error, :invalid_photo}

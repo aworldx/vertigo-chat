@@ -4,6 +4,8 @@ defmodule ChatWeb.LibraryLiveTest do
 
   alias Chat.Accounts
   alias Chat.Library
+  alias Chat.Library.Article
+  alias Chat.Repo
   alias ChatWeb.UserAuth
 
   test "shows public articles and series to every visitor", %{conn: conn} do
@@ -190,4 +192,69 @@ defmodule ChatWeb.LibraryLiveTest do
     assert path =~ "author=42"
     assert path =~ "series="
   end
+
+  test "renders article input as text instead of executable HTML", %{conn: conn} do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "safe_writer", "password" => "secret123"})
+
+    {:ok, _article} =
+      Library.create_article(author, %{
+        "title" => "<script>alert(1)</script>",
+        "body" => "<img src=x onerror=alert(1)>"
+      })
+
+    {:ok, view, _html} = live(conn, ~p"/library")
+
+    assert has_element?(view, "article h2", "<script>alert(1)</script>")
+    assert has_element?(view, "article p", "<img src=x onerror=alert(1)>")
+    refute has_element?(view, "article script")
+    refute has_element?(view, "article img")
+  end
+
+  test "explains the daily article quota", %{conn: conn} do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "daily_library", "password" => "secret123"})
+
+    for index <- 1..Library.max_articles_per_day() do
+      assert {:ok, _article} =
+               Library.create_article(author, %{
+                 "title" => "Статья #{index}",
+                 "body" => "Содержание"
+               })
+    end
+
+    {:ok, view, _html} = live(conn, ~p"/library")
+    render_hook(view, "authenticate_library", %{"token" => UserAuth.sign(author)})
+    render_hook(view, "save_article", %{"article" => valid_article_params()})
+
+    assert has_element?(view, "#flash-error", "За сутки можно добавить")
+  end
+
+  test "explains the total article quota", %{conn: conn} do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "total_library", "password" => "secret123"})
+
+    inserted_at = DateTime.utc_now() |> DateTime.add(-172_800) |> DateTime.truncate(:second)
+
+    rows =
+      for index <- 1..Library.max_articles_per_user() do
+        %{
+          user_id: author.id,
+          title: "Архив #{index}",
+          body: "Содержание",
+          inserted_at: inserted_at,
+          updated_at: inserted_at
+        }
+      end
+
+    Repo.insert_all(Article, rows)
+
+    {:ok, view, _html} = live(conn, ~p"/library")
+    render_hook(view, "authenticate_library", %{"token" => UserAuth.sign(author)})
+    render_hook(view, "save_article", %{"article" => valid_article_params()})
+
+    assert has_element?(view, "#flash-error", "может хранить не больше")
+  end
+
+  defp valid_article_params, do: %{"title" => "Лишняя статья", "body" => "Содержание"}
 end

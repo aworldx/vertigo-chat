@@ -20,11 +20,13 @@ defmodule ChatWeb.RoomLive do
   def mount(_params, _session, socket) do
     nickname = Chatlans.guest_nickname()
     presence_key = Chatlans.guest_presence_key()
+    security_identities = client_security_identities(socket, presence_key)
 
     socket =
       socket
       |> assign(:nickname, nickname)
       |> assign(:presence_key, presence_key)
+      |> assign(:security_identities, security_identities)
       |> assign(:preference_nickname, nil)
       |> assign(:theme_id, Themes.default_theme_id())
       |> assign(:themes, Themes.list())
@@ -41,6 +43,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:screen, :login)
       |> assign(:entrance_error, nil)
       |> assign(:registration_error, nil)
+      |> assign(:message_error, nil)
       |> assign(:online, [])
       |> assign_nickname_form()
       |> assign_registration_form()
@@ -125,7 +128,7 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("register_user", %{"registration" => params}, socket) do
-    case Accounts.register_user(params) do
+    case Accounts.register_user(params, socket.assigns.security_identities.registration) do
       {:ok, user} ->
         {:noreply,
          socket
@@ -145,31 +148,39 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("send_message", %{"message" => %{"body" => body}}, socket) do
-    message_sent? =
-      socket.assigns.joined? &&
-        match?(
-          {:ok, _message},
-          Messages.send_public_message(socket.assigns.nickname, @room_id, %{
-            "body" => body,
-            "theme_id" => socket.assigns.theme_id,
-            "appearance" => socket.assigns.appearance
-          })
-        )
-
-    socket = assign(socket, :message_form, to_form(%{"body" => ""}, as: :message))
-
-    socket =
-      if message_sent? do
-        push_event(socket, "clear-message-input", %{})
+    result =
+      if socket.assigns.joined? do
+        Messages.send_public_message(socket.assigns.nickname, @room_id, %{
+          "body" => body,
+          "theme_id" => socket.assigns.theme_id,
+          "appearance" => socket.assigns.appearance,
+          "_security_identity" => message_security_identity(socket)
+        })
       else
-        socket
+        {:error, :not_joined}
       end
 
-    {:noreply, socket}
+    case result do
+      {:ok, _message} ->
+        {:noreply,
+         socket
+         |> assign(:message_error, nil)
+         |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
+         |> push_event("clear-message-input", %{})}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> assign(:message_error, message_error(reason))
+         |> assign(:message_form, to_form(%{"body" => body}, as: :message))}
+    end
   end
 
   def handle_event("send_message", _params, socket) do
-    {:noreply, assign(socket, :message_form, to_form(%{"body" => ""}, as: :message))}
+    {:noreply,
+     socket
+     |> assign(:message_error, "Сообщение имеет неверный формат.")
+     |> assign(:message_form, to_form(%{"body" => ""}, as: :message))}
   end
 
   def handle_event("start_private_message", %{"nickname" => nickname}, socket) do
@@ -424,7 +435,7 @@ defmodule ChatWeb.RoomLive do
 
   defp entrance_error(_reason), do: "Не удалось войти с этим ником и паролем."
 
-  defp registration_error(changeset) do
+  defp registration_error(%Ecto.Changeset{} = changeset) do
     cond do
       Keyword.has_key?(changeset.errors, :nickname) ->
         "Ник должен быть свободным и состоять из 3–24 букв, цифр, _ или -."
@@ -434,6 +445,34 @@ defmodule ChatWeb.RoomLive do
 
       true ->
         "Не удалось зарегистрироваться."
+    end
+  end
+
+  defp registration_error(:rate_limited) do
+    "С этого адреса уже создавали аккаунт. Повторная регистрация доступна через сутки."
+  end
+
+  defp message_security_identity(%{assigns: %{current_user: %{id: user_id}}}),
+    do: {:user, user_id}
+
+  defp message_security_identity(socket), do: socket.assigns.security_identities.message
+
+  defp message_error(:rate_limited), do: "Слишком часто. Подожди немного перед отправкой."
+  defp message_error(:message_too_long), do: "Сообщение не должно превышать 1000 символов."
+  defp message_error(:empty_body), do: "Нельзя отправить пустое сообщение."
+  defp message_error(_reason), do: "Не удалось отправить сообщение."
+
+  defp client_security_identities(socket, fallback) do
+    case get_connect_info(socket, :peer_data) do
+      %{address: address} ->
+        ip = address |> :inet.ntoa() |> to_string()
+        %{message: {:client, ip, fallback}, registration: {:ip, ip}}
+
+      _missing_peer_data ->
+        %{
+          message: {:client, :unknown, fallback},
+          registration: {:connection, fallback}
+        }
     end
   end
 

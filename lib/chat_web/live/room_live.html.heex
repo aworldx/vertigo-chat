@@ -45,7 +45,7 @@
     </div>
 
     <%= if @joined? do %>
-      <RoomComponents.message_input message_form={@message_form} />
+      <RoomComponents.message_input message_form={@message_form} message_error={@message_error} />
     <% end %>
 
     <%= if @profile do %>

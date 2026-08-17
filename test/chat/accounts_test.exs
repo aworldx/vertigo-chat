@@ -70,4 +70,49 @@ defmodule Chat.AccountsTest do
     changeset = User.registration_changeset(%User{}, %{nickname: "without_password"})
     assert Ecto.Changeset.get_change(changeset, :password_hash) == nil
   end
+
+  test "prevents repeated registration from the same client identity" do
+    identity = {:registration_test, System.unique_integer([:positive])}
+
+    assert {:ok, _user} =
+             Accounts.register_user(
+               %{"nickname" => "first_identity", "password" => "secret123"},
+               identity
+             )
+
+    assert {:error, :rate_limited} =
+             Accounts.register_user(
+               %{"nickname" => "second_identity", "password" => "secret123"},
+               identity
+             )
+  end
+
+  test "rejects injection-shaped nicknames before querying the database" do
+    assert {:error, changeset} =
+             Accounts.register_user(%{
+               "nickname" => "admin' OR 1=1 --",
+               "password" => "secret123"
+             })
+
+    assert %{nickname: [_message]} = errors_on(changeset)
+  end
+
+  test "does not consume a registration allowance for a database validation error" do
+    identity = {:retry_registration, System.unique_integer([:positive])}
+
+    assert {:ok, _user} =
+             Accounts.register_user(%{"nickname" => "already_taken", "password" => "secret123"})
+
+    assert {:error, %Ecto.Changeset{}} =
+             Accounts.register_user(
+               %{"nickname" => "already_taken", "password" => "secret123"},
+               identity
+             )
+
+    assert {:ok, _user} =
+             Accounts.register_user(
+               %{"nickname" => "available_after_retry", "password" => "secret123"},
+               identity
+             )
+  end
 end

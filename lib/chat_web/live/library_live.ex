@@ -136,6 +136,22 @@ defmodule ChatWeb.LibraryLive do
 
       {:error, :forbidden} ->
         {:noreply, put_flash(socket, :error, "Редактировать статью может только автор.")}
+
+      {:error, :daily_article_limit_reached} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "За сутки можно добавить не больше #{Library.max_articles_per_day()} статей."
+         )}
+
+      {:error, :article_limit_reached} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Один автор может хранить не больше #{Library.max_articles_per_user()} статей."
+         )}
     end
   end
 

@@ -164,7 +164,11 @@ defmodule ChatWeb.RoomLiveTest do
 
     upload =
       file_input(view, "#profile-form", :profile_photo, [
-        %{name: "photo.webp", content: <<1, 2, 3>>, type: "image/webp"}
+        %{
+          name: "photo.webp",
+          content: <<"RIFF", 0, 0, 0, 0, "WEBP", "test">>,
+          type: "image/webp"
+        }
       ])
 
     render_upload(upload, "photo.webp")

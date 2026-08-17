@@ -5,13 +5,15 @@ defmodule ChatWeb.GalleryLiveTest do
   alias Chat.Accounts
   alias Chat.Accounts.User
   alias Chat.Gallery
+  alias Chat.Gallery.Photo
+  alias Chat.Repo
   alias ChatWeb.UserAuth
 
   test "shows photos as a gallery with their uploader", %{conn: conn} do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "gallery_author", "password" => "secret123"})
 
-    {:ok, _photo} = Gallery.upload_photo(user, <<1, 2, 3>>, "image/webp")
+    {:ok, _photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
 
     {:ok, view, _html} = live(conn, ~p"/gallery")
 
@@ -34,7 +36,7 @@ defmodule ChatWeb.GalleryLiveTest do
 
     upload =
       file_input(view, "#gallery-upload-form", :gallery_photo, [
-        %{name: "photo.webp", content: <<1, 2, 3, 4>>, type: "image/webp"}
+        %{name: "photo.webp", content: webp_bytes(), type: "image/webp"}
       ])
 
     render_upload(upload, "photo.webp")
@@ -75,4 +77,61 @@ defmodule ChatWeb.GalleryLiveTest do
     token = UserAuth.sign(%User{id: -1})
     assert {:error, :invalid_token} = UserAuth.verify(token)
   end
+
+  test "explains the daily upload quota", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "daily_gallery", "password" => "secret123"})
+
+    for _index <- 1..Gallery.max_photos_per_day() do
+      assert {:ok, _photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
+    end
+
+    {:ok, view, _html} = live(conn, ~p"/gallery")
+    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+    upload_photo(view)
+
+    assert has_element?(view, "#flash-error", "Дневной лимит")
+  end
+
+  test "explains the total upload quota", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "total_gallery", "password" => "secret123"})
+
+    inserted_at = DateTime.utc_now() |> DateTime.add(-172_800) |> DateTime.truncate(:second)
+
+    rows =
+      for _index <- 1..Gallery.max_photos_per_user() do
+        %{
+          user_id: user.id,
+          image: webp_bytes(),
+          content_type: "image/webp",
+          inserted_at: inserted_at,
+          updated_at: inserted_at
+        }
+      end
+
+    Repo.insert_all(Photo, rows)
+
+    {:ok, view, _html} = live(conn, ~p"/gallery")
+    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+    upload_photo(view)
+
+    assert has_element?(
+             view,
+             "#flash-error",
+             "не больше #{Gallery.max_photos_per_user()} фотографий"
+           )
+  end
+
+  defp upload_photo(view) do
+    upload =
+      file_input(view, "#gallery-upload-form", :gallery_photo, [
+        %{name: "quota.webp", content: webp_bytes(), type: "image/webp"}
+      ])
+
+    render_upload(upload, "quota.webp")
+    view |> element("#gallery-upload-form") |> render_submit()
+  end
+
+  defp webp_bytes, do: <<"RIFF", 0, 0, 0, 0, "WEBP", "test">>
 end
