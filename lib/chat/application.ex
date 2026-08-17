@@ -13,7 +13,7 @@ defmodule Chat.Application do
       Chat.Repo,
       {DNSCluster, query: Application.get_env(:chat, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Chat.PubSub},
-      ChatWeb.Presence,
+      Chat.Presence,
       # Start a worker by calling: Chat.Worker.start_link(arg)
       # {Chat.Worker, arg},
       # Start to serve requests, typically the last entry

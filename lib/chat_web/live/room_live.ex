@@ -2,10 +2,16 @@
 defmodule ChatWeb.RoomLive do
   use ChatWeb, :live_view
 
+  alias Chat.Accounts
   alias Chat.Appearance
   alias Chat.Chatlans
   alias Chat.Messages
+  alias Chat.Profiles
   alias Chat.Themes
+  alias ChatWeb.AuthComponents
+  alias ChatWeb.GalleryAuth
+  alias ChatWeb.RoomComponents
+  alias ChatWeb.ShellComponents
 
   @room_id "lobby"
 
@@ -25,12 +31,25 @@ defmodule ChatWeb.RoomLive do
       |> assign(:appearance, Appearance.default())
       |> assign_active_colors()
       |> assign(:joined?, false)
+      |> assign(:current_user, nil)
+      |> assign(:profile, nil)
+      |> assign(:profile_form, nil)
+      |> assign(:profile_editable?, false)
       |> assign(:settings_open?, false)
+      |> assign(:screen, :login)
+      |> assign(:entrance_error, nil)
+      |> assign(:registration_error, nil)
       |> assign(:online, [])
       |> assign_nickname_form()
+      |> assign_registration_form()
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
       |> assign_settings_form()
       |> stream(:messages, Messages.list_recent_messages(@room_id))
+      |> allow_upload(:profile_photo,
+        accept: ~w(.jpg .jpeg .png .webp),
+        max_entries: 1,
+        max_file_size: 1_500_000
+      )
 
     socket =
       if connected?(socket) do
@@ -45,36 +64,167 @@ defmodule ChatWeb.RoomLive do
   end
 
   @impl true
-  def handle_event("enter_chat", %{"entrance" => %{"nickname" => nickname}}, socket) do
-    nickname = Chatlans.normalize_nickname(nickname, socket.assigns.nickname)
+  def handle_event("enter_chat", %{"entrance" => params}, socket) do
+    nickname = Chatlans.normalize_nickname(params["nickname"], socket.assigns.nickname)
 
-    socket =
-      socket
-      |> assign(:nickname, nickname)
-      |> reset_colors_for_new_nickname(nickname)
-      |> assign(:joined?, true)
-      |> assign_nickname_form()
-      |> assign_settings_form()
-      |> stream(:messages, Messages.list_recent_messages(@room_id), reset: true)
+    case Accounts.authorize_entrance(nickname, params["password"]) do
+      {:ok, user} ->
+        socket =
+          socket
+          |> assign(:nickname, nickname)
+          |> assign(:current_user, user)
+          |> assign(:entrance_error, nil)
+          |> reset_colors_for_new_nickname(nickname)
+          |> assign(:joined?, true)
+          |> assign_nickname_form()
+          |> assign_settings_form()
+          |> stream(:messages, Messages.list_recent_messages(@room_id), reset: true)
 
-    track_presence(socket)
+        track_presence(socket)
 
+        {:noreply,
+         socket
+         |> assign(:online, Chatlans.list_online(@room_id))
+         |> push_event("save-chat-preferences", public_preferences(socket))
+         |> sync_gallery_auth(user)}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> assign(:nickname, nickname)
+         |> assign(:entrance_error, entrance_error(reason))
+         |> assign_nickname_form()}
+    end
+  end
+
+  def handle_event("show_registration", _params, socket) do
     {:noreply,
      socket
-     |> assign(:online, Chatlans.list_online(@room_id))
-     |> push_event("save-chat-preferences", public_preferences(socket))}
+     |> assign(:screen, :registration)
+     |> assign(:entrance_error, nil)
+     |> assign(:registration_error, nil)
+     |> assign_registration_form()}
+  end
+
+  def handle_event("show_login", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:screen, :login)
+     |> assign(:registration_error, nil)
+     |> assign_nickname_form()}
+  end
+
+  def handle_event("register_user", %{"registration" => params}, socket) do
+    case Accounts.register_user(params) do
+      {:ok, user} ->
+        {:noreply,
+         socket
+         |> assign(:nickname, user.nickname)
+         |> assign(:screen, :login)
+         |> assign(:registration_error, nil)
+         |> assign(:entrance_error, "Регистрация завершена. Теперь введи пароль и войди.")
+         |> assign_nickname_form()
+         |> assign_registration_form()}
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:registration_error, registration_error(changeset))
+         |> assign(:registration_form, to_form(params, as: :registration))}
+    end
   end
 
   def handle_event("send_message", %{"message" => %{"body" => body}}, socket) do
-    if socket.assigns.joined? do
-      Messages.send_public_message(socket.assigns.nickname, @room_id, %{
-        "body" => body,
-        "theme_id" => socket.assigns.theme_id,
-        "appearance" => socket.assigns.appearance
-      })
-    end
+    message_sent? =
+      socket.assigns.joined? &&
+        match?(
+          {:ok, _message},
+          Messages.send_public_message(socket.assigns.nickname, @room_id, %{
+            "body" => body,
+            "theme_id" => socket.assigns.theme_id,
+            "appearance" => socket.assigns.appearance
+          })
+        )
 
+    socket = assign(socket, :message_form, to_form(%{"body" => ""}, as: :message))
+
+    socket =
+      if message_sent? do
+        push_event(socket, "clear-message-input", %{})
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("send_message", _params, socket) do
     {:noreply, assign(socket, :message_form, to_form(%{"body" => ""}, as: :message))}
+  end
+
+  def handle_event("start_private_message", %{"nickname" => nickname}, socket) do
+    body = "#{Chatlans.normalize_nickname(nickname, socket.assigns.nickname)}, "
+
+    {:noreply,
+     socket
+     |> assign(:message_form, to_form(%{"body" => body}, as: :message))
+     |> push_event("focus-message-input", %{})}
+  end
+
+  def handle_event("open_profile", %{"nickname" => nickname}, socket) do
+    case Profiles.get_by_nickname(nickname) do
+      {:ok, profile} ->
+        editable? =
+          socket.assigns.current_user && socket.assigns.current_user.id == profile.user_id
+
+        {:noreply,
+         socket
+         |> assign(:profile, profile)
+         |> assign(:profile_editable?, editable?)
+         |> assign(:profile_form, to_form(Profiles.change_profile(profile)))}
+
+      {:error, :not_found} ->
+        profile = Profiles.guest_profile(nickname)
+
+        {:noreply,
+         socket
+         |> assign(:profile, profile)
+         |> assign(:profile_editable?, false)
+         |> assign(:profile_form, to_form(Profiles.change_profile(profile)))}
+    end
+  end
+
+  def handle_event("close_profile", _params, socket) do
+    {:noreply, socket |> assign(:profile, nil) |> assign(:profile_form, nil)}
+  end
+
+  def handle_event("validate_profile", %{"profile" => params}, socket) do
+    form =
+      socket.assigns.profile
+      |> Profiles.change_profile(params)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply, assign(socket, :profile_form, form)}
+  end
+
+  def handle_event("save_profile", %{"profile" => params}, socket) do
+    with true <- socket.assigns.profile_editable?,
+         {:ok, profile} <-
+           Profiles.update_profile(socket.assigns.current_user, socket.assigns.profile, params),
+         {:ok, profile} <- save_uploaded_photo(socket, profile) do
+      {:noreply,
+       socket
+       |> assign(:profile, profile)
+       |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
+       |> put_flash(:info, "Анкета сохранена.")}
+    else
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, :profile_form, to_form(changeset))}
+
+      _reason ->
+        {:noreply, put_flash(socket, :error, "Не удалось сохранить анкету.")}
+    end
   end
 
   def handle_event("leave_chat", _params, socket) do
@@ -85,10 +235,14 @@ defmodule ChatWeb.RoomLive do
     socket =
       socket
       |> assign(:joined?, false)
+      |> assign(:current_user, nil)
+      |> assign(:profile, nil)
       |> assign(:settings_open?, false)
+      |> assign(:screen, :login)
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
       |> assign_nickname_form()
       |> assign(:online, Chatlans.list_online(@room_id))
+      |> push_event("clear-gallery-auth", %{})
 
     {:noreply, socket}
   end
@@ -115,6 +269,7 @@ defmodule ChatWeb.RoomLive do
       |> assign_preferences(params, allow_nickname?: true)
       |> assign(:preference_nickname, Chatlans.normalize_nickname(params["nickname"], nil))
       |> assign_nickname_form()
+      |> assign_registration_form()
       |> assign_settings_form()
       |> update_presence(old_nickname)
 
@@ -170,7 +325,15 @@ defmodule ChatWeb.RoomLive do
     assign(
       socket,
       :nickname_form,
-      to_form(%{"nickname" => socket.assigns.nickname}, as: :entrance)
+      to_form(%{"nickname" => socket.assigns.nickname, "password" => ""}, as: :entrance)
+    )
+  end
+
+  defp assign_registration_form(socket) do
+    assign(
+      socket,
+      :registration_form,
+      to_form(%{"nickname" => socket.assigns.nickname, "password" => ""}, as: :registration)
     )
   end
 
@@ -233,15 +396,50 @@ defmodule ChatWeb.RoomLive do
     assign(socket, :theme_mode, Themes.mode_for_theme(socket.assigns.theme_id))
   end
 
-  defp mode_colors(appearance, mode_id) do
-    Appearance.for_mode(appearance, mode_id)
+  defp entrance_error(:not_found), do: "Такой ник не зарегистрирован."
+  defp entrance_error(:invalid_password), do: "Неверный пароль."
+
+  defp entrance_error(:password_required),
+    do: "Этот ник зарегистрирован. Введи пароль, чтобы войти."
+
+  defp entrance_error(_reason), do: "Не удалось войти с этим ником и паролем."
+
+  defp registration_error(changeset) do
+    cond do
+      Keyword.has_key?(changeset.errors, :nickname) ->
+        "Ник должен быть свободным и состоять из 3–24 букв, цифр, _ или -."
+
+      Keyword.has_key?(changeset.errors, :password) ->
+        "Пароль должен быть не короче 6 символов."
+
+      true ->
+        "Не удалось зарегистрироваться."
+    end
   end
 
-  defp appearance_style(%{appearance: appearance}) do
-    Appearance.style(appearance)
+  defp save_uploaded_photo(socket, profile) do
+    case uploaded_entries(socket, :profile_photo) do
+      {[], []} ->
+        {:ok, profile}
+
+      {[_entry], []} ->
+        [result] =
+          consume_uploaded_entries(socket, :profile_photo, fn %{path: path}, upload_entry ->
+            bytes = File.read!(path)
+            {:ok, {bytes, upload_entry.client_type}}
+          end)
+
+        {bytes, content_type} = result
+        Profiles.put_photo(socket.assigns.current_user, profile, bytes, content_type)
+
+      _entries ->
+        {:error, :invalid_photo}
+    end
   end
 
-  defp appearance_style(appearance) do
-    Appearance.style(appearance)
+  defp sync_gallery_auth(socket, nil), do: push_event(socket, "clear-gallery-auth", %{})
+
+  defp sync_gallery_auth(socket, user) do
+    push_event(socket, "save-gallery-auth", %{token: GalleryAuth.sign(user)})
   end
 end

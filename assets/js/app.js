@@ -27,6 +27,7 @@ import {hooks as colocatedHooks} from "phoenix-colocated/chat"
 import topbar from "../vendor/topbar"
 
 const CHAT_PREFERENCES_KEY = "chat:guest-preferences"
+const GALLERY_AUTH_KEY = "chat:gallery-auth"
 
 const readChatPreferenceStore = () => {
   const fallback = {current_nickname: null, by_nickname: {}}
@@ -118,6 +119,33 @@ const liveSocket = new LiveSocket("/live", Socket, {
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+window.addEventListener("phx:clear-message-input", _info => {
+  const messageInput = document.getElementById("message-body")
+
+  if (messageInput) {
+    messageInput.value = ""
+    messageInput.focus()
+  }
+})
+
+window.addEventListener("phx:focus-message-input", _info => {
+  requestAnimationFrame(() => {
+    const messageInput = document.getElementById("message-body")
+
+    if (messageInput) {
+      messageInput.focus()
+      messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length)
+    }
+  })
+})
+
+window.addEventListener("phx:save-gallery-auth", event => {
+  localStorage.setItem(GALLERY_AUTH_KEY, event.detail.token)
+})
+
+window.addEventListener("phx:clear-gallery-auth", _event => {
+  localStorage.removeItem(GALLERY_AUTH_KEY)
+})
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()

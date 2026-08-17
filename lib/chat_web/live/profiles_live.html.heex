@@ -1,0 +1,143 @@
+<Layouts.app flash={@flash}>
+  <section
+    class="chat-shell min-h-screen bg-zinc-950 text-zinc-100"
+    data-chat-theme="vertigo"
+    data-chat-mode="dark"
+  >
+    <header class="flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 sm:px-8">
+      <a href={~p"/"} class="flex items-center gap-3">
+        <span class="vertigo-mark" aria-hidden="true"></span>
+        <span class="vertigo-wordmark uppercase">Vertigo</span>
+      </a>
+      <.link
+        href={~p"/"}
+        class="flex items-center gap-2 text-sm text-zinc-300 transition hover:text-amber-300"
+      >
+        <.icon name="hero-arrow-left" class="size-4" /> Вернуться в чат
+      </.link>
+    </header>
+
+    <main class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
+      <div class="flex flex-col gap-6 border-b border-zinc-800 pb-8 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-300">
+            Досье чатлан
+          </p>
+          <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Анкеты</h1>
+          <p id="profiles-total" class="mt-3 text-sm text-zinc-400">
+            Найдено: {@total}
+          </p>
+        </div>
+
+        <.form for={@search_form} id="profile-search" phx-change="search" class="w-full max-w-md">
+          <label
+            for="profile-search-query"
+            class="mb-2 block text-xs uppercase tracking-[0.16em] text-zinc-400"
+          >
+            Поиск по нику или имени
+          </label>
+          <div class="relative">
+            <.icon
+              name="hero-magnifying-glass"
+              class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-zinc-500"
+            />
+            <input
+              id="profile-search-query"
+              name={@search_form[:query].name}
+              value={@search_form[:query].value}
+              phx-debounce="300"
+              autocomplete="off"
+              placeholder="Например, Scottie"
+              class="w-full rounded-xl border border-zinc-700 bg-zinc-950 py-3 pl-11 pr-4 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-amber-300"
+            />
+          </div>
+        </.form>
+      </div>
+
+      <div
+        id="profiles"
+        phx-update="stream"
+        class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      >
+        <div
+          id="profiles-empty"
+          class="col-span-full hidden rounded-2xl border border-dashed border-zinc-700 px-6 py-16 text-center text-zinc-400 only:block"
+        >
+          По этому запросу анкет не найдено.
+        </div>
+        <article
+          :for={{dom_id, profile} <- @streams.profiles}
+          id={dom_id}
+          data-profile-nickname={profile.user.nickname}
+          class="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/80 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-rose-300/50"
+        >
+          <div class="aspect-[4/3] overflow-hidden bg-zinc-950">
+            <%= if photo_url(profile) do %>
+              <img
+                src={photo_url(profile)}
+                alt={"Фото #{profile.user.nickname}"}
+                class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              />
+            <% else %>
+              <div class="flex h-full items-center justify-center bg-[radial-gradient(circle_at_center,rgba(190,18,60,0.2),transparent_65%)] text-zinc-700">
+                <.icon name="hero-user" class="size-20" />
+              </div>
+            <% end %>
+          </div>
+          <div class="p-5">
+            <h2 class="truncate text-2xl">{profile.user.nickname}</h2>
+            <p class="mt-1 truncate text-sm text-amber-200/80">
+              {profile.name || "Имя не указано"}
+            </p>
+            <div class="mt-4 flex items-center gap-2 text-xs text-zinc-500">
+              <span>{gender_label(profile.gender)}</span>
+              <%= if profile.birth_date do %>
+                <span aria-hidden="true">·</span>
+                <span>{Calendar.strftime(profile.birth_date, "%d.%m.%Y")}</span>
+              <% end %>
+            </div>
+            <p class="mt-4 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-zinc-400">
+              {profile.about || "Пользователь пока ничего о себе не рассказал."}
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <nav
+        id="profiles-pagination"
+        aria-label="Страницы анкет"
+        class="mt-10 flex items-center justify-center gap-2"
+      >
+        <.link
+          :if={@page > 1}
+          patch={~p"/profiles?#{%{q: @search, page: @page - 1}}"}
+          id="profiles-previous"
+          class="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-amber-300 hover:text-amber-300"
+        >
+          Назад
+        </.link>
+        <.link
+          :for={page <- @pages}
+          patch={~p"/profiles?#{%{q: @search, page: page}}"}
+          id={"profiles-page-#{page}"}
+          class={[
+            "flex size-10 items-center justify-center rounded-lg border text-sm transition",
+            page == @page && "border-rose-300 bg-rose-300/15 text-rose-100",
+            page != @page &&
+              "border-zinc-700 text-zinc-400 hover:border-amber-300 hover:text-amber-300"
+          ]}
+        >
+          {page}
+        </.link>
+        <.link
+          :if={@page < @total_pages}
+          patch={~p"/profiles?#{%{q: @search, page: @page + 1}}"}
+          id="profiles-next"
+          class="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-amber-300 hover:text-amber-300"
+        >
+          Далее
+        </.link>
+      </nav>
+    </main>
+  </section>
+</Layouts.app>

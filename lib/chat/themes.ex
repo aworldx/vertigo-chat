@@ -4,7 +4,7 @@ defmodule Chat.Themes do
   Defines available chat visual themes and their dark/light background modes.
   """
 
-  @default_theme_id "dark"
+  @default_theme_id "vertigo"
   @default_mode_id "dark"
 
   @modes [
@@ -13,6 +13,7 @@ defmodule Chat.Themes do
   ]
 
   @themes [
+    %{id: "vertigo", name: "Vertigo", mode: "dark"},
     %{id: "dark", name: "Тёмная", mode: "dark"},
     %{id: "night_sky", name: "Ночное небо", mode: "dark"},
     %{id: "light", name: "Светлая", mode: "light"}

@@ -55,19 +55,6 @@ defmodule Chat.Appearance do
     }
   end
 
-  def style(appearance) do
-    dark = for_mode(appearance, "dark")
-    light = for_mode(appearance, "light")
-
-    [
-      "--nick-dark: #{dark["nickname_color"]}",
-      "--text-dark: #{dark["text_color"]}",
-      "--nick-light: #{light["nickname_color"]}",
-      "--text-light: #{light["text_color"]}"
-    ]
-    |> Enum.join("; ")
-  end
-
   defp normalize_color("#" <> hex = color, fallback) when byte_size(hex) == 6 do
     if Regex.match?(~r/\A#[0-9a-fA-F]{6}\z/, color), do: String.downcase(color), else: fallback
   end

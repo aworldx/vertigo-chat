@@ -11,22 +11,15 @@ defmodule ChatWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/", ChatWeb do
     pipe_through :browser
 
     live "/", RoomLive, :show
+    live "/profiles", ProfilesLive, :index
+    live "/gallery", GalleryLive, :index
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", ChatWeb do
-  #   pipe_through :api
-  # end
-
-  # Enable LiveDashboard and Swoosh mailbox preview in development
+  # Enable LiveDashboard in development
   if Application.compile_env(:chat, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
     # it behind authentication and allow only admins to access it.
@@ -39,7 +32,6 @@ defmodule ChatWeb.Router do
       pipe_through :browser
 
       live_dashboard "/dashboard", metrics: ChatWeb.Telemetry
-      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 end

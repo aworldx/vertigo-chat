@@ -82,6 +82,7 @@ defmodule Chat.Messages do
         author: "system",
         body:
           "Добро пожаловать в первый Phoenix-чат. Открой эту страницу в двух вкладках и сообщения появятся мгновенно.",
+        recipient: nil,
         theme_id: Themes.default_theme_id(),
         appearance: Appearance.default(),
         at: current_time()
@@ -96,10 +97,18 @@ defmodule Chat.Messages do
       id: System.unique_integer([:positive]),
       author: author,
       body: body,
+      recipient: recipient_from_body(body),
       theme_id: theme_id,
       appearance: appearance,
       at: current_time()
     }
+  end
+
+  defp recipient_from_body(body) do
+    case Regex.run(~r/^([\p{L}\p{N}_-]{3,24}),(?:\s|$)/u, body, capture: :all_but_first) do
+      [nickname] -> nickname
+      _no_recipient -> nil
+    end
   end
 
   defp current_time do

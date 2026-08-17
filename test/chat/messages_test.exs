@@ -15,7 +15,17 @@ defmodule Chat.MessagesTest do
 
       assert message.author == "alice"
       assert message.body == "hello"
+      assert message.recipient == nil
       assert_receive {:message_created, ^message}
+    end
+
+    test "extracts the addressed nickname from the beginning of a message" do
+      assert {:ok, message} =
+               Messages.send_public_message("alice", "private-room", %{
+                 "body" => "bob, привет"
+               })
+
+      assert message.recipient == "bob"
     end
 
     test "broadcasts message colors" do

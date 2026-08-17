@@ -8,90 +8,32 @@
 @source "../css";
 @source "../js";
 @source "../../lib/chat_web";
+
+@font-face {
+  font-family: "Vertigo Display";
+  src: url("/fonts/oswald-variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vertigo Text";
+  src: url("/fonts/manrope-variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+.emoji-picker-closed {
+  display: none;
+}
 /* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
 @source "../../_build/dev/phoenix-colocated/chat/*/";
 
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
-
-/* daisyUI Tailwind Plugin. */
-@plugin "daisyui/packages/bundle/daisyui" {
-  themes: false;
-}
-
-/* daisyUI theme plugin.
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
-@plugin "daisyui/packages/bundle/daisyui-theme" {
-  name: "dark";
-  default: false;
-  prefersdark: true;
-  color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
-}
-
-@plugin "daisyui/packages/bundle/daisyui-theme" {
-  name: "light";
-  default: true;
-  prefersdark: false;
-  color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
-}
 
 /* Add variants based on LiveView classes */
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
@@ -106,6 +48,55 @@
 
 /* This file is for your main application CSS */
 
+.chat-shell {
+  font-family: "Vertigo Text", "Avenir Next", sans-serif;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+.chat-shell h1,
+.chat-shell h2,
+.chat-shell .vertigo-wordmark,
+.chat-shell .chat-message-author,
+.chat-shell .chat-user-nickname,
+.chat-shell .chat-current-nickname,
+.chat-shell .chat-preview-nickname {
+  font-family: "Vertigo Display", "Arial Narrow", sans-serif;
+}
+
+.chat-shell h1,
+.chat-shell h2 {
+  font-weight: 560;
+  letter-spacing: 0.025em;
+}
+
+.chat-shell .vertigo-wordmark {
+  font-size: 1.05rem;
+  font-weight: 580;
+  letter-spacing: 0.34em;
+  line-height: 1;
+}
+
+.chat-shell .chat-message-author,
+.chat-shell .chat-user-nickname,
+.chat-shell .chat-current-nickname,
+.chat-shell .chat-preview-nickname {
+  font-weight: 520;
+  letter-spacing: 0.025em;
+}
+
+.chat-shell button {
+  font-family: "Vertigo Display", "Arial Narrow", sans-serif;
+  letter-spacing: 0.025em;
+}
+
+.chat-shell input,
+.chat-shell select,
+.chat-shell textarea,
+.chat-shell .chat-message-body {
+  font-family: "Vertigo Text", "Avenir Next", sans-serif;
+}
+
 .chat-message-author,
 .chat-user-nickname,
 .chat-current-nickname,
@@ -116,6 +107,79 @@
 .chat-message-body,
 .chat-preview-text {
   color: var(--text-dark);
+}
+
+.vertigo-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  color: #fb7185;
+  transition:
+    color 180ms ease,
+    transform 300ms ease;
+}
+
+a:hover .vertigo-mark {
+  color: #fda4af;
+  transform: rotate(-8deg) scale(1.04);
+}
+
+.chat-shell[data-chat-theme="vertigo"] {
+  background:
+    radial-gradient(ellipse at 48% 42%, rgba(190, 18, 60, 0.22), transparent 18rem),
+    repeating-radial-gradient(circle at 50% 44%, rgba(236, 253, 245, 0.08) 0 1px, transparent 1px 18px),
+    linear-gradient(145deg, #07110f 0%, #111827 42%, #21090d 100%);
+  color: #f5f0df;
+}
+
+.chat-shell[data-chat-theme="vertigo"] header {
+  background:
+    linear-gradient(90deg, rgba(6, 78, 59, 0.92), rgba(63, 7, 18, 0.92)),
+    #111827;
+}
+
+.chat-shell[data-chat-theme="vertigo"] .bg-zinc-950 {
+  background-color: rgba(5, 20, 18, 0.94);
+}
+
+.chat-shell[data-chat-theme="vertigo"] .bg-zinc-900,
+.chat-shell[data-chat-theme="vertigo"] .bg-zinc-900\/80 {
+  background-color: rgba(23, 37, 32, 0.86);
+}
+
+.chat-shell[data-chat-theme="vertigo"] .bg-zinc-950\/70 {
+  background-color: rgba(5, 20, 18, 0.72);
+}
+
+.chat-shell[data-chat-theme="vertigo"] .border-zinc-800,
+.chat-shell[data-chat-theme="vertigo"] .border-zinc-700 {
+  border-color: rgba(244, 63, 94, 0.24);
+}
+
+.chat-shell[data-chat-theme="vertigo"] .text-zinc-100,
+.chat-shell[data-chat-theme="vertigo"] .text-zinc-300 {
+  color: #f5f0df;
+}
+
+.chat-shell[data-chat-theme="vertigo"] .text-zinc-400,
+.chat-shell[data-chat-theme="vertigo"] .text-zinc-500 {
+  color: #a7f3d0;
+}
+
+.chat-shell[data-chat-theme="vertigo"] input,
+.chat-shell[data-chat-theme="vertigo"] select {
+  background-color: rgba(5, 20, 18, 0.95);
+  color: #f5f0df;
+}
+
+.chat-shell[data-chat-theme="vertigo"] button.bg-amber-300 {
+  background-color: #e11d48;
+  color: #fff7ed;
+  box-shadow: 0 0 20px rgba(225, 29, 72, 0.28);
+}
+
+.chat-shell[data-chat-theme="vertigo"] button.bg-amber-300:hover {
+  background-color: #fb7185;
 }
 
 .chat-shell[data-chat-mode="light"] .chat-message-author,

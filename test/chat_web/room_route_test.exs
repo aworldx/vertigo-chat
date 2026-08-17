@@ -5,6 +5,6 @@ defmodule ChatWeb.RoomRouteTest do
   test "GET / renders the chat", %{conn: conn} do
     conn = get(conn, ~p"/")
 
-    assert html_response(conn, 200) =~ "August Chat"
+    assert html_response(conn, 200) =~ "Vertigo"
   end
 end

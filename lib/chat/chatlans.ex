@@ -6,8 +6,8 @@ defmodule Chat.Chatlans do
 
   alias Chat.Appearance
   alias Chat.Messages
+  alias Chat.Presence
   alias Chat.Themes
-  alias ChatWeb.Presence
 
   def guest_presence_key do
     "presence-" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))

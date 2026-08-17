@@ -10,6 +10,7 @@ defmodule Chat.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
+      test_coverage: test_coverage(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
@@ -28,7 +29,7 @@ defmodule Chat.MixProject do
 
   def cli do
     [
-      preferred_envs: [precommit: :test]
+      preferred_envs: [coverage: :test, precommit: :test]
     ]
   end
 
@@ -59,14 +60,6 @@ defmodule Chat.MixProject do
        app: false,
        compile: false,
        depth: 1},
-      {:daisyui,
-       github: "saadeghi/daisyui",
-       tag: "v5.5.20",
-       sparse: "packages/bundle",
-       app: false,
-       compile: false,
-       depth: 1},
-      {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
@@ -89,6 +82,7 @@ defmodule Chat.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      coverage: [&clean_coverage/1, "test --cover"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind chat", "esbuild chat"],
       "assets.deploy": [
@@ -98,5 +92,31 @@ defmodule Chat.MixProject do
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
     ]
+  end
+
+  defp test_coverage do
+    [
+      ignore_modules: [
+        Chat.Application,
+        Chat.Presence,
+        Chat.Repo,
+        Chat.DataCase,
+        ChatWeb,
+        ChatWeb.ConnCase,
+        ChatWeb.CoreComponents,
+        ChatWeb.Endpoint,
+        ChatWeb.ErrorHTML,
+        ChatWeb.ErrorJSON,
+        ChatWeb.Gettext,
+        ChatWeb.Layouts,
+        ChatWeb.Router,
+        ChatWeb.Telemetry
+      ],
+      summary: [threshold: 85]
+    ]
+  end
+
+  defp clean_coverage(_args) do
+    File.rm_rf!("cover")
   end
 end
