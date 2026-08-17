@@ -3,6 +3,7 @@ defmodule Chat.MessagesTest do
   use Chat.DataCase, async: true
 
   alias Chat.Messages
+  alias Chat.Security.Subject
 
   describe "send_public_message/3" do
     test "broadcasts a trimmed message to the room topic" do
@@ -82,27 +83,33 @@ defmodule Chat.MessagesTest do
     end
 
     test "limits message length and rapid spam" do
-      identity = {:test_sender, System.unique_integer([:positive])}
+      subject = Subject.internal({:test_sender, System.unique_integer([:positive])})
 
       assert {:error, :message_too_long} =
-               Messages.send_public_message("alice", "secure-room", %{
-                 "body" => String.duplicate("я", Messages.max_body_length() + 1),
-                 "_security_identity" => identity
-               })
+               Messages.send_public_message(
+                 "alice",
+                 "secure-room",
+                 %{"body" => String.duplicate("я", Messages.max_body_length() + 1)},
+                 subject
+               )
 
       for index <- 1..3 do
         assert {:ok, _message} =
-                 Messages.send_public_message("alice", "secure-room", %{
-                   "body" => "message #{index}",
-                   "_security_identity" => identity
-                 })
+                 Messages.send_public_message(
+                   "alice",
+                   "secure-room",
+                   %{"body" => "message #{index}"},
+                   subject
+                 )
       end
 
       assert {:error, :rate_limited} =
-               Messages.send_public_message("alice", "secure-room", %{
-                 "body" => "spam",
-                 "_security_identity" => identity
-               })
+               Messages.send_public_message(
+                 "alice",
+                 "secure-room",
+                 %{"body" => "spam"},
+                 subject
+               )
     end
   end
 

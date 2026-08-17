@@ -10,6 +10,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Themes
   alias Chat.Visits
   alias ChatWeb.AuthComponents
+  alias ChatWeb.ClientSecurity
   alias ChatWeb.RoomComponents
   alias ChatWeb.ShellComponents
   alias ChatWeb.UserAuth
@@ -20,13 +21,13 @@ defmodule ChatWeb.RoomLive do
   def mount(_params, _session, socket) do
     nickname = Chatlans.guest_nickname()
     presence_key = Chatlans.guest_presence_key()
-    security_identities = client_security_identities(socket, presence_key)
+    security_subject = ClientSecurity.subject_from_socket(socket, presence_key)
 
     socket =
       socket
       |> assign(:nickname, nickname)
       |> assign(:presence_key, presence_key)
-      |> assign(:security_identities, security_identities)
+      |> assign(:security_subject, security_subject)
       |> assign(:preference_nickname, nil)
       |> assign(:theme_id, Themes.default_theme_id())
       |> assign(:themes, Themes.list())
@@ -128,7 +129,7 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("register_user", %{"registration" => params}, socket) do
-    case Accounts.register_user(params, socket.assigns.security_identities.registration) do
+    case Accounts.register_user(params, socket.assigns.security_subject) do
       {:ok, user} ->
         {:noreply,
          socket
@@ -150,12 +151,16 @@ defmodule ChatWeb.RoomLive do
   def handle_event("send_message", %{"message" => %{"body" => body}}, socket) do
     result =
       if socket.assigns.joined? do
-        Messages.send_public_message(socket.assigns.nickname, @room_id, %{
-          "body" => body,
-          "theme_id" => socket.assigns.theme_id,
-          "appearance" => socket.assigns.appearance,
-          "_security_identity" => message_security_identity(socket)
-        })
+        Messages.send_public_message(
+          socket.assigns.nickname,
+          @room_id,
+          %{
+            "body" => body,
+            "theme_id" => socket.assigns.theme_id,
+            "appearance" => socket.assigns.appearance
+          },
+          message_security_subject(socket)
+        )
       else
         {:error, :not_joined}
       end
@@ -452,29 +457,14 @@ defmodule ChatWeb.RoomLive do
     "С этого адреса уже создавали аккаунт. Повторная регистрация доступна через сутки."
   end
 
-  defp message_security_identity(%{assigns: %{current_user: %{id: user_id}}}),
-    do: {:user, user_id}
-
-  defp message_security_identity(socket), do: socket.assigns.security_identities.message
+  defp message_security_subject(socket) do
+    ClientSecurity.for_user(socket.assigns.security_subject, socket.assigns.current_user)
+  end
 
   defp message_error(:rate_limited), do: "Слишком часто. Подожди немного перед отправкой."
   defp message_error(:message_too_long), do: "Сообщение не должно превышать 1000 символов."
   defp message_error(:empty_body), do: "Нельзя отправить пустое сообщение."
   defp message_error(_reason), do: "Не удалось отправить сообщение."
-
-  defp client_security_identities(socket, fallback) do
-    case get_connect_info(socket, :peer_data) do
-      %{address: address} ->
-        ip = address |> :inet.ntoa() |> to_string()
-        %{message: {:client, ip, fallback}, registration: {:ip, ip}}
-
-      _missing_peer_data ->
-        %{
-          message: {:client, :unknown, fallback},
-          registration: {:connection, fallback}
-        }
-    end
-  end
 
   defp save_uploaded_photo(socket, profile) do
     case uploaded_entries(socket, :profile_photo) do

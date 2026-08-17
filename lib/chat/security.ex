@@ -5,24 +5,33 @@ defmodule Chat.Security do
   alias Chat.Repo
   alias Chat.Security.RateLimiter
   alias Chat.Security.RegistrationGuard
+  alias Chat.Security.Subject
 
   @message_rules [{3, 2_000}, {12, 60_000}]
   @guest_ip_message_rules [{30, 60_000}]
 
-  def allow_message({:client, ip, _connection_id} = identity) do
+  def allow_message(%Subject{actor_id: actor_id}) when is_integer(actor_id) do
+    RateLimiter.check({:message, {:user, actor_id}}, @message_rules)
+  end
+
+  def allow_message(%Subject{client_ip: nil, connection_id: connection_id}) do
+    RateLimiter.check({:message, {:client, nil, connection_id}}, @message_rules)
+  end
+
+  def allow_message(%Subject{client_ip: ip, connection_id: connection_id}) do
+    identity = {:client, ip, connection_id}
+
     with :ok <- RateLimiter.check({:message, identity}, @message_rules),
          :ok <- RateLimiter.check({:message_ip, ip}, @guest_ip_message_rules) do
       :ok
     end
   end
 
-  def allow_message(identity), do: RateLimiter.check({:message, identity}, @message_rules)
-
   def claim_registration(nil), do: :ok
 
-  def claim_registration(identity) do
+  def claim_registration(%Subject{} = subject) do
     attrs = %{
-      "fingerprint" => registration_fingerprint(identity),
+      "fingerprint" => registration_fingerprint(Subject.registration_identity(subject)),
       "day" => Date.utc_today()
     }
 

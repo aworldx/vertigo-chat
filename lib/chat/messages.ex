@@ -9,6 +9,7 @@ defmodule Chat.Messages do
 
   alias Chat.Appearance
   alias Chat.Security
+  alias Chat.Security.Subject
   alias Chat.Themes
 
   @default_room_id "lobby"
@@ -18,7 +19,11 @@ defmodule Chat.Messages do
     Phoenix.PubSub.subscribe(Chat.PubSub, room_topic(room_id))
   end
 
-  def send_public_message(author, room_id \\ @default_room_id, attrs)
+  def send_public_message(author, room_id \\ @default_room_id, attrs) do
+    send_public_message(author, room_id, attrs, Subject.internal({room_id, author}))
+  end
+
+  def send_public_message(author, room_id, attrs, subject)
 
   def send_public_message(
         author,
@@ -27,7 +32,8 @@ defmodule Chat.Messages do
           "body" => body,
           "theme_id" => theme_id,
           "appearance" => appearance
-        } = attrs
+        },
+        %Subject{} = subject
       )
       when is_binary(body) do
     deliver_message(
@@ -36,22 +42,24 @@ defmodule Chat.Messages do
       body,
       Themes.normalize_theme_id(theme_id),
       Appearance.normalize(appearance),
-      Map.get(attrs, "_security_identity", {room_id, author})
+      subject
     )
   end
 
-  def send_public_message(author, room_id, %{"body" => body} = attrs) when is_binary(body) do
+  def send_public_message(author, room_id, %{"body" => body}, %Subject{} = subject)
+      when is_binary(body) do
     deliver_message(
       author,
       room_id,
       body,
       Themes.default_theme_id(),
       Appearance.default(),
-      Map.get(attrs, "_security_identity", {room_id, author})
+      subject
     )
   end
 
-  def send_public_message(_author, _room_id, _attrs), do: {:error, :invalid_message}
+  def send_public_message(_author, _room_id, _attrs, %Subject{}),
+    do: {:error, :invalid_message}
 
   def list_recent_messages(_room_id \\ @default_room_id) do
     [
@@ -72,7 +80,7 @@ defmodule Chat.Messages do
 
   def max_body_length, do: @max_body_length
 
-  defp deliver_message(author, room_id, body, theme_id, appearance, security_identity) do
+  defp deliver_message(author, room_id, body, theme_id, appearance, subject) do
     body = String.trim(body)
 
     cond do
@@ -83,7 +91,7 @@ defmodule Chat.Messages do
         {:error, :message_too_long}
 
       true ->
-        case Security.allow_message(security_identity) do
+        case Security.allow_message(subject) do
           :ok -> broadcast_message(author, room_id, body, theme_id, appearance)
           {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
         end

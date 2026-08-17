@@ -247,6 +247,24 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "  привет из теста  "
   end
 
+  test "keeps a registered user in chat after the first message", %{conn: conn} do
+    assert {:ok, _user} =
+             Accounts.register_user(%{"nickname" => "stable_member", "password" => "secret123"})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "stable_member", "secret123")
+
+    view
+    |> form("#message-form", message: %{body: "Первое сообщение"})
+    |> render_submit()
+
+    assert has_element?(view, "#chat-room")
+    assert has_element?(view, "#message-form")
+    assert has_element?(view, "#messages .chat-message-author", "stable_member")
+    assert has_element?(view, "#messages .chat-message-body", "Первое сообщение")
+    refute has_element?(view, "#entrance-form")
+  end
+
   test "renders an emoji picker next to the message input", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "emoji_user")

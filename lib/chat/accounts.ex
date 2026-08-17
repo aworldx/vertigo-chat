@@ -12,10 +12,11 @@ defmodule Chat.Accounts do
   alias Chat.Profiles
   alias Chat.Repo
   alias Chat.Security
+  alias Chat.Security.Subject
 
   def register_user(attrs), do: register_user(attrs, nil)
 
-  def register_user(attrs, registration_identity) do
+  def register_user(attrs, subject) when is_nil(subject) or is_struct(subject, Subject) do
     nickname = Chatlans.normalize_nickname(attrs["nickname"] || attrs[:nickname], nil)
 
     attrs =
@@ -30,7 +31,7 @@ defmodule Chat.Accounts do
         {:error, changeset}
 
       true ->
-        register_valid_user(changeset, registration_identity)
+        register_valid_user(changeset, subject)
     end
   end
 
@@ -78,11 +79,11 @@ defmodule Chat.Accounts do
     end
   end
 
-  defp register_valid_user(changeset, registration_identity) do
+  defp register_valid_user(changeset, subject) do
     Repo.transaction(fn ->
       with {:ok, user} <- Repo.insert(changeset),
            {:ok, _profile} <- Profiles.create_for_user(user),
-           :ok <- Security.claim_registration(registration_identity) do
+           :ok <- Security.claim_registration(subject) do
         user
       else
         {:error, :registration_limit_reached} -> Repo.rollback(:rate_limited)

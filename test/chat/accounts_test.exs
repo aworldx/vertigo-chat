@@ -4,6 +4,7 @@ defmodule Chat.AccountsTest do
 
   alias Chat.Accounts
   alias Chat.Accounts.User
+  alias Chat.Security.Subject
 
   test "registers a user with a hashed password" do
     assert {:ok, user} =
@@ -72,18 +73,18 @@ defmodule Chat.AccountsTest do
   end
 
   test "prevents repeated registration from the same client identity" do
-    identity = {:registration_test, System.unique_integer([:positive])}
+    subject = unique_subject(:registration_test)
 
     assert {:ok, _user} =
              Accounts.register_user(
                %{"nickname" => "first_identity", "password" => "secret123"},
-               identity
+               subject
              )
 
     assert {:error, :rate_limited} =
              Accounts.register_user(
                %{"nickname" => "second_identity", "password" => "secret123"},
-               identity
+               subject
              )
   end
 
@@ -98,7 +99,7 @@ defmodule Chat.AccountsTest do
   end
 
   test "does not consume a registration allowance for a database validation error" do
-    identity = {:retry_registration, System.unique_integer([:positive])}
+    subject = unique_subject(:retry_registration)
 
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "already_taken", "password" => "secret123"})
@@ -106,13 +107,18 @@ defmodule Chat.AccountsTest do
     assert {:error, %Ecto.Changeset{}} =
              Accounts.register_user(
                %{"nickname" => "already_taken", "password" => "secret123"},
-               identity
+               subject
              )
 
     assert {:ok, _user} =
              Accounts.register_user(
                %{"nickname" => "available_after_retry", "password" => "secret123"},
-               identity
+               subject
              )
+  end
+
+  defp unique_subject(prefix) do
+    unique = System.unique_integer([:positive])
+    Subject.guest("#{prefix}-#{unique}", unique)
   end
 end
