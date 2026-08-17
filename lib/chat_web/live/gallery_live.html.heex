@@ -257,11 +257,11 @@
       export default {
         mounted() {
           this.authenticate = () => {
-            const token = localStorage.getItem("chat:gallery-auth")
+            const token = localStorage.getItem("chat:user-auth")
             this.pushEvent("authenticate_gallery", token ? {token} : {})
           }
           this.onStorage = event => {
-            if (event.key === "chat:gallery-auth") this.authenticate()
+            if (event.key === "chat:user-auth") this.authenticate()
           }
           this.authenticate()
           window.addEventListener("storage", this.onStorage)

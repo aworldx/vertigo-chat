@@ -90,6 +90,33 @@
   letter-spacing: 0.025em;
 }
 
+.library-shell {
+  background-color: #100a07;
+  background-image:
+    radial-gradient(circle at 50% -10%, rgba(217, 119, 6, 0.18), transparent 42%),
+    linear-gradient(115deg, #0b0705 0%, #1b100a 48%, #090604 100%);
+}
+
+.library-shelves {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(69, 26, 3, 0.9) 0 1.1rem,
+      rgba(120, 53, 15, 0.82) 1.1rem 1.45rem,
+      rgba(49, 46, 129, 0.5) 1.45rem 2.3rem,
+      rgba(127, 29, 29, 0.6) 2.3rem 3.45rem,
+      rgba(78, 49, 25, 0.9) 3.45rem 4rem
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 8rem,
+      rgba(66, 32, 15, 0.95) 8rem 8.7rem,
+      rgba(18, 9, 5, 0.98) 8.7rem 9rem
+    );
+  background-size: auto 9rem;
+  filter: saturate(0.7) sepia(0.25);
+}
+
 .chat-shell input,
 .chat-shell select,
 .chat-shell textarea,

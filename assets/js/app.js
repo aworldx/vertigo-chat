@@ -27,7 +27,7 @@ import {hooks as colocatedHooks} from "phoenix-colocated/chat"
 import topbar from "../vendor/topbar"
 
 const CHAT_PREFERENCES_KEY = "chat:guest-preferences"
-const GALLERY_AUTH_KEY = "chat:gallery-auth"
+const USER_AUTH_KEY = "chat:user-auth"
 
 const readChatPreferenceStore = () => {
   const fallback = {current_nickname: null, by_nickname: {}}
@@ -139,12 +139,12 @@ window.addEventListener("phx:focus-message-input", _info => {
   })
 })
 
-window.addEventListener("phx:save-gallery-auth", event => {
-  localStorage.setItem(GALLERY_AUTH_KEY, event.detail.token)
+window.addEventListener("phx:save-user-auth", event => {
+  localStorage.setItem(USER_AUTH_KEY, event.detail.token)
 })
 
-window.addEventListener("phx:clear-gallery-auth", _event => {
-  localStorage.removeItem(GALLERY_AUTH_KEY)
+window.addEventListener("phx:clear-user-auth", _event => {
+  localStorage.removeItem(USER_AUTH_KEY)
 })
 
 // connect if there are any LiveViews on the page

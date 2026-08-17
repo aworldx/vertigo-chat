@@ -5,7 +5,7 @@ defmodule ChatWeb.GalleryLiveTest do
   alias Chat.Accounts
   alias Chat.Accounts.User
   alias Chat.Gallery
-  alias ChatWeb.GalleryAuth
+  alias ChatWeb.UserAuth
 
   test "shows photos as a gallery with their uploader", %{conn: conn} do
     {:ok, user} =
@@ -28,7 +28,7 @@ defmodule ChatWeb.GalleryLiveTest do
       Accounts.register_user(%{"nickname" => "gallery_uploader", "password" => "secret123"})
 
     {:ok, view, _html} = live(conn, ~p"/gallery")
-    render_hook(view, "authenticate_gallery", %{"token" => GalleryAuth.sign(user)})
+    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
 
     assert has_element?(view, "#gallery-upload-form")
 
@@ -61,7 +61,7 @@ defmodule ChatWeb.GalleryLiveTest do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "empty_upload", "password" => "secret123"})
 
-    render_hook(view, "authenticate_gallery", %{"token" => GalleryAuth.sign(user)})
+    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
     view |> element("#gallery-upload-form") |> render_change()
     html = view |> element("#gallery-upload-form") |> render_submit()
 
@@ -70,9 +70,9 @@ defmodule ChatWeb.GalleryLiveTest do
   end
 
   test "rejects non-binary tokens and tokens for missing users" do
-    assert {:error, :invalid_token} = GalleryAuth.verify(nil)
+    assert {:error, :invalid_token} = UserAuth.verify(nil)
 
-    token = GalleryAuth.sign(%User{id: -1})
-    assert {:error, :invalid_token} = GalleryAuth.verify(token)
+    token = UserAuth.sign(%User{id: -1})
+    assert {:error, :invalid_token} = UserAuth.verify(token)
   end
 end

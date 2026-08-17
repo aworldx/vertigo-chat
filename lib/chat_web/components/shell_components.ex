@@ -29,7 +29,14 @@ defmodule ChatWeb.ShellComponents do
         >
           Анкеты
         </.link>
-        <span>Записная книжка</span>
+        <.link
+          href={~p"/library"}
+          target="_blank"
+          rel="noopener"
+          class="transition hover:text-amber-300"
+        >
+          Библиотека
+        </.link>
         <.link
           href={~p"/gallery"}
           target="_blank"
@@ -38,7 +45,14 @@ defmodule ChatWeb.ShellComponents do
         >
           Фотоальбом
         </.link>
-        <span>Кто был</span>
+        <.link
+          href={~p"/visits"}
+          target="_blank"
+          rel="noopener"
+          class="transition hover:text-amber-300"
+        >
+          Кто был
+        </.link>
         <%= if !@joined do %>
           <button
             id="show-registration"

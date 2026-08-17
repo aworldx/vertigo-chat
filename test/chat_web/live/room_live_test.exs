@@ -3,6 +3,7 @@ defmodule ChatWeb.RoomLiveTest do
   use ChatWeb.ConnCase
 
   alias Chat.Accounts
+  alias Chat.Visits
 
   test "renders the entrance screen and current chatlan info", %{conn: conn} do
     {:ok, view, html} = live(conn, ~p"/")
@@ -15,6 +16,8 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Общая комната"
     assert has_element?(view, "a[href='/profiles'][target='_blank']")
     assert has_element?(view, "a[href='/gallery'][target='_blank']")
+    assert has_element?(view, "a[href='/visits'][target='_blank']")
+    assert has_element?(view, "a[href='/library'][target='_blank']")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
   end
 
@@ -432,6 +435,21 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Общая комната"
     refute html =~ "Напиши сообщение"
     refute html =~ "Настройки"
+  end
+
+  test "records entrance and exit timestamps", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "history_user")
+
+    assert [visit] = Visits.list_recent_visits()
+    assert visit.nickname == "history_user"
+    assert visit.left_at == nil
+
+    view |> element("#leave-chat") |> render_click()
+
+    assert [finished] = Visits.list_recent_visits()
+    assert finished.id == visit.id
+    assert finished.left_at
   end
 
   defp enter_chat(view, nickname, password \\ "") do

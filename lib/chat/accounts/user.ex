@@ -5,6 +5,7 @@ defmodule Chat.Accounts.User do
   import Ecto.Changeset
 
   alias Chat.Accounts.Password
+  alias Chat.Library.Article
   alias Chat.Profiles.Profile
 
   schema "registered_users" do
@@ -12,6 +13,7 @@ defmodule Chat.Accounts.User do
     field(:password_hash, :string)
     field(:password, :string, virtual: true)
     has_one(:profile, Profile)
+    has_many(:library_articles, Article)
 
     timestamps(type: :utc_datetime)
   end

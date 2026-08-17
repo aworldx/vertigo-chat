@@ -17,6 +17,8 @@ defmodule ChatWeb.Router do
     live "/", RoomLive, :show
     live "/profiles", ProfilesLive, :index
     live "/gallery", GalleryLive, :index
+    live "/visits", VisitsLive, :index
+    live "/library", LibraryLive, :index
   end
 
   # Enable LiveDashboard in development

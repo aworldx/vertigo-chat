@@ -1,9 +1,9 @@
-# Назначение файла: подписывает и проверяет короткоживущую авторизацию фотоальбома между вкладками.
-defmodule ChatWeb.GalleryAuth do
+# Назначение файла: подписывает и проверяет короткоживущую авторизацию пользователя между вкладками.
+defmodule ChatWeb.UserAuth do
   alias Chat.Accounts
   alias Chat.Accounts.User
 
-  @salt "gallery-auth"
+  @salt "user-auth"
   @max_age 86_400
 
   def sign(%User{id: user_id}) do

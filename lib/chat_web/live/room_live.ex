@@ -8,10 +8,11 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Messages
   alias Chat.Profiles
   alias Chat.Themes
+  alias Chat.Visits
   alias ChatWeb.AuthComponents
-  alias ChatWeb.GalleryAuth
   alias ChatWeb.RoomComponents
   alias ChatWeb.ShellComponents
+  alias ChatWeb.UserAuth
 
   @room_id "lobby"
 
@@ -31,6 +32,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:appearance, Appearance.default())
       |> assign_active_colors()
       |> assign(:joined?, false)
+      |> assign(:visit, nil)
       |> assign(:current_user, nil)
       |> assign(:profile, nil)
       |> assign(:profile_form, nil)
@@ -67,26 +69,34 @@ defmodule ChatWeb.RoomLive do
   def handle_event("enter_chat", %{"entrance" => params}, socket) do
     nickname = Chatlans.normalize_nickname(params["nickname"], socket.assigns.nickname)
 
-    case Accounts.authorize_entrance(nickname, params["password"]) do
-      {:ok, user} ->
-        socket =
-          socket
-          |> assign(:nickname, nickname)
-          |> assign(:current_user, user)
-          |> assign(:entrance_error, nil)
-          |> reset_colors_for_new_nickname(nickname)
-          |> assign(:joined?, true)
-          |> assign_nickname_form()
-          |> assign_settings_form()
-          |> stream(:messages, Messages.list_recent_messages(@room_id), reset: true)
+    with {:ok, user} <- Accounts.authorize_entrance(nickname, params["password"]),
+         {:ok, visit} <- Visits.start_visit(nickname) do
+      socket =
+        socket
+        |> assign(:nickname, nickname)
+        |> assign(:current_user, user)
+        |> assign(:visit, visit)
+        |> assign(:entrance_error, nil)
+        |> reset_colors_for_new_nickname(nickname)
+        |> assign(:joined?, true)
+        |> assign_nickname_form()
+        |> assign_settings_form()
+        |> stream(:messages, Messages.list_recent_messages(@room_id), reset: true)
 
-        track_presence(socket)
+      track_presence(socket)
 
+      {:noreply,
+       socket
+       |> assign(:online, Chatlans.list_online(@room_id))
+       |> push_event("save-chat-preferences", public_preferences(socket))
+       |> sync_user_auth(user)}
+    else
+      {:error, %Ecto.Changeset{}} ->
         {:noreply,
          socket
-         |> assign(:online, Chatlans.list_online(@room_id))
-         |> push_event("save-chat-preferences", public_preferences(socket))
-         |> sync_gallery_auth(user)}
+         |> assign(:nickname, nickname)
+         |> assign(:entrance_error, "Не удалось сохранить вход. Попробуй ещё раз.")
+         |> assign_nickname_form()}
 
       {:error, reason} ->
         {:noreply,
@@ -234,6 +244,7 @@ defmodule ChatWeb.RoomLive do
 
     socket =
       socket
+      |> close_visit()
       |> assign(:joined?, false)
       |> assign(:current_user, nil)
       |> assign(:profile, nil)
@@ -242,7 +253,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
       |> assign_nickname_form()
       |> assign(:online, Chatlans.list_online(@room_id))
-      |> push_event("clear-gallery-auth", %{})
+      |> push_event("clear-user-auth", %{})
 
     {:noreply, socket}
   end
@@ -294,6 +305,15 @@ defmodule ChatWeb.RoomLive do
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    socket.assigns
+    |> Map.get(:visit)
+    |> finish_visit()
+
+    :ok
   end
 
   defp assign_preferences(socket, params, opts \\ []) do
@@ -437,9 +457,26 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  defp sync_gallery_auth(socket, nil), do: push_event(socket, "clear-gallery-auth", %{})
+  defp sync_user_auth(socket, nil), do: push_event(socket, "clear-user-auth", %{})
 
-  defp sync_gallery_auth(socket, user) do
-    push_event(socket, "save-gallery-auth", %{token: GalleryAuth.sign(user)})
+  defp sync_user_auth(socket, user) do
+    push_event(socket, "save-user-auth", %{token: UserAuth.sign(user)})
+  end
+
+  defp close_visit(socket) do
+    socket.assigns
+    |> Map.get(:visit)
+    |> finish_visit()
+
+    assign(socket, :visit, nil)
+  end
+
+  defp finish_visit(nil), do: :ok
+
+  defp finish_visit(visit) do
+    case Visits.finish_visit(visit) do
+      {:ok, _visit} -> :ok
+      {:error, _changeset} -> :error
+    end
   end
 end

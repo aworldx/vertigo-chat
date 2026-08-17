@@ -3,8 +3,8 @@ defmodule ChatWeb.GalleryLive do
   use ChatWeb, :live_view
 
   alias Chat.Gallery
-  alias ChatWeb.GalleryAuth
   alias ChatWeb.Media
+  alias ChatWeb.UserAuth
 
   @impl true
   def mount(_params, _session, socket) do
@@ -24,7 +24,7 @@ defmodule ChatWeb.GalleryLive do
 
   @impl true
   def handle_event("authenticate_gallery", %{"token" => token}, socket) do
-    case GalleryAuth.verify(token) do
+    case UserAuth.verify(token) do
       {:ok, user} ->
         {:noreply, socket |> assign(:current_user, user) |> assign(:auth_checked?, true)}
 

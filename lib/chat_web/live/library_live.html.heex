@@ -1,0 +1,321 @@
+<Layouts.app flash={@flash}>
+  <section
+    id="library-page"
+    phx-hook=".LibraryAuth"
+    class="library-shell chat-shell relative min-h-screen overflow-hidden text-stone-100"
+    data-chat-theme="vertigo"
+    data-chat-mode="dark"
+  >
+    <div class="library-shelves pointer-events-none fixed inset-0 opacity-35" aria-hidden="true">
+    </div>
+    <div
+      class="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_10%,transparent_0,rgba(12,7,5,0.35)_48%,rgba(5,3,2,0.88)_100%)]"
+      aria-hidden="true"
+    >
+    </div>
+
+    <header class="relative z-10 flex min-h-16 items-center justify-between border-b border-amber-950/70 bg-stone-950/85 px-4 shadow-xl backdrop-blur-sm sm:px-8">
+      <a href={~p"/"} class="flex items-center gap-3">
+        <span class="vertigo-mark" aria-hidden="true"></span>
+        <span class="vertigo-wordmark uppercase">Vertigo</span>
+      </a>
+      <.link
+        href={~p"/"}
+        class="flex items-center gap-2 text-sm text-stone-300 transition hover:text-amber-300"
+      >
+        <.icon name="hero-arrow-left" class="size-4" /> Вернуться в чат
+      </.link>
+    </header>
+
+    <main class="relative z-10 mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
+      <div class="rounded-3xl border border-amber-900/40 bg-stone-950/80 p-6 shadow-2xl backdrop-blur-md sm:p-9">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.26em] text-amber-400">
+              Читальный зал Vertigo
+            </p>
+            <h1 class="mt-2 text-4xl font-semibold text-amber-50 sm:text-6xl">Библиотека</h1>
+            <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-400">
+              Публичные тексты чатлан. Собирай большие истории в серии и читай их части по порядку.
+            </p>
+          </div>
+
+          <div class="min-h-11">
+            <%= cond do %>
+              <% @current_user -> %>
+                <button
+                  id="new-library-article"
+                  type="button"
+                  phx-click="new_article"
+                  class="inline-flex items-center gap-2 rounded-xl bg-amber-300 px-5 py-3 text-sm font-semibold text-stone-950 shadow-lg shadow-amber-950/30 transition hover:-translate-y-0.5 hover:bg-amber-200"
+                >
+                  <.icon name="hero-pencil-square" class="size-5" /> Новая статья
+                </button>
+              <% @auth_checked? -> %>
+                <p id="library-login-hint" class="max-w-sm text-sm leading-6 text-stone-400">
+                  Чтобы писать и редактировать статьи, войди под зарегистрированным ником в чате.
+                </p>
+              <% true -> %>
+                <p id="library-auth-check" class="text-sm text-stone-500">Проверяем вход…</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside class="self-start rounded-2xl border border-amber-950/60 bg-stone-950/85 p-5 shadow-xl backdrop-blur-sm lg:sticky lg:top-6">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-lg text-amber-100">Серии</h2>
+            <span class="rounded-full bg-amber-300/10 px-2 py-1 text-xs text-amber-300">
+              {length(@series)}
+            </span>
+          </div>
+          <.link
+            id="all-library-articles"
+            patch={~p"/library"}
+            class={[
+              "mt-4 flex items-center justify-between rounded-xl border px-3 py-3 text-sm transition",
+              is_nil(@selected_series) && "border-amber-400/60 bg-amber-300/10 text-amber-100",
+              @selected_series && "border-stone-800 text-stone-400 hover:border-amber-700"
+            ]}
+          >
+            Все статьи <.icon name="hero-book-open" class="size-4" />
+          </.link>
+          <nav id="library-series" class="mt-3 space-y-2" aria-label="Серии статей">
+            <.link
+              :for={series <- @series}
+              patch={series_path(series)}
+              data-series-name={series.name}
+              class={[
+                "block rounded-xl border px-3 py-3 transition",
+                @selected_series == series.name && @selected_author_id == series.author_id &&
+                  "border-amber-400/60 bg-amber-300/10",
+                !(@selected_series == series.name && @selected_author_id == series.author_id) &&
+                  "border-stone-800 bg-stone-900/60 hover:border-amber-800"
+              ]}
+            >
+              <span class="block truncate text-sm text-amber-100">{series.name}</span>
+              <span class="mt-1 flex justify-between gap-2 text-xs text-stone-500">
+                <span class="truncate">{series.author_nickname}</span>
+                <span>{series.article_count}</span>
+              </span>
+            </.link>
+          </nav>
+        </aside>
+
+        <section class="min-w-0">
+          <div
+            :if={@selected_series}
+            class="mb-5 flex items-end justify-between gap-4 rounded-2xl border border-amber-900/40 bg-stone-950/80 p-5 backdrop-blur-sm"
+          >
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Выбранная серия</p>
+              <h2 class="mt-1 text-3xl text-amber-100">{@selected_series}</h2>
+            </div>
+            <.link
+              patch={~p"/library"}
+              class="text-sm text-stone-400 transition hover:text-amber-300"
+            >
+              Показать всё
+            </.link>
+          </div>
+
+          <div id="library-articles" phx-update="stream" class="space-y-5">
+            <div
+              id="library-empty"
+              class="hidden only:block rounded-2xl border border-dashed border-amber-900/50 bg-stone-950/75 px-6 py-20 text-center text-stone-500"
+            >
+              В библиотеке пока тихо. Станьте первым автором.
+            </div>
+
+            <article
+              :for={{dom_id, article} <- @streams.articles}
+              id={dom_id}
+              data-article-title={article.title}
+              class="overflow-hidden rounded-2xl border border-amber-950/60 bg-[linear-gradient(135deg,rgba(28,20,16,0.96),rgba(12,9,7,0.96))] shadow-2xl transition hover:border-amber-800/70"
+            >
+              <div class="border-b border-amber-950/50 px-5 py-5 sm:px-7">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-stone-500">
+                      <span>{article.user.nickname}</span>
+                      <span aria-hidden="true">·</span>
+                      <time>{format_date(article.inserted_at)}</time>
+                      <%= if article.series do %>
+                        <span aria-hidden="true">·</span>
+                        <.link
+                          patch={series_path(%{author_id: article.user_id, name: article.series})}
+                          class="text-amber-400 transition hover:text-amber-200"
+                        >
+                          {article.series}
+                          <%= if article.part_number do %>
+                            · часть {article.part_number}
+                          <% end %>
+                        </.link>
+                      <% end %>
+                    </div>
+                    <h2 class="mt-2 text-2xl leading-tight text-amber-50 sm:text-3xl">
+                      {article.title}
+                    </h2>
+                  </div>
+                  <button
+                    :if={@current_user && @current_user.id == article.user_id}
+                    id={"edit-article-#{article.id}"}
+                    type="button"
+                    phx-click="edit_article"
+                    phx-value-id={article.id}
+                    class="shrink-0 rounded-lg border border-stone-700 p-2 text-stone-400 transition hover:border-amber-400 hover:text-amber-200"
+                    aria-label={"Редактировать #{article.title}"}
+                  >
+                    <.icon name="hero-pencil" class="size-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="px-5 py-5 sm:px-7">
+                <p class="whitespace-pre-wrap text-sm leading-7 text-stone-300">
+                  {excerpt(article.body)}
+                </p>
+                <details
+                  :if={String.length(article.body) > 360}
+                  class="group mt-4 border-t border-amber-950/40 pt-4"
+                >
+                  <summary class="cursor-pointer list-none text-sm font-medium text-amber-400 transition hover:text-amber-200">
+                    <span class="group-open:hidden">Читать полностью</span>
+                    <span class="hidden group-open:inline">Свернуть</span>
+                  </summary>
+                  <p class="mt-5 whitespace-pre-wrap text-sm leading-7 text-stone-300">
+                    {article.body}
+                  </p>
+                </details>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div
+      :if={@editor_open?}
+      id="library-editor"
+      class="fixed inset-0 z-50 overflow-y-auto bg-stone-950/90 p-3 backdrop-blur-md sm:p-6"
+    >
+      <div class="mx-auto max-w-6xl rounded-2xl border border-amber-800/50 bg-stone-950 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-stone-800 px-5 py-4 sm:px-7">
+          <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-amber-400">Авторский стол</p>
+            <h2 class="mt-1 text-2xl text-amber-50">
+              {if @editing_article, do: "Редактирование", else: "Новая статья"}
+            </h2>
+          </div>
+          <button
+            id="cancel-library-editor"
+            type="button"
+            phx-click="cancel_editor"
+            class="rounded-lg border border-stone-700 p-2 text-stone-400 transition hover:border-amber-400 hover:text-amber-200"
+          >
+            <.icon name="hero-x-mark" class="size-5" />
+          </button>
+        </div>
+
+        <.form
+          for={@article_form}
+          id="library-article-form"
+          phx-change="validate_article"
+          phx-submit="save_article"
+          class="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)]"
+        >
+          <div class="space-y-5 p-5 sm:p-7">
+            <.input
+              field={@article_form[:title]}
+              label="Название"
+              maxlength="160"
+              placeholder="Название статьи"
+            />
+            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_9rem]">
+              <.input
+                field={@article_form[:series]}
+                label="Серия — необязательно"
+                maxlength="120"
+                placeholder="Например, Хроники Vertigo"
+                list="library-series-suggestions"
+              />
+              <.input
+                field={@article_form[:part_number]}
+                type="number"
+                label="Номер части"
+                min="1"
+                max="999"
+                placeholder="1"
+              />
+            </div>
+            <datalist id="library-series-suggestions">
+              <option :for={series <- @series} value={series.name}></option>
+            </datalist>
+            <div>
+              <.input
+                field={@article_form[:body]}
+                type="textarea"
+                label="Текст"
+                maxlength={@max_body_length}
+                phx-debounce="120"
+                placeholder="Начните писать здесь…"
+                class="min-h-[26rem] w-full resize-y rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 font-serif text-base leading-7 text-stone-100 outline-none transition placeholder:text-stone-600 focus:border-amber-400"
+              />
+              <div class="mt-2 flex items-center justify-between gap-4 text-xs">
+                <span class="text-stone-500">Если текст не помещается, продолжите его новой частью серии.</span>
+                <span
+                  id="article-character-count"
+                  class={[
+                    @body_length > @max_body_length && "text-red-300",
+                    @body_length <= @max_body_length && "text-stone-400"
+                  ]}
+                >
+                  {@body_length} / {@max_body_length}
+                </span>
+              </div>
+            </div>
+            <button
+              id="save-library-article"
+              type="submit"
+              phx-disable-with="Сохраняем…"
+              class="w-full rounded-xl bg-amber-300 px-5 py-3 font-semibold text-stone-950 transition hover:bg-amber-200 disabled:opacity-60"
+            >
+              Сохранить статью
+            </button>
+          </div>
+
+          <aside class="border-t border-stone-800 bg-[#f0e2c3] p-5 text-stone-900 lg:border-l lg:border-t-0 sm:p-7">
+            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Предпросмотр</p>
+            <h3 class="mt-3 font-serif text-3xl leading-tight">
+              {@article_form[:title].value || "Название статьи"}
+            </h3>
+            <p class="mt-3 text-xs text-stone-500">{@current_user.nickname}</p>
+            <div class="mt-6 whitespace-pre-wrap font-serif text-base leading-8">
+              {@article_form[:body].value || "Текст появится здесь по мере набора."}
+            </div>
+          </aside>
+        </.form>
+      </div>
+    </div>
+
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".LibraryAuth">
+      export default {
+        mounted() {
+          this.authenticate = () => {
+            const token = localStorage.getItem("chat:user-auth")
+            this.pushEvent("authenticate_library", token ? {token} : {})
+          }
+          this.onStorage = event => {
+            if (event.key === "chat:user-auth") this.authenticate()
+          }
+          this.authenticate()
+          window.addEventListener("storage", this.onStorage)
+        },
+        destroyed() {
+          window.removeEventListener("storage", this.onStorage)
+        }
+      }
+    </script>
+  </section>
+</Layouts.app>
