@@ -3,6 +3,7 @@ defmodule Chat.AccountsTest do
   use Chat.DataCase, async: true
 
   alias Chat.Accounts
+  alias Chat.Accounts.User
 
   test "registers a user with a hashed password" do
     assert {:ok, user} =
@@ -53,5 +54,20 @@ defmodule Chat.AccountsTest do
     assert {:ok, user} = Accounts.authorize_entrance("member", "secret123")
     assert user.nickname == "member"
     assert {:error, :not_found} = Accounts.authorize_entrance("unknown", "secret123")
+  end
+
+  test "rejects invalid authentication input and safely handles unknown ids" do
+    assert {:error, :invalid_nickname} = Accounts.authenticate("x", "secret123")
+    assert {:error, :missing_password} = Accounts.authenticate("valid_name", nil)
+    assert Accounts.get_user("not-an-id") == nil
+    refute Accounts.registered_nickname?(nil)
+  end
+
+  test "accepts atom registration keys and leaves absent passwords unhashed" do
+    assert {:ok, user} = Accounts.register_user(%{nickname: "atom_user", password: "secret123"})
+    assert user.nickname == "atom_user"
+
+    changeset = User.registration_changeset(%User{}, %{nickname: "without_password"})
+    assert Ecto.Changeset.get_change(changeset, :password_hash) == nil
   end
 end

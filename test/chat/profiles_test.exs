@@ -4,6 +4,7 @@ defmodule Chat.ProfilesTest do
 
   alias Chat.Accounts
   alias Chat.Profiles
+  alias Chat.Profiles.Profile
 
   test "loads a registered user's profile and lets only its owner update it" do
     {:ok, owner} =
@@ -65,5 +66,41 @@ defmodule Chat.ProfilesTest do
     assert [profile] = search_result.profiles
     assert profile.user.nickname == second.nickname
     assert third.nickname == "gamma_user"
+  end
+
+  test "handles absent and guest profiles without writing data" do
+    assert {:error, :not_found} = Profiles.get_by_nickname("missing_user")
+
+    guest = Profiles.guest_profile("guest_user")
+    assert %Profile{} = guest
+    assert guest.user.nickname == "guest_user"
+  end
+
+  test "normalizes invalid catalogue options" do
+    assert %{profiles: [], page: 1, page_size: 12, total_pages: 1} = Profiles.list_profiles()
+
+    assert %{page: 1, page_size: 12} =
+             Profiles.list_profiles(search: nil, page: "invalid", page_size: 0)
+
+    assert %{page: 1} = Profiles.list_profiles(page: nil)
+  end
+
+  test "stores a valid profile photo for its owner" do
+    {:ok, owner} =
+      Accounts.register_user(%{"nickname" => "photo_writer", "password" => "secret123"})
+
+    {:ok, profile} = Profiles.get_by_nickname(owner.nickname)
+    assert {:ok, updated} = Profiles.put_photo(owner, profile, <<1, 2, 3>>, "image/png")
+    assert updated.photo == <<1, 2, 3>>
+    assert updated.photo_content_type == "image/png"
+  end
+
+  test "validates future birth dates and optional profile fields" do
+    changeset =
+      Profiles.change_profile(%Profile{}, %{"birth_date" => Date.add(Date.utc_today(), 1)})
+
+    assert %{birth_date: [_message]} = errors_on(changeset)
+
+    assert Profiles.change_profile(%Profile{}, %{}).valid?
   end
 end

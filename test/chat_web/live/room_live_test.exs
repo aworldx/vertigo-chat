@@ -47,6 +47,23 @@ defmodule ChatWeb.RoomLiveTest do
     assert Accounts.registered_nickname?("registered")
   end
 
+  test "returns from registration to login and shows validation errors", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#show-registration") |> render_click()
+    assert view |> element("#show-login") |> render_click() =~ "Вход в чат"
+
+    view |> element("#show-registration") |> render_click()
+
+    assert view
+           |> form("#registration-form", registration: %{nickname: "x", password: "secret123"})
+           |> render_submit() =~ "Ник должен быть свободным"
+
+    assert view
+           |> form("#registration-form", registration: %{nickname: "valid_user", password: "x"})
+           |> render_submit() =~ "Пароль должен быть не короче"
+  end
+
   test "enters the chat with a registered nickname and password", %{conn: conn} do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "registered", "password" => "secret123"})
@@ -103,6 +120,56 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#save-profile")
   end
 
+  test "opens, validates and closes a guest profile", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "viewer")
+
+    render_hook(view, "open_profile", %{"nickname" => "guest_missing"})
+    assert has_element?(view, "#profile-modal")
+    refute has_element?(view, "#save-profile")
+
+    render_hook(view, "validate_profile", %{"profile" => %{"name" => String.duplicate("x", 81)}})
+    assert has_element?(view, "#profile-form")
+
+    view |> element("#close-profile") |> render_click()
+    refute has_element?(view, "#profile-modal")
+  end
+
+  test "shows validation errors while saving an authenticated profile", %{conn: conn} do
+    assert {:ok, _user} =
+             Accounts.register_user(%{"nickname" => "invalid_profile", "password" => "secret123"})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "invalid_profile", "secret123")
+    render_hook(view, "open_profile", %{"nickname" => "invalid_profile"})
+
+    html =
+      view
+      |> form("#profile-form", profile: %{birth_date: Date.add(Date.utc_today(), 1)})
+      |> render_submit()
+
+    assert html =~ "не может быть в будущем"
+  end
+
+  test "uploads an authenticated user's profile photo", %{conn: conn} do
+    assert {:ok, _user} =
+             Accounts.register_user(%{"nickname" => "photo_profile", "password" => "secret123"})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "photo_profile", "secret123")
+    render_hook(view, "open_profile", %{"nickname" => "photo_profile"})
+
+    upload =
+      file_input(view, "#profile-form", :profile_photo, [
+        %{name: "photo.webp", content: <<1, 2, 3>>, type: "image/webp"}
+      ])
+
+    render_upload(upload, "photo.webp")
+    view |> form("#profile-form", profile: %{name: "С фото"}) |> render_submit()
+
+    assert has_element?(view, "#profile-form img[src^='data:image/webp;base64,']")
+  end
+
   test "prefills an addressed message after a nickname click and highlights it for recipient", %{
     conn: conn
   } do
@@ -153,6 +220,12 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Общая комната"
   end
 
+  test "reports unknown registered-user credentials", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert enter_chat(view, "unknown_user", "secret123") =~ "Такой ник не зарегистрирован"
+  end
+
   test "sends a public message from the form", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "tester")
@@ -193,6 +266,13 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert html =~ "Добро пожаловать в первый Phoenix-чат"
     refute html =~ ~s(<p class="mt-1 break-words text-sm leading-6 text-zinc-200"></p>)
+  end
+
+  test "ignores malformed message events", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    render_hook(view, "send_message", %{})
+
+    assert has_element?(view, "#entrance-form")
   end
 
   test "saves nickname and text colors from the chatlan settings panel", %{conn: conn} do
@@ -304,6 +384,19 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "сообщение сохраненного ника"
     assert html =~ "guest-saved"
     assert html =~ "--text-dark: #22aa88"
+  end
+
+  test "retracks a joined guest after loading another nickname", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "before_name")
+
+    render_hook(view, "load_preferences", %{
+      "nickname" => "after_name",
+      "theme_id" => "vertigo",
+      "appearance" => %{}
+    })
+
+    assert render(view) =~ "after_name"
   end
 
   test "does not apply saved colors when entering with another nickname", %{conn: conn} do

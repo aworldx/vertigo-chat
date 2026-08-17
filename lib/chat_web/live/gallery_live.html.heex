@@ -107,13 +107,24 @@
           data-photo-author={photo.user.nickname}
           class="group relative mb-5 break-inside-avoid overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-xl"
         >
-          <img
-            src={image_url(photo)}
-            alt={"Фотография от #{photo.user.nickname}"}
-            loading="lazy"
-            class="block h-auto w-full transition duration-500 group-hover:scale-[1.02]"
-          />
-          <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent px-4 pb-4 pt-12">
+          <button
+            type="button"
+            data-gallery-lightbox-open
+            aria-label={"Увеличить фотографию от #{photo.user.nickname}"}
+            aria-haspopup="dialog"
+            class="block w-full cursor-zoom-in overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300"
+          >
+            <img
+              src={image_url(photo)}
+              alt={"Фотография от #{photo.user.nickname}"}
+              loading="lazy"
+              class="block h-auto w-full transition duration-500 group-hover:scale-[1.02]"
+            />
+            <span class="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full border border-white/15 bg-zinc-950/65 text-zinc-100 opacity-0 shadow-lg backdrop-blur-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+              <.icon name="hero-arrows-pointing-out" class="size-4" />
+            </span>
+          </button>
+          <figcaption class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent px-4 pb-4 pt-12">
             <div class="flex items-end justify-between gap-3">
               <div>
                 <p class="text-xs uppercase tracking-[0.16em] text-zinc-400">Загрузил</p>
@@ -128,6 +139,119 @@
         </figure>
       </div>
     </main>
+
+    <div
+      id="gallery-lightbox"
+      phx-hook=".GalleryLightbox"
+      phx-update="ignore"
+      role="dialog"
+      aria-modal="true"
+      aria-hidden="true"
+      aria-labelledby="gallery-lightbox-title"
+      inert
+      class="pointer-events-none invisible fixed inset-0 z-[100] flex items-center justify-center p-4 opacity-0 transition duration-200 sm:p-8"
+    >
+      <button
+        type="button"
+        data-gallery-lightbox-close
+        aria-label="Закрыть увеличенную фотографию"
+        class="absolute inset-0 cursor-zoom-out bg-zinc-950/90 backdrop-blur-md"
+      ></button>
+
+      <figure class="relative z-10 flex max-h-full max-w-full flex-col items-center gap-4">
+        <img
+          id="gallery-lightbox-image"
+          src=""
+          alt=""
+          class="max-h-[calc(100vh-8rem)] max-w-[min(92vw,90rem)] scale-95 rounded-xl object-contain shadow-2xl ring-1 ring-white/10 transition duration-200"
+        />
+        <figcaption
+          id="gallery-lightbox-title"
+          class="max-w-3xl text-center text-sm text-zinc-300"
+        >
+          Просмотр фотографии
+        </figcaption>
+      </figure>
+
+      <button
+        id="close-gallery-lightbox"
+        type="button"
+        data-gallery-lightbox-close
+        aria-label="Закрыть"
+        class="absolute right-4 top-4 z-20 flex size-11 items-center justify-center rounded-full border border-white/15 bg-zinc-900/80 text-zinc-100 shadow-xl backdrop-blur-sm transition hover:scale-105 hover:border-amber-300 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:right-7 sm:top-7"
+      >
+        <.icon name="hero-x-mark" class="size-6" />
+      </button>
+    </div>
+
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".GalleryLightbox">
+      export default {
+        mounted() {
+          this.image = this.el.querySelector("#gallery-lightbox-image")
+          this.title = this.el.querySelector("#gallery-lightbox-title")
+          this.closeButton = this.el.querySelector("#close-gallery-lightbox")
+          this.hideTimer = null
+
+          this.open = button => {
+            const sourceImage = button.querySelector("img")
+            if (!sourceImage) return
+
+            clearTimeout(this.hideTimer)
+            this.previousFocus = button
+            this.image.src = sourceImage.currentSrc || sourceImage.src
+            this.image.alt = sourceImage.alt
+            this.title.textContent = sourceImage.alt
+            this.el.inert = false
+            this.el.setAttribute("aria-hidden", "false")
+            this.el.classList.remove("pointer-events-none", "invisible", "opacity-0")
+            this.el.classList.add("opacity-100")
+            this.image.classList.remove("scale-95")
+            this.image.classList.add("scale-100")
+            document.body.classList.add("overflow-hidden")
+            this.closeButton.focus()
+          }
+
+          this.close = () => {
+            if (this.el.getAttribute("aria-hidden") === "true") return
+
+            this.el.setAttribute("aria-hidden", "true")
+            this.el.classList.add("pointer-events-none", "opacity-0")
+            this.el.classList.remove("opacity-100")
+            this.image.classList.add("scale-95")
+            this.image.classList.remove("scale-100")
+            document.body.classList.remove("overflow-hidden")
+            this.previousFocus?.focus()
+
+            this.hideTimer = setTimeout(() => {
+              this.el.classList.add("invisible")
+              this.el.inert = true
+              this.image.removeAttribute("src")
+            }, 200)
+          }
+
+          this.onClick = event => {
+            const openButton = event.target.closest("[data-gallery-lightbox-open]")
+            if (openButton) this.open(openButton)
+
+            const closeButton = event.target.closest("[data-gallery-lightbox-close]")
+            if (closeButton && this.el.contains(closeButton)) this.close()
+          }
+
+          this.onKeydown = event => {
+            if (event.key === "Escape") this.close()
+          }
+
+          document.addEventListener("click", this.onClick)
+          document.addEventListener("keydown", this.onKeydown)
+        },
+        destroyed() {
+          clearTimeout(this.hideTimer)
+          document.removeEventListener("click", this.onClick)
+          document.removeEventListener("keydown", this.onKeydown)
+          document.body.classList.remove("overflow-hidden")
+        }
+      }
+    </script>
 
     <script :type={Phoenix.LiveView.ColocatedHook} name=".GalleryAuth">
       export default {

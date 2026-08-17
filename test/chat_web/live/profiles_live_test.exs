@@ -4,6 +4,7 @@ defmodule ChatWeb.ProfilesLiveTest do
 
   alias Chat.Accounts
   alias Chat.Profiles
+  alias ChatWeb.ProfilesLive
 
   test "renders and filters profiles by nickname or name", %{conn: conn} do
     {:ok, alpha} =
@@ -45,5 +46,12 @@ defmodule ChatWeb.ProfilesLiveTest do
     assert has_element?(view, "#profiles-page-2")
     assert has_element?(view, "[data-profile-nickname='user_13']")
     assert has_element?(view, "#profiles-previous")
+  end
+
+  test "presents every supported gender label" do
+    assert ProfilesLive.gender_label("male") == "Мужской"
+    assert ProfilesLive.gender_label("female") == "Женский"
+    assert ProfilesLive.gender_label("other") == "Другой"
+    assert ProfilesLive.gender_label(nil) == "Не указан"
   end
 end

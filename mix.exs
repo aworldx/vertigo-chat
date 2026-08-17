@@ -112,7 +112,7 @@ defmodule Chat.MixProject do
         ChatWeb.Router,
         ChatWeb.Telemetry
       ],
-      summary: [threshold: 85]
+      summary: [threshold: 90]
     ]
   end
 
