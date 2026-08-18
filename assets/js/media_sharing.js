@@ -1,4 +1,4 @@
-// Назначение файла: P2P-картинки с потоковым fallback без сохранения файлов на сервере.
+// Назначение файла: P2P-изображения и потоковая передача музыки без хранения на сервере.
 const CHUNK_SIZE = 16 * 1024
 const MAX_BUFFERED_AMOUNT = 256 * 1024
 const FILE_TTL_MS = 15 * 60 * 1000
@@ -21,9 +21,25 @@ const detectedImageType = bytes => {
   return null
 }
 
-const readImageType = async blob => {
-  const signature = new Uint8Array(await blob.slice(0, 12).arrayBuffer())
-  return detectedImageType(signature)
+const detectedAudioType = bytes => {
+  if (bytesEqual(bytes, [0x49, 0x44, 0x33])) return "audio/mpeg"
+  if (bytes[0] === 0xff && (bytes[1] & 0xe6) === 0xe2) return "audio/mpeg"
+  if (bytesEqual(bytes, [0x4f, 0x67, 0x67, 0x53])) return "audio/ogg"
+  if (bytesEqual(bytes, [0x52, 0x49, 0x46, 0x46]) && bytesEqual(bytes, [0x57, 0x41, 0x56, 0x45], 8)) return "audio/wav"
+  if (bytesEqual(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return "audio/mp4"
+  if (bytes[0] === 0xff && (bytes[1] === 0xf1 || bytes[1] === 0xf9)) return "audio/aac"
+  return null
+}
+
+const normalizedMediaType = type => {
+  if (type === "audio/x-wav") return "audio/wav"
+  if (type === "audio/x-m4a") return "audio/mp4"
+  return type
+}
+
+const readMediaType = async blob => {
+  const signature = new Uint8Array(await blob.slice(0, 16).arrayBuffer())
+  return detectedImageType(signature) || detectedAudioType(signature)
 }
 
 const peerKey = (shareId, peerId) => `${shareId}:${peerId}`
@@ -78,16 +94,131 @@ const revealImage = (card, blob, fileName, objectUrls) => {
   card.classList.remove("border-dashed")
 }
 
-const ImageSharing = {
+const revealAudio = (card, blob, fileName, objectUrls) => {
+  const objectUrl = URL.createObjectURL(blob)
+  objectUrls.add(objectUrl)
+
+  const wrapper = document.createElement("div")
+  wrapper.className = "p-4"
+
+  const title = document.createElement("p")
+  title.className = "mb-3 break-all text-sm font-medium text-zinc-200"
+  title.textContent = fileName
+
+  const audio = document.createElement("audio")
+  audio.src = objectUrl
+  audio.controls = true
+  audio.preload = "metadata"
+  audio.className = "w-full accent-amber-300"
+
+  wrapper.append(title, audio)
+  card.replaceChildren(wrapper)
+  card.classList.remove("border-dashed")
+}
+
+const createAudioStream = (card, contentType, fileName, objectUrls) => {
+  const normalizedType = normalizedMediaType(contentType)
+  if (!window.MediaSource || !MediaSource.isTypeSupported(normalizedType)) return null
+
+  const mediaSource = new MediaSource()
+  const objectUrl = URL.createObjectURL(mediaSource)
+  objectUrls.add(objectUrl)
+  const queue = []
+  let sourceBuffer = null
+  let complete = false
+  let failed = false
+
+  const wrapper = document.createElement("div")
+  wrapper.className = "p-4"
+
+  const header = document.createElement("div")
+  header.className = "mb-3 flex items-center justify-between gap-3"
+
+  const title = document.createElement("p")
+  title.className = "min-w-0 truncate text-sm font-medium text-zinc-200"
+  title.textContent = fileName
+
+  const progress = document.createElement("span")
+  progress.className = "shrink-0 text-xs tabular-nums text-amber-200"
+  progress.textContent = "0%"
+
+  const audio = document.createElement("audio")
+  audio.src = objectUrl
+  audio.controls = true
+  audio.preload = "auto"
+  audio.className = "w-full accent-amber-300"
+
+  const finishIfReady = () => {
+    if (complete && sourceBuffer && !sourceBuffer.updating && queue.length === 0 && mediaSource.readyState === "open") {
+      mediaSource.endOfStream()
+    }
+  }
+
+  const pump = () => {
+    if (failed || !sourceBuffer || sourceBuffer.updating) return
+    const chunk = queue.shift()
+    if (!chunk) {
+      finishIfReady()
+      return
+    }
+
+    try {
+      sourceBuffer.appendBuffer(chunk)
+    } catch (_error) {
+      failed = true
+      setPlaceholderStatus(card, "Браузер не смог воспроизвести этот аудиопоток.", true)
+    }
+  }
+
+  mediaSource.addEventListener("sourceopen", () => {
+    try {
+      sourceBuffer = mediaSource.addSourceBuffer(normalizedType)
+      sourceBuffer.mode = "sequence"
+      sourceBuffer.addEventListener("updateend", pump)
+      sourceBuffer.addEventListener("error", () => {
+        failed = true
+        setPlaceholderStatus(card, "Ошибка воспроизведения аудиопотока.", true)
+      })
+      pump()
+    } catch (_error) {
+      failed = true
+      setPlaceholderStatus(card, "Этот аудиоформат нельзя воспроизвести потоком.", true)
+    }
+  }, {once: true})
+
+  header.append(title, progress)
+  wrapper.append(header, audio)
+  card.replaceChildren(wrapper)
+  card.classList.remove("border-dashed")
+
+  return {
+    append(chunk) {
+      if (failed) return
+      queue.push(chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength))
+      pump()
+    },
+    setProgress(value) {
+      progress.textContent = `${value}%`
+    },
+    complete() {
+      complete = true
+      progress.textContent = "готово"
+      finishIfReady()
+    },
+  }
+}
+
+const MediaSharing = {
   mounted() {
     this.form = this.el.closest("form")
-    this.input = this.el.querySelector("#image-file-input")
-    this.attachButton = this.el.querySelector("#attach-image")
-    this.dropOverlay = this.el.querySelector("#image-drop-overlay")
-    this.clientError = this.el.querySelector("#image-client-error")
+    this.input = this.el.querySelector("#media-file-input")
+    this.attachButton = this.el.querySelector("#attach-media")
+    this.dropOverlay = this.el.querySelector("#media-drop-overlay")
+    this.clientError = this.el.querySelector("#media-client-error")
     this.canShare = this.el.dataset.canShare === "true"
     this.peerId = this.el.dataset.peerId
-    this.maxFileSize = Number(this.el.dataset.maxFileSize)
+    this.maxImageSize = Number(this.el.dataset.maxImageSize)
+    this.maxAudioSize = Number(this.el.dataset.maxAudioSize)
     this.relayChunkSize = Number(this.el.dataset.relayChunkSize)
     this.acceptedTypes = new Set(parseJsonArray(this.el.dataset.acceptedTypes, []))
     this.iceServers = parseJsonArray(this.el.dataset.iceServers, [])
@@ -104,9 +235,9 @@ const ImageSharing = {
       event.target.value = ""
     }
     this.onDocumentClick = event => {
-      const button = event.target.closest("[data-show-image]")
-      const card = button?.closest("[data-image-placeholder]")
-      if (card) this.showImage(card)
+      const button = event.target.closest("[data-open-media]")
+      const card = button?.closest("[data-media-placeholder]")
+      if (card) this.openMedia(card)
     }
     this.onDragEnter = event => this.handleDragEnter(event)
     this.onDragOver = event => this.handleDragOver(event)
@@ -121,7 +252,7 @@ const ImageSharing = {
     this.form?.addEventListener("dragleave", this.onDragLeave)
     this.form?.addEventListener("drop", this.onDrop)
 
-    this.handleEvent("image-signal", signal => this.handleSignal(signal))
+    this.handleEvent("media-signal", signal => this.handleSignal(signal))
   },
 
   destroyed() {
@@ -136,6 +267,7 @@ const ImageSharing = {
     for (const peer of this.peers.values()) peer.pc.close()
     for (const transfer of this.relayTransfers.values()) clearTimeout(transfer.timeout)
     for (const entry of this.files.values()) clearTimeout(entry.expiryTimer)
+    for (const objectUrl of this.objectUrls) URL.revokeObjectURL(objectUrl)
   },
 
   handleDragEnter(event) {
@@ -163,7 +295,7 @@ const ImageSharing = {
     this.hideDropOverlay()
 
     if (!this.canShare) {
-      this.showClientError("Отправлять изображения могут только зарегистрированные чатлане.")
+      this.showClientError("Отправлять файлы могут только зарегистрированные чатлане.")
       return
     }
 
@@ -189,25 +321,29 @@ const ImageSharing = {
     this.files.set(shareId, {file, expiryTimer})
 
     this.pushEvent(
-      "announce_image",
+      "announce_media",
       {share_id: shareId, name: file.name, type: file.type, size: file.size},
       reply => {
         if (reply?.ok) return
 
         clearTimeout(expiryTimer)
         this.files.delete(shareId)
-        this.showClientError(reply?.error || "Не удалось отправить изображение.")
+        this.showClientError(reply?.error || "Не удалось отправить файл.")
       },
     )
   },
 
   async validateFile(file) {
-    if (!this.canShare) return "Отправлять изображения могут только зарегистрированные чатлане."
-    if (!this.acceptedTypes.has(file.type)) return "Можно выбрать JPG, PNG или WebP."
-    if (file.size <= 0 || file.size > this.maxFileSize) return "Размер изображения не должен превышать 5 МБ."
+    if (!this.canShare) return "Отправлять файлы могут только зарегистрированные чатлане."
+    if (!this.acceptedTypes.has(file.type)) return "Можно выбрать JPG, PNG, WebP, MP3, OGG, WAV, M4A или AAC."
 
-    const actualType = await readImageType(file)
-    if (actualType !== file.type) return "Содержимое файла не соответствует формату изображения."
+    const kind = file.type.startsWith("image/") ? "image" : "audio"
+    const maxSize = kind === "image" ? this.maxImageSize : this.maxAudioSize
+    const sizeLabel = kind === "image" ? "5 МБ" : "50 МБ"
+    if (file.size <= 0 || file.size > maxSize) return `Размер файла не должен превышать ${sizeLabel}.`
+
+    const actualType = await readMediaType(file)
+    if (actualType !== normalizedMediaType(file.type)) return "Содержимое файла не соответствует заявленному формату."
 
     return null
   },
@@ -224,26 +360,34 @@ const ImageSharing = {
     this.clientError.className = "hidden"
   },
 
-  showImage(card) {
+  revealMedia(card, blob) {
+    if (card.dataset.mediaKind === "audio") {
+      revealAudio(card, blob, card.dataset.fileName, this.objectUrls)
+    } else {
+      revealImage(card, blob, card.dataset.fileName, this.objectUrls)
+    }
+  },
+
+  openMedia(card) {
     const shareId = card.dataset.shareId
 
     if (card.dataset.owned === "true") {
       const entry = this.files.get(shareId)
       if (!entry) {
-        setPlaceholderStatus(card, "Изображение больше недоступно.", true)
+        setPlaceholderStatus(card, "Файл больше недоступен.", true)
         return
       }
 
-      revealImage(card, entry.file, card.dataset.fileName, this.objectUrls)
+      this.revealMedia(card, entry.file)
       return
     }
 
-    setPlaceholderStatus(card, "Запрашиваем изображение у автора…")
-    this.pushEvent("request_image", {share_id: shareId}, reply => {
+    setPlaceholderStatus(card, "Соединяемся с устройством автора…")
+    this.pushEvent("request_media", {share_id: shareId}, reply => {
       if (reply?.ok) {
         this.startReceiver(card)
       } else {
-        setPlaceholderStatus(card, reply?.error || "Изображение недоступно.", true)
+        setPlaceholderStatus(card, reply?.error || "Файл недоступен.", true)
       }
     })
   },
@@ -252,7 +396,7 @@ const ImageSharing = {
     const shareId = card.dataset.shareId
     const senderPeer = card.dataset.senderPeer
     const peer = this.createPeer(shareId, senderPeer, card)
-    const channel = peer.pc.createDataChannel("image", {ordered: true})
+    const channel = peer.pc.createDataChannel("media", {ordered: true})
     this.configureReceiverChannel(peer, channel)
     peer.timeout = setTimeout(() => {
       this.fallbackToRelay(card, shareId, senderPeer)
@@ -289,7 +433,7 @@ const ImageSharing = {
           break
       }
     } catch (_error) {
-      const card = document.getElementById(`image-preview-${signal.share_id}`)
+      const card = document.getElementById(`media-preview-${signal.share_id}`)
       if (card) this.fallbackToRelay(card, signal.share_id, signal.from)
       this.closePeer(signal.share_id, signal.from)
     }
@@ -355,20 +499,59 @@ const ImageSharing = {
     channel.binaryType = "arraybuffer"
     const chunks = []
     let receivedSize = 0
+    let lastProgress = -1
+    let audioStream = null
+    let signatureChecked = false
 
     channel.onopen = () => {
       if (peer.timeout) clearTimeout(peer.timeout)
-      setPlaceholderStatus(peer.card, "Получаем изображение напрямую от автора…")
+      if (peer.card.dataset.mediaKind === "audio") {
+        audioStream = createAudioStream(
+          peer.card,
+          peer.card.dataset.contentType,
+          peer.card.dataset.fileName,
+          this.objectUrls,
+        )
+      }
+
+      if (!audioStream) {
+        const label = peer.card.dataset.mediaKind === "audio" ? "музыку" : "изображение"
+        setPlaceholderStatus(peer.card, `Получаем ${label} напрямую от автора… 0%`)
+      }
     }
     channel.onmessage = async event => {
       if (typeof event.data !== "string") {
         const chunk = new Uint8Array(event.data)
-        chunks.push(chunk)
+
+        if (!signatureChecked) {
+          signatureChecked = true
+          const actualType = detectedImageType(chunk) || detectedAudioType(chunk)
+          if (actualType !== normalizedMediaType(peer.card.dataset.contentType)) {
+            setPlaceholderStatus(peer.card, "Полученный файл имеет неверный формат.", true)
+            this.closePeer(peer.shareId, peer.remotePeer)
+            return
+          }
+        }
+
+        if (audioStream) audioStream.append(chunk)
+        else chunks.push(chunk)
         receivedSize += chunk.byteLength
 
-        if (receivedSize > Number(peer.card.dataset.fileSize)) {
+        const expectedSize = Number(peer.card.dataset.fileSize)
+        if (receivedSize > expectedSize) {
           setPlaceholderStatus(peer.card, "Получен файл неверного размера.", true)
           this.closePeer(peer.shareId, peer.remotePeer)
+        } else {
+          const progress = Math.min(100, Math.floor((receivedSize / expectedSize) * 100))
+          if (progress !== lastProgress) {
+            lastProgress = progress
+            if (audioStream) {
+              audioStream.setProgress(progress)
+            } else {
+              const label = peer.card.dataset.mediaKind === "audio" ? "музыку" : "изображение"
+              setPlaceholderStatus(peer.card, `Получаем ${label} напрямую от автора… ${progress}%`)
+            }
+          }
         }
         return
       }
@@ -390,15 +573,20 @@ const ImageSharing = {
         return
       }
 
-      const blob = new Blob(chunks, {type: peer.card.dataset.contentType})
-      const actualType = await readImageType(blob)
-      if (actualType !== peer.card.dataset.contentType) {
-        setPlaceholderStatus(peer.card, "Полученный файл не является допустимым изображением.", true)
-        this.closePeer(peer.shareId, peer.remotePeer)
-        return
+      if (audioStream) {
+        audioStream.complete()
+      } else {
+        const blob = new Blob(chunks, {type: peer.card.dataset.contentType})
+        const actualType = await readMediaType(blob)
+        if (actualType !== normalizedMediaType(peer.card.dataset.contentType)) {
+          setPlaceholderStatus(peer.card, "Полученный файл имеет неверный формат.", true)
+          this.closePeer(peer.shareId, peer.remotePeer)
+          return
+        }
+
+        this.revealMedia(peer.card, blob)
       }
 
-      revealImage(peer.card, blob, peer.card.dataset.fileName, this.objectUrls)
       this.closePeer(peer.shareId, peer.remotePeer)
     }
     channel.onerror = () => {
@@ -414,15 +602,13 @@ const ImageSharing = {
 
   async sendFile(peer, channel, file) {
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer())
-
-      for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
+      for (let offset = 0; offset < file.size; offset += CHUNK_SIZE) {
         await this.waitForBuffer(channel)
-        channel.send(bytes.slice(offset, offset + CHUNK_SIZE))
+        channel.send(await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer())
       }
 
       await this.waitForBuffer(channel)
-      channel.send(JSON.stringify({type: "complete", size: bytes.length}))
+      channel.send(JSON.stringify({type: "complete", size: file.size}))
     } catch (_error) {
       channel.close()
       this.closePeer(peer.shareId, peer.remotePeer)
@@ -442,6 +628,12 @@ const ImageSharing = {
 
     card.dataset.relayStarted = "true"
     this.closePeer(shareId, senderPeer)
+
+    if (card.dataset.mediaKind === "audio") {
+      setPlaceholderStatus(card, "Прямое соединение с автором недоступно. Попробуй ещё раз.", true)
+      return
+    }
+
     setPlaceholderStatus(card, "Прямое соединение недоступно. Передаём без сохранения на сервере…")
 
     const timeout = setTimeout(() => {
@@ -457,7 +649,7 @@ const ImageSharing = {
       timeout,
     })
 
-    this.pushEvent("request_image_relay", {share_id: shareId}, reply => {
+    this.pushEvent("request_media_relay", {share_id: shareId}, reply => {
       if (reply?.ok) return
 
       clearTimeout(timeout)
@@ -476,17 +668,17 @@ const ImageSharing = {
     for (let index = 0; index < total; index += 1) {
       const start = index * this.relayChunkSize
       const chunk = bytes.slice(start, start + this.relayChunkSize)
-      const imageChunk = btoa(String.fromCharCode(...chunk))
+      const mediaChunk = btoa(String.fromCharCode(...chunk))
 
-      await this.sendRelayChunk(signal.from, signal.share_id, index, total, imageChunk)
+      await this.sendRelayChunk(signal.from, signal.share_id, index, total, mediaChunk)
     }
   },
 
-  sendRelayChunk(target, shareId, index, total, imageChunk) {
+  sendRelayChunk(target, shareId, index, total, mediaChunk) {
     return new Promise((resolve, reject) => {
       this.pushEvent(
-        "image_relay_chunk",
-        {target, share_id: shareId, index, total, image_chunk: imageChunk},
+        "media_relay_chunk",
+        {target, share_id: shareId, index, total, media_chunk: mediaChunk},
         reply => {
           if (reply?.ok) resolve()
           else reject(new Error("relay chunk rejected"))
@@ -507,7 +699,7 @@ const ImageSharing = {
 
     let bytes
     try {
-      const binary = atob(signal.image_chunk)
+      const binary = atob(signal.media_chunk)
       bytes = Uint8Array.from(binary, character => character.charCodeAt(0))
     } catch (_error) {
       return
@@ -528,13 +720,13 @@ const ImageSharing = {
     }
 
     const blob = new Blob(transfer.chunks, {type: transfer.card.dataset.contentType})
-    const actualType = await readImageType(blob)
-    if (actualType !== transfer.card.dataset.contentType) {
+    const actualType = await readMediaType(blob)
+    if (actualType !== normalizedMediaType(transfer.card.dataset.contentType)) {
       setPlaceholderStatus(transfer.card, "Полученный файл не является изображением.", true)
       return
     }
 
-    revealImage(transfer.card, blob, transfer.card.dataset.fileName, this.objectUrls)
+    this.revealMedia(transfer.card, blob)
   },
 
   async flushCandidates(peer) {
@@ -544,7 +736,7 @@ const ImageSharing = {
 
   sendSignal(target, shareId, kind, payload) {
     return new Promise((resolve, reject) => {
-      this.pushEvent("image_signal", {target, share_id: shareId, kind, payload}, reply => {
+      this.pushEvent("media_signal", {target, share_id: shareId, kind, payload}, reply => {
         if (reply?.ok) resolve()
         else reject(new Error("signal rejected"))
       })
@@ -561,4 +753,4 @@ const ImageSharing = {
   },
 }
 
-export default ImageSharing
+export default MediaSharing

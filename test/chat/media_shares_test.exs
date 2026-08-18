@@ -1,9 +1,9 @@
-# Назначение файла: тесты правил, временных анонсов и адресного сигналинга P2P-изображений.
-defmodule Chat.ImageSharesTest do
+# Назначение файла: тесты правил, временных анонсов и адресного сигналинга P2P-медиа.
+defmodule Chat.MediaSharesTest do
   use ExUnit.Case, async: true
 
   alias Chat.Accounts.User
-  alias Chat.ImageShares
+  alias Chat.MediaShares
   alias Chat.Messages
   alias Chat.Security.Subject
 
@@ -32,14 +32,14 @@ defmodule Chat.ImageSharesTest do
     :ok = Messages.subscribe(room_id)
 
     assert {:ok, announcement} =
-             ImageShares.announce(user, room_id, sender_peer, attrs, subject)
+             MediaShares.announce(user, room_id, sender_peer, attrs, subject)
 
     assert announcement.kind == :image
     assert announcement.author == "alice"
     assert announcement.share_id == attrs["share_id"]
     assert announcement.size == 42_000
     refute Map.has_key?(announcement, :bytes)
-    assert_receive {:image_announced, ^announcement}
+    assert_receive {:media_announced, ^announcement}
   end
 
   test "guest and mismatched trusted subject cannot announce an image" do
@@ -49,10 +49,10 @@ defmodule Chat.ImageSharesTest do
     user = %User{id: 10, nickname: "alice"}
 
     assert {:error, :registration_required} =
-             ImageShares.announce(nil, room_id, "presence-Sender_123", attrs, guest)
+             MediaShares.announce(nil, room_id, "presence-Sender_123", attrs, guest)
 
     assert {:error, :registration_required} =
-             ImageShares.announce(user, room_id, "presence-Sender_123", attrs, guest)
+             MediaShares.announce(user, room_id, "presence-Sender_123", attrs, guest)
   end
 
   test "validates image metadata on the backend" do
@@ -60,7 +60,7 @@ defmodule Chat.ImageSharesTest do
     {user, subject} = user_and_subject()
 
     assert {:error, :invalid_content_type} =
-             ImageShares.announce(
+             MediaShares.announce(
                user,
                room_id,
                "presence-Sender_123",
@@ -68,20 +68,20 @@ defmodule Chat.ImageSharesTest do
                subject
              )
 
-    assert {:error, :invalid_file_size} =
-             ImageShares.announce(
+    assert {:error, :invalid_image_size} =
+             MediaShares.announce(
                user,
                room_id,
                "presence-Sender_123",
-               %{valid_attrs() | "size" => ImageShares.max_file_size() + 1},
+               %{valid_attrs() | "size" => MediaShares.max_image_size() + 1},
                subject
              )
 
-    assert {:error, :invalid_image} =
-             ImageShares.announce(user, room_id, "presence-Sender_123", %{}, subject)
+    assert {:error, :invalid_media} =
+             MediaShares.announce(user, room_id, "presence-Sender_123", %{}, subject)
 
     assert {:error, :invalid_file_name} =
-             ImageShares.announce(
+             MediaShares.announce(
                user,
                room_id,
                "presence-Sender_123",
@@ -89,7 +89,7 @@ defmodule Chat.ImageSharesTest do
                subject
              )
 
-    assert {:error, :invalid_peer} = ImageShares.subscribe_peer(room_id, nil)
+    assert {:error, :invalid_peer} = MediaShares.subscribe_peer(room_id, nil)
   end
 
   test "limits repeated image announcements from one registered user" do
@@ -98,7 +98,7 @@ defmodule Chat.ImageSharesTest do
 
     for _index <- 1..3 do
       assert {:ok, _announcement} =
-               ImageShares.announce(
+               MediaShares.announce(
                  user,
                  room_id,
                  "presence-Sender_123",
@@ -108,11 +108,49 @@ defmodule Chat.ImageSharesTest do
     end
 
     assert {:error, :rate_limited} =
-             ImageShares.announce(
+             MediaShares.announce(
                user,
                room_id,
                "presence-Sender_123",
                valid_attrs(),
+               subject
+             )
+  end
+
+  test "announces audio metadata with a larger size limit and without relay fallback" do
+    room_id = "audio-#{System.unique_integer([:positive])}"
+    sender_peer = "presence-Sender_123"
+    requester_peer = "presence-Viewer_456"
+    {user, subject} = user_and_subject()
+
+    attrs = %{
+      valid_attrs()
+      | "name" => "track.mp3",
+        "type" => "audio/mpeg",
+        "size" => 12_000_000
+    }
+
+    assert {:ok, announcement} =
+             MediaShares.announce(user, room_id, sender_peer, attrs, subject)
+
+    assert announcement.kind == :audio
+
+    assert :ok =
+             MediaShares.request_media(room_id, requester_peer, "viewer", attrs["share_id"])
+
+    assert {:error, :relay_unavailable} =
+             MediaShares.request_relay(room_id, requester_peer, "viewer", attrs["share_id"])
+
+    assert {:error, :invalid_audio_size} =
+             MediaShares.announce(
+               user,
+               room_id,
+               sender_peer,
+               %{
+                 attrs
+                 | "share_id" => Ecto.UUID.generate(),
+                   "size" => MediaShares.max_audio_size() + 1
+               },
                subject
              )
   end
@@ -125,16 +163,16 @@ defmodule Chat.ImageSharesTest do
     {user, subject} = user_and_subject()
     attrs = valid_attrs()
 
-    :ok = ImageShares.subscribe_peer(room_id, sender_peer)
-    :ok = ImageShares.subscribe_peer(room_id, requester_peer)
+    :ok = MediaShares.subscribe_peer(room_id, sender_peer)
+    :ok = MediaShares.subscribe_peer(room_id, requester_peer)
 
     assert {:ok, _announcement} =
-             ImageShares.announce(user, room_id, sender_peer, attrs, subject)
+             MediaShares.announce(user, room_id, sender_peer, attrs, subject)
 
     assert :ok =
-             ImageShares.request_image(room_id, requester_peer, "viewer", attrs["share_id"])
+             MediaShares.request_media(room_id, requester_peer, "viewer", attrs["share_id"])
 
-    assert_receive {:image_signal, %{kind: "request", from: ^requester_peer, share_id: share_id}}
+    assert_receive {:media_signal, %{kind: "request", from: ^requester_peer, share_id: share_id}}
 
     assert share_id == attrs["share_id"]
 
@@ -145,12 +183,12 @@ defmodule Chat.ImageSharesTest do
     }
 
     assert :ok =
-             ImageShares.relay_signal(room_id, requester_peer, sender_peer, offer)
+             MediaShares.relay_signal(room_id, requester_peer, sender_peer, offer)
 
-    assert_receive {:image_signal, %{kind: "offer", from: ^requester_peer}}
+    assert_receive {:media_signal, %{kind: "offer", from: ^requester_peer}}
 
     assert {:error, :signal_not_allowed} =
-             ImageShares.relay_signal(room_id, stranger_peer, sender_peer, offer)
+             MediaShares.relay_signal(room_id, stranger_peer, sender_peer, offer)
 
     candidate = %{
       "share_id" => attrs["share_id"],
@@ -163,13 +201,13 @@ defmodule Chat.ImageSharesTest do
     }
 
     assert :ok =
-             ImageShares.relay_signal(room_id, requester_peer, sender_peer, candidate)
+             MediaShares.relay_signal(room_id, requester_peer, sender_peer, candidate)
 
-    assert_receive {:image_signal,
+    assert_receive {:media_signal,
                     %{kind: "candidate", payload: %{"sdpMid" => "0", "sdpMLineIndex" => 0}}}
 
     assert {:error, :invalid_signal} =
-             ImageShares.relay_signal(
+             MediaShares.relay_signal(
                room_id,
                requester_peer,
                sender_peer,
@@ -177,7 +215,7 @@ defmodule Chat.ImageSharesTest do
              )
 
     assert {:error, :invalid_signal} =
-             ImageShares.relay_signal(
+             MediaShares.relay_signal(
                room_id,
                requester_peer,
                sender_peer,
@@ -185,7 +223,7 @@ defmodule Chat.ImageSharesTest do
              )
 
     assert {:error, :invalid_share_id} =
-             ImageShares.relay_signal(
+             MediaShares.relay_signal(
                room_id,
                requester_peer,
                sender_peer,
@@ -193,7 +231,7 @@ defmodule Chat.ImageSharesTest do
              )
 
     assert {:error, :invalid_share_id} =
-             ImageShares.relay_signal(
+             MediaShares.relay_signal(
                room_id,
                requester_peer,
                sender_peer,
@@ -201,22 +239,22 @@ defmodule Chat.ImageSharesTest do
              )
 
     assert :ok =
-             ImageShares.request_relay(room_id, requester_peer, "viewer", attrs["share_id"])
+             MediaShares.request_relay(room_id, requester_peer, "viewer", attrs["share_id"])
 
-    assert_receive {:image_signal,
+    assert_receive {:media_signal,
                     %{kind: "relay_request", from: ^requester_peer, share_id: ^share_id}}
 
-    encoded_chunk = Base.encode64(:binary.copy(<<1>>, ImageShares.relay_chunk_size()))
+    encoded_chunk = Base.encode64(:binary.copy(<<1>>, MediaShares.relay_chunk_size()))
 
     relay_attrs = %{
       "share_id" => attrs["share_id"],
       "index" => 0,
       "total" => 3,
-      "image_chunk" => encoded_chunk
+      "media_chunk" => encoded_chunk
     }
 
     assert :ok =
-             ImageShares.relay_chunk(
+             MediaShares.relay_chunk(
                user,
                subject,
                room_id,
@@ -225,17 +263,17 @@ defmodule Chat.ImageSharesTest do
                relay_attrs
              )
 
-    assert_receive {:image_signal,
+    assert_receive {:media_signal,
                     %{
                       kind: "relay_chunk",
                       from: ^sender_peer,
                       index: 0,
                       total: 3,
-                      image_chunk: ^encoded_chunk
+                      media_chunk: ^encoded_chunk
                     }}
 
     assert {:error, :invalid_relay_chunk} =
-             ImageShares.relay_chunk(
+             MediaShares.relay_chunk(
                user,
                subject,
                room_id,
@@ -245,7 +283,7 @@ defmodule Chat.ImageSharesTest do
              )
 
     assert {:error, :registration_required} =
-             ImageShares.relay_chunk(
+             MediaShares.relay_chunk(
                nil,
                Subject.guest(nil, "guest"),
                room_id,

@@ -49,10 +49,10 @@
       <RoomComponents.message_input
         message_form={@message_form}
         message_error={@message_error}
-        image_error={@image_error}
+        media_error={@media_error}
         registered={not is_nil(@current_user)}
         peer_id={@presence_key}
-        ice_servers={Chat.ImageShares.ice_servers()}
+        ice_servers={Chat.MediaShares.ice_servers()}
       />
     <% end %>
 

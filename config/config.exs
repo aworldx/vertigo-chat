@@ -12,7 +12,7 @@ config :chat,
   ecto_repos: [Chat.Repo],
   generators: [timestamp_type: :utc_datetime]
 
-config :chat, Chat.ImageShares, ice_servers: [%{urls: "stun:stun.cloudflare.com:3478"}]
+config :chat, Chat.MediaShares, ice_servers: [%{urls: "stun:stun.cloudflare.com:3478"}]
 
 # Configure the endpoint
 config :chat, ChatWeb.Endpoint,
@@ -65,7 +65,7 @@ config :phoenix, :filter_parameters, [
   "token",
   "sdp",
   "candidate",
-  "image_chunk"
+  "media_chunk"
 ]
 
 # Import environment specific config. This must remain at the bottom

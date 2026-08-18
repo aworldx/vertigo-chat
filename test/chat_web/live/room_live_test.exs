@@ -33,8 +33,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "tester"
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#message-form.shrink-0")
-    assert has_element?(view, "#attach-image[disabled]")
-    refute has_element?(view, "#image-file-input")
+    assert has_element?(view, "#attach-media[disabled]")
+    refute has_element?(view, "#media-file-input")
   end
 
   test "shows image attachment controls only to a registered chatlan", %{conn: conn} do
@@ -44,23 +44,23 @@ defmodule ChatWeb.RoomLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "image_author", "secret123")
 
-    assert has_element?(view, "#image-share-controls[phx-hook='ImageSharing']")
-    assert has_element?(view, "#image-file-input[accept='image/jpeg,image/png,image/webp']")
-    assert has_element?(view, "#attach-image:not([disabled])")
+    assert has_element?(view, "#media-share-controls[phx-hook='MediaSharing']")
+    assert has_element?(view, "#media-file-input[accept*='audio/mpeg']")
+    assert has_element?(view, "#attach-media:not([disabled])")
   end
 
   test "backend rejects an image announcement from a guest", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "guest_image")
 
-    render_hook(view, "announce_image", %{
+    render_hook(view, "announce_media", %{
       "share_id" => Ecto.UUID.generate(),
       "name" => "photo.png",
       "type" => "image/png",
       "size" => 1_024
     })
 
-    assert has_element?(view, "#image-error", "только зарегистрированные")
+    assert has_element?(view, "#media-error", "только зарегистрированные")
     refute has_element?(view, "[data-message-kind='image']")
   end
 
@@ -72,7 +72,7 @@ defmodule ChatWeb.RoomLiveTest do
     enter_chat(view, "photo_sender", "secret123")
     share_id = Ecto.UUID.generate()
 
-    render_hook(view, "announce_image", %{
+    render_hook(view, "announce_media", %{
       "share_id" => share_id,
       "name" => "hidden-photo.webp",
       "type" => "image/webp",
@@ -80,9 +80,29 @@ defmodule ChatWeb.RoomLiveTest do
     })
 
     assert has_element?(view, "[data-message-kind='image']")
-    assert has_element?(view, "#image-preview-#{share_id}[data-image-placeholder]")
-    assert has_element?(view, "#show-image-#{share_id}", "Показать изображение")
-    refute has_element?(view, "#image-preview-#{share_id} img")
+    assert has_element?(view, "#media-preview-#{share_id}[data-media-kind='image']")
+    assert has_element?(view, "#open-media-#{share_id}", "Показать изображение")
+    refute has_element?(view, "#media-preview-#{share_id} img")
+  end
+
+  test "renders an audio streaming card after a registered announcement", %{conn: conn} do
+    assert {:ok, _user} =
+             Accounts.register_user(%{"nickname" => "music_sender", "password" => "secret123"})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "music_sender", "secret123")
+    share_id = Ecto.UUID.generate()
+
+    render_hook(view, "announce_media", %{
+      "share_id" => share_id,
+      "name" => "local-track.mp3",
+      "type" => "audio/mpeg",
+      "size" => 8_000_000
+    })
+
+    assert has_element?(view, "[data-message-kind='audio']")
+    assert has_element?(view, "#media-preview-#{share_id}[data-media-kind='audio']")
+    assert has_element?(view, "#open-media-#{share_id}", "Слушать")
   end
 
   test "registers a nickname and returns to the entrance screen", %{conn: conn} do

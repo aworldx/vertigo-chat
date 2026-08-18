@@ -57,46 +57,56 @@ defmodule ChatWeb.RoomComponents do
             </button>
             <span class="text-xs text-zinc-500">{message.at}</span>
           </div>
-          <%= if Map.get(message, :kind, :text) == :image do %>
-            <div
-              id={"image-preview-#{message.share_id}"}
-              phx-update="ignore"
-              data-image-placeholder
-              data-share-id={message.share_id}
-              data-sender-peer={message.sender_peer}
-              data-owned={to_string(message.sender_peer == @peer_id)}
-              data-file-name={message.name}
-              data-content-type={message.content_type}
-              data-file-size={message.size}
-              class="mt-3 overflow-hidden rounded-xl border border-dashed border-zinc-700 bg-zinc-950/80"
-            >
-              <div class="flex min-h-28 flex-col items-center justify-center gap-3 p-5 text-center">
-                <div class="flex size-12 items-center justify-center rounded-full bg-zinc-800 text-zinc-400">
-                  <.icon name="hero-photo" class="size-6" />
+          <%= case Map.get(message, :kind, :text) do %>
+            <% kind when kind in [:image, :audio] -> %>
+              <div
+                id={"media-preview-#{message.share_id}"}
+                phx-update="ignore"
+                data-media-placeholder
+                data-media-kind={kind}
+                data-share-id={message.share_id}
+                data-sender-peer={message.sender_peer}
+                data-owned={to_string(message.sender_peer == @peer_id)}
+                data-file-name={message.name}
+                data-content-type={message.content_type}
+                data-file-size={message.size}
+                class="mt-3 overflow-hidden rounded-xl border border-dashed border-zinc-700 bg-zinc-950/80"
+              >
+                <div class="flex min-h-28 flex-col items-center justify-center gap-3 p-5 text-center">
+                  <div class="flex size-12 items-center justify-center rounded-full bg-zinc-800 text-zinc-400">
+                    <.icon
+                      name={if(kind == :image, do: "hero-photo", else: "hero-musical-note")}
+                      class="size-6"
+                    />
+                  </div>
+                  <div>
+                    <p class="max-w-md break-all text-sm font-medium text-zinc-200">
+                      {message.name}
+                    </p>
+                    <p class="mt-1 text-xs text-zinc-500">
+                      {if(kind == :image,
+                        do: "Изображение скрыто",
+                        else: "Музыка с устройства автора"
+                      )} · {format_file_size(message.size)}
+                    </p>
+                  </div>
+                  <button
+                    id={"open-media-#{message.share_id}"}
+                    type="button"
+                    data-open-media
+                    class="rounded-lg border border-amber-300/50 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-200 hover:bg-amber-300/10"
+                  >
+                    {if(kind == :image, do: "Показать изображение", else: "Слушать")}
+                  </button>
                 </div>
-                <div>
-                  <p class="max-w-md break-all text-sm font-medium text-zinc-200">{message.name}</p>
-                  <p class="mt-1 text-xs text-zinc-500">
-                    Изображение скрыто · {format_file_size(message.size)}
-                  </p>
-                </div>
-                <button
-                  id={"show-image-#{message.share_id}"}
-                  type="button"
-                  data-show-image
-                  class="rounded-lg border border-amber-300/50 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-200 hover:bg-amber-300/10"
-                >
-                  Показать изображение
-                </button>
               </div>
-            </div>
-          <% else %>
-            <p
-              class="chat-message-body mt-1 break-words text-sm leading-6"
-              style={appearance_style(message)}
-            >
-              {message.body}
-            </p>
+            <% _text -> %>
+              <p
+                class="chat-message-body mt-1 break-words text-sm leading-6"
+                style={appearance_style(message)}
+              >
+                {message.body}
+              </p>
           <% end %>
         </div>
       </div>
@@ -182,7 +192,7 @@ defmodule ChatWeb.RoomComponents do
 
   attr(:message_form, :any, required: true)
   attr(:message_error, :string, default: nil)
-  attr(:image_error, :string, default: nil)
+  attr(:media_error, :string, default: nil)
   attr(:registered, :boolean, required: true)
   attr(:peer_id, :string, required: true)
   attr(:ice_servers, :list, required: true)
@@ -232,12 +242,12 @@ defmodule ChatWeb.RoomComponents do
         {@message_error}
       </p>
       <p
-        :if={@image_error}
-        id="image-error"
+        :if={@media_error}
+        id="media-error"
         class="mb-2 text-sm text-red-300"
         role="alert"
       >
-        {@image_error}
+        {@media_error}
       </p>
       <div id="emoji-input-controls" phx-hook=".EmojiPicker" class="flex gap-3">
         <div class="relative hidden shrink-0 sm:block">
@@ -276,38 +286,39 @@ defmodule ChatWeb.RoomComponents do
           class="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
         />
         <div
-          id="image-share-controls"
-          phx-hook="ImageSharing"
+          id="media-share-controls"
+          phx-hook="MediaSharing"
           phx-update="ignore"
           data-can-share={to_string(@registered)}
           data-peer-id={@peer_id}
-          data-max-file-size={Chat.ImageShares.max_file_size()}
-          data-relay-chunk-size={Chat.ImageShares.relay_chunk_size()}
-          data-accepted-types={Jason.encode!(Chat.ImageShares.accepted_types())}
+          data-max-image-size={Chat.MediaShares.max_image_size()}
+          data-max-audio-size={Chat.MediaShares.max_audio_size()}
+          data-relay-chunk-size={Chat.MediaShares.relay_chunk_size()}
+          data-accepted-types={Jason.encode!(Chat.MediaShares.accepted_types())}
           data-ice-servers={Jason.encode!(@ice_servers)}
           class="shrink-0"
         >
           <input
             :if={@registered}
-            id="image-file-input"
+            id="media-file-input"
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,audio/mpeg,audio/ogg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,.mp3,.ogg,.wav,.m4a,.aac"
             class="sr-only"
             tabindex="-1"
           />
           <button
-            id="attach-image"
+            id="attach-media"
             type="button"
             disabled={not @registered}
             aria-label={
               if(@registered,
-                do: "Прикрепить изображение",
-                else: "Изображения доступны после регистрации"
+                do: "Прикрепить изображение или музыку",
+                else: "Вложения доступны после регистрации"
               )
             }
             title={
               if(@registered,
-                do: "Прикрепить JPG, PNG или WebP",
+                do: "Прикрепить изображение или аудиофайл",
                 else: "Только для зарегистрированных чатлан"
               )
             }
@@ -315,12 +326,12 @@ defmodule ChatWeb.RoomComponents do
           >
             <.icon name="hero-paper-clip" class="size-5" />
           </button>
-          <p id="image-client-error" class="hidden" role="alert"></p>
+          <p id="media-client-error" class="hidden" role="alert"></p>
           <div
-            id="image-drop-overlay"
+            id="media-drop-overlay"
             class="pointer-events-none absolute inset-1 z-30 hidden items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-zinc-950/95 text-sm font-semibold text-amber-200"
           >
-            Отпусти изображение здесь
+            Отпусти изображение или музыку здесь
           </div>
         </div>
         <button

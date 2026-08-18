@@ -9,7 +9,7 @@ defmodule ChatWeb.LogFilterTest do
       "payload" => %{
         "sdp" => "v=0\r\n",
         "candidate" => "candidate:1 1 UDP 1 203.0.113.1 9999 typ host",
-        "image_chunk" => "base64-image-bytes"
+        "media_chunk" => "base64-media-bytes"
       }
     }
 
@@ -19,7 +19,7 @@ defmodule ChatWeb.LogFilterTest do
              "payload" => %{
                "sdp" => "[FILTERED]",
                "candidate" => "[FILTERED]",
-               "image_chunk" => "[FILTERED]"
+               "media_chunk" => "[FILTERED]"
              }
            }
   end

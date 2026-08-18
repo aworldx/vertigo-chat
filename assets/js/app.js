@@ -25,7 +25,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/chat"
 import topbar from "../vendor/topbar"
-import ImageSharing from "./image_sharing"
+import MediaSharing from "./media_sharing"
 
 const CHAT_PREFERENCES_KEY = "chat:guest-preferences"
 const USER_AUTH_KEY = "chat:user-auth"
@@ -113,7 +113,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ...chatHooks, ImageSharing},
+  hooks: {...colocatedHooks, ...chatHooks, MediaSharing},
 })
 
 // Show progress bar on live navigation and form submits

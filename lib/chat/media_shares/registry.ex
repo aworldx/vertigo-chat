@@ -1,5 +1,5 @@
-# Назначение файла: временный реестр метаданных P2P-картинок и разрешённых пар участников.
-defmodule Chat.ImageShares.Registry do
+# Назначение файла: временный реестр метаданных P2P-медиа и разрешённых пар участников.
+defmodule Chat.MediaShares.Registry do
   use GenServer
 
   @moduledoc false
@@ -109,6 +109,7 @@ defmodule Chat.ImageShares.Registry do
         announcement: %{
           room_id: ^room_id,
           sender_peer: ^from_peer,
+          kind: :image,
           size: image_size
         },
         requesters: requesters

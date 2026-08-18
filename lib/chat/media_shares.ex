@@ -1,20 +1,22 @@
-# Назначение файла: правила P2P-изображений, временные анонсы и адресный WebRTC-сигналинг.
-defmodule Chat.ImageShares do
+# Назначение файла: правила P2P-медиа, временные анонсы и адресный WebRTC-сигналинг.
+defmodule Chat.MediaShares do
   @moduledoc """
-  Управляет метаданными P2P-изображений, WebRTC-сигналингом и потоковым fallback.
+  Управляет метаданными P2P-изображений и аудио, WebRTC-сигналингом и fallback картинок.
   Файлы в БД и файловой системе не сохраняются.
   """
 
   alias Chat.Accounts.User
   alias Chat.Appearance
-  alias Chat.ImageShares.Registry
+  alias Chat.MediaShares.Registry
   alias Chat.Security
   alias Chat.Security.Subject
   alias Chat.Themes
 
-  @max_file_size 5_000_000
+  @max_image_size 5_000_000
+  @max_audio_size 50_000_000
   @max_file_name_length 120
-  @accepted_types ~w(image/jpeg image/png image/webp)
+  @image_types ~w(image/jpeg image/png image/webp)
+  @audio_types ~w(audio/mpeg audio/ogg audio/wav audio/x-wav audio/mp4 audio/x-m4a audio/aac)
   @share_id_pattern ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i
   @peer_id_pattern ~r/\Apresence-[A-Za-z0-9_-]{8,64}\z/
   @signal_kinds ~w(offer answer candidate)
@@ -38,10 +40,10 @@ defmodule Chat.ImageShares do
       ) do
     with :ok <- validate_peer_id(peer_id),
          {:ok, metadata} <- validate_metadata(attrs),
-         :ok <- allow_image_share(subject) do
+         :ok <- allow_media_share(subject) do
       announcement = %{
-        id: "image-#{metadata.share_id}",
-        kind: :image,
+        id: "media-#{metadata.share_id}",
+        kind: metadata.kind,
         room_id: room_id,
         share_id: metadata.share_id,
         sender_peer: peer_id,
@@ -59,7 +61,7 @@ defmodule Chat.ImageShares do
           Phoenix.PubSub.broadcast(
             Chat.PubSub,
             room_topic(room_id),
-            {:image_announced, announcement}
+            {:media_announced, announcement}
           )
 
         {:ok, announcement}
@@ -70,7 +72,7 @@ defmodule Chat.ImageShares do
   def announce(_user, _room_id, _peer_id, _attrs, %Subject{}),
     do: {:error, :registration_required}
 
-  def request_image(room_id, requester_peer, requester_nickname, share_id) do
+  def request_media(room_id, requester_peer, requester_nickname, share_id) do
     with :ok <- validate_peer_id(requester_peer),
          :ok <- validate_share_id(share_id),
          {:ok, announcement} <- Registry.request(share_id, room_id, requester_peer) do
@@ -89,7 +91,8 @@ defmodule Chat.ImageShares do
   def request_relay(room_id, requester_peer, requester_nickname, share_id) do
     with :ok <- validate_peer_id(requester_peer),
          :ok <- validate_share_id(share_id),
-         {:ok, announcement} <- Registry.request(share_id, room_id, requester_peer) do
+         {:ok, announcement} <- Registry.request(share_id, room_id, requester_peer),
+         :ok <- allow_relay(announcement) do
       signal = %{
         kind: "relay_request",
         share_id: share_id,
@@ -148,7 +151,7 @@ defmodule Chat.ImageShares do
         from: from_peer,
         index: index,
         total: total,
-        image_chunk: encoded
+        media_chunk: encoded
       })
 
       :ok
@@ -163,8 +166,9 @@ defmodule Chat.ImageShares do
     :ok
   end
 
-  def max_file_size, do: @max_file_size
-  def accepted_types, do: @accepted_types
+  def max_image_size, do: @max_image_size
+  def max_audio_size, do: @max_audio_size
+  def accepted_types, do: @image_types ++ @audio_types
   def relay_chunk_size, do: @relay_chunk_size
 
   def ice_servers do
@@ -180,20 +184,30 @@ defmodule Chat.ImageShares do
        }) do
     with :ok <- validate_share_id(share_id),
          {:ok, name} <- validate_file_name(name),
-         :ok <- validate_content_type(content_type),
-         {:ok, size} <- validate_size(size) do
-      {:ok, %{share_id: share_id, name: name, content_type: content_type, size: size}}
+         {:ok, kind} <- validate_content_type(content_type),
+         {:ok, size} <- validate_size(size, kind) do
+      {:ok,
+       %{
+         share_id: share_id,
+         kind: kind,
+         name: name,
+         content_type: content_type,
+         size: size
+       }}
     end
   end
 
-  defp validate_metadata(_attrs), do: {:error, :invalid_image}
+  defp validate_metadata(_attrs), do: {:error, :invalid_media}
 
-  defp allow_image_share(subject) do
-    case Security.allow_image_share(subject) do
+  defp allow_media_share(subject) do
+    case Security.allow_media_share(subject) do
       :ok -> :ok
       {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
     end
   end
+
+  defp allow_relay(%{kind: :image}), do: :ok
+  defp allow_relay(_announcement), do: {:error, :relay_unavailable}
 
   defp validate_file_name(name) when is_binary(name) do
     name =
@@ -212,13 +226,20 @@ defmodule Chat.ImageShares do
 
   defp validate_file_name(_name), do: {:error, :invalid_file_name}
 
-  defp validate_content_type(content_type) when content_type in @accepted_types, do: :ok
+  defp validate_content_type(content_type) when content_type in @image_types, do: {:ok, :image}
+  defp validate_content_type(content_type) when content_type in @audio_types, do: {:ok, :audio}
   defp validate_content_type(_content_type), do: {:error, :invalid_content_type}
 
-  defp validate_size(size) when is_integer(size) and size > 0 and size <= @max_file_size,
-    do: {:ok, size}
+  defp validate_size(size, :image)
+       when is_integer(size) and size > 0 and size <= @max_image_size,
+       do: {:ok, size}
 
-  defp validate_size(_size), do: {:error, :invalid_file_size}
+  defp validate_size(size, :audio)
+       when is_integer(size) and size > 0 and size <= @max_audio_size,
+       do: {:ok, size}
+
+  defp validate_size(_size, :image), do: {:error, :invalid_image_size}
+  defp validate_size(_size, :audio), do: {:error, :invalid_audio_size}
 
   defp fetch_share_id(%{"share_id" => share_id}) do
     case validate_share_id(share_id) do
@@ -261,7 +282,7 @@ defmodule Chat.ImageShares do
   defp validate_relay_chunk(%{
          "index" => index,
          "total" => total,
-         "image_chunk" => encoded
+         "media_chunk" => encoded
        })
        when is_integer(index) and is_integer(total) and total > 0 and is_binary(encoded) and
               byte_size(encoded) <= @max_encoded_chunk_size do
@@ -303,11 +324,11 @@ defmodule Chat.ImageShares do
     Phoenix.PubSub.broadcast(
       Chat.PubSub,
       peer_topic(room_id, target_peer),
-      {:image_signal, signal}
+      {:media_signal, signal}
     )
   end
 
   defp room_topic(room_id), do: "room:#{room_id}"
-  defp peer_topic(room_id, peer_id), do: "image-peer:#{room_id}:#{peer_id}"
+  defp peer_topic(room_id, peer_id), do: "media-peer:#{room_id}:#{peer_id}"
   defp current_time, do: Calendar.strftime(Time.utc_now(), "%H:%M:%S")
 end
