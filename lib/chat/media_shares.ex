@@ -91,8 +91,7 @@ defmodule Chat.MediaShares do
   def request_relay(room_id, requester_peer, requester_nickname, share_id) do
     with :ok <- validate_peer_id(requester_peer),
          :ok <- validate_share_id(share_id),
-         {:ok, announcement} <- Registry.request(share_id, room_id, requester_peer),
-         :ok <- allow_relay(announcement) do
+         {:ok, announcement} <- Registry.request(share_id, room_id, requester_peer) do
       signal = %{
         kind: "relay_request",
         share_id: share_id,
@@ -205,9 +204,6 @@ defmodule Chat.MediaShares do
       {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
     end
   end
-
-  defp allow_relay(%{kind: kind}) when kind in [:image, :audio], do: :ok
-  defp allow_relay(_announcement), do: {:error, :relay_unavailable}
 
   defp validate_file_name(name) when is_binary(name) do
     name =

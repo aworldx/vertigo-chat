@@ -690,7 +690,6 @@ defmodule ChatWeb.RoomLive do
   defp media_error(:invalid_audio_size), do: "Размер аудиофайла не должен превышать 50 МБ."
   defp media_error(:rate_limited), do: "Слишком много вложений. Попробуй позже."
   defp media_error(:share_unavailable), do: "Файл больше недоступен."
-  defp media_error(:relay_unavailable), do: "Для музыки доступна только прямая передача."
   defp media_error(_reason), do: "Не удалось отправить файл."
 
   defp save_uploaded_photo(socket, profile) do

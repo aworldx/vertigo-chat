@@ -26,6 +26,7 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/chat"
 import topbar from "../vendor/topbar"
 import MediaSharing from "./media_sharing"
+import "./theme"
 
 const CHAT_PREFERENCES_KEY = "chat:guest-preferences"
 const USER_AUTH_KEY = "chat:user-auth"

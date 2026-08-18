@@ -3,8 +3,8 @@ defmodule Chat.Messages do
   @moduledoc """
   Public chat message context.
 
-  This module owns message creation and realtime publication. Persistence will
-  be added here when messages move from the prototype stream into PostgreSQL.
+  This module owns message creation, realtime publication and the bounded
+  in-memory history of public room messages. Messages are not persisted.
   """
 
   alias Chat.Appearance

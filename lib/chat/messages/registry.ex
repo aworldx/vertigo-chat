@@ -18,12 +18,6 @@ defmodule Chat.Messages.Registry do
     GenServer.call(__MODULE__, {:list, room_id})
   end
 
-  def clear(room_id) when is_binary(room_id) do
-    GenServer.call(__MODULE__, {:clear, room_id})
-  end
-
-  def history_limit, do: @history_limit
-
   @impl true
   def init(state), do: {:ok, state}
 
@@ -40,9 +34,5 @@ defmodule Chat.Messages.Registry do
 
   def handle_call({:list, room_id}, _from, state) do
     {:reply, Map.get(state, room_id, []), state}
-  end
-
-  def handle_call({:clear, room_id}, _from, state) do
-    {:reply, :ok, Map.delete(state, room_id)}
   end
 end

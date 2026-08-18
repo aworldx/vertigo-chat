@@ -7,7 +7,8 @@ defmodule ChatWeb.RoomLiveTest do
   alias Chat.Visits
 
   setup do
-    :ok = MessageRegistry.clear("lobby")
+    :sys.replace_state(MessageRegistry, &Map.delete(&1, "lobby"))
+    :ok
   end
 
   test "renders the entrance screen and current chatlan info", %{conn: conn} do
