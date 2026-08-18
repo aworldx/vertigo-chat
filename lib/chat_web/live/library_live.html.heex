@@ -225,14 +225,14 @@
           phx-submit="save_article"
           class="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)]"
         >
-          <div class="space-y-5 p-5 sm:p-7">
+          <div class="space-y-6 p-5 sm:p-7">
             <.input
               field={@article_form[:title]}
               label="Название"
               maxlength="160"
               placeholder="Название статьи"
             />
-            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_9rem]">
+            <div class="grid gap-5 sm:grid-cols-[minmax(0,1fr)_10rem]">
               <.input
                 field={@article_form[:series]}
                 label="Серия — необязательно"
@@ -260,7 +260,7 @@
                 maxlength={@max_body_length}
                 phx-debounce="120"
                 placeholder="Начните писать здесь…"
-                class="min-h-[26rem] w-full resize-y rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 font-serif text-base leading-7 text-stone-100 outline-none transition placeholder:text-stone-600 focus:border-amber-400"
+                class="mt-2 min-h-[26rem] w-full resize-y rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 font-serif text-base leading-7 text-stone-100 shadow-sm outline-none transition placeholder:text-stone-600 hover:border-stone-600 focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10"
               />
               <div class="mt-2 flex items-center justify-between gap-4 text-xs">
                 <span class="text-stone-500">Если текст не помещается, продолжите его новой частью серии.</span>
@@ -279,7 +279,7 @@
               id="save-library-article"
               type="submit"
               phx-disable-with="Сохраняем…"
-              class="w-full rounded-xl bg-amber-300 px-5 py-3 font-semibold text-stone-950 transition hover:bg-amber-200 disabled:opacity-60"
+              class="w-full rounded-xl bg-amber-300 px-5 py-3.5 font-semibold text-stone-950 shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-60"
             >
               Сохранить статью
             </button>

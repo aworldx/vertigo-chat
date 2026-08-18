@@ -12,6 +12,8 @@ config :chat,
   ecto_repos: [Chat.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :chat, Chat.ImageShares, ice_servers: [%{urls: "stun:stun.cloudflare.com:3478"}]
+
 # Configure the endpoint
 config :chat, ChatWeb.Endpoint,
   url: [host: "localhost"],
@@ -57,6 +59,14 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+config :phoenix, :filter_parameters, [
+  "password",
+  "token",
+  "sdp",
+  "candidate",
+  "image_chunk"
+]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

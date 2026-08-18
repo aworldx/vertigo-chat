@@ -5,6 +5,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Accounts
   alias Chat.Appearance
   alias Chat.Chatlans
+  alias Chat.ImageShares
   alias Chat.Messages
   alias Chat.Profiles
   alias Chat.Themes
@@ -45,6 +46,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:entrance_error, nil)
       |> assign(:registration_error, nil)
       |> assign(:message_error, nil)
+      |> assign(:image_error, nil)
       |> assign(:online, [])
       |> assign_nickname_form()
       |> assign_registration_form()
@@ -60,6 +62,7 @@ defmodule ChatWeb.RoomLive do
     socket =
       if connected?(socket) do
         Messages.subscribe(@room_id)
+        ImageShares.subscribe_peer(@room_id, presence_key)
 
         assign(socket, :online, Chatlans.list_online(@room_id))
       else
@@ -188,6 +191,125 @@ defmodule ChatWeb.RoomLive do
      |> assign(:message_form, to_form(%{"body" => ""}, as: :message))}
   end
 
+  def handle_event("announce_image", params, socket) do
+    result =
+      if socket.assigns.joined? do
+        ImageShares.announce(
+          socket.assigns.current_user,
+          @room_id,
+          socket.assigns.presence_key,
+          Map.merge(params, %{
+            "theme_id" => socket.assigns.theme_id,
+            "appearance" => socket.assigns.appearance
+          }),
+          message_security_subject(socket)
+        )
+      else
+        {:error, :not_joined}
+      end
+
+    case result do
+      {:ok, announcement} ->
+        {:reply, %{ok: true, share_id: announcement.share_id}, assign(socket, :image_error, nil)}
+
+      {:error, reason} ->
+        message = image_error(reason)
+        {:reply, %{ok: false, error: message}, assign(socket, :image_error, message)}
+    end
+  end
+
+  def handle_event("request_image", %{"share_id" => share_id}, socket) do
+    result =
+      if socket.assigns.joined? do
+        ImageShares.request_image(
+          @room_id,
+          socket.assigns.presence_key,
+          socket.assigns.nickname,
+          share_id
+        )
+      else
+        {:error, :not_joined}
+      end
+
+    case result do
+      :ok -> {:reply, %{ok: true}, socket}
+      {:error, reason} -> {:reply, %{ok: false, error: image_error(reason)}, socket}
+    end
+  end
+
+  def handle_event("request_image_relay", %{"share_id" => share_id}, socket) do
+    result =
+      if socket.assigns.joined? do
+        ImageShares.request_relay(
+          @room_id,
+          socket.assigns.presence_key,
+          socket.assigns.nickname,
+          share_id
+        )
+      else
+        {:error, :not_joined}
+      end
+
+    case result do
+      :ok -> {:reply, %{ok: true}, socket}
+      {:error, reason} -> {:reply, %{ok: false, error: image_error(reason)}, socket}
+    end
+  end
+
+  def handle_event(
+        "image_relay_chunk",
+        %{"target" => target_peer, "share_id" => _share_id} = params,
+        socket
+      ) do
+    result =
+      if socket.assigns.joined? do
+        ImageShares.relay_chunk(
+          socket.assigns.current_user,
+          message_security_subject(socket),
+          @room_id,
+          socket.assigns.presence_key,
+          target_peer,
+          params
+        )
+      else
+        {:error, :not_joined}
+      end
+
+    case result do
+      :ok -> {:reply, %{ok: true}, socket}
+      {:error, _reason} -> {:reply, %{ok: false}, socket}
+    end
+  end
+
+  def handle_event("image_relay_chunk", _params, socket),
+    do: {:reply, %{ok: false}, socket}
+
+  def handle_event(
+        "image_signal",
+        %{"target" => target_peer, "share_id" => _share_id} = params,
+        socket
+      ) do
+    result =
+      if socket.assigns.joined? do
+        ImageShares.relay_signal(
+          @room_id,
+          socket.assigns.presence_key,
+          target_peer,
+          params
+        )
+      else
+        {:error, :not_joined}
+      end
+
+    case result do
+      :ok -> {:reply, %{ok: true}, socket}
+      {:error, _reason} -> {:reply, %{ok: false}, socket}
+    end
+  end
+
+  def handle_event("image_signal", _params, socket),
+    do: {:reply, %{ok: false}, socket}
+
   def handle_event("start_private_message", %{"nickname" => nickname}, socket) do
     body = "#{Chatlans.normalize_nickname(nickname, socket.assigns.nickname)}, "
 
@@ -258,6 +380,8 @@ defmodule ChatWeb.RoomLive do
       Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
     end
 
+    ImageShares.close_peer(@room_id, socket.assigns.presence_key)
+
     socket =
       socket
       |> close_visit()
@@ -267,6 +391,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:settings_open?, false)
       |> assign(:screen, :login)
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
+      |> assign(:image_error, nil)
       |> assign_nickname_form()
       |> assign(:online, Chatlans.list_online(@room_id))
       |> push_event("clear-user-auth", %{})
@@ -319,12 +444,26 @@ defmodule ChatWeb.RoomLive do
     {:noreply, stream_insert(socket, :messages, message)}
   end
 
+  def handle_info({:image_announced, announcement}, %{assigns: %{joined?: true}} = socket) do
+    {:noreply, stream_insert(socket, :messages, announcement)}
+  end
+
+  def handle_info({:image_announced, _announcement}, socket), do: {:noreply, socket}
+
+  def handle_info({:image_signal, signal}, %{assigns: %{joined?: true}} = socket) do
+    {:noreply, push_event(socket, "image-signal", signal)}
+  end
+
+  def handle_info({:image_signal, _signal}, socket), do: {:noreply, socket}
+
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
   end
 
   @impl true
   def terminate(_reason, socket) do
+    ImageShares.close_peer(@room_id, socket.assigns.presence_key)
+
     socket.assigns
     |> Map.get(:visit)
     |> finish_visit()
@@ -465,6 +604,15 @@ defmodule ChatWeb.RoomLive do
   defp message_error(:message_too_long), do: "Сообщение не должно превышать 1000 символов."
   defp message_error(:empty_body), do: "Нельзя отправить пустое сообщение."
   defp message_error(_reason), do: "Не удалось отправить сообщение."
+
+  defp image_error(:registration_required),
+    do: "Отправлять изображения могут только зарегистрированные чатлане."
+
+  defp image_error(:invalid_content_type), do: "Можно выбрать JPG, PNG или WebP."
+  defp image_error(:invalid_file_size), do: "Размер изображения не должен превышать 5 МБ."
+  defp image_error(:rate_limited), do: "Слишком много изображений. Попробуй позже."
+  defp image_error(:share_unavailable), do: "Изображение больше недоступно."
+  defp image_error(_reason), do: "Не удалось отправить изображение."
 
   defp save_uploaded_photo(socket, profile) do
     case uploaded_entries(socket, :profile_photo) do

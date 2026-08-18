@@ -9,6 +9,7 @@ defmodule Chat.Security do
 
   @message_rules [{3, 2_000}, {12, 60_000}]
   @guest_ip_message_rules [{30, 60_000}]
+  @image_share_rules [{3, 60_000}, {10, 3_600_000}]
 
   def allow_message(%Subject{actor_id: actor_id}) when is_integer(actor_id) do
     RateLimiter.check({:message, {:user, actor_id}}, @message_rules)
@@ -26,6 +27,12 @@ defmodule Chat.Security do
       :ok
     end
   end
+
+  def allow_image_share(%Subject{actor_id: actor_id}) when is_integer(actor_id) do
+    RateLimiter.check({:image_share, {:user, actor_id}}, @image_share_rules)
+  end
+
+  def allow_image_share(%Subject{}), do: {:error, :registration_required}
 
   def claim_registration(nil), do: :ok
 

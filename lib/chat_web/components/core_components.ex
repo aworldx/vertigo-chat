@@ -209,8 +209,11 @@ defmodule ChatWeb.CoreComponents do
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
+    <div class="space-y-2">
+      <label
+        for={@id}
+        class="flex cursor-pointer items-center gap-3 text-sm font-medium text-zinc-200"
+      >
         <input
           type="hidden"
           name={@name}
@@ -218,14 +221,17 @@ defmodule ChatWeb.CoreComponents do
           disabled={@rest[:disabled]}
           form={@rest[:form]}
         />
-        <span class="label">
+        <span class="flex items-center gap-3">
           <input
             type="checkbox"
             id={@id}
             name={@name}
             value="true"
             checked={@checked}
-            class={@class || "checkbox checkbox-sm"}
+            class={
+              @class ||
+                "size-4 rounded border border-zinc-600 bg-zinc-950 text-amber-300 accent-amber-300 outline-none transition focus:ring-4 focus:ring-amber-300/15 disabled:cursor-not-allowed disabled:opacity-50"
+            }
             {@rest}
           />{@label}
         </span>
@@ -237,13 +243,18 @@ defmodule ChatWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+    <div class="space-y-2">
+      <label for={@id} class="block">
+        <span :if={@label} class="block text-sm font-medium text-zinc-200">{@label}</span>
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={[
+            @class ||
+              "mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-950/90 px-3.5 py-2.5 text-sm text-zinc-100 shadow-sm outline-none transition [color-scheme:dark] hover:border-zinc-600 focus:border-amber-300 focus:ring-4 focus:ring-amber-300/10 disabled:cursor-not-allowed disabled:bg-zinc-950/40 disabled:text-zinc-500",
+            @errors != [] &&
+              (@error_class || "border-red-400 focus:border-red-400 focus:ring-red-400/10")
+          ]}
           multiple={@multiple}
           {@rest}
         >
@@ -258,15 +269,17 @@ defmodule ChatWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+    <div class="space-y-2">
+      <label for={@id} class="block">
+        <span :if={@label} class="block text-sm font-medium text-zinc-200">{@label}</span>
         <textarea
           id={@id}
           name={@name}
           class={[
-            @class || "w-full textarea",
-            @errors != [] && (@error_class || "textarea-error")
+            @class ||
+              "mt-2 block min-h-28 w-full resize-y rounded-xl border border-zinc-700 bg-zinc-950/90 px-3.5 py-3 text-sm leading-6 text-zinc-100 shadow-sm outline-none transition placeholder:text-zinc-600 hover:border-zinc-600 focus:border-amber-300 focus:ring-4 focus:ring-amber-300/10 disabled:cursor-not-allowed disabled:bg-zinc-950/40 disabled:text-zinc-500",
+            @errors != [] &&
+              (@error_class || "border-red-400 focus:border-red-400 focus:ring-red-400/10")
           ]}
           {@rest}
         >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
@@ -279,17 +292,19 @@ defmodule ChatWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
-      <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+    <div class="space-y-2">
+      <label for={@id} class="block">
+        <span :if={@label} class="block text-sm font-medium text-zinc-200">{@label}</span>
         <input
           type={@type}
           name={@name}
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
-            @class || "w-full input",
-            @errors != [] && (@error_class || "input-error")
+            @class ||
+              "mt-2 block w-full rounded-xl border border-zinc-700 bg-zinc-950/90 px-3.5 py-2.5 text-sm text-zinc-100 shadow-sm outline-none transition [color-scheme:dark] placeholder:text-zinc-600 hover:border-zinc-600 focus:border-amber-300 focus:ring-4 focus:ring-amber-300/10 disabled:cursor-not-allowed disabled:bg-zinc-950/40 disabled:text-zinc-500",
+            @errors != [] &&
+              (@error_class || "border-red-400 focus:border-red-400 focus:ring-red-400/10")
           ]}
           {@rest}
         />
@@ -302,7 +317,7 @@ defmodule ChatWeb.CoreComponents do
   # Helper used by inputs to generate form errors
   defp error(assigns) do
     ~H"""
-    <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
+    <p role="alert" class="mt-1.5 flex items-center gap-2 text-sm text-red-300">
       <.icon name="hero-exclamation-circle" class="size-5" />
       {render_slot(@inner_block)}
     </p>

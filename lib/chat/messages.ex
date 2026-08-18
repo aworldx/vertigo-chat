@@ -65,6 +65,7 @@ defmodule Chat.Messages do
     [
       %{
         id: "welcome-1",
+        kind: :text,
         author: "system",
         body:
           "Добро пожаловать в первый Phoenix-чат. Открой эту страницу в двух вкладках и сообщения появятся мгновенно.",
@@ -114,6 +115,7 @@ defmodule Chat.Messages do
   defp build_message(author, body, theme_id, appearance) do
     %{
       id: System.unique_integer([:positive]),
+      kind: :text,
       author: author,
       body: body,
       recipient: recipient_from_body(body),

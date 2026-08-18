@@ -6,7 +6,7 @@ defmodule ChatWeb.ShellComponents do
 
   def top_menu(assigns) do
     ~H"""
-    <header class="flex min-h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4">
+    <header class="flex min-h-14 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4">
       <a href="/" class="flex items-center gap-3">
         <svg class="vertigo-mark" viewBox="0 0 50 50" fill="none" aria-hidden="true">
           <path

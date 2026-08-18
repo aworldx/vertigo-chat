@@ -8,6 +8,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:appearance, :map, required: true)
   attr(:messages, :any, required: true)
   attr(:nickname, :string, required: true)
+  attr(:peer_id, :string, required: true)
 
   def dialogue_frame(assigns) do
     ~H"""
@@ -33,11 +34,15 @@ defmodule ChatWeb.RoomComponents do
         <div
           :for={{dom_id, message} <- @messages}
           id={dom_id}
-          data-addressed-to-me={if(message.recipient == @nickname, do: "true", else: "false")}
+          data-message-kind={Map.get(message, :kind, :text)}
+          data-addressed-to-me={
+            if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
+          }
           class={[
             "rounded border px-4 py-3 shadow-sm transition-colors",
-            message.recipient == @nickname && "border-amber-300/60 bg-amber-300/15",
-            message.recipient != @nickname && "border-zinc-800 bg-zinc-900"
+            Map.get(message, :recipient) == @nickname &&
+              "border-amber-300/60 bg-amber-300/15",
+            Map.get(message, :recipient) != @nickname && "border-zinc-800 bg-zinc-900"
           ]}
         >
           <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -52,12 +57,47 @@ defmodule ChatWeb.RoomComponents do
             </button>
             <span class="text-xs text-zinc-500">{message.at}</span>
           </div>
-          <p
-            class="chat-message-body mt-1 break-words text-sm leading-6"
-            style={appearance_style(message)}
-          >
-            {message.body}
-          </p>
+          <%= if Map.get(message, :kind, :text) == :image do %>
+            <div
+              id={"image-preview-#{message.share_id}"}
+              phx-update="ignore"
+              data-image-placeholder
+              data-share-id={message.share_id}
+              data-sender-peer={message.sender_peer}
+              data-owned={to_string(message.sender_peer == @peer_id)}
+              data-file-name={message.name}
+              data-content-type={message.content_type}
+              data-file-size={message.size}
+              class="mt-3 overflow-hidden rounded-xl border border-dashed border-zinc-700 bg-zinc-950/80"
+            >
+              <div class="flex min-h-28 flex-col items-center justify-center gap-3 p-5 text-center">
+                <div class="flex size-12 items-center justify-center rounded-full bg-zinc-800 text-zinc-400">
+                  <.icon name="hero-photo" class="size-6" />
+                </div>
+                <div>
+                  <p class="max-w-md break-all text-sm font-medium text-zinc-200">{message.name}</p>
+                  <p class="mt-1 text-xs text-zinc-500">
+                    Изображение скрыто · {format_file_size(message.size)}
+                  </p>
+                </div>
+                <button
+                  id={"show-image-#{message.share_id}"}
+                  type="button"
+                  data-show-image
+                  class="rounded-lg border border-amber-300/50 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-200 hover:bg-amber-300/10"
+                >
+                  Показать изображение
+                </button>
+              </div>
+            </div>
+          <% else %>
+            <p
+              class="chat-message-body mt-1 break-words text-sm leading-6"
+              style={appearance_style(message)}
+            >
+              {message.body}
+            </p>
+          <% end %>
         </div>
       </div>
     </main>
@@ -142,6 +182,10 @@ defmodule ChatWeb.RoomComponents do
 
   attr(:message_form, :any, required: true)
   attr(:message_error, :string, default: nil)
+  attr(:image_error, :string, default: nil)
+  attr(:registered, :boolean, required: true)
+  attr(:peer_id, :string, required: true)
+  attr(:ice_servers, :list, required: true)
 
   def message_input(assigns) do
     assigns =
@@ -177,7 +221,7 @@ defmodule ChatWeb.RoomComponents do
       for={@message_form}
       id="message-form"
       phx-submit="send_message"
-      class="border-t border-zinc-800 bg-zinc-900 p-3"
+      class="relative shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 transition"
     >
       <p
         :if={@message_error}
@@ -186,6 +230,14 @@ defmodule ChatWeb.RoomComponents do
         role="alert"
       >
         {@message_error}
+      </p>
+      <p
+        :if={@image_error}
+        id="image-error"
+        class="mb-2 text-sm text-red-300"
+        role="alert"
+      >
+        {@image_error}
       </p>
       <div id="emoji-input-controls" phx-hook=".EmojiPicker" class="flex gap-3">
         <div class="relative hidden shrink-0 sm:block">
@@ -223,6 +275,54 @@ defmodule ChatWeb.RoomComponents do
           placeholder="Напиши сообщение..."
           class="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
         />
+        <div
+          id="image-share-controls"
+          phx-hook="ImageSharing"
+          phx-update="ignore"
+          data-can-share={to_string(@registered)}
+          data-peer-id={@peer_id}
+          data-max-file-size={Chat.ImageShares.max_file_size()}
+          data-relay-chunk-size={Chat.ImageShares.relay_chunk_size()}
+          data-accepted-types={Jason.encode!(Chat.ImageShares.accepted_types())}
+          data-ice-servers={Jason.encode!(@ice_servers)}
+          class="shrink-0"
+        >
+          <input
+            :if={@registered}
+            id="image-file-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="sr-only"
+            tabindex="-1"
+          />
+          <button
+            id="attach-image"
+            type="button"
+            disabled={not @registered}
+            aria-label={
+              if(@registered,
+                do: "Прикрепить изображение",
+                else: "Изображения доступны после регистрации"
+              )
+            }
+            title={
+              if(@registered,
+                do: "Прикрепить JPG, PNG или WebP",
+                else: "Только для зарегистрированных чатлан"
+              )
+            }
+            class="flex h-full min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-400"
+          >
+            <.icon name="hero-paper-clip" class="size-5" />
+          </button>
+          <p id="image-client-error" class="hidden" role="alert"></p>
+          <div
+            id="image-drop-overlay"
+            class="pointer-events-none absolute inset-1 z-30 hidden items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-zinc-950/95 text-sm font-semibold text-amber-200"
+          >
+            Отпусти изображение здесь
+          </div>
+        </div>
         <button
           id="send-message"
           type="submit"
@@ -290,8 +390,8 @@ defmodule ChatWeb.RoomComponents do
         class="absolute inset-0"
         aria-label="Закрыть анкету"
       ></button>
-      <section class="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
-        <div class="mb-6 flex items-start justify-between gap-4">
+      <section class="relative z-10 max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl sm:p-7">
+        <div class="mb-8 flex items-start justify-between gap-4">
           <div>
             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Анкета</p>
             <h2 class="mt-1 text-2xl font-semibold text-white">{@profile.user.nickname}</h2>
@@ -311,7 +411,7 @@ defmodule ChatWeb.RoomComponents do
           id="profile-form"
           phx-change="validate_profile"
           phx-submit="save_profile"
-          class="grid gap-5 sm:grid-cols-[11rem_1fr]"
+          class="grid gap-8 sm:grid-cols-[12rem_minmax(0,1fr)]"
         >
           <div class="space-y-3">
             <div class="aspect-square overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-950">
@@ -351,7 +451,7 @@ defmodule ChatWeb.RoomComponents do
             <% end %>
           </div>
 
-          <div class="space-y-4">
+          <div class="space-y-5">
             <.input
               name="profile[nickname]"
               value={@profile.user.nickname}
@@ -385,7 +485,7 @@ defmodule ChatWeb.RoomComponents do
               <button
                 id="save-profile"
                 type="submit"
-                class="w-full rounded-xl bg-amber-300 px-4 py-3 font-semibold text-zinc-950 transition hover:bg-amber-200 disabled:opacity-50"
+                class="mt-2 w-full rounded-xl bg-amber-300 px-4 py-3.5 font-semibold text-zinc-950 shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-50"
               >Сохранить анкету</button>
             <% end %>
           </div>
@@ -528,4 +628,14 @@ defmodule ChatWeb.RoomComponents do
     ]
     |> Enum.join("; ")
   end
+
+  defp format_file_size(size) when is_integer(size) and size >= 1_000_000 do
+    "#{Float.round(size / 1_000_000, 1)} МБ"
+  end
+
+  defp format_file_size(size) when is_integer(size) and size >= 1_000 do
+    "#{Float.round(size / 1_000, 1)} КБ"
+  end
+
+  defp format_file_size(size) when is_integer(size), do: "#{size} Б"
 end

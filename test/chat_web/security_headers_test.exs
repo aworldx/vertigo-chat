@@ -7,6 +7,7 @@ defmodule ChatWeb.SecurityHeadersTest do
 
     assert [policy] = get_resp_header(conn, "content-security-policy")
     assert policy =~ "script-src 'self'"
+    assert policy =~ "img-src 'self' data: blob:"
     assert policy =~ "object-src 'none'"
     assert policy =~ "frame-ancestors 'none'"
   end

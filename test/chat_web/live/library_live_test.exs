@@ -151,7 +151,7 @@ defmodule ChatWeb.LibraryLiveTest do
     |> render_submit()
 
     assert has_element?(view, "#library-article-form")
-    assert has_element?(view, "#library-article-form .text-error")
+    assert has_element?(view, "#library-article-form [role='alert']")
 
     view |> element("#cancel-library-editor") |> render_click()
     refute has_element?(view, "#library-article-form")

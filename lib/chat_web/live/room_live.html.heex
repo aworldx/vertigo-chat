@@ -4,7 +4,7 @@
     phx-hook="ChatPreferences"
     data-chat-theme={@theme_id}
     data-chat-mode={@theme_mode}
-    class="chat-shell flex h-screen min-h-[38rem] flex-col bg-zinc-950 text-zinc-100"
+    class="chat-shell flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100"
   >
     <ShellComponents.top_menu joined={@joined?} />
 
@@ -12,11 +12,12 @@
       <%= if @joined? do %>
         <RoomComponents.dialogue_frame
           nickname={@nickname}
+          peer_id={@presence_key}
           appearance={@appearance}
           messages={@streams.messages}
         />
       <% else %>
-        <main class="flex min-h-0 items-center justify-center border-b border-zinc-800 bg-zinc-950 p-4 md:border-b-0 md:border-r">
+        <main class="flex min-h-0 items-center justify-center overflow-y-auto border-b border-zinc-800 bg-zinc-950 p-4 md:border-b-0 md:border-r">
           <%= if @screen == :registration do %>
             <AuthComponents.registration_screen
               registration_form={@registration_form}
@@ -45,7 +46,14 @@
     </div>
 
     <%= if @joined? do %>
-      <RoomComponents.message_input message_form={@message_form} message_error={@message_error} />
+      <RoomComponents.message_input
+        message_form={@message_form}
+        message_error={@message_error}
+        image_error={@image_error}
+        registered={not is_nil(@current_user)}
+        peer_id={@presence_key}
+        ice_servers={Chat.ImageShares.ice_servers()}
+      />
     <% end %>
 
     <%= if @profile do %>
