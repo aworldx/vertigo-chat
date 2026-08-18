@@ -8,6 +8,7 @@ defmodule Chat.Messages do
   """
 
   alias Chat.Appearance
+  alias Chat.Messages.Registry
   alias Chat.Security
   alias Chat.Security.Subject
   alias Chat.Themes
@@ -61,20 +62,25 @@ defmodule Chat.Messages do
   def send_public_message(_author, _room_id, _attrs, %Subject{}),
     do: {:error, :invalid_message}
 
-  def list_recent_messages(_room_id \\ @default_room_id) do
-    [
-      %{
-        id: "welcome-1",
-        kind: :text,
-        author: "system",
-        body:
-          "Добро пожаловать в первый Phoenix-чат. Открой эту страницу в двух вкладках и сообщения появятся мгновенно.",
-        recipient: nil,
-        theme_id: Themes.default_theme_id(),
-        appearance: Appearance.default(),
-        at: current_time()
-      }
-    ]
+  def list_recent_messages(room_id \\ @default_room_id) do
+    case Registry.list(room_id) do
+      [] -> [welcome_message()]
+      messages -> messages
+    end
+  end
+
+  defp welcome_message do
+    %{
+      id: "welcome-1",
+      kind: :text,
+      author: "system",
+      body:
+        "Добро пожаловать в первый Phoenix-чат. Открой эту страницу в двух вкладках и сообщения появятся мгновенно.",
+      recipient: nil,
+      theme_id: Themes.default_theme_id(),
+      appearance: Appearance.default(),
+      at: current_time()
+    }
   end
 
   def room_topic(room_id), do: "room:#{room_id}"
@@ -101,6 +107,7 @@ defmodule Chat.Messages do
 
   defp broadcast_message(author, room_id, body, theme_id, appearance) do
     message = build_message(author, body, theme_id, appearance)
+    :ok = Registry.append(room_id, message)
 
     :ok =
       Phoenix.PubSub.broadcast(

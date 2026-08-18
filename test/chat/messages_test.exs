@@ -1,6 +1,6 @@
 # Назначение файла: тесты контекста Chat.Messages и его realtime-событий.
 defmodule Chat.MessagesTest do
-  use Chat.DataCase, async: true
+  use Chat.DataCase, async: false
 
   alias Chat.Messages
   alias Chat.Security.Subject
@@ -118,7 +118,24 @@ defmodule Chat.MessagesTest do
   end
 
   test "list_recent_messages/1 returns the prototype welcome message" do
-    assert [%{author: "system", body: body}] = Messages.list_recent_messages("lobby")
+    room_id = "empty-history-#{System.unique_integer([:positive])}"
+    assert [%{author: "system", body: body}] = Messages.list_recent_messages(room_id)
     assert body =~ "Добро пожаловать"
+  end
+
+  test "keeps only the latest 30 public messages in chronological order" do
+    room_id = "history-#{System.unique_integer([:positive])}"
+
+    for index <- 1..31 do
+      assert {:ok, _message} =
+               Messages.send_public_message("author-#{index}", room_id, %{
+                 "body" => "message #{index}"
+               })
+    end
+
+    messages = Messages.list_recent_messages(room_id)
+
+    assert length(messages) == 30
+    assert Enum.map(messages, & &1.body) == Enum.map(2..31, &"message #{&1}")
   end
 end

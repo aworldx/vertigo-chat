@@ -98,7 +98,8 @@ defmodule ChatWeb.RoomLive do
        socket
        |> assign(:online, Chatlans.list_online(@room_id))
        |> push_event("save-chat-preferences", public_preferences(socket))
-       |> sync_user_auth(user)}
+       |> sync_user_auth(user)
+       |> push_event("focus-message-input", %{})}
     else
       {:error, %Ecto.Changeset{}} ->
         {:noreply,

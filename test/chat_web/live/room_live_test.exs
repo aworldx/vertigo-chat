@@ -3,7 +3,12 @@ defmodule ChatWeb.RoomLiveTest do
   use ChatWeb.ConnCase
 
   alias Chat.Accounts
+  alias Chat.Messages.Registry, as: MessageRegistry
   alias Chat.Visits
+
+  setup do
+    :ok = MessageRegistry.clear("lobby")
+  end
 
   test "renders the entrance screen and current chatlan info", %{conn: conn} do
     {:ok, view, html} = live(conn, ~p"/")
@@ -33,6 +38,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "tester"
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#message-form.shrink-0")
+    assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
     refute has_element?(view, "#media-file-input")
   end
@@ -316,6 +322,29 @@ defmodule ChatWeb.RoomLiveTest do
     render(bob_view)
 
     assert has_element?(bob_view, "#messages [data-private='true']", "секрет")
+  end
+
+  test "loads recent public history for a newcomer without private messages", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(alice_view, "history_alice")
+    enter_chat(bob_view, "history_bob")
+
+    alice_view
+    |> form("#message-form", message: %{body: "публичная история"})
+    |> render_submit()
+
+    alice_view
+    |> form("#message-form", message: %{body: "^history_bob, скрытая история"})
+    |> render_submit()
+
+    {:ok, newcomer_view, _html} = live(build_conn(), ~p"/")
+    html = enter_chat(newcomer_view, "newcomer")
+
+    assert html =~ "публичная история"
+    refute html =~ "скрытая история"
+    refute has_element?(newcomer_view, "#messages [data-private='true']")
   end
 
   test "does not allow guest entrance with a registered nickname", %{conn: conn} do

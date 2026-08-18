@@ -38,6 +38,7 @@ defmodule Chat.PrivateMessagesTest do
     assert_receive {:private_message_received, ^message}
     assert_receive {:private_message_received, ^message}
     refute_receive {:message_created, _message}
+    assert [%{author: "system"}] = Messages.list_recent_messages(room_id)
   end
 
   test "parses both supported forms and rejects a message without recipient" do
