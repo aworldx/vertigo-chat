@@ -117,7 +117,7 @@ defmodule Chat.MediaSharesTest do
              )
   end
 
-  test "announces audio metadata with a larger size limit and without relay fallback" do
+  test "announces audio metadata with a larger size limit and relay fallback" do
     room_id = "audio-#{System.unique_integer([:positive])}"
     sender_peer = "presence-Sender_123"
     requester_peer = "presence-Viewer_456"
@@ -138,8 +138,28 @@ defmodule Chat.MediaSharesTest do
     assert :ok =
              MediaShares.request_media(room_id, requester_peer, "viewer", attrs["share_id"])
 
-    assert {:error, :relay_unavailable} =
-             MediaShares.request_relay(room_id, requester_peer, "viewer", attrs["share_id"])
+    assert :ok = MediaShares.request_relay(room_id, requester_peer, "viewer", attrs["share_id"])
+
+    relay_chunk = :binary.copy(<<1>>, MediaShares.relay_chunk_size())
+
+    assert :ok =
+             MediaShares.relay_chunk(
+               user,
+               subject,
+               room_id,
+               sender_peer,
+               requester_peer,
+               %{
+                 "share_id" => attrs["share_id"],
+                 "index" => 0,
+                 "total" =>
+                   div(
+                     attrs["size"] + MediaShares.relay_chunk_size() - 1,
+                     MediaShares.relay_chunk_size()
+                   ),
+                 "media_chunk" => Base.encode64(relay_chunk)
+               }
+             )
 
     assert {:error, :invalid_audio_size} =
              MediaShares.announce(
@@ -153,6 +173,24 @@ defmodule Chat.MediaSharesTest do
                },
                subject
              )
+  end
+
+  test "accepts common MP3 MIME aliases" do
+    room_id = "audio-alias-#{System.unique_integer([:positive])}"
+    {user, subject} = user_and_subject()
+
+    for content_type <- ~w(audio/mp3 audio/x-mp3) do
+      attrs = %{
+        valid_attrs()
+        | "share_id" => Ecto.UUID.generate(),
+          "name" => "track.mp3",
+          "type" => content_type,
+          "size" => 1_024
+      }
+
+      assert {:ok, %{kind: :audio, content_type: ^content_type}} =
+               MediaShares.announce(user, room_id, "presence-Sender_123", attrs, subject)
+    end
   end
 
   test "relays WebRTC signals only between the owner and a requesting peer" do

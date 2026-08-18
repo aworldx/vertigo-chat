@@ -3,6 +3,7 @@ const CHUNK_SIZE = 16 * 1024
 const MAX_BUFFERED_AMOUNT = 256 * 1024
 const FILE_TTL_MS = 15 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 20 * 1000
+const SIGNATURE_SCAN_SIZE = 64 * 1024
 
 const bytesEqual = (bytes, expected, offset = 0) =>
   expected.every((value, index) => bytes[offset + index] === value)
@@ -22,23 +23,60 @@ const detectedImageType = bytes => {
 }
 
 const detectedAudioType = bytes => {
-  if (bytesEqual(bytes, [0x49, 0x44, 0x33])) return "audio/mpeg"
-  if (bytes[0] === 0xff && (bytes[1] & 0xe6) === 0xe2) return "audio/mpeg"
   if (bytesEqual(bytes, [0x4f, 0x67, 0x67, 0x53])) return "audio/ogg"
   if (bytesEqual(bytes, [0x52, 0x49, 0x46, 0x46]) && bytesEqual(bytes, [0x57, 0x41, 0x56, 0x45], 8)) return "audio/wav"
   if (bytesEqual(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return "audio/mp4"
   if (bytes[0] === 0xff && (bytes[1] === 0xf1 || bytes[1] === 0xf9)) return "audio/aac"
+
+  for (let offset = 0; offset <= bytes.length - 3; offset += 1) {
+    if (bytesEqual(bytes, [0x49, 0x44, 0x33], offset)) return "audio/mpeg"
+
+    if (offset <= bytes.length - 4 && isMpegAudioFrame(bytes, offset)) {
+      return "audio/mpeg"
+    }
+  }
+
   return null
+}
+
+const isMpegAudioFrame = (bytes, offset) => {
+  const header1 = bytes[offset + 1]
+  const header2 = bytes[offset + 2]
+  const version = (header1 >> 3) & 0x03
+  const layer = (header1 >> 1) & 0x03
+  const bitrate = (header2 >> 4) & 0x0f
+  const sampleRate = (header2 >> 2) & 0x03
+
+  return (
+    bytes[offset] === 0xff &&
+    (header1 & 0xe0) === 0xe0 &&
+    version !== 0x01 &&
+    layer !== 0x00 &&
+    bitrate !== 0x00 &&
+    bitrate !== 0x0f &&
+    sampleRate !== 0x03
+  )
 }
 
 const normalizedMediaType = type => {
   if (type === "audio/x-wav") return "audio/wav"
   if (type === "audio/x-m4a") return "audio/mp4"
+  if (type === "audio/mp3" || type === "audio/x-mp3") return "audio/mpeg"
   return type
 }
 
+const playbackMediaType = type => {
+  const normalizedType = normalizedMediaType(type)
+  return normalizedType === "audio/mp4" ? 'audio/mp4; codecs="mp4a.40.2"' : normalizedType
+}
+
+const canonicalAudioFileName = (name, contentType) => {
+  if (contentType !== "audio/mp4") return name
+  return name.replace(/\.[^.]*$/, "") + ".m4a"
+}
+
 const readMediaType = async blob => {
-  const signature = new Uint8Array(await blob.slice(0, 16).arrayBuffer())
+  const signature = new Uint8Array(await blob.slice(0, SIGNATURE_SCAN_SIZE).arrayBuffer())
   return detectedImageType(signature) || detectedAudioType(signature)
 }
 
@@ -106,18 +144,24 @@ const revealAudio = (card, blob, fileName, objectUrls) => {
   title.textContent = fileName
 
   const audio = document.createElement("audio")
-  audio.src = objectUrl
   audio.controls = true
   audio.preload = "metadata"
   audio.className = "w-full accent-amber-300"
 
+  const source = document.createElement("source")
+  source.src = objectUrl
+  source.type = playbackMediaType(blob.type)
+  audio.append(source)
+
   wrapper.append(title, audio)
   card.replaceChildren(wrapper)
   card.classList.remove("border-dashed")
+  audio.load()
 }
 
 const createAudioStream = (card, contentType, fileName, objectUrls) => {
   const normalizedType = normalizedMediaType(contentType)
+  if (normalizedType === "audio/mp4") return null
   if (!window.MediaSource || !MediaSource.isTypeSupported(normalizedType)) return null
 
   const mediaSource = new MediaSource()
@@ -310,19 +354,32 @@ const MediaSharing = {
   async prepareFile(file) {
     this.clearClientError()
 
-    const error = await this.validateFile(file)
-    if (error) {
-      this.showClientError(error)
+    const validation = await this.validateFile(file)
+    if (validation.error) {
+      this.showClientError(validation.error)
       return
     }
 
+    const mediaFile =
+      file.type === validation.contentType
+        ? file
+        : new File([file], canonicalAudioFileName(file.name, validation.contentType), {
+            type: validation.contentType,
+            lastModified: file.lastModified,
+          })
+
     const shareId = crypto.randomUUID()
     const expiryTimer = setTimeout(() => this.files.delete(shareId), FILE_TTL_MS)
-    this.files.set(shareId, {file, expiryTimer})
+    this.files.set(shareId, {file: mediaFile, expiryTimer})
 
     this.pushEvent(
       "announce_media",
-      {share_id: shareId, name: file.name, type: file.type, size: file.size},
+      {
+        share_id: shareId,
+        name: file.name,
+        type: validation.contentType,
+        size: mediaFile.size,
+      },
       reply => {
         if (reply?.ok) return
 
@@ -334,18 +391,29 @@ const MediaSharing = {
   },
 
   async validateFile(file) {
-    if (!this.canShare) return "Отправлять файлы могут только зарегистрированные чатлане."
-    if (!this.acceptedTypes.has(file.type)) return "Можно выбрать JPG, PNG, WebP, MP3, OGG, WAV, M4A или AAC."
+    if (!this.canShare) {
+      return {error: "Отправлять файлы могут только зарегистрированные чатлане."}
+    }
+    if (!this.acceptedTypes.has(file.type)) {
+      return {error: "Можно выбрать JPG, PNG, WebP, MP3, OGG, WAV, M4A или AAC."}
+    }
 
     const kind = file.type.startsWith("image/") ? "image" : "audio"
     const maxSize = kind === "image" ? this.maxImageSize : this.maxAudioSize
     const sizeLabel = kind === "image" ? "5 МБ" : "50 МБ"
-    if (file.size <= 0 || file.size > maxSize) return `Размер файла не должен превышать ${sizeLabel}.`
+    if (file.size <= 0 || file.size > maxSize) {
+      return {error: `Размер файла не должен превышать ${sizeLabel}.`}
+    }
 
     const actualType = await readMediaType(file)
-    if (actualType !== normalizedMediaType(file.type)) return "Содержимое файла не соответствует заявленному формату."
+    const declaredType = normalizedMediaType(file.type)
+    const compatibleAudioContainer = kind === "audio" && actualType?.startsWith("audio/")
 
-    return null
+    if (actualType !== declaredType && !compatibleAudioContainer) {
+      return {error: "Содержимое файла не соответствует заявленному формату."}
+    }
+
+    return {error: null, contentType: actualType}
   },
 
   showClientError(message) {
@@ -629,17 +697,14 @@ const MediaSharing = {
     card.dataset.relayStarted = "true"
     this.closePeer(shareId, senderPeer)
 
-    if (card.dataset.mediaKind === "audio") {
-      setPlaceholderStatus(card, "Прямое соединение с автором недоступно. Попробуй ещё раз.", true)
-      return
-    }
-
     setPlaceholderStatus(card, "Прямое соединение недоступно. Передаём без сохранения на сервере…")
 
+    const mediaSize = Number(card.dataset.fileSize) || 0
+    const relayTimeoutMs = Math.max(REQUEST_TIMEOUT_MS, Math.ceil(mediaSize / 200_000) * 1000)
     const timeout = setTimeout(() => {
       this.relayTransfers.delete(shareId)
-      setPlaceholderStatus(card, "Автор не ответил. Изображение недоступно.", true)
-    }, REQUEST_TIMEOUT_MS)
+      setPlaceholderStatus(card, "Автор не ответил. Файл недоступен.", true)
+    }, relayTimeoutMs)
 
     this.relayTransfers.set(shareId, {
       card,
@@ -654,7 +719,7 @@ const MediaSharing = {
 
       clearTimeout(timeout)
       this.relayTransfers.delete(shareId)
-      setPlaceholderStatus(card, reply?.error || "Изображение недоступно.", true)
+      setPlaceholderStatus(card, reply?.error || "Файл недоступен.", true)
     })
   },
 
@@ -722,7 +787,7 @@ const MediaSharing = {
     const blob = new Blob(transfer.chunks, {type: transfer.card.dataset.contentType})
     const actualType = await readMediaType(blob)
     if (actualType !== normalizedMediaType(transfer.card.dataset.contentType)) {
-      setPlaceholderStatus(transfer.card, "Полученный файл не является изображением.", true)
+      setPlaceholderStatus(transfer.card, "Полученный файл имеет неверный формат.", true)
       return
     }
 

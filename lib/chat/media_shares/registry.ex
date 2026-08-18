@@ -109,14 +109,15 @@ defmodule Chat.MediaShares.Registry do
         announcement: %{
           room_id: ^room_id,
           sender_peer: ^from_peer,
-          kind: :image,
-          size: image_size
+          kind: kind,
+          size: media_size
         },
         requesters: requesters
-      } = entry ->
+      } = entry
+      when kind in [:image, :audio] ->
         received_indices = Map.get(entry.relay_chunks, target_peer, MapSet.new())
-        expected_total = div(image_size + chunk_size - 1, chunk_size)
-        expected_size = min(chunk_size, image_size - index * chunk_size)
+        expected_total = div(media_size + chunk_size - 1, chunk_size)
+        expected_size = min(chunk_size, media_size - index * chunk_size)
 
         valid? =
           MapSet.member?(requesters, target_peer) && total == expected_total && index >= 0 &&

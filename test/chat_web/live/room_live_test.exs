@@ -249,30 +249,73 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#profile-form img[src^='data:image/webp;base64,']")
   end
 
-  test "prefills an addressed message after a nickname click and highlights it for recipient", %{
+  test "delivers a private message only to sender and recipient", %{
     conn: conn
   } do
     {:ok, alice_view, _html} = live(conn, ~p"/")
     {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, eve_view, _html} = live(build_conn(), ~p"/")
 
     enter_chat(alice_view, "alice")
     enter_chat(bob_view, "bob")
+    enter_chat(eve_view, "eve")
     render(alice_view)
 
-    alice_view
-    |> element("#private-message-bob")
-    |> render_click()
+    assert has_element?(
+             alice_view,
+             "#private-message-bob[phx-hook='PrivateNickname'][data-private-nickname='bob']"
+           )
 
-    assert has_element?(alice_view, "#message-body[value='bob, ']")
+    render_hook(alice_view, "start_private_message", %{"nickname" => "bob"})
+
+    assert has_element?(alice_view, "#message-body[value='^bob, ']")
 
     alice_view
-    |> form("#message-form", message: %{body: "bob, личное сообщение"})
+    |> form("#message-form", message: %{body: "^bob, личное сообщение"})
     |> render_submit()
 
+    render(alice_view)
+    render(bob_view)
+    render(eve_view)
+
+    assert has_element?(alice_view, "#messages [data-private='true']", "личное сообщение")
+    assert has_element?(bob_view, "#messages [data-private='true']", "личное сообщение")
+    assert has_element?(bob_view, "#messages [data-private='true'].border-amber-300", "Лично вам")
+
+    assert has_element?(
+             alice_view,
+             "#messages [data-private='true'][class~='border-sky-400/50']",
+             "Лично для bob"
+           )
+
+    refute has_element?(eve_view, "#messages [data-private='true']")
+    refute render(eve_view) =~ "личное сообщение"
+  end
+
+  test "a single nickname click prepares a public addressed message", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(alice_view, "alice_public")
+    enter_chat(bob_view, "bob_public")
+    render(alice_view)
+
+    render_hook(alice_view, "start_public_message", %{"nickname" => "bob_public"})
+
+    assert has_element?(alice_view, "#message-body[value='bob_public, ']")
+  end
+
+  test "accepts the Ctrl+Enter private-message event with comma addressing", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(alice_view, "alice_ctrl")
+    enter_chat(bob_view, "bob_ctrl")
+
+    render_hook(alice_view, "send_private_message", %{"body" => "bob_ctrl, секрет"})
     render(bob_view)
 
-    assert has_element?(bob_view, "#messages [data-addressed-to-me='true']")
-    refute has_element?(alice_view, "#messages [data-addressed-to-me='true']")
+    assert has_element?(bob_view, "#messages [data-private='true']", "секрет")
   end
 
   test "does not allow guest entrance with a registered nickname", %{conn: conn} do

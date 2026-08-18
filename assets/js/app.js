@@ -60,6 +60,53 @@ const appearanceFrom = preferences => {
 }
 
 const chatHooks = {
+  PrivateNickname: {
+    mounted() {
+      this.onClick = () => {
+        window.clearTimeout(this.clickTimer)
+        this.clickTimer = window.setTimeout(() => {
+          this.pushEvent("start_public_message", {
+            nickname: this.el.dataset.privateNickname,
+          })
+        }, 250)
+      }
+
+      this.onDoubleClick = () => {
+        window.clearTimeout(this.clickTimer)
+        this.pushEvent("start_private_message", {
+          nickname: this.el.dataset.privateNickname,
+        })
+      }
+
+      this.el.addEventListener("click", this.onClick)
+      this.el.addEventListener("dblclick", this.onDoubleClick)
+    },
+    destroyed() {
+      window.clearTimeout(this.clickTimer)
+      this.el.removeEventListener("click", this.onClick)
+      this.el.removeEventListener("dblclick", this.onDoubleClick)
+    },
+  },
+  PrivateMessageComposer: {
+    mounted() {
+      this.onKeydown = event => {
+        if (event.key !== "Enter" || !event.ctrlKey || event.isComposing) return
+
+        event.preventDefault()
+        const input = this.el.querySelector("#message-body")
+        if (!input) return
+
+        this.pushEvent("send_private_message", {body: input.value}, reply => {
+          if (reply.ok) input.value = ""
+        })
+      }
+
+      this.el.addEventListener("keydown", this.onKeydown)
+    },
+    destroyed() {
+      this.el.removeEventListener("keydown", this.onKeydown)
+    },
+  },
   ChatMessages: {
     mounted() {
       this.scrollToBottom()

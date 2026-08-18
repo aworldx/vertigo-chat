@@ -8,6 +8,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.MediaShares
   alias Chat.Messages
   alias Chat.Profiles
+  alias Chat.PrivateMessages
   alias Chat.Themes
   alias Chat.Visits
   alias ChatWeb.AuthComponents
@@ -62,6 +63,7 @@ defmodule ChatWeb.RoomLive do
     socket =
       if connected?(socket) do
         Messages.subscribe(@room_id)
+        PrivateMessages.subscribe(presence_key)
         MediaShares.subscribe_peer(@room_id, presence_key)
 
         assign(socket, :online, Chatlans.list_online(@room_id))
@@ -152,36 +154,19 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("send_message", %{"message" => %{"body" => body}}, socket) do
-    result =
-      if socket.assigns.joined? do
-        Messages.send_public_message(
-          socket.assigns.nickname,
-          @room_id,
-          %{
-            "body" => body,
-            "theme_id" => socket.assigns.theme_id,
-            "appearance" => socket.assigns.appearance
-          },
-          message_security_subject(socket)
-        )
-      else
-        {:error, :not_joined}
-      end
-
-    case result do
-      {:ok, _message} ->
-        {:noreply,
-         socket
-         |> assign(:message_error, nil)
-         |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
-         |> push_event("clear-message-input", %{})}
-
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> assign(:message_error, message_error(reason))
-         |> assign(:message_form, to_form(%{"body" => body}, as: :message))}
+    if PrivateMessages.private_syntax?(body) do
+      send_private_message(body, socket)
+    else
+      send_public_message(body, socket)
     end
+  end
+
+  def handle_event("send_private_message", %{"body" => body}, socket) do
+    send_private_message(body, socket)
+  end
+
+  def handle_event("send_private_message", _params, socket) do
+    {:reply, %{ok: false}, assign(socket, :message_error, "Сообщение имеет неверный формат.")}
   end
 
   def handle_event("send_message", _params, socket) do
@@ -311,6 +296,15 @@ defmodule ChatWeb.RoomLive do
     do: {:reply, %{ok: false}, socket}
 
   def handle_event("start_private_message", %{"nickname" => nickname}, socket) do
+    body = "^#{Chatlans.normalize_nickname(nickname, socket.assigns.nickname)}, "
+
+    {:noreply,
+     socket
+     |> assign(:message_form, to_form(%{"body" => body}, as: :message))
+     |> push_event("focus-message-input", %{})}
+  end
+
+  def handle_event("start_public_message", %{"nickname" => nickname}, socket) do
     body = "#{Chatlans.normalize_nickname(nickname, socket.assigns.nickname)}, "
 
     {:noreply,
@@ -444,6 +438,12 @@ defmodule ChatWeb.RoomLive do
     {:noreply, stream_insert(socket, :messages, message)}
   end
 
+  def handle_info({:private_message_received, message}, %{assigns: %{joined?: true}} = socket) do
+    {:noreply, stream_insert(socket, :messages, message)}
+  end
+
+  def handle_info({:private_message_received, _message}, socket), do: {:noreply, socket}
+
   def handle_info({:media_announced, announcement}, %{assigns: %{joined?: true}} = socket) do
     {:noreply, stream_insert(socket, :messages, announcement)}
   end
@@ -469,6 +469,62 @@ defmodule ChatWeb.RoomLive do
     |> finish_visit()
 
     :ok
+  end
+
+  defp send_public_message(body, socket) do
+    result =
+      if socket.assigns.joined? do
+        Messages.send_public_message(
+          socket.assigns.nickname,
+          @room_id,
+          %{
+            "body" => body,
+            "theme_id" => socket.assigns.theme_id,
+            "appearance" => socket.assigns.appearance
+          },
+          message_security_subject(socket)
+        )
+      else
+        {:error, :not_joined}
+      end
+
+    case result do
+      {:ok, _message} ->
+        {:noreply, clear_message_input(socket)}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> assign(:message_error, message_error(reason))
+         |> assign(:message_form, to_form(%{"body" => body}, as: :message))}
+    end
+  end
+
+  defp send_private_message(body, socket) do
+    result =
+      if socket.assigns.joined? do
+        PrivateMessages.send_private_message(
+          socket.assigns.nickname,
+          socket.assigns.presence_key,
+          @room_id,
+          %{
+            "body" => body,
+            "theme_id" => socket.assigns.theme_id,
+            "appearance" => socket.assigns.appearance
+          },
+          message_security_subject(socket)
+        )
+      else
+        {:error, :not_joined}
+      end
+
+    case result do
+      {:ok, _message} ->
+        {:reply, %{ok: true}, clear_message_input(socket)}
+
+      {:error, reason} ->
+        {:reply, %{ok: false}, assign(socket, :message_error, private_message_error(reason))}
+    end
   end
 
   defp assign_preferences(socket, params, opts \\ []) do
@@ -604,6 +660,26 @@ defmodule ChatWeb.RoomLive do
   defp message_error(:message_too_long), do: "Сообщение не должно превышать 1000 символов."
   defp message_error(:empty_body), do: "Нельзя отправить пустое сообщение."
   defp message_error(_reason), do: "Не удалось отправить сообщение."
+
+  defp private_message_error(:private_recipient_required),
+    do: "Укажи адресата: ^ник, сообщение или ник, сообщение."
+
+  defp private_message_error(:recipient_offline), do: "Получатель уже вышел из чата."
+
+  defp private_message_error(:ambiguous_recipient),
+    do: "В чате несколько участников с таким ником."
+
+  defp private_message_error(:self_recipient),
+    do: "Нельзя отправить личное сообщение самому себе."
+
+  defp private_message_error(reason), do: message_error(reason)
+
+  defp clear_message_input(socket) do
+    socket
+    |> assign(:message_error, nil)
+    |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
+    |> push_event("clear-message-input", %{})
+  end
 
   defp media_error(:registration_required),
     do: "Отправлять файлы могут только зарегистрированные чатлане."

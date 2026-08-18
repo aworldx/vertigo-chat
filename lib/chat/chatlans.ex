@@ -36,6 +36,7 @@ defmodule Chat.Chatlans do
 
         %{
           id: "#{id}:#{meta.phx_ref}",
+          peer_id: id,
           nickname: meta.nickname,
           theme_id: theme_id,
           appearance: appearance,
@@ -56,6 +57,19 @@ defmodule Chat.Chatlans do
 
   def untrack(pid, room_id, presence_key) do
     Presence.untrack(pid, Messages.room_topic(room_id), presence_key)
+  end
+
+  def resolve_peer(room_id, nickname) when is_binary(nickname) do
+    peers =
+      room_id
+      |> list_online()
+      |> Enum.filter(&(&1.nickname == nickname))
+
+    case peers do
+      [%{peer_id: peer_id}] -> {:ok, peer_id}
+      [] -> {:error, :recipient_offline}
+      _duplicates -> {:error, :ambiguous_recipient}
+    end
   end
 
   def appearance_attrs(nickname, theme_id, appearance) do

@@ -16,7 +16,7 @@ defmodule Chat.MediaShares do
   @max_audio_size 50_000_000
   @max_file_name_length 120
   @image_types ~w(image/jpeg image/png image/webp)
-  @audio_types ~w(audio/mpeg audio/ogg audio/wav audio/x-wav audio/mp4 audio/x-m4a audio/aac)
+  @audio_types ~w(audio/mpeg audio/mp3 audio/x-mp3 audio/ogg audio/wav audio/x-wav audio/mp4 audio/x-m4a audio/aac)
   @share_id_pattern ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i
   @peer_id_pattern ~r/\Apresence-[A-Za-z0-9_-]{8,64}\z/
   @signal_kinds ~w(offer answer candidate)
@@ -206,7 +206,7 @@ defmodule Chat.MediaShares do
     end
   end
 
-  defp allow_relay(%{kind: :image}), do: :ok
+  defp allow_relay(%{kind: kind}) when kind in [:image, :audio], do: :ok
   defp allow_relay(_announcement), do: {:error, :relay_unavailable}
 
   defp validate_file_name(name) when is_binary(name) do

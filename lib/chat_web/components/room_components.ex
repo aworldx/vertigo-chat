@@ -35,21 +35,26 @@ defmodule ChatWeb.RoomComponents do
           :for={{dom_id, message} <- @messages}
           id={dom_id}
           data-message-kind={Map.get(message, :kind, :text)}
+          data-private={to_string(Map.get(message, :kind) == :private)}
           data-addressed-to-me={
             if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
           }
           class={[
             "rounded border px-4 py-3 shadow-sm transition-colors",
             Map.get(message, :recipient) == @nickname &&
-              "border-amber-300/60 bg-amber-300/15",
-            Map.get(message, :recipient) != @nickname && "border-zinc-800 bg-zinc-900"
+              "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30",
+            Map.get(message, :kind) == :private && Map.get(message, :recipient) != @nickname &&
+              "border-sky-400/50 bg-sky-400/10",
+            Map.get(message, :kind) != :private && Map.get(message, :recipient) != @nickname &&
+              "border-zinc-800 bg-zinc-900"
           ]}
         >
           <div class="flex flex-wrap items-baseline justify-between gap-2">
             <button
+              id={"message-author-#{dom_id}"}
               type="button"
-              phx-click="start_private_message"
-              phx-value-nickname={message.author}
+              phx-hook="PrivateNickname"
+              data-private-nickname={message.author}
               class="chat-message-author font-semibold transition hover:underline"
               style={appearance_style(message)}
             >
@@ -57,6 +62,16 @@ defmodule ChatWeb.RoomComponents do
             </button>
             <span class="text-xs text-zinc-500">{message.at}</span>
           </div>
+          <p
+            :if={Map.get(message, :kind) == :private}
+            class="mt-1 text-xs font-semibold uppercase tracking-wide text-amber-300"
+          >
+            <%= if message.recipient == @nickname do %>
+              Лично вам
+            <% else %>
+              Лично для {message.recipient}
+            <% end %>
+          </p>
           <%= case Map.get(message, :kind, :text) do %>
             <% kind when kind in [:image, :audio] -> %>
               <div
@@ -175,8 +190,8 @@ defmodule ChatWeb.RoomComponents do
             <button
               id={"private-message-#{user.nickname}"}
               type="button"
-              phx-click="start_private_message"
-              phx-value-nickname={user.nickname}
+              phx-hook="PrivateNickname"
+              data-private-nickname={user.nickname}
               class="chat-user-nickname min-w-0 flex-1 truncate text-left text-sm font-medium transition hover:underline"
               style={appearance_style(user)}
             >
@@ -231,6 +246,7 @@ defmodule ChatWeb.RoomComponents do
       for={@message_form}
       id="message-form"
       phx-submit="send_message"
+      phx-hook="PrivateMessageComposer"
       class="relative shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 transition"
     >
       <p
@@ -302,7 +318,7 @@ defmodule ChatWeb.RoomComponents do
             :if={@registered}
             id="media-file-input"
             type="file"
-            accept="image/jpeg,image/png,image/webp,audio/mpeg,audio/ogg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,.mp3,.ogg,.wav,.m4a,.aac"
+            accept="image/jpeg,image/png,image/webp,audio/mpeg,audio/mp3,audio/x-mp3,audio/ogg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,.mp3,.ogg,.wav,.m4a,.aac"
             class="sr-only"
             tabindex="-1"
           />
