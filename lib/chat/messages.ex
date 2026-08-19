@@ -15,6 +15,7 @@ defmodule Chat.Messages do
 
   @default_room_id "lobby"
   @max_body_length 1_000
+  @reaction_emojis ["👍", "❤️", "😂", "😮", "😢", "🔥"]
 
   def subscribe(room_id \\ @default_room_id) do
     Phoenix.PubSub.subscribe(Chat.PubSub, room_topic(room_id))
@@ -69,6 +70,28 @@ defmodule Chat.Messages do
     end
   end
 
+  def toggle_reaction(reactor, reactor_key, room_id, message_id, emoji)
+      when is_binary(reactor) and is_binary(reactor_key) and is_binary(room_id) and
+             is_binary(message_id) and emoji in @reaction_emojis do
+    case Registry.toggle_reaction(room_id, message_id, reactor, reactor_key, emoji) do
+      {:ok, message} ->
+        :ok =
+          Phoenix.PubSub.broadcast(
+            Chat.PubSub,
+            room_topic(room_id),
+            {:message_reacted, message}
+          )
+
+        {:ok, message}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def toggle_reaction(_reactor, _reactor_key, _room_id, _message_id, _emoji),
+    do: {:error, :invalid_reaction}
+
   defp welcome_message do
     %{
       id: "welcome-1",
@@ -86,6 +109,7 @@ defmodule Chat.Messages do
   def room_topic(room_id), do: "room:#{room_id}"
 
   def max_body_length, do: @max_body_length
+  def reaction_emojis, do: @reaction_emojis
 
   defp deliver_message(author, room_id, body, theme_id, appearance, subject) do
     body = String.trim(body)
@@ -126,6 +150,7 @@ defmodule Chat.Messages do
       author: author,
       body: body,
       recipient: recipient_from_body(body),
+      reactions: %{},
       theme_id: theme_id,
       appearance: appearance,
       at: current_time()

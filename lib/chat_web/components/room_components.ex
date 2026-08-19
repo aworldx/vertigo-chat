@@ -5,7 +5,6 @@ defmodule ChatWeb.RoomComponents do
   alias Chat.Appearance
   alias ChatWeb.Media
 
-  attr(:appearance, :map, required: true)
   attr(:messages, :any, required: true)
   attr(:nickname, :string, required: true)
   attr(:peer_id, :string, required: true)
@@ -13,23 +12,11 @@ defmodule ChatWeb.RoomComponents do
   def dialogue_frame(assigns) do
     ~H"""
     <main class="flex min-h-0 flex-col border-b border-zinc-800 bg-zinc-950 md:border-b-0 md:border-r">
-      <div class="flex items-end justify-between gap-3 border-b border-zinc-800 px-4 py-3">
-        <div>
-          <h1 class="text-xl font-semibold">Общая комната</h1>
-        </div>
-        <p class="text-sm text-zinc-400">
-          ты вошел как
-          <span class="chat-current-nickname font-semibold" style={appearance_style(@appearance)}>
-            {@nickname}
-          </span>
-        </p>
-      </div>
-
       <div
         id="messages"
         phx-hook="ChatMessages"
         phx-update="stream"
-        class="min-h-0 flex-1 space-y-3 overflow-y-auto p-4"
+        class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3"
       >
         <div
           :for={{dom_id, message} <- @messages}
@@ -40,7 +27,7 @@ defmodule ChatWeb.RoomComponents do
             if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
           }
           class={[
-            "rounded border px-4 py-3 shadow-sm transition-colors",
+            "group/message relative rounded border px-3 pb-2 pt-3 shadow-sm transition-colors",
             Map.get(message, :recipient) == @nickname &&
               "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30",
             Map.get(message, :kind) == :private && Map.get(message, :recipient) != @nickname &&
@@ -49,22 +36,20 @@ defmodule ChatWeb.RoomComponents do
               "border-zinc-800 bg-zinc-900"
           ]}
         >
-          <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <button
-              id={"message-author-#{dom_id}"}
-              type="button"
-              phx-hook="PrivateNickname"
-              data-private-nickname={message.author}
-              class="chat-message-author font-semibold transition hover:underline"
-              style={appearance_style(message)}
-            >
-              {message.author}
-            </button>
-            <span class="text-xs text-zinc-500">{message.at}</span>
-          </div>
+          <button
+            id={"message-author-#{dom_id}"}
+            type="button"
+            phx-hook="PrivateNickname"
+            data-private-nickname={message.author}
+            class="chat-message-author absolute -top-2 left-2 z-10 max-w-[65%] truncate rounded-full border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-[11px] font-semibold leading-4 shadow-sm transition hover:border-zinc-500 hover:underline"
+            style={appearance_style(message)}
+          >
+            {message.author}
+          </button>
+          <span class="absolute right-2 top-1 text-[10px] text-zinc-500">{message.at}</span>
           <p
             :if={Map.get(message, :kind) == :private}
-            class="mt-1 text-xs font-semibold uppercase tracking-wide text-amber-300"
+            class="mb-0.5 pr-12 text-[10px] font-semibold uppercase tracking-wide text-amber-300"
           >
             <%= if message.recipient == @nickname do %>
               Лично вам
@@ -117,17 +102,104 @@ defmodule ChatWeb.RoomComponents do
               </div>
             <% _text -> %>
               <p
-                class="chat-message-body mt-1 break-words text-sm leading-6"
+                class="chat-message-body break-words pr-12 text-sm leading-5"
                 style={appearance_style(message)}
               >
                 {message.body}
               </p>
           <% end %>
+          <div
+            :if={reactable_message?(message)}
+            class="absolute -bottom-2.5 right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1"
+            aria-label="Реакции на сообщение"
+          >
+            <%= for emoji <- present_reactions(message) do %>
+              <button
+                :if={message.author != @nickname}
+                id={"reaction-#{dom_id}-#{reaction_dom_id(emoji)}"}
+                type="button"
+                phx-click="toggle_reaction"
+                phx-value-message-id={message.id}
+                phx-value-emoji={emoji}
+                data-reaction-emoji={emoji}
+                data-reaction-count={reaction_count(message, emoji)}
+                aria-pressed={to_string(reacted?(message, emoji, @peer_id))}
+                class={[
+                  "inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] shadow-sm transition",
+                  reacted?(message, emoji, @peer_id) &&
+                    "border-amber-300/70 bg-amber-300/15 text-amber-100",
+                  not reacted?(message, emoji, @peer_id) &&
+                    "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500"
+                ]}
+              >
+                <span>{emoji}</span>
+                <span class="tabular-nums">{reaction_count(message, emoji)}</span>
+              </button>
+              <span
+                :if={message.author == @nickname}
+                id={"reaction-#{dom_id}-#{reaction_dom_id(emoji)}"}
+                data-reaction-emoji={emoji}
+                data-reaction-count={reaction_count(message, emoji)}
+                class="inline-flex h-5 items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800 px-1.5 text-[11px] text-zinc-300 shadow-sm"
+              >
+                <span>{emoji}</span>
+                <span class="tabular-nums">{reaction_count(message, emoji)}</span>
+              </span>
+            <% end %>
+
+            <details :if={message.author != @nickname} class="relative">
+              <summary
+                class="flex size-5 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200 [&::-webkit-details-marker]:hidden"
+                aria-label="Добавить реакцию"
+                title="Добавить реакцию"
+              >
+                <.icon name="hero-face-smile" class="size-3" />
+              </summary>
+              <div class="absolute bottom-full right-0 z-30 mb-1.5 flex gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-1.5 shadow-2xl">
+                <button
+                  :for={emoji <- Chat.Messages.reaction_emojis()}
+                  type="button"
+                  phx-click="toggle_reaction"
+                  phx-value-message-id={message.id}
+                  phx-value-emoji={emoji}
+                  data-reaction-picker-emoji={emoji}
+                  aria-label={"Поставить реакцию #{emoji}"}
+                  class="flex size-8 items-center justify-center rounded-lg text-lg transition hover:bg-amber-300/15 hover:scale-110"
+                >
+                  {emoji}
+                </button>
+              </div>
+            </details>
+          </div>
         </div>
       </div>
     </main>
     """
   end
+
+  defp reactable_message?(message) do
+    Map.get(message, :kind, :text) == :text && message.author != "system"
+  end
+
+  defp present_reactions(message) do
+    Enum.filter(Chat.Messages.reaction_emojis(), &(reaction_count(message, &1) > 0))
+  end
+
+  defp reaction_count(message, emoji) do
+    message
+    |> Map.get(:reactions, %{})
+    |> Map.get(emoji, MapSet.new())
+    |> MapSet.size()
+  end
+
+  defp reacted?(message, emoji, peer_id) do
+    message
+    |> Map.get(:reactions, %{})
+    |> Map.get(emoji, MapSet.new())
+    |> MapSet.member?(peer_id)
+  end
+
+  defp reaction_dom_id(emoji), do: Base.url_encode64(emoji, padding: false)
 
   attr(:joined, :boolean, required: true)
   attr(:settings_open, :boolean, required: true)
@@ -138,16 +210,22 @@ defmodule ChatWeb.RoomComponents do
   attr(:theme_modes, :list, required: true)
   attr(:appearance, :map, required: true)
   attr(:nickname, :string, required: true)
+  attr(:peer_id, :string, required: true)
 
   def chatlan_sidebar(assigns) do
     ~H"""
     <aside class="hidden min-h-0 overflow-y-auto bg-zinc-900/80 p-4 md:block">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold">Сейчас в чате</h2>
+          <h2 class="text-lg font-semibold">
+            {if @settings_open, do: "Настройки", else: "Сейчас в чате"}
+          </h2>
         </div>
         <div class="flex items-center gap-2">
-          <span class="rounded bg-emerald-500/15 px-2 py-1 text-sm text-emerald-300">
+          <span
+            :if={not @settings_open}
+            class="rounded bg-emerald-500/15 px-2 py-1 text-sm text-emerald-300"
+          >
             {length(@online)}
           </span>
           <%= if @joined do %>
@@ -174,11 +252,11 @@ defmodule ChatWeb.RoomComponents do
         />
       <% end %>
 
-      <div id="online-list" class="mt-4 space-y-2">
+      <div :if={not @settings_open} id="online-list" class="mt-4 space-y-2">
         <%= for user <- @online do %>
           <div class="flex items-center gap-2 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2">
             <button
-              id={"profile-link-#{user.nickname}"}
+              id={"profile-link-#{user.id}"}
               type="button"
               phx-click="open_profile"
               phx-value-nickname={user.nickname}
@@ -188,7 +266,7 @@ defmodule ChatWeb.RoomComponents do
               <.icon name="hero-user-circle" class="size-5" />
             </button>
             <button
-              id={"private-message-#{user.nickname}"}
+              id={"private-message-#{user.id}"}
               type="button"
               phx-hook="PrivateNickname"
               data-private-nickname={user.nickname}
@@ -197,7 +275,26 @@ defmodule ChatWeb.RoomComponents do
             >
               {user.nickname}
             </button>
-            <span class="text-xs text-zinc-500">{user.online_at}</span>
+            <span
+              class="shrink-0 text-[10px] font-medium"
+              role={if(user.peer_id == @peer_id, do: "status")}
+              aria-live={if(user.peer_id == @peer_id, do: "polite")}
+            >
+              <span
+                id={if(user.peer_id == @peer_id, do: "current-chatlan-online")}
+                class="inline-flex items-center gap-1 text-emerald-300"
+              >
+                <span class="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_currentColor]"></span>
+                В сети
+              </span>
+              <span
+                id={if(user.peer_id == @peer_id, do: "current-chatlan-reconnecting")}
+                class="inline-flex items-center gap-1 text-amber-300"
+                hidden
+              >
+                <.icon name="hero-arrow-path" class="size-3 motion-safe:animate-spin" /> Связь…
+              </span>
+            </span>
           </div>
         <% end %>
       </div>
@@ -265,7 +362,11 @@ defmodule ChatWeb.RoomComponents do
       >
         {@media_error}
       </p>
-      <div id="emoji-input-controls" phx-hook=".EmojiPicker" class="flex gap-3">
+      <fieldset
+        id="emoji-input-controls"
+        phx-hook=".EmojiPicker"
+        class="flex min-w-0 gap-3 disabled:cursor-not-allowed disabled:opacity-60"
+      >
         <div class="relative hidden shrink-0 sm:block">
           <button
             id="toggle-emoji-picker"
@@ -369,7 +470,7 @@ defmodule ChatWeb.RoomComponents do
           <.icon name="hero-arrow-right-start-on-rectangle" class="size-5 sm:hidden" />
           <span class="hidden sm:inline">Выход</span>
         </button>
-      </div>
+      </fieldset>
 
       <script :type={Phoenix.LiveView.ColocatedHook} name=".EmojiPicker">
         export default {

@@ -117,6 +117,58 @@ defmodule Chat.MessagesTest do
     assert Messages.room_topic("lobby") == "room:lobby"
   end
 
+  test "toggles a reaction and broadcasts the updated message" do
+    room_id = "reactions-#{System.unique_integer([:positive])}"
+    :ok = Messages.subscribe(room_id)
+
+    assert {:ok, message} =
+             Messages.send_public_message("alice", room_id, %{"body" => "react to me"})
+
+    assert_receive {:message_created, ^message}
+
+    assert {:ok, reacted} =
+             Messages.toggle_reaction("bob", "peer-bob", room_id, to_string(message.id), "👍")
+
+    assert MapSet.equal?(reacted.reactions["👍"], MapSet.new(["peer-bob"]))
+    assert_receive {:message_reacted, ^reacted}
+
+    assert {:ok, replaced} =
+             Messages.toggle_reaction("bob", "peer-bob", room_id, to_string(message.id), "❤️")
+
+    assert replaced.reactions["👍"] == nil
+    assert MapSet.equal?(replaced.reactions["❤️"], MapSet.new(["peer-bob"]))
+    assert_receive {:message_reacted, ^replaced}
+
+    assert {:ok, unreacted} =
+             Messages.toggle_reaction("bob", "peer-bob", room_id, to_string(message.id), "❤️")
+
+    assert unreacted.reactions == %{}
+    assert_receive {:message_reacted, ^unreacted}
+  end
+
+  test "rejects reactions to an own message and unsupported emoji" do
+    room_id = "reaction-rules-#{System.unique_integer([:positive])}"
+    assert {:ok, message} = Messages.send_public_message("alice", room_id, %{"body" => "mine"})
+
+    assert {:error, :own_message} =
+             Messages.toggle_reaction(
+               "alice",
+               "peer-alice",
+               room_id,
+               to_string(message.id),
+               "❤️"
+             )
+
+    assert {:error, :invalid_reaction} =
+             Messages.toggle_reaction(
+               "bob",
+               "peer-bob",
+               room_id,
+               to_string(message.id),
+               "💩"
+             )
+  end
+
   test "list_recent_messages/1 returns the prototype welcome message" do
     room_id = "empty-history-#{System.unique_integer([:positive])}"
     assert [%{author: "system", body: body}] = Messages.list_recent_messages(room_id)

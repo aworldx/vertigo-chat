@@ -2,6 +2,16 @@
   <section
     id="chat-room"
     phx-hook="ChatPreferences"
+    phx-disconnected={
+      JS.set_attribute({"hidden", ""}, to: "#current-chatlan-online")
+      |> JS.remove_attribute("hidden", to: "#current-chatlan-reconnecting")
+      |> JS.set_attribute({"disabled", ""}, to: "#emoji-input-controls")
+    }
+    phx-connected={
+      JS.set_attribute({"hidden", ""}, to: "#current-chatlan-reconnecting")
+      |> JS.remove_attribute("hidden", to: "#current-chatlan-online")
+      |> JS.remove_attribute("disabled", to: "#emoji-input-controls")
+    }
     data-chat-theme={@theme_id}
     data-chat-mode={@theme_mode}
     class="chat-shell flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100"
@@ -13,7 +23,6 @@
         <RoomComponents.dialogue_frame
           nickname={@nickname}
           peer_id={@presence_key}
-          appearance={@appearance}
           messages={@streams.messages}
         />
       <% else %>
@@ -38,10 +47,11 @@
         online={@online}
         settings_form={@settings_form}
         themes={@themes}
-        theme_id={@theme_id}
+        theme_id={@settings_theme_id}
         theme_modes={@theme_modes}
-        appearance={@appearance}
+        appearance={@settings_appearance}
         nickname={@nickname}
+        peer_id={@presence_key}
       />
     </div>
 

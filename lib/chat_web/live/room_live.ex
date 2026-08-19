@@ -87,6 +87,7 @@ defmodule ChatWeb.RoomLive do
         |> assign(:visit, visit)
         |> assign(:entrance_error, nil)
         |> reset_colors_for_new_nickname(nickname)
+        |> apply_registered_preferences(user)
         |> assign(:joined?, true)
         |> assign_nickname_form()
         |> assign_settings_form()
@@ -97,7 +98,7 @@ defmodule ChatWeb.RoomLive do
       {:noreply,
        socket
        |> assign(:online, Chatlans.list_online(@room_id))
-       |> push_event("save-chat-preferences", public_preferences(socket))
+       |> maybe_save_guest_preferences(user)
        |> sync_user_auth(user)
        |> push_event("focus-message-input", %{})}
     else
@@ -169,6 +170,24 @@ defmodule ChatWeb.RoomLive do
   def handle_event("send_private_message", _params, socket) do
     {:reply, %{ok: false}, assign(socket, :message_error, "Сообщение имеет неверный формат.")}
   end
+
+  def handle_event(
+        "toggle_reaction",
+        %{"message-id" => message_id, "emoji" => emoji},
+        %{assigns: %{joined?: true}} = socket
+      ) do
+    Messages.toggle_reaction(
+      socket.assigns.nickname,
+      reaction_actor_key(socket),
+      @room_id,
+      message_id,
+      emoji
+    )
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_reaction", _params, socket), do: {:noreply, socket}
 
   def handle_event("send_message", _params, socket) do
     {:noreply,
@@ -395,17 +414,14 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("toggle_settings", _params, socket) do
-    {:noreply, assign(socket, :settings_open?, !socket.assigns.settings_open?)}
+    {:noreply,
+     socket
+     |> assign(:settings_open?, !socket.assigns.settings_open?)
+     |> assign_settings_form()}
   end
 
   def handle_event("preview_preferences", %{"preferences" => params}, socket) do
-    socket =
-      socket
-      |> assign_preferences(params)
-      |> assign_settings_form()
-      |> update_presence()
-
-    {:noreply, socket}
+    {:noreply, assign_settings_draft(socket, params)}
   end
 
   def handle_event("load_preferences", params, socket) do
@@ -424,18 +440,29 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("save_preferences", %{"preferences" => params}, socket) do
-    socket =
-      socket
-      |> assign_preferences(params)
-      |> assign(:settings_open?, false)
-      |> assign_settings_form()
-      |> update_presence()
+    case save_preferences(socket, params) do
+      {:ok, socket} ->
+        {:noreply,
+         socket
+         |> assign(:settings_open?, false)
+         |> assign_settings_form()
+         |> update_presence()
+         |> maybe_save_guest_preferences(socket.assigns.current_user)}
 
-    {:noreply, push_event(socket, "save-chat-preferences", public_preferences(socket))}
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> assign_settings_draft(params)
+         |> put_flash(:error, preferences_error(changeset))}
+    end
   end
 
   @impl true
   def handle_info({:message_created, message}, socket) do
+    {:noreply, stream_insert(socket, :messages, message)}
+  end
+
+  def handle_info({:message_reacted, message}, socket) do
     {:noreply, stream_insert(socket, :messages, message)}
   end
 
@@ -550,7 +577,26 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp assign_settings_form(socket) do
-    assign(socket, :settings_form, to_form(public_preferences(socket), as: :preferences))
+    socket
+    |> assign(:settings_theme_id, socket.assigns.theme_id)
+    |> assign(:settings_appearance, socket.assigns.appearance)
+    |> assign(:settings_form, to_form(public_preferences(socket), as: :preferences))
+  end
+
+  defp assign_settings_draft(socket, params) do
+    theme_id = Themes.normalize_theme_id(params["theme_id"], socket.assigns.theme_id)
+    appearance = Appearance.from_params(params, socket.assigns.appearance)
+
+    preferences = %{
+      "nickname" => socket.assigns.nickname,
+      "theme_id" => theme_id,
+      "appearance" => appearance
+    }
+
+    socket
+    |> assign(:settings_theme_id, theme_id)
+    |> assign(:settings_appearance, appearance)
+    |> assign(:settings_form, to_form(preferences, as: :preferences))
   end
 
   defp assign_nickname_form(socket) do
@@ -616,6 +662,39 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp apply_registered_preferences(socket, nil), do: socket
+
+  defp apply_registered_preferences(socket, user) do
+    socket
+    |> assign_preferences(Accounts.user_preferences(user))
+    |> assign(:preference_nickname, user.nickname)
+  end
+
+  defp save_preferences(%{assigns: %{current_user: nil}} = socket, params) do
+    {:ok, assign_preferences(socket, params)}
+  end
+
+  defp save_preferences(socket, params) do
+    case Accounts.update_preferences(socket.assigns.current_user, params) do
+      {:ok, user} ->
+        {:ok,
+         socket
+         |> assign(:current_user, user)
+         |> assign_preferences(Accounts.user_preferences(user))}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  defp maybe_save_guest_preferences(socket, nil) do
+    push_event(socket, "save-chat-preferences", public_preferences(socket))
+  end
+
+  defp maybe_save_guest_preferences(socket, _user), do: socket
+
+  defp preferences_error(%Ecto.Changeset{}), do: "Не удалось сохранить настройки."
+
   defp public_appearance(socket) do
     Chatlans.appearance_attrs(
       socket.assigns.nickname,
@@ -656,6 +735,8 @@ defmodule ChatWeb.RoomLive do
   defp message_security_subject(socket) do
     ClientSecurity.for_user(socket.assigns.security_subject, socket.assigns.current_user)
   end
+
+  defp reaction_actor_key(socket), do: socket.assigns.presence_key
 
   defp message_error(:rate_limited), do: "Слишком часто. Подожди немного перед отправкой."
   defp message_error(:message_too_long), do: "Сообщение не должно превышать 1000 символов."

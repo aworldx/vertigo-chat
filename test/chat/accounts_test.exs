@@ -35,6 +35,25 @@ defmodule Chat.AccountsTest do
     assert {:error, :not_found} = Accounts.authenticate("unknown", "secret123")
   end
 
+  test "persists normalized chat preferences" do
+    assert {:ok, user} =
+             Accounts.register_user(%{"nickname" => "styled_user", "password" => "secret123"})
+
+    assert {:ok, user} =
+             Accounts.update_preferences(user, %{
+               "theme_id" => "night_sky",
+               "appearance" => %{
+                 "dark" => %{"nickname_color" => "#AA44CC", "text_color" => "#22AA88"}
+               }
+             })
+
+    preferences = Accounts.user_preferences(Accounts.get_user(user.id))
+
+    assert preferences["theme_id"] == "night_sky"
+    assert preferences["appearance"]["dark"]["nickname_color"] == "#aa44cc"
+    assert preferences["appearance"]["dark"]["text_color"] == "#22aa88"
+  end
+
   test "detects registered nicknames" do
     refute Accounts.registered_nickname?("tester")
 

@@ -8,11 +8,13 @@ defmodule Chat.Accounts do
 
   alias Chat.Accounts.Password
   alias Chat.Accounts.User
+  alias Chat.Appearance
   alias Chat.Chatlans
   alias Chat.Profiles
   alias Chat.Repo
   alias Chat.Security
   alias Chat.Security.Subject
+  alias Chat.Themes
 
   def register_user(attrs), do: register_user(attrs, nil)
 
@@ -69,6 +71,21 @@ defmodule Chat.Accounts do
     end
   end
 
+  def update_preferences(%User{} = user, attrs) do
+    preferences = normalize_preferences(attrs, user_preferences(user))
+
+    user
+    |> User.preferences_changeset(preferences)
+    |> Repo.update()
+  end
+
+  def user_preferences(%User{} = user) do
+    %{
+      "theme_id" => Themes.normalize_theme_id(user.theme_id),
+      "appearance" => Appearance.normalize(user.appearance)
+    }
+  end
+
   defp verify_registered_user(nickname, password) do
     user = Repo.get_by(User, nickname: nickname)
 
@@ -94,6 +111,15 @@ defmodule Chat.Accounts do
 
   defp normalize_password(password) when is_binary(password), do: password
   defp normalize_password(_password), do: ""
+
+  defp normalize_preferences(attrs, current) do
+    attrs = stringify_keys(attrs)
+
+    %{
+      "theme_id" => Themes.normalize_theme_id(attrs["theme_id"], current["theme_id"]),
+      "appearance" => Appearance.from_params(attrs, current["appearance"])
+    }
+  end
 
   defp stringify_keys(attrs) do
     Map.new(attrs, fn

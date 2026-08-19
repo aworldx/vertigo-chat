@@ -39,8 +39,7 @@ defmodule Chat.Chatlans do
           peer_id: id,
           nickname: meta.nickname,
           theme_id: theme_id,
-          appearance: appearance,
-          online_at: Calendar.strftime(meta.online_at, "%H:%M")
+          appearance: appearance
         }
       end
     end)
@@ -90,8 +89,7 @@ defmodule Chat.Chatlans do
     %{
       nickname: attrs.nickname,
       theme_id: theme_id,
-      appearance: appearance,
-      online_at: DateTime.utc_now()
+      appearance: appearance
     }
   end
 

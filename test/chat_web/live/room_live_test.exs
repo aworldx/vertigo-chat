@@ -33,12 +33,15 @@ defmodule ChatWeb.RoomLiveTest do
 
     html = enter_chat(view, "tester")
 
-    assert html =~ "Общая комната"
+    refute html =~ "Общая комната"
     assert html =~ "Добро пожаловать в первый Phoenix-чат"
-    assert html =~ "ты вошел как"
     assert html =~ "tester"
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#message-form.shrink-0")
+    assert has_element?(view, "#current-chatlan-online", "В сети")
+    assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
+    assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")
+    assert has_element?(view, "#emoji-input-controls:not([disabled])")
     assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
     refute has_element?(view, "#media-file-input")
@@ -154,7 +157,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     html = enter_chat(view, "registered", "secret123")
 
-    assert html =~ "Общая комната"
+    assert has_element?(view, "#message-form")
     assert html =~ "registered"
   end
 
@@ -167,7 +170,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     html =
       view
-      |> element("#profile-link-profiled")
+      |> element("button[id^='profile-link-'][phx-value-nickname='profiled']")
       |> render_click()
 
     assert html =~ "profile-modal"
@@ -270,7 +273,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(
              alice_view,
-             "#private-message-bob[phx-hook='PrivateNickname'][data-private-nickname='bob']"
+             "button[id^='private-message-'][phx-hook='PrivateNickname'][data-private-nickname='bob']"
            )
 
     render_hook(alice_view, "start_private_message", %{"nickname" => "bob"})
@@ -410,6 +413,58 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#entrance-form")
   end
 
+  test "toggles an emoji reaction on another chatlan's message", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    enter_chat(alice_view, "reaction_alice")
+
+    {:ok, bob_view, _html} = live(recycle(conn), ~p"/")
+    enter_chat(bob_view, "reaction_bob")
+
+    alice_view
+    |> form("#message-form", message: %{body: "сообщение с реакцией"})
+    |> render_submit()
+
+    assert has_element?(bob_view, "button[data-reaction-picker-emoji='👍']")
+
+    bob_view
+    |> element("button[data-reaction-picker-emoji='👍']")
+    |> render_click()
+
+    assert has_element?(
+             bob_view,
+             "button[data-reaction-emoji='👍'][data-reaction-count='1'][aria-pressed='true']"
+           )
+
+    assert has_element?(
+             alice_view,
+             "span[data-reaction-emoji='👍'][data-reaction-count='1']"
+           )
+
+    bob_view
+    |> element("button[data-reaction-picker-emoji='❤️']")
+    |> render_click()
+
+    refute has_element?(bob_view, "[data-reaction-emoji='👍']")
+    refute has_element?(alice_view, "[data-reaction-emoji='👍']")
+
+    assert has_element?(
+             bob_view,
+             "button[data-reaction-emoji='❤️'][data-reaction-count='1'][aria-pressed='true']"
+           )
+
+    assert has_element?(
+             alice_view,
+             "span[data-reaction-emoji='❤️'][data-reaction-count='1']"
+           )
+
+    bob_view
+    |> element("button[data-reaction-emoji='❤️']")
+    |> render_click()
+
+    refute has_element?(bob_view, "[data-reaction-emoji='❤️']")
+    refute has_element?(alice_view, "[data-reaction-emoji='❤️']")
+  end
+
   test "renders an emoji picker next to the message input", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "emoji_user")
@@ -478,6 +533,18 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "--text-dark: #3366aa"
   end
 
+  test "hides the chatlan list while settings are open", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "settings_focus")
+
+    assert has_element?(view, "#online-list")
+
+    view |> element("#toggle-settings") |> render_click()
+
+    assert has_element?(view, "#preferences-form")
+    refute has_element?(view, "#online-list")
+  end
+
   test "previews nickname and text colors before saving", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "tester")
@@ -500,6 +567,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "--nick-dark: #cc2255"
     assert html =~ "--text-dark: #33aa77"
     assert html =~ "Цвета для режима"
+    assert has_element?(view, "#chat-room[data-chat-theme='vertigo']")
   end
 
   test "switches to the night sky theme as a dark mode theme", %{conn: conn} do
@@ -522,8 +590,67 @@ defmodule ChatWeb.RoomLiveTest do
       |> render_change()
 
     assert html =~ "Ночное небо"
-    assert html =~ ~s(data-chat-theme="night_sky")
-    assert html =~ ~s(data-chat-mode="dark")
+    assert has_element?(view, "#theme-id option[value='night_sky'][selected]")
+    assert has_element?(view, "#chat-room[data-chat-theme='vertigo'][data-chat-mode='dark']")
+  end
+
+  test "discards an unsaved settings draft when the panel closes", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "draft_user")
+
+    view |> element("#toggle-settings") |> render_click()
+
+    view
+    |> form("#preferences-form", preferences: %{theme_id: "night_sky"})
+    |> render_change()
+
+    assert has_element?(view, "#theme-id option[value='night_sky'][selected]")
+    assert has_element?(view, "#chat-room[data-chat-theme='vertigo']")
+
+    view |> element("#toggle-settings") |> render_click()
+    view |> element("#toggle-settings") |> render_click()
+
+    assert has_element?(view, "#theme-id option[value='vertigo'][selected]")
+    assert has_element?(view, "#chat-room[data-chat-theme='vertigo']")
+  end
+
+  test "persists registered chatlan settings in the database", %{conn: conn} do
+    assert {:ok, user} =
+             Accounts.register_user(%{
+               "nickname" => "persistent_style",
+               "password" => "secret123"
+             })
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "persistent_style", "secret123")
+    view |> element("#toggle-settings") |> render_click()
+
+    view
+    |> form("#preferences-form",
+      preferences: %{
+        theme_id: "night_sky",
+        appearance: %{
+          dark: %{nickname_color: "#aa44cc", text_color: "#22aa88"},
+          light: %{nickname_color: "#9a3412", text_color: "#1f2937"}
+        }
+      }
+    )
+    |> render_submit()
+
+    assert has_element?(view, "#chat-room[data-chat-theme='night_sky']")
+    refute has_element?(view, "#preferences-form")
+
+    stored = Accounts.get_user(user.id)
+    assert stored.theme_id == "night_sky"
+    assert stored.appearance["dark"]["nickname_color"] == "#aa44cc"
+
+    view |> element("#leave-chat") |> render_click()
+
+    {:ok, restored_view, _html} = live(recycle(conn), ~p"/")
+    enter_chat(restored_view, "persistent_style", "secret123")
+
+    assert has_element?(restored_view, "#chat-room[data-chat-theme='night_sky']")
+    assert render(restored_view) =~ "--nick-dark: #aa44cc"
   end
 
   test "loads saved guest preferences in the context of the saved nickname", %{conn: conn} do

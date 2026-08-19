@@ -12,6 +12,8 @@ defmodule Chat.Accounts.User do
     field(:nickname, :string)
     field(:password_hash, :string)
     field(:password, :string, virtual: true)
+    field(:theme_id, :string, default: "vertigo")
+    field(:appearance, :map, default: %{})
     has_one(:profile, Profile)
     has_many(:library_articles, Article)
 
@@ -26,6 +28,12 @@ defmodule Chat.Accounts.User do
     |> validate_length(:password, min: 6, max: 128)
     |> unique_constraint(:nickname)
     |> put_password_hash()
+  end
+
+  def preferences_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:theme_id, :appearance])
+    |> validate_required([:theme_id, :appearance])
   end
 
   defp put_password_hash(changeset) do
