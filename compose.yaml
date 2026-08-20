@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     environment:
       PHX_HOST: ${PHX_HOST}
+      PHX_SCHEME: ${PHX_SCHEME}
+      PHX_URL_PORT: ${PHX_URL_PORT}
       PORT: "4000"
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       DATABASE_URL: ecto://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -12,14 +14,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      PHX_HOST: ${PHX_HOST}
-      PHX_SCHEME: ${PHX_SCHEME}
-      PHX_URL_PORT: ${PHX_URL_PORT}
-      PORT: "4000"
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      DATABASE_URL: ecto://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      POOL_SIZE: ${POOL_SIZE:-10}
 
   postgres:
     image: postgres:17
