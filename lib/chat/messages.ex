@@ -97,8 +97,7 @@ defmodule Chat.Messages do
       id: "welcome-1",
       kind: :text,
       author: "system",
-      body:
-        "Добро пожаловать в первый Phoenix-чат. Открой эту страницу в двух вкладках и сообщения появятся мгновенно.",
+      body: "Добро пожаловать в чат!",
       recipient: nil,
       theme_id: Themes.default_theme_id(),
       appearance: Appearance.default(),

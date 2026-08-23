@@ -365,7 +365,7 @@ defmodule ChatWeb.RoomComponents do
       <fieldset
         id="emoji-input-controls"
         phx-hook=".EmojiPicker"
-        class="flex min-w-0 gap-3 disabled:cursor-not-allowed disabled:opacity-60"
+        class="flex min-w-0 flex-wrap gap-3 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-nowrap"
       >
         <div class="relative hidden shrink-0 sm:block">
           <button
@@ -400,7 +400,7 @@ defmodule ChatWeb.RoomComponents do
           autocomplete="off"
           maxlength={Chat.Messages.max_body_length()}
           placeholder="Напиши сообщение..."
-          class="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
+          class="order-first min-w-0 basis-full flex-1 rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300 sm:order-none sm:basis-auto"
         />
         <div
           id="media-share-controls"

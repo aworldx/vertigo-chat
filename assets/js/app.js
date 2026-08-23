@@ -173,7 +173,10 @@ window.addEventListener("phx:clear-message-input", _info => {
 
   if (messageInput) {
     messageInput.value = ""
-    messageInput.focus()
+
+    if (document.activeElement !== messageInput && window.matchMedia("(pointer: fine)").matches) {
+      messageInput.focus({preventScroll: true})
+    }
   }
 })
 
@@ -181,8 +184,8 @@ window.addEventListener("phx:focus-message-input", _info => {
   requestAnimationFrame(() => {
     const messageInput = document.getElementById("message-body")
 
-    if (messageInput) {
-      messageInput.focus()
+    if (messageInput && window.matchMedia("(pointer: fine)").matches) {
+      messageInput.focus({preventScroll: true})
       messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length)
     }
   })

@@ -47,11 +47,12 @@ defmodule ChatWeb.RoomLiveTest do
     html = enter_chat(view, "tester")
 
     refute html =~ "Общая комната"
-    assert html =~ "Добро пожаловать в первый Phoenix-чат"
+    assert html =~ "Добро пожаловать в чат!"
     assert html =~ "tester"
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#message-form.shrink-0")
-    assert has_element?(view, "#message-body.text-base")
+    assert has_element?(view, "#emoji-input-controls.flex-wrap.sm\\:flex-nowrap")
+    assert has_element?(view, "#message-body.text-base.basis-full.sm\\:basis-auto")
     assert has_element?(view, "#current-chatlan-online", "В сети")
     assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
     assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")
@@ -503,7 +504,7 @@ defmodule ChatWeb.RoomLiveTest do
       |> form("#message-form", message: %{body: "   "})
       |> render_submit()
 
-    assert html =~ "Добро пожаловать в первый Phoenix-чат"
+    assert html =~ "Добро пожаловать в чат!"
     refute html =~ ~s(<p class="mt-1 break-words text-sm leading-6 text-zinc-200"></p>)
   end
 
