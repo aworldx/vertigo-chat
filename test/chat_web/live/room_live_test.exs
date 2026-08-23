@@ -349,6 +349,12 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(bob_view, "#messages [data-private='true'].border-amber-300", "Лично вам")
 
     assert has_element?(
+             bob_view,
+             "#messages [data-private='true'] .chat-message-body strong",
+             "^bob,"
+           )
+
+    assert has_element?(
              alice_view,
              "#messages [data-private='true'][class~='border-sky-400/50']",
              "Лично для bob"
@@ -369,6 +375,22 @@ defmodule ChatWeb.RoomLiveTest do
     render_hook(alice_view, "start_public_message", %{"nickname" => "bob_public"})
 
     assert has_element?(alice_view, "#message-body[value='bob_public, ']")
+  end
+
+  test "renders the addressed nickname in bold", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(alice_view, "alice_address")
+    enter_chat(bob_view, "bob_address")
+
+    alice_view
+    |> form("#message-form", message: %{body: "bob_address, привет"})
+    |> render_submit()
+
+    render(bob_view)
+
+    assert has_element?(bob_view, "#messages .chat-message-body strong", "bob_address,")
   end
 
   test "accepts the Ctrl+Enter private-message event with comma addressing", %{conn: conn} do
@@ -670,6 +692,15 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(view, "#theme-id option[value='vertigo'][selected]")
     assert has_element?(view, "#chat-room[data-chat-theme='vertigo']")
+  end
+
+  test "offers the light newspaper theme in settings", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "newspaper_reader")
+
+    view |> element("#toggle-settings") |> render_click()
+
+    assert has_element?(view, "#theme-id option[value='newspaper']", "Газета · Светлая")
   end
 
   test "persists registered chatlan settings in the database", %{conn: conn} do

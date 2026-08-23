@@ -16,7 +16,8 @@ defmodule Chat.Themes do
     %{id: "vertigo", name: "Vertigo", mode: "dark"},
     %{id: "dark", name: "Тёмная", mode: "dark"},
     %{id: "night_sky", name: "Ночное небо", mode: "dark"},
-    %{id: "light", name: "Светлая", mode: "light"}
+    %{id: "light", name: "Светлая", mode: "light"},
+    %{id: "newspaper", name: "Газета", mode: "light"}
   ]
 
   def default_theme_id, do: @default_theme_id

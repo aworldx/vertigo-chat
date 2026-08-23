@@ -315,3 +315,93 @@ a:hover .vertigo-mark {
   background-color: rgba(2, 12, 32, 0.96);
   color: #dbeafe;
 }
+
+.chat-shell[data-chat-theme="newspaper"] {
+  background-color: #e5decc;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(30, 28, 24, 0.025) 3px 4px),
+    repeating-linear-gradient(90deg, transparent 0 11px, rgba(30, 28, 24, 0.018) 11px 12px),
+    radial-gradient(ellipse at 18% 8%, rgba(255, 255, 255, 0.72), transparent 42%),
+    linear-gradient(135deg, #ede7d7 0%, #ddd4be 100%);
+  color: #181715;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.chat-shell[data-chat-theme="newspaper"] h1,
+.chat-shell[data-chat-theme="newspaper"] h2,
+.chat-shell[data-chat-theme="newspaper"] .vertigo-wordmark,
+.chat-shell[data-chat-theme="newspaper"] .chat-message-author,
+.chat-shell[data-chat-theme="newspaper"] .chat-user-nickname,
+.chat-shell[data-chat-theme="newspaper"] .chat-current-nickname,
+.chat-shell[data-chat-theme="newspaper"] .chat-preview-nickname,
+.chat-shell[data-chat-theme="newspaper"] button,
+.chat-shell[data-chat-theme="newspaper"] input,
+.chat-shell[data-chat-theme="newspaper"] select,
+.chat-shell[data-chat-theme="newspaper"] textarea,
+.chat-shell[data-chat-theme="newspaper"] .chat-message-body {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.chat-shell[data-chat-theme="newspaper"] h1,
+.chat-shell[data-chat-theme="newspaper"] h2,
+.chat-shell[data-chat-theme="newspaper"] .vertigo-wordmark {
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+
+.chat-shell[data-chat-theme="newspaper"] header,
+.chat-shell[data-chat-theme="newspaper"] .bg-zinc-900,
+.chat-shell[data-chat-theme="newspaper"] .bg-zinc-900\/80 {
+  background-color: rgba(218, 210, 192, 0.94);
+}
+
+.chat-shell[data-chat-theme="newspaper"] .bg-zinc-950,
+.chat-shell[data-chat-theme="newspaper"] .bg-zinc-950\/70 {
+  background-color: rgba(248, 244, 234, 0.94);
+}
+
+.chat-shell[data-chat-theme="newspaper"] .border-zinc-800,
+.chat-shell[data-chat-theme="newspaper"] .border-zinc-700,
+.chat-shell[data-chat-theme="newspaper"] .border-amber-300,
+.chat-shell[data-chat-theme="newspaper"] .border-sky-400\/50 {
+  border-color: #625d53;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .text-zinc-100,
+.chat-shell[data-chat-theme="newspaper"] .text-zinc-300,
+.chat-shell[data-chat-theme="newspaper"] .text-amber-100,
+.chat-shell[data-chat-theme="newspaper"] .text-amber-200,
+.chat-shell[data-chat-theme="newspaper"] .text-amber-300,
+.chat-shell[data-chat-theme="newspaper"] .text-emerald-300,
+.chat-shell[data-chat-theme="newspaper"] .text-red-200,
+.chat-shell[data-chat-theme="newspaper"] .text-red-300 {
+  color: #181715;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .text-zinc-400,
+.chat-shell[data-chat-theme="newspaper"] .text-zinc-500 {
+  color: #5a554b;
+}
+
+.chat-shell[data-chat-theme="newspaper"] input,
+.chat-shell[data-chat-theme="newspaper"] select,
+.chat-shell[data-chat-theme="newspaper"] textarea {
+  background-color: #faf6eb;
+  color: #181715;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .bg-amber-300,
+.chat-shell[data-chat-theme="newspaper"] .bg-amber-200,
+.chat-shell[data-chat-theme="newspaper"] .bg-amber-300\/10,
+.chat-shell[data-chat-theme="newspaper"] .bg-amber-300\/15,
+.chat-shell[data-chat-theme="newspaper"] .bg-amber-300\/20,
+.chat-shell[data-chat-theme="newspaper"] .bg-emerald-500\/15,
+.chat-shell[data-chat-theme="newspaper"] .bg-sky-400\/10 {
+  background-color: #cbc2ae;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .ring-amber-200\/30,
+.chat-shell[data-chat-theme="newspaper"] .ring-amber-300\/10,
+.chat-shell[data-chat-theme="newspaper"] .ring-amber-300\/15 {
+  --tw-ring-color: rgba(24, 23, 21, 0.32);
+}

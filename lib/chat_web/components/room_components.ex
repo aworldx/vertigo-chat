@@ -31,7 +31,7 @@ defmodule ChatWeb.RoomComponents do
             "chat-message-entry group/message relative transition-colors",
             Map.get(message, :kind) == :system && "px-3 py-1 text-center",
             Map.get(message, :kind) != :system &&
-              "rounded border px-3 pb-2 pt-3 shadow-sm",
+              "rounded border px-3 pb-2 pt-5 shadow-sm",
             Map.get(message, :kind) != :system && Map.get(message, :recipient) == @nickname &&
               "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30",
             Map.get(message, :kind) == :private && Map.get(message, :recipient) != @nickname &&
@@ -118,7 +118,12 @@ defmodule ChatWeb.RoomComponents do
                 class="chat-message-body break-words pr-12 text-sm leading-5"
                 style={appearance_style(message)}
               >
-                {message.body}
+                <%= case address_parts(message) do %>
+                  <% {prefix, whitespace, body} -> %>
+                    <strong class="font-semibold">{prefix}</strong>{whitespace}{body}
+                  <% nil -> %>
+                    {message.body}
+                <% end %>
               </p>
           <% end %>
           <div
@@ -205,6 +210,24 @@ defmodule ChatWeb.RoomComponents do
   defp reactable_message?(message) do
     Map.get(message, :kind, :text) == :text && message.author != "system"
   end
+
+  defp address_parts(%{kind: :private, recipient: recipient, body: body})
+       when is_binary(recipient) and is_binary(body),
+       do: {"^#{recipient},", " ", body}
+
+  defp address_parts(%{recipient: recipient, body: body})
+       when is_binary(recipient) and is_binary(body) do
+    case Regex.run(
+           ~r/\A([\p{L}\p{N}_-]{3,24}),(\s*)(.*)\z/us,
+           body,
+           capture: :all_but_first
+         ) do
+      [^recipient, whitespace, rest] -> {"#{recipient},", whitespace, rest}
+      _no_address -> nil
+    end
+  end
+
+  defp address_parts(_message), do: nil
 
   defp present_reactions(message) do
     Enum.filter(Chat.Messages.reaction_emojis(), &(reaction_count(message, &1) > 0))
