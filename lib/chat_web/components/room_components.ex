@@ -400,7 +400,7 @@ defmodule ChatWeb.RoomComponents do
           autocomplete="off"
           maxlength={Chat.Messages.max_body_length()}
           placeholder="Напиши сообщение..."
-          class="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+          class="min-w-0 flex-1 rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
         />
         <div
           id="media-share-controls"

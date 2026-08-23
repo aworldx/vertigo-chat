@@ -19,6 +19,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "Вход в чат"
     assert html =~ "Ник"
     assert has_element?(view, "#entrance-nickname")
+    assert has_element?(view, "#entrance-nickname.text-base")
     refute html =~ ~r/value="guest-[^"]+"/
     assert html =~ "Сейчас в чате"
     refute html =~ "Общая комната"
@@ -50,6 +51,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "tester"
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#message-form.shrink-0")
+    assert has_element?(view, "#message-body.text-base")
     assert has_element?(view, "#current-chatlan-online", "В сети")
     assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
     assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")

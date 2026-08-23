@@ -133,7 +133,7 @@ defmodule ChatWeb.AuthComponents do
         autocomplete={@autocomplete}
         maxlength={@maxlength}
         placeholder={@placeholder}
-        class="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 outline-none transition focus:border-amber-300"
+        class="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
       />
     </label>
     """
