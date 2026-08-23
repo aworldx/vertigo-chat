@@ -24,6 +24,7 @@
           nickname={@nickname}
           peer_id={@presence_key}
           messages={@streams.messages}
+          typing={@typing_peers |> Map.values() |> Enum.sort()}
         />
       <% else %>
         <main class="flex min-h-0 items-center justify-center overflow-y-auto border-b border-zinc-800 bg-zinc-950 p-4 md:border-b-0 md:border-r">

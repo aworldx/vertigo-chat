@@ -79,6 +79,16 @@ defmodule Chat.Chatlans do
 
   def ensure_nickname_available(_room_id, _nickname), do: {:error, :invalid_nickname}
 
+  def broadcast_typing(room_id, peer_id, nickname, typing?)
+      when is_binary(room_id) and is_binary(peer_id) and is_binary(nickname) and
+             is_boolean(typing?) do
+    Phoenix.PubSub.broadcast(
+      Chat.PubSub,
+      Messages.room_topic(room_id),
+      {:typing_changed, peer_id, nickname, typing?}
+    )
+  end
+
   def appearance_attrs(nickname, theme_id, appearance, opts \\ []) do
     theme_id = Themes.normalize_theme_id(theme_id)
     appearance = Appearance.normalize(appearance)

@@ -90,6 +90,33 @@ const chatHooks = {
   },
   PrivateMessageComposer: {
     mounted() {
+      this.input = this.el.querySelector("#message-body")
+      this.isTyping = false
+
+      this.stopTyping = () => {
+        window.clearTimeout(this.typingTimer)
+        if (!this.isTyping) return
+        this.isTyping = false
+        this.pushEvent("typing", {typing: false})
+      }
+
+      this.onInput = () => {
+        const hasText = this.input?.value.trim().length > 0
+        window.clearTimeout(this.typingTimer)
+
+        if (!hasText) {
+          this.stopTyping()
+          return
+        }
+
+        if (!this.isTyping) {
+          this.isTyping = true
+          this.pushEvent("typing", {typing: true})
+        }
+
+        this.typingTimer = window.setTimeout(this.stopTyping, 1500)
+      }
+
       this.onKeydown = event => {
         if (event.key !== "Enter" || !event.ctrlKey || event.isComposing) return
 
@@ -98,13 +125,19 @@ const chatHooks = {
         if (!input) return
 
         this.pushEvent("send_private_message", {body: input.value}, reply => {
-          if (reply.ok) input.value = ""
+          if (reply.ok) {
+            input.value = ""
+            this.stopTyping()
+          }
         })
       }
 
+      this.input?.addEventListener("input", this.onInput)
       this.el.addEventListener("keydown", this.onKeydown)
     },
     destroyed() {
+      window.clearTimeout(this.typingTimer)
+      this.input?.removeEventListener("input", this.onInput)
       this.el.removeEventListener("keydown", this.onKeydown)
     },
   },

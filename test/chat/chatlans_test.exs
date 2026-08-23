@@ -11,6 +11,17 @@ defmodule Chat.ChatlansTest do
     assert Chatlans.normalize_nickname("bad space", "fallback") == "fallback"
   end
 
+  test "broadcasts transient typing state to the room" do
+    room_id = "typing-room"
+    Phoenix.PubSub.subscribe(Chat.PubSub, Messages.room_topic(room_id))
+
+    assert :ok = Chatlans.broadcast_typing(room_id, "peer-alice", "alice", true)
+    assert_receive {:typing_changed, "peer-alice", "alice", true}
+
+    assert :ok = Chatlans.broadcast_typing(room_id, "peer-alice", "alice", false)
+    assert_receive {:typing_changed, "peer-alice", "alice", false}
+  end
+
   test "tracks, updates, lists and untracks online chatlans" do
     room_id = "presence-test"
     presence_key = Chatlans.guest_presence_key()

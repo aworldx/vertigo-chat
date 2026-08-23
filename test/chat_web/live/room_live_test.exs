@@ -82,6 +82,24 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(first_view, "#message-form")
   end
 
+  test "shows when another chatlan is typing without shifting the layout", %{conn: conn} do
+    {:ok, writer, _html} = live(conn, ~p"/")
+    {:ok, reader, _html} = live(build_conn(), ~p"/")
+    enter_chat(writer, "typing_writer")
+    enter_chat(reader, "typing_reader")
+
+    assert has_element?(reader, "#typing-indicator.h-6", "")
+
+    render_hook(writer, "typing", %{"typing" => true})
+    render(reader)
+    assert has_element?(reader, "#typing-indicator.h-6", "typing_writer печатает…")
+    refute render(writer) =~ "typing_writer печатает…"
+
+    render_hook(writer, "typing", %{"typing" => false})
+    render(reader)
+    refute render(reader) =~ "typing_writer печатает…"
+  end
+
   test "shows image attachment controls only to a registered chatlan", %{conn: conn} do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "image_author", "password" => "secret123"})

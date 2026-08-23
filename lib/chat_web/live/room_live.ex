@@ -48,6 +48,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:message_error, nil)
       |> assign(:media_error, nil)
       |> assign(:online, [])
+      |> assign(:typing_peers, %{})
       |> assign_nickname_form()
       |> assign_registration_form()
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
@@ -171,6 +172,21 @@ defmodule ChatWeb.RoomLive do
   def handle_event("send_private_message", _params, socket) do
     {:reply, %{ok: false}, assign(socket, :message_error, "Сообщение имеет неверный формат.")}
   end
+
+  def handle_event("typing", %{"typing" => typing?}, %{assigns: %{joined?: true}} = socket)
+      when is_boolean(typing?) do
+    :ok =
+      Chatlans.broadcast_typing(
+        @room_id,
+        socket.assigns.presence_key,
+        socket.assigns.nickname,
+        typing?
+      )
+
+    {:noreply, socket}
+  end
+
+  def handle_event("typing", _params, socket), do: {:noreply, socket}
 
   def handle_event(
         "toggle_reaction",
@@ -392,6 +408,7 @@ defmodule ChatWeb.RoomLive do
 
   def handle_event("leave_chat", _params, socket) do
     if socket.assigns.joined? do
+      :ok = broadcast_stopped_typing(socket)
       {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
       Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
     end
@@ -410,6 +427,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:media_error, nil)
       |> assign_nickname_form()
       |> assign(:online, Chatlans.list_online(@room_id))
+      |> assign(:typing_peers, %{})
       |> push_event("clear-user-auth", %{})
 
     {:noreply, socket}
@@ -468,6 +486,29 @@ defmodule ChatWeb.RoomLive do
     {:noreply, stream_insert(socket, :messages, message)}
   end
 
+  def handle_info(
+        {:typing_changed, peer_id, _nickname, _typing?},
+        %{assigns: %{presence_key: peer_id}} = socket
+      ),
+      do: {:noreply, socket}
+
+  def handle_info(
+        {:typing_changed, peer_id, nickname, true},
+        %{assigns: %{joined?: true}} = socket
+      ) do
+    {:noreply, update(socket, :typing_peers, &Map.put(&1, peer_id, nickname))}
+  end
+
+  def handle_info(
+        {:typing_changed, peer_id, _nickname, false},
+        %{assigns: %{joined?: true}} = socket
+      ) do
+    {:noreply, update(socket, :typing_peers, &Map.delete(&1, peer_id))}
+  end
+
+  def handle_info({:typing_changed, _peer_id, _nickname, _typing?}, socket),
+    do: {:noreply, socket}
+
   def handle_info({:private_message_received, message}, %{assigns: %{joined?: true}} = socket) do
     {:noreply, stream_insert(socket, :messages, message)}
   end
@@ -487,12 +528,24 @@ defmodule ChatWeb.RoomLive do
   def handle_info({:media_signal, _signal}, socket), do: {:noreply, socket}
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
-    {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
+    online = Chatlans.list_online(@room_id)
+    online_peer_ids = MapSet.new(online, & &1.peer_id)
+
+    {:noreply,
+     socket
+     |> assign(:online, online)
+     |> update(
+       :typing_peers,
+       &Map.filter(&1, fn {peer_id, _nickname} ->
+         MapSet.member?(online_peer_ids, peer_id)
+       end)
+     )}
   end
 
   @impl true
   def terminate(_reason, socket) do
     if socket.assigns.joined? do
+      :ok = broadcast_stopped_typing(socket)
       {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
     end
 
@@ -771,10 +824,21 @@ defmodule ChatWeb.RoomLive do
   defp private_message_error(reason), do: message_error(reason)
 
   defp clear_message_input(socket) do
+    :ok = broadcast_stopped_typing(socket)
+
     socket
     |> assign(:message_error, nil)
     |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
     |> push_event("clear-message-input", %{})
+  end
+
+  defp broadcast_stopped_typing(socket) do
+    Chatlans.broadcast_typing(
+      @room_id,
+      socket.assigns.presence_key,
+      socket.assigns.nickname,
+      false
+    )
   end
 
   defp media_error(:registration_required),

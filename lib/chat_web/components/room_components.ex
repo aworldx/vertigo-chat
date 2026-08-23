@@ -8,6 +8,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:messages, :any, required: true)
   attr(:nickname, :string, required: true)
   attr(:peer_id, :string, required: true)
+  attr(:typing, :list, default: [])
 
   def dialogue_frame(assigns) do
     ~H"""
@@ -27,7 +28,7 @@ defmodule ChatWeb.RoomComponents do
             if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
           }
           class={[
-            "group/message relative transition-colors",
+            "chat-message-entry group/message relative transition-colors",
             Map.get(message, :kind) == :system && "px-3 py-1 text-center",
             Map.get(message, :kind) != :system &&
               "rounded border px-3 pb-2 pt-3 shadow-sm",
@@ -185,9 +186,21 @@ defmodule ChatWeb.RoomComponents do
           </div>
         </div>
       </div>
+      <p
+        id="typing-indicator"
+        class="h-6 shrink-0 px-4 text-xs italic leading-6 text-zinc-500"
+        aria-live="polite"
+      >
+        {typing_label(@typing)}
+      </p>
     </main>
     """
   end
+
+  defp typing_label([]), do: ""
+  defp typing_label([nickname]), do: "#{nickname} печатает…"
+  defp typing_label([first, second]), do: "#{first} и #{second} печатают…"
+  defp typing_label(nicknames), do: "#{length(nicknames)} участника печатают…"
 
   defp reactable_message?(message) do
     Map.get(message, :kind, :text) == :text && message.author != "system"
