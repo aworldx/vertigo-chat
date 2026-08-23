@@ -62,9 +62,11 @@ defmodule Chat.Accounts do
   end
 
   def authorize_entrance(nickname, password) do
+    nickname = Chatlans.normalize_nickname(nickname, nil)
     password = normalize_password(password)
 
     cond do
+      is_nil(nickname) -> {:error, :invalid_nickname}
       password != "" -> authenticate(nickname, password)
       registered_nickname?(nickname) -> {:error, :password_required}
       true -> {:ok, nil}

@@ -49,4 +49,34 @@ defmodule Chat.PrivateMessagesTest do
     assert {:error, :private_recipient_required} =
              PrivateMessages.parse(%{"body" => "обычный текст"})
   end
+
+  test "rejects malformed input and identifies private-message syntax safely" do
+    subject = Subject.internal(:invalid_private_message)
+
+    assert {:error, :invalid_message} =
+             PrivateMessages.send_private_message(nil, "sender", "room", %{}, subject)
+
+    assert {:error, :invalid_message} = PrivateMessages.parse(nil)
+    assert PrivateMessages.private_syntax?("  ^bob привет")
+    refute PrivateMessages.private_syntax?("bob, привет")
+    refute PrivateMessages.private_syntax?(nil)
+  end
+
+  test "rejects messages addressed to the sender" do
+    room_id = "validation-#{System.unique_integer([:positive])}"
+    sender_peer = "sender-#{System.unique_integer([:positive])}"
+    attrs = Chatlans.appearance_attrs("alice", "vertigo", Appearance.default())
+    subject = Subject.internal({room_id, sender_peer})
+
+    assert {:ok, _ref} = Chatlans.track(self(), room_id, sender_peer, attrs)
+
+    assert {:error, :self_recipient} =
+             PrivateMessages.send_private_message(
+               "alice",
+               sender_peer,
+               room_id,
+               %{"body" => "^alice нельзя самому себе"},
+               subject
+             )
+  end
 end

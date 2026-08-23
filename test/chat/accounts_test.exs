@@ -65,6 +65,8 @@ defmodule Chat.AccountsTest do
 
   test "authorizes guest and registered entrances" do
     assert {:ok, nil} = Accounts.authorize_entrance("guest_user", "")
+    assert {:error, :invalid_nickname} = Accounts.authorize_entrance("", "")
+    assert {:error, :invalid_nickname} = Accounts.authorize_entrance(nil, "")
 
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "member", "password" => "secret123"})

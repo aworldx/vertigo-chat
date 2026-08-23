@@ -21,13 +21,12 @@ defmodule ChatWeb.RoomLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    nickname = Chatlans.guest_nickname()
     presence_key = Chatlans.guest_presence_key()
     security_subject = ClientSecurity.subject_from_socket(socket, presence_key)
 
     socket =
       socket
-      |> assign(:nickname, nickname)
+      |> assign(:nickname, nil)
       |> assign(:presence_key, presence_key)
       |> assign(:security_subject, security_subject)
       |> assign(:preference_nickname, nil)
@@ -76,7 +75,7 @@ defmodule ChatWeb.RoomLive do
 
   @impl true
   def handle_event("enter_chat", %{"entrance" => params}, socket) do
-    nickname = Chatlans.normalize_nickname(params["nickname"], socket.assigns.nickname)
+    nickname = Chatlans.normalize_nickname(params["nickname"], nil)
 
     with {:ok, user} <- Accounts.authorize_entrance(nickname, params["password"]),
          {:ok, visit} <- Visits.start_visit(nickname) do
@@ -708,6 +707,10 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp entrance_error(:not_found), do: "Такой ник не зарегистрирован."
+
+  defp entrance_error(:invalid_nickname),
+    do: "Введи ник из 3–24 букв, цифр, _ или -."
+
   defp entrance_error(:invalid_password), do: "Неверный пароль."
 
   defp entrance_error(:password_required),

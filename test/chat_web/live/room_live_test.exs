@@ -18,6 +18,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ ~s(data-chat-theme="vertigo")
     assert html =~ "Вход в чат"
     assert html =~ "Ник"
+    assert has_element?(view, "#entrance-nickname")
+    refute html =~ ~r/value="guest-[^"]+"/
     assert html =~ "Сейчас в чате"
     refute html =~ "Общая комната"
     assert has_element?(view, "a[href='/profiles'][target='_blank']")
@@ -26,6 +28,16 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "a[href='/library'][target='_blank']")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
     assert has_element?(view, "#chat-room.h-dvh.max-h-dvh.min-h-0.overflow-hidden")
+  end
+
+  test "does not enter the chat without an explicit valid nickname", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    html = enter_chat(view, "")
+
+    assert html =~ "Введи ник из 3–24 букв, цифр"
+    assert has_element?(view, "#entrance-form")
+    refute has_element?(view, "#message-form")
   end
 
   test "enters the chat with a nickname and renders the initial system message", %{conn: conn} do
@@ -496,6 +508,8 @@ defmodule ChatWeb.RoomLiveTest do
   test "ignores malformed message events", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     render_hook(view, "send_message", %{})
+    render_hook(view, "send_private_message", %{})
+    render_hook(view, "toggle_reaction", %{})
 
     assert has_element?(view, "#entrance-form")
   end

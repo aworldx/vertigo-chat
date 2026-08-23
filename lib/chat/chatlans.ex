@@ -13,10 +13,6 @@ defmodule Chat.Chatlans do
     "presence-" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
   end
 
-  def guest_nickname do
-    "guest-" <> (:crypto.strong_rand_bytes(3) |> Base.url_encode64(padding: false))
-  end
-
   def normalize_nickname(nickname, fallback) when is_binary(nickname) do
     nickname = String.trim(nickname)
 
