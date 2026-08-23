@@ -139,7 +139,7 @@ defmodule ChatWeb.RoomComponents do
                 class={[
                   "inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] shadow-sm transition",
                   reacted?(message, emoji, @peer_id) &&
-                    "border-amber-300/70 bg-amber-300/15 text-amber-100",
+                    "border-amber-300/70 bg-amber-950 text-amber-100",
                   not reacted?(message, emoji, @peer_id) &&
                     "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500"
                 ]}
