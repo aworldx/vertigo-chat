@@ -34,6 +34,7 @@ defmodule Chat.Chatlans do
           id: "#{id}:#{meta.phx_ref}",
           peer_id: id,
           nickname: meta.nickname,
+          registered?: Map.get(meta, :registered?, false),
           theme_id: theme_id,
           appearance: appearance
         }
@@ -67,12 +68,24 @@ defmodule Chat.Chatlans do
     end
   end
 
-  def appearance_attrs(nickname, theme_id, appearance) do
+  def ensure_nickname_available(room_id, nickname)
+      when is_binary(room_id) and is_binary(nickname) do
+    if Enum.any?(list_online(room_id), &(&1.nickname == nickname)) do
+      {:error, :nickname_online}
+    else
+      :ok
+    end
+  end
+
+  def ensure_nickname_available(_room_id, _nickname), do: {:error, :invalid_nickname}
+
+  def appearance_attrs(nickname, theme_id, appearance, opts \\ []) do
     theme_id = Themes.normalize_theme_id(theme_id)
     appearance = Appearance.normalize(appearance)
 
     %{
       nickname: normalize_nickname(nickname, nil),
+      registered?: Keyword.get(opts, :registered?, false),
       theme_id: theme_id,
       appearance: appearance
     }
@@ -84,6 +97,7 @@ defmodule Chat.Chatlans do
 
     %{
       nickname: attrs.nickname,
+      registered?: Map.get(attrs, :registered?, false),
       theme_id: theme_id,
       appearance: appearance
     }

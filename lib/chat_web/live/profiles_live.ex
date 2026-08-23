@@ -16,6 +16,7 @@ defmodule ChatWeb.ProfilesLive do
      |> assign(:total, 0)
      |> assign(:total_pages, 1)
      |> assign(:pages, [1])
+     |> assign(:selected_profile, nil)
      |> stream(:profiles, [])}
   end
 
@@ -39,6 +40,17 @@ defmodule ChatWeb.ProfilesLive do
   def handle_event("search", %{"search" => %{"query" => query}}, socket) do
     query = String.trim(query)
     {:noreply, push_patch(socket, to: ~p"/profiles?#{%{q: query}}")}
+  end
+
+  def handle_event("open_profile", %{"nickname" => nickname}, socket) do
+    case Profiles.get_by_nickname(nickname) do
+      {:ok, profile} -> {:noreply, assign(socket, :selected_profile, profile)}
+      {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Анкета не найдена.")}
+    end
+  end
+
+  def handle_event("close_profile", _params, socket) do
+    {:noreply, assign(socket, :selected_profile, nil)}
   end
 
   def photo_url(profile), do: Media.data_url(profile.photo, profile.photo_content_type)

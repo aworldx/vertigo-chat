@@ -20,6 +20,7 @@ defmodule Chat.ChatlansTest do
     assert {:ok, _ref} =
              Chatlans.track(self(), room_id, presence_key, %{
                nickname: "alice",
+               registered?: true,
                theme_id: "dark",
                appearance: %{
                  "dark" => %{"nickname_color" => "#00ff88", "text_color" => "#3366aa"},
@@ -29,9 +30,15 @@ defmodule Chat.ChatlansTest do
 
     assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
 
+    assert {:error, :nickname_online} =
+             Chatlans.ensure_nickname_available(room_id, "alice")
+
+    assert :ok = Chatlans.ensure_nickname_available(room_id, "bob")
+
     assert [
              %{
                nickname: "alice",
+               registered?: true,
                theme_id: "dark",
                appearance: %{
                  "dark" => %{"nickname_color" => "#00ff88", "text_color" => "#3366aa"},
@@ -43,6 +50,7 @@ defmodule Chat.ChatlansTest do
     assert {:ok, _ref} =
              Chatlans.update(self(), room_id, presence_key, %{
                nickname: "alice",
+               registered?: true,
                theme_id: "dark",
                appearance: %{
                  "dark" => %{"nickname_color" => "#cc2255", "text_color" => "#33aa77"},
@@ -53,6 +61,7 @@ defmodule Chat.ChatlansTest do
     assert [
              %{
                nickname: "alice",
+               registered?: true,
                theme_id: "dark",
                appearance: %{
                  "dark" => %{"nickname_color" => "#cc2255", "text_color" => "#33aa77"},
@@ -63,5 +72,6 @@ defmodule Chat.ChatlansTest do
 
     assert :ok = Chatlans.untrack(self(), room_id, presence_key)
     assert [] = Chatlans.list_online(room_id)
+    assert :ok = Chatlans.ensure_nickname_available(room_id, "alice")
   end
 end

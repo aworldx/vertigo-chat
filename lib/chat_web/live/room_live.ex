@@ -78,6 +78,7 @@ defmodule ChatWeb.RoomLive do
     nickname = Chatlans.normalize_nickname(params["nickname"], nil)
 
     with {:ok, user} <- Accounts.authorize_entrance(nickname, params["password"]),
+         :ok <- Chatlans.ensure_nickname_available(@room_id, nickname),
          {:ok, visit} <- Visits.start_visit(nickname) do
       socket =
         socket
@@ -93,6 +94,7 @@ defmodule ChatWeb.RoomLive do
         |> stream(:messages, Messages.list_recent_messages(@room_id), reset: true)
 
       track_presence(socket)
+      {:ok, _message} = Messages.announce_presence(nickname, @room_id, :joined)
 
       {:noreply,
        socket
@@ -390,6 +392,7 @@ defmodule ChatWeb.RoomLive do
 
   def handle_event("leave_chat", _params, socket) do
     if socket.assigns.joined? do
+      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
       Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
     end
 
@@ -489,6 +492,10 @@ defmodule ChatWeb.RoomLive do
 
   @impl true
   def terminate(_reason, socket) do
+    if socket.assigns.joined? do
+      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
+    end
+
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
 
     socket.assigns
@@ -698,7 +705,8 @@ defmodule ChatWeb.RoomLive do
     Chatlans.appearance_attrs(
       socket.assigns.nickname,
       socket.assigns.theme_id,
-      socket.assigns.appearance
+      socket.assigns.appearance,
+      registered?: not is_nil(socket.assigns.current_user)
     )
   end
 
@@ -707,6 +715,9 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp entrance_error(:not_found), do: "Такой ник не зарегистрирован."
+
+  defp entrance_error(:nickname_online),
+    do: "Этот ник уже используется в чате. Выбери другой."
 
   defp entrance_error(:invalid_nickname),
     do: "Введи ник из 3–24 букв, цифр, _ или -."

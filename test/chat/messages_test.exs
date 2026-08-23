@@ -175,6 +175,22 @@ defmodule Chat.MessagesTest do
     assert body =~ "Добро пожаловать"
   end
 
+  test "broadcasts presence events as system messages" do
+    room_id = "presence-events-#{System.unique_integer([:positive])}"
+    :ok = Messages.subscribe(room_id)
+
+    assert {:ok, joined} = Messages.announce_presence("alice", room_id, :joined)
+    assert joined.kind == :system
+    assert joined.body == "alice вошёл в чат"
+    assert_receive {:message_created, ^joined}
+
+    assert {:ok, left} = Messages.announce_presence("alice", room_id, :left)
+    assert left.kind == :system
+    assert left.body == "alice вышел из чата"
+    assert_receive {:message_created, ^left}
+    assert [^joined, ^left] = Messages.list_recent_messages(room_id)
+  end
+
   test "keeps only the latest 30 public messages in chronological order" do
     room_id = "history-#{System.unique_integer([:positive])}"
 

@@ -70,6 +70,27 @@ defmodule Chat.Messages do
     end
   end
 
+  def announce_presence(nickname, room_id, event)
+      when is_binary(nickname) and is_binary(room_id) and event in [:joined, :left] do
+    action = if event == :joined, do: "вошёл в чат", else: "вышел из чата"
+
+    message = %{
+      id: System.unique_integer([:positive]),
+      kind: :system,
+      author: "system",
+      body: "#{nickname} #{action}",
+      recipient: nil,
+      reactions: %{},
+      theme_id: Themes.default_theme_id(),
+      appearance: Appearance.default(),
+      at: current_time()
+    }
+
+    :ok = Registry.append(room_id, message)
+    :ok = Phoenix.PubSub.broadcast(Chat.PubSub, room_topic(room_id), {:message_created, message})
+    {:ok, message}
+  end
+
   def toggle_reaction(reactor, reactor_key, room_id, message_id, emoji)
       when is_binary(reactor) and is_binary(reactor_key) and is_binary(room_id) and
              is_binary(message_id) and emoji in @reaction_emojis do

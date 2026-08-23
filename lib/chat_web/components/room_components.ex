@@ -27,16 +27,21 @@ defmodule ChatWeb.RoomComponents do
             if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
           }
           class={[
-            "group/message relative rounded border px-3 pb-2 pt-3 shadow-sm transition-colors",
-            Map.get(message, :recipient) == @nickname &&
+            "group/message relative transition-colors",
+            Map.get(message, :kind) == :system && "px-3 py-1 text-center",
+            Map.get(message, :kind) != :system &&
+              "rounded border px-3 pb-2 pt-3 shadow-sm",
+            Map.get(message, :kind) != :system && Map.get(message, :recipient) == @nickname &&
               "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30",
             Map.get(message, :kind) == :private && Map.get(message, :recipient) != @nickname &&
               "border-sky-400/50 bg-sky-400/10",
-            Map.get(message, :kind) != :private && Map.get(message, :recipient) != @nickname &&
+            Map.get(message, :kind) not in [:private, :system] &&
+              Map.get(message, :recipient) != @nickname &&
               "border-zinc-800 bg-zinc-900"
           ]}
         >
           <button
+            :if={Map.get(message, :kind) != :system}
             id={"message-author-#{dom_id}"}
             type="button"
             phx-hook="PrivateNickname"
@@ -46,7 +51,12 @@ defmodule ChatWeb.RoomComponents do
           >
             {message.author}
           </button>
-          <span class="absolute right-2 top-1 text-[10px] text-zinc-500">{message.at}</span>
+          <span
+            :if={Map.get(message, :kind) != :system}
+            class="absolute right-2 top-1 text-[10px] text-zinc-500"
+          >
+            {message.at}
+          </span>
           <p
             :if={Map.get(message, :kind) == :private}
             class="mb-0.5 pr-12 text-[10px] font-semibold uppercase tracking-wide text-amber-300"
@@ -58,6 +68,8 @@ defmodule ChatWeb.RoomComponents do
             <% end %>
           </p>
           <%= case Map.get(message, :kind, :text) do %>
+            <% :system -> %>
+              <p class="text-xs text-zinc-500">{message.body}</p>
             <% kind when kind in [:image, :audio] -> %>
               <div
                 id={"media-preview-#{message.share_id}"}
@@ -256,6 +268,7 @@ defmodule ChatWeb.RoomComponents do
         <%= for user <- @online do %>
           <div class="flex items-center gap-2 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2">
             <button
+              :if={user.registered?}
               id={"profile-link-#{user.id}"}
               type="button"
               phx-click="open_profile"
@@ -265,6 +278,11 @@ defmodule ChatWeb.RoomComponents do
             >
               <.icon name="hero-user-circle" class="size-5" />
             </button>
+            <span
+              :if={not user.registered?}
+              class="size-7 shrink-0"
+              aria-hidden="true"
+            ></span>
             <button
               id={"private-message-#{user.id}"}
               type="button"

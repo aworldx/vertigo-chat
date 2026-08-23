@@ -49,6 +49,13 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Общая комната"
     assert html =~ "Добро пожаловать в чат!"
     assert html =~ "tester"
+
+    assert has_element?(
+             view,
+             "#messages [data-message-kind='system'].text-center",
+             "tester вошёл в чат"
+           )
+
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#message-form.shrink-0")
     assert has_element?(view, "#emoji-input-controls.flex-wrap.sm\\:flex-nowrap")
@@ -60,6 +67,19 @@ defmodule ChatWeb.RoomLiveTest do
     assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
     refute has_element?(view, "#media-file-input")
+  end
+
+  test "rejects a nickname that is already online", %{conn: conn} do
+    {:ok, first_view, _html} = live(conn, ~p"/")
+    {:ok, second_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(first_view, "same_nickname")
+    html = enter_chat(second_view, "same_nickname")
+
+    assert html =~ "Этот ник уже используется в чате"
+    assert has_element?(second_view, "#entrance-form")
+    refute has_element?(second_view, "#message-form")
+    assert has_element?(first_view, "#message-form")
   end
 
   test "shows image attachment controls only to a registered chatlan", %{conn: conn} do
@@ -212,6 +232,9 @@ defmodule ChatWeb.RoomLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "guest_user")
+
+    refute has_element?(view, "[id^='profile-link-'][phx-value-nickname='guest_user']")
+    assert has_element?(view, "#online-list span.size-7[aria-hidden='true']")
 
     view |> element("#message-form") |> render_submit(%{message: %{body: "hello"}})
     render_hook(view, "open_profile", %{"nickname" => "readonly"})
@@ -746,6 +769,29 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Общая комната"
     refute html =~ "Напиши сообщение"
     refute html =~ "Настройки"
+  end
+
+  test "shows subtle system messages when a chatlan joins and leaves", %{conn: conn} do
+    {:ok, observer, _html} = live(conn, ~p"/")
+    {:ok, participant, _html} = live(build_conn(), ~p"/")
+    enter_chat(observer, "observer")
+    enter_chat(participant, "participant")
+
+    assert has_element?(
+             observer,
+             "#messages [data-message-kind='system'].text-center p.text-zinc-500",
+             "participant вошёл в чат"
+           )
+
+    participant |> element("#leave-chat") |> render_click()
+
+    assert has_element?(
+             observer,
+             "#messages [data-message-kind='system'].text-center p.text-zinc-500",
+             "participant вышел из чата"
+           )
+
+    refute has_element?(observer, "#messages [data-message-kind='system'] .chat-message-author")
   end
 
   test "records entrance and exit timestamps", %{conn: conn} do

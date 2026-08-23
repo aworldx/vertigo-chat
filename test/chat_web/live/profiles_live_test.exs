@@ -48,6 +48,50 @@ defmodule ChatWeb.ProfilesLiveTest do
     assert has_element?(view, "#profiles-previous")
   end
 
+  test "opens a profile and provides a gallery-style photo viewer", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "profile_viewer", "password" => "secret123"})
+
+    {:ok, profile} = Profiles.get_by_nickname(user.nickname)
+
+    {:ok, profile} =
+      Profiles.update_profile(user, profile, %{
+        "name" => "Алиса",
+        "gender" => "female",
+        "birth_date" => "1994-05-18",
+        "about" => "Текст полной анкеты"
+      })
+
+    assert {:ok, _profile} =
+             Profiles.put_photo(
+               user,
+               profile,
+               <<0x89, "PNG\r\n", 0x1A, "\n", "test">>,
+               "image/png"
+             )
+
+    {:ok, view, _html} = live(conn, ~p"/profiles")
+
+    view
+    |> element("[data-profile-nickname='profile_viewer']")
+    |> render_click()
+
+    assert has_element?(view, "#profile-viewer[role='dialog']")
+    assert has_element?(view, "#profile-viewer-title", "profile_viewer")
+    assert has_element?(view, "#profile-viewer", "Алиса")
+    assert has_element?(view, "#profile-viewer", "Текст полной анкеты")
+
+    assert has_element?(
+             view,
+             "#open-profile-photo[data-profile-lightbox-open][aria-haspopup='dialog'] img"
+           )
+
+    assert has_element?(view, "#profile-photo-lightbox[phx-update='ignore'][aria-hidden='true']")
+
+    view |> element("#close-profile-viewer") |> render_click()
+    refute has_element?(view, "#profile-viewer")
+  end
+
   test "presents every supported gender label" do
     assert ProfilesLive.gender_label("male") == "Мужской"
     assert ProfilesLive.gender_label("female") == "Женский"
