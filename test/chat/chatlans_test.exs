@@ -45,6 +45,10 @@ defmodule Chat.ChatlansTest do
              Chatlans.ensure_nickname_available(room_id, "alice")
 
     assert :ok = Chatlans.ensure_nickname_available(room_id, "bob")
+    assert {:error, :nickname_online} = Chatlans.ensure_nickname_available(room_id, "Хичкок")
+
+    assert %{nickname: "Хичкок", bot?: true, peer_id: "bot-hitchcock"} =
+             Enum.find(Chatlans.list_online(room_id), &Map.get(&1, :bot?, false))
 
     assert [
              %{
@@ -56,7 +60,7 @@ defmodule Chat.ChatlansTest do
                  "light" => %{"nickname_color" => "#9a3412", "text_color" => "#1f2937"}
                }
              }
-           ] = Chatlans.list_online(room_id)
+           ] = human_chatlans(room_id)
 
     assert {:ok, _ref} =
              Chatlans.update(self(), room_id, presence_key, %{
@@ -79,10 +83,14 @@ defmodule Chat.ChatlansTest do
                  "light" => %{"nickname_color" => "#9a3412", "text_color" => "#1f2937"}
                }
              }
-           ] = Chatlans.list_online(room_id)
+           ] = human_chatlans(room_id)
 
     assert :ok = Chatlans.untrack(self(), room_id, presence_key)
-    assert [] = Chatlans.list_online(room_id)
+    assert [] = human_chatlans(room_id)
     assert :ok = Chatlans.ensure_nickname_available(room_id, "alice")
+  end
+
+  defp human_chatlans(room_id) do
+    Enum.reject(Chatlans.list_online(room_id), &Map.get(&1, :bot?, false))
   end
 end

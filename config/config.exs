@@ -14,6 +14,10 @@ config :chat,
 
 config :chat, Chat.MediaShares, ice_servers: [%{urls: "stun:stun.cloudflare.com:3478"}]
 
+config :chat, Chat.Bot,
+  provider: Chat.Bot.OpenAI,
+  reply_delay_range_ms: {5_000, 15_000}
+
 # Configure the endpoint
 config :chat, ChatWeb.Endpoint,
   url: [host: "localhost"],

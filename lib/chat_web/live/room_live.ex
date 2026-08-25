@@ -4,6 +4,7 @@ defmodule ChatWeb.RoomLive do
 
   alias Chat.Accounts
   alias Chat.Appearance
+  alias Chat.Bot
   alias Chat.Chatlans
   alias Chat.MediaShares
   alias Chat.Messages
@@ -50,6 +51,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:media_error, nil)
       |> assign(:online, [])
       |> assign(:typing_peers, %{})
+      |> assign(:bot_pending?, false)
       |> assign(:message_items, messages)
       |> assign_nickname_form()
       |> assign_registration_form()
@@ -481,6 +483,23 @@ defmodule ChatWeb.RoomLive do
   end
 
   @impl true
+  def handle_async(:bot_reply, {:ok, {:ok, message}}, socket) do
+    _message_was_broadcast_to_the_room = message
+    {:noreply, socket |> assign(:bot_pending?, false) |> assign(:message_error, nil)}
+  end
+
+  def handle_async(:bot_reply, {:ok, {:error, :bot_busy}}, socket) do
+    {:noreply, assign(socket, :bot_pending?, false)}
+  end
+
+  def handle_async(:bot_reply, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:bot_pending?, false)
+     |> assign(:message_error, "Хичкок сейчас не расположен к беседе. Попробуй немного позже.")}
+  end
+
+  @impl true
   def handle_info({:message_created, message}, socket) do
     {:noreply, insert_message(socket, message)}
   end
@@ -488,6 +507,16 @@ defmodule ChatWeb.RoomLive do
   def handle_info({:message_reacted, message}, socket) do
     {:noreply, insert_message(socket, message)}
   end
+
+  def handle_info({:bot_status_changed, _status}, socket) do
+    {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
+  end
+
+  def handle_info({:start_bot_answer, request}, %{assigns: %{bot_pending?: true}} = socket) do
+    {:noreply, start_async(socket, :bot_reply, fn -> Bot.answer(request) end)}
+  end
+
+  def handle_info({:start_bot_answer, _request}, socket), do: {:noreply, socket}
 
   def handle_info(
         {:typing_changed, peer_id, _nickname, _typing?},
@@ -579,8 +608,14 @@ defmodule ChatWeb.RoomLive do
       end
 
     case result do
-      {:ok, _message} ->
-        {:noreply, clear_message_input(socket)}
+      {:ok, message} ->
+        socket = clear_message_input(socket)
+
+        if message.recipient == Bot.name() do
+          start_bot_reply(message.body, socket)
+        else
+          {:noreply, socket}
+        end
 
       {:error, reason} ->
         {:noreply,
@@ -591,6 +626,57 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp send_private_message(body, socket) do
+    case PrivateMessages.parse(%{"body" => body}) do
+      {:ok, recipient, _private_body} ->
+        if Bot.recipient?(recipient) do
+          {:reply, %{ok: false},
+           assign(socket, :message_error, "Хичкок отвечает только на публичные обращения.")}
+        else
+          send_chatlan_private_message(body, socket)
+        end
+
+      {:error, _reason} ->
+        send_chatlan_private_message(body, socket)
+    end
+  end
+
+  defp start_bot_reply(_body, %{assigns: %{bot_pending?: true}} = socket) do
+    {:noreply, assign(socket, :message_error, "Дождись ответа Хичкока.")}
+  end
+
+  defp start_bot_reply(body, socket) do
+    result =
+      if Bot.available?() do
+        with {:ok, question} <- Bot.addressed_body(body) do
+          Bot.ask(
+            socket.assigns.nickname,
+            socket.assigns.current_user,
+            message_security_subject(socket),
+            question
+          )
+        end
+      else
+        {:error, :bot_busy}
+      end
+
+    case result do
+      {:ok, request} ->
+        Process.send_after(self(), {:start_bot_answer, request}, Bot.reply_delay_ms())
+
+        socket =
+          socket
+          |> assign(:bot_pending?, true)
+          |> assign(:message_error, nil)
+
+        {:noreply, socket}
+
+      {:error, reason} ->
+        error = if reason == :bot_busy, do: nil, else: message_error(reason)
+        {:noreply, assign(socket, :message_error, error)}
+    end
+  end
+
+  defp send_chatlan_private_message(body, socket) do
     result =
       if socket.assigns.joined? do
         PrivateMessages.send_private_message(

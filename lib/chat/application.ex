@@ -15,6 +15,7 @@ defmodule Chat.Application do
       {Phoenix.PubSub, name: Chat.PubSub},
       Chat.Presence,
       Chat.Security.RateLimiter,
+      Chat.Bot.Status,
       Chat.Messages.Registry,
       Chat.MediaShares.Registry,
       # Start a worker by calling: Chat.Worker.start_link(arg)

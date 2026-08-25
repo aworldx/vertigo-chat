@@ -23,6 +23,12 @@ config :chat, ChatWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warning
 
+config :chat, Chat.Bot,
+  provider: Chat.Bot.TestProvider,
+  reply_delay_range_ms: {0, 0}
+
+config :chat, Chat.Bot.Usage, daily_token_limit: 1_000_000, warning_percent: 90
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 

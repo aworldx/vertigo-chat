@@ -3,6 +3,7 @@ defmodule ChatWeb.RoomLiveTest do
   use ChatWeb.ConnCase
 
   alias Chat.Accounts
+  alias Chat.Bot.Status, as: BotStatus
   alias Chat.Messages.Registry, as: MessageRegistry
   alias Chat.Visits
 
@@ -66,6 +67,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#current-chatlan-online", "В сети")
     assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
     assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")
+    assert has_element?(view, "#online-list [id^='bot-chatlan-'][aria-label='Чат-бот']")
 
     assert has_element?(
              view,
@@ -78,6 +80,68 @@ defmodule ChatWeb.RoomLiveTest do
     assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
     refute has_element?(view, "#media-file-input")
+  end
+
+  test "answers a public address so that the whole room sees it", %{conn: conn} do
+    {:ok, sender, _html} = live(conn, ~p"/")
+    {:ok, observer, _html} = live(build_conn(), ~p"/")
+    enter_chat(sender, "bot_sender")
+    enter_chat(observer, "bot_observer")
+
+    render_hook(sender, "start_public_message", %{"nickname" => "Хичкок"})
+
+    assert has_element?(sender, "#message-body[value='Хичкок, ']")
+
+    sender
+    |> form("#message-form", message: %{body: "Хичкок, Как создать саспенс?"})
+    |> render_submit()
+
+    render_async(sender)
+
+    assert has_element?(
+             sender,
+             "#messages [data-private='false'] .chat-message-author",
+             "Хичкок"
+           )
+
+    assert has_element?(
+             sender,
+             "#messages [data-private='false'] .chat-message-body",
+             "Как создать саспенс?"
+           )
+
+    render(observer)
+    assert has_element?(observer, "#messages .chat-message-author", "Хичкок")
+    assert render(observer) =~ "Как создать саспенс?"
+  end
+
+  test "does not answer a private message addressed to Hitchcock", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "private_bot_sender")
+
+    render_hook(view, "send_private_message", %{
+      "body" => "^Хичкок, Это никто не увидит?"
+    })
+
+    assert render(view) =~ "Хичкок отвечает только на публичные обращения"
+    refute has_element?(view, "#messages .chat-message-author", "Хичкок")
+  end
+
+  test "shows Hitchcock as busy while the provider limit is active", %{conn: conn} do
+    on_exit(&BotStatus.reset/0)
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "busy_status_viewer")
+
+    :ok = BotStatus.mark_busy(5_000)
+    render(view)
+
+    assert has_element?(view, "#bot-chatlan-busy[aria-label='Хичкок занят']", "Занят")
+
+    refute has_element?(
+             view,
+             "#private-message-bot-hitchcock ~ span span.text-emerald-300",
+             "В сети"
+           )
   end
 
   test "rejects a nickname that is already online", %{conn: conn} do

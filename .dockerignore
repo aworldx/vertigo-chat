@@ -30,6 +30,9 @@
 /test/
 /tmp/
 .elixir_ls
+.env
+.env.*
+!.env.example
 
 # Mix artifacts
 /_build/

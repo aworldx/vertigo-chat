@@ -1,27 +1,55 @@
+x-app-environment: &app-environment
+  PHX_HOST: ${PHX_HOST:?PHX_HOST must be set}
+  PHX_SCHEME: ${PHX_SCHEME:-https}
+  PHX_URL_PORT: ${PHX_URL_PORT:-443}
+  PORT: "4000"
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE must be set}
+  DATABASE_URL: ecto://${POSTGRES_USER:?POSTGRES_USER must be set}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB must be set}
+  POOL_SIZE: ${POOL_SIZE:-10}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY must be set}
+  OPENAI_BOT_MODEL: ${OPENAI_BOT_MODEL:-gpt-5.4-nano}
+  OPENAI_BOT_RECEIVE_TIMEOUT_MS: ${OPENAI_BOT_RECEIVE_TIMEOUT_MS:-120000}
+  OPENAI_BOT_DAILY_TOKEN_LIMIT: ${OPENAI_BOT_DAILY_TOKEN_LIMIT:-120000}
+  OPENAI_BOT_TOKEN_WARNING_PERCENT: ${OPENAI_BOT_TOKEN_WARNING_PERCENT:-90}
+  OPENAI_BOT_UTC_OFFSET_MINUTES: ${OPENAI_BOT_UTC_OFFSET_MINUTES:-180}
+
+x-app-image: &app-image
+  build:
+    context: .
+  image: chat-app:latest
+  environment: *app-environment
+
 services:
-  app:
-    build:
-      context: .
-    restart: unless-stopped
-    environment:
-      PHX_HOST: ${PHX_HOST}
-      PHX_SCHEME: ${PHX_SCHEME}
-      PHX_URL_PORT: ${PHX_URL_PORT}
-      PORT: "4000"
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      DATABASE_URL: ecto://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      POOL_SIZE: ${POOL_SIZE:-10}
+  migrate:
+    <<: *app-image
+    command: ["/app/bin/migrate"]
+    restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
+
+  app:
+    <<: *app-image
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   postgres:
     image: postgres:17
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -41,7 +69,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - app
+      app:
+        condition: service_healthy
 
 volumes:
   postgres_data:

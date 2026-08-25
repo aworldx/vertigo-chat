@@ -5,6 +5,7 @@ defmodule Chat.Chatlans do
   """
 
   alias Chat.Appearance
+  alias Chat.Bot
   alias Chat.Messages
   alias Chat.Presence
   alias Chat.Themes
@@ -40,6 +41,7 @@ defmodule Chat.Chatlans do
         }
       end
     end)
+    |> Kernel.++([Bot.chatlan()])
     |> Enum.sort_by(& &1.nickname)
   end
 

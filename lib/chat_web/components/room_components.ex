@@ -41,7 +41,7 @@ defmodule ChatWeb.RoomComponents do
           }
           class={[
             "chat-message-entry group/message relative transition-colors",
-            Map.get(message, :kind) == :system && "px-3 py-1 text-center",
+            Map.get(message, :kind) == :system && "px-3 py-0.5 text-center",
             Map.get(message, :kind) != :system && framed_message?(message, @appearance) &&
               "rounded border px-3 pb-2 pt-5 shadow-sm",
             Map.get(message, :kind) != :system && not framed_message?(message, @appearance) && "px-1",
@@ -90,7 +90,7 @@ defmodule ChatWeb.RoomComponents do
           </p>
           <%= case Map.get(message, :kind, :text) do %>
             <% :system -> %>
-              <p class="inline-flex items-center gap-2 text-xs text-zinc-500">
+              <p class="inline-flex items-center gap-2 text-xs leading-4 text-zinc-500">
                 <span>{message.body}</span>
                 <time
                   id={"message-time-#{dom_id}"}
@@ -437,7 +437,16 @@ defmodule ChatWeb.RoomComponents do
               <.icon name="hero-user-circle" class="size-5" />
             </button>
             <span
-              :if={not user.registered?}
+              :if={Map.get(user, :bot?, false)}
+              id={"bot-chatlan-#{user.id}"}
+              class="flex size-7 shrink-0 items-center justify-center text-amber-300"
+              title="Чат-бот"
+              aria-label="Чат-бот"
+            >
+              <.icon name="hero-video-camera" class="size-5" />
+            </span>
+            <span
+              :if={not user.registered? && not Map.get(user, :bot?, false)}
               id={"anonymous-chatlan-#{user.id}"}
               class="flex size-7 shrink-0 items-center justify-center"
               title="Анонимный чатланин"
@@ -464,11 +473,20 @@ defmodule ChatWeb.RoomComponents do
               aria-live={if(user.peer_id == @peer_id, do: "polite")}
             >
               <span
+                :if={not Map.get(user, :busy?, false)}
                 id={if(user.peer_id == @peer_id, do: "current-chatlan-online")}
                 class="inline-flex items-center gap-1 text-emerald-300"
               >
                 <span class="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_currentColor]"></span>
                 В сети
+              </span>
+              <span
+                :if={Map.get(user, :bot?, false) && Map.get(user, :busy?, false)}
+                id="bot-chatlan-busy"
+                class="inline-flex items-center gap-1 text-amber-300"
+                aria-label="Хичкок занят"
+              >
+                <span class="size-1.5 rounded-full bg-amber-300"></span> Занят
               </span>
               <span
                 id={if(user.peer_id == @peer_id, do: "current-chatlan-reconnecting")}

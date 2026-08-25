@@ -23,6 +23,40 @@ end
 
 config :chat, ChatWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+openai_receive_timeout_ms =
+  case Integer.parse(System.get_env("OPENAI_BOT_RECEIVE_TIMEOUT_MS", "120000")) do
+    {timeout, ""} when timeout >= 30_000 -> timeout
+    _ -> 120_000
+  end
+
+config :chat, Chat.Bot.OpenAI,
+  api_key: System.get_env("OPENAI_API_KEY"),
+  model: System.get_env("OPENAI_BOT_MODEL", "gpt-5.4-nano"),
+  receive_timeout: openai_receive_timeout_ms
+
+daily_token_limit =
+  case Integer.parse(System.get_env("OPENAI_BOT_DAILY_TOKEN_LIMIT", "120000")) do
+    {limit, ""} when limit > 0 -> limit
+    _invalid_or_unlimited -> nil
+  end
+
+warning_percent =
+  case Integer.parse(System.get_env("OPENAI_BOT_TOKEN_WARNING_PERCENT", "90")) do
+    {percent, ""} when percent in 1..100 -> percent
+    _invalid -> 90
+  end
+
+utc_offset_minutes =
+  case Integer.parse(System.get_env("OPENAI_BOT_UTC_OFFSET_MINUTES", "180")) do
+    {offset, ""} when offset in -720..840 -> offset
+    _invalid -> 180
+  end
+
+config :chat, Chat.Bot.Usage,
+  daily_token_limit: daily_token_limit,
+  warning_percent: warning_percent,
+  utc_offset_minutes: utc_offset_minutes
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :chat, ChatWeb.Endpoint,

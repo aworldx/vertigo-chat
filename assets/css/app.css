@@ -82,7 +82,13 @@
 
 #messages > .chat-message-entry + .chat-message-entry[data-message-kind="system"],
 #messages > .chat-message-entry[data-message-kind="system"] + .chat-message-entry {
-  margin-block-start: 1rem;
+  margin-block-start: 0.5rem;
+}
+
+#messages
+  > .chat-message-entry[data-message-kind="system"]
+  + .chat-message-entry[data-message-kind="system"] {
+  margin-block-start: 0.25rem;
 }
 
 #messages
