@@ -53,6 +53,8 @@ the application healthcheck, and `OPENAI_API_KEY` is required by Compose so the 
 start without its provider credentials. Keep values containing `$` in single quotes in `.env` so
 Compose does not interpret part of the secret as another variable. The PostgreSQL password is also
 embedded into `DATABASE_URL`, so use URL-safe characters or percent-encode reserved characters.
+For deployment without a domain, set `PHX_SCHEME=http`, `PHX_URL_PORT=80`, and
+`CADDY_SITE_ADDRESS=http://SERVER_IP`.
 
 Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
 

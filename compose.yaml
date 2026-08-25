@@ -61,6 +61,8 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:?CADDY_SITE_ADDRESS must be set}
     ports:
       - "80:80"
       - "443:443"
