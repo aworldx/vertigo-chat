@@ -316,9 +316,16 @@ defmodule ChatWeb.RoomComponents do
             </button>
             <span
               :if={not user.registered?}
-              class="size-7 shrink-0"
-              aria-hidden="true"
-            ></span>
+              id={"anonymous-chatlan-#{user.id}"}
+              class="flex size-7 shrink-0 items-center justify-center"
+              title="Анонимный чатланин"
+              aria-label="Анонимный чатланин"
+            >
+              <span
+                class="flex size-5 items-center justify-center rounded-full border border-dashed border-zinc-500 text-xs font-semibold text-zinc-400"
+                aria-hidden="true"
+              >?</span>
+            </span>
             <button
               id={"private-message-#{user.id}"}
               type="button"

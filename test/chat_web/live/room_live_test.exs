@@ -63,6 +63,14 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#current-chatlan-online", "В сети")
     assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
     assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")
+
+    assert has_element?(
+             view,
+             "#online-list [id^='anonymous-chatlan-'] .size-5.border-dashed",
+             "?"
+           )
+
+    refute has_element?(view, "#online-list [id^='profile-link-']")
     assert has_element?(view, "#emoji-input-controls:not([disabled])")
     assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
@@ -252,7 +260,12 @@ defmodule ChatWeb.RoomLiveTest do
     enter_chat(view, "guest_user")
 
     refute has_element?(view, "[id^='profile-link-'][phx-value-nickname='guest_user']")
-    assert has_element?(view, "#online-list span.size-7[aria-hidden='true']")
+
+    assert has_element?(
+             view,
+             "#online-list [id^='anonymous-chatlan-'][aria-label='Анонимный чатланин'] .size-5.border-dashed",
+             "?"
+           )
 
     view |> element("#message-form") |> render_submit(%{message: %{body: "hello"}})
     render_hook(view, "open_profile", %{"nickname" => "readonly"})
