@@ -80,6 +80,11 @@
   margin-block-start: 0.75rem;
 }
 
+#messages > .chat-message-entry + .chat-message-entry[data-message-kind="system"],
+#messages > .chat-message-entry[data-message-kind="system"] + .chat-message-entry {
+  margin-block-start: 1rem;
+}
+
 #messages
   > .chat-message-entry[data-message-frame="false"]
   + .chat-message-entry[data-message-frame="false"] {

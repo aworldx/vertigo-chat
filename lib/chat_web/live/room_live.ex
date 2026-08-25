@@ -23,6 +23,7 @@ defmodule ChatWeb.RoomLive do
   def mount(_params, _session, socket) do
     presence_key = Chatlans.guest_presence_key()
     security_subject = ClientSecurity.subject_from_socket(socket, presence_key)
+    messages = Messages.list_recent_messages(@room_id)
 
     socket =
       socket
@@ -49,11 +50,12 @@ defmodule ChatWeb.RoomLive do
       |> assign(:media_error, nil)
       |> assign(:online, [])
       |> assign(:typing_peers, %{})
+      |> assign(:message_items, messages)
       |> assign_nickname_form()
       |> assign_registration_form()
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
       |> assign_settings_form()
-      |> stream(:messages, Messages.list_recent_messages(@room_id))
+      |> stream(:messages, messages)
       |> allow_upload(:profile_photo,
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
@@ -92,7 +94,7 @@ defmodule ChatWeb.RoomLive do
         |> assign(:joined?, true)
         |> assign_nickname_form()
         |> assign_settings_form()
-        |> stream(:messages, Messages.list_recent_messages(@room_id), reset: true)
+        |> reset_messages(Messages.list_recent_messages(@room_id))
 
       track_presence(socket)
       {:ok, _message} = Messages.announce_presence(nickname, @room_id, :joined)
@@ -467,6 +469,7 @@ defmodule ChatWeb.RoomLive do
          |> assign(:settings_open?, false)
          |> assign_settings_form()
          |> update_presence()
+         |> rerender_messages()
          |> maybe_save_guest_preferences(socket.assigns.current_user)}
 
       {:error, changeset} ->
@@ -479,11 +482,11 @@ defmodule ChatWeb.RoomLive do
 
   @impl true
   def handle_info({:message_created, message}, socket) do
-    {:noreply, stream_insert(socket, :messages, message)}
+    {:noreply, insert_message(socket, message)}
   end
 
   def handle_info({:message_reacted, message}, socket) do
-    {:noreply, stream_insert(socket, :messages, message)}
+    {:noreply, insert_message(socket, message)}
   end
 
   def handle_info(
@@ -510,13 +513,13 @@ defmodule ChatWeb.RoomLive do
     do: {:noreply, socket}
 
   def handle_info({:private_message_received, message}, %{assigns: %{joined?: true}} = socket) do
-    {:noreply, stream_insert(socket, :messages, message)}
+    {:noreply, insert_message(socket, message)}
   end
 
   def handle_info({:private_message_received, _message}, socket), do: {:noreply, socket}
 
   def handle_info({:media_announced, announcement}, %{assigns: %{joined?: true}} = socket) do
-    {:noreply, stream_insert(socket, :messages, announcement)}
+    {:noreply, insert_message(socket, announcement)}
   end
 
   def handle_info({:media_announced, _announcement}, socket), do: {:noreply, socket}
@@ -751,6 +754,33 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp maybe_save_guest_preferences(socket, _user), do: socket
+
+  defp rerender_messages(socket) do
+    Enum.reduce(socket.assigns.message_items, socket, fn message, socket ->
+      stream_insert(socket, :messages, message)
+    end)
+  end
+
+  defp reset_messages(socket, messages) do
+    socket
+    |> assign(:message_items, messages)
+    |> stream(:messages, messages, reset: true)
+  end
+
+  defp insert_message(socket, message) do
+    messages =
+      case Enum.find_index(
+             socket.assigns.message_items,
+             &(to_string(&1.id) == to_string(message.id))
+           ) do
+        nil -> socket.assigns.message_items ++ [message]
+        index -> List.replace_at(socket.assigns.message_items, index, message)
+      end
+
+    socket
+    |> assign(:message_items, messages)
+    |> stream_insert(:messages, message)
+  end
 
   defp preferences_error(%Ecto.Changeset{}), do: "Не удалось сохранить настройки."
 

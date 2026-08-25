@@ -56,6 +56,8 @@ defmodule ChatWeb.RoomLiveTest do
              "tester вошёл в чат"
            )
 
+    assert has_element?(view, "#messages [data-message-kind='system'] time[datetime]")
+
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#messages time[datetime]")
     assert has_element?(view, "#message-form.shrink-0")
@@ -648,6 +650,26 @@ defmodule ChatWeb.RoomLiveTest do
   test "renders a frameless public message without badges or reactions", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "compact_user")
+
+    view
+    |> form("#message-form", message: %{body: "сообщение меняет оформление"})
+    |> render_submit()
+
+    assert has_element?(
+             view,
+             "#messages [data-message-frame='true'] .chat-message-body",
+             "сообщение меняет оформление"
+           )
+
+    {:ok, other_view, _html} = live(build_conn(), ~p"/")
+    enter_chat(other_view, "framed_viewer")
+
+    assert has_element?(
+             other_view,
+             "#messages [data-message-frame='true'] .chat-message-body",
+             "сообщение меняет оформление"
+           )
+
     view |> element("#toggle-settings") |> render_click()
 
     view
@@ -663,7 +685,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(
              view,
              "#messages [data-message-frame='false'] [data-compact-message]",
-             "compact_user: сообщение строкой"
+             "compact_user: сообщение меняет оформление"
            )
 
     refute has_element?(
@@ -672,6 +694,32 @@ defmodule ChatWeb.RoomLiveTest do
            )
 
     refute has_element?(view, "#messages [data-message-frame='false'] time")
+
+    refute has_element?(
+             other_view,
+             "#messages [data-message-frame='false'] [data-compact-message]",
+             "compact_user: сообщение меняет оформление"
+           )
+
+    assert has_element?(
+             other_view,
+             "#messages [data-message-frame='true'] .chat-message-body",
+             "сообщение меняет оформление"
+           )
+
+    view |> element("#toggle-settings") |> render_click()
+
+    view
+    |> form("#preferences-form",
+      preferences: %{appearance: %{message_frame: "true"}}
+    )
+    |> render_submit()
+
+    assert has_element?(
+             view,
+             "#messages [data-message-frame='true'] .chat-message-body",
+             "сообщение меняет оформление"
+           )
   end
 
   test "previews nickname and text colors before saving", %{conn: conn} do

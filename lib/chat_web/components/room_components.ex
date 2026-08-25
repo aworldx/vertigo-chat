@@ -8,6 +8,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:messages, :any, required: true)
   attr(:nickname, :string, required: true)
   attr(:peer_id, :string, required: true)
+  attr(:appearance, :map, required: true)
   attr(:typing, :list, default: [])
 
   def dialogue_frame(assigns) do
@@ -27,7 +28,7 @@ defmodule ChatWeb.RoomComponents do
           data-addressed-to-me={
             if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
           }
-          data-message-frame={to_string(framed_message?(message))}
+          data-message-frame={to_string(framed_message?(message, @appearance))}
           data-reaction-counts={
             if(message.author == @nickname && reactable_message?(message),
               do: Jason.encode!(reaction_counts(message))
@@ -41,22 +42,23 @@ defmodule ChatWeb.RoomComponents do
           class={[
             "chat-message-entry group/message relative transition-colors",
             Map.get(message, :kind) == :system && "px-3 py-1 text-center",
-            Map.get(message, :kind) != :system && framed_message?(message) &&
+            Map.get(message, :kind) != :system && framed_message?(message, @appearance) &&
               "rounded border px-3 pb-2 pt-5 shadow-sm",
-            Map.get(message, :kind) != :system && not framed_message?(message) && "px-1",
-            Map.get(message, :kind) != :system && framed_message?(message) &&
+            Map.get(message, :kind) != :system && not framed_message?(message, @appearance) && "px-1",
+            Map.get(message, :kind) != :system && framed_message?(message, @appearance) &&
               Map.get(message, :recipient) == @nickname &&
               "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30",
-            Map.get(message, :kind) == :private && framed_message?(message) &&
+            Map.get(message, :kind) == :private && framed_message?(message, @appearance) &&
               Map.get(message, :recipient) != @nickname &&
               "border-sky-400/50 bg-sky-400/10",
-            Map.get(message, :kind) not in [:private, :system] && framed_message?(message) &&
+            Map.get(message, :kind) not in [:private, :system] &&
+              framed_message?(message, @appearance) &&
               Map.get(message, :recipient) != @nickname &&
               "border-zinc-800 bg-zinc-900"
           ]}
         >
           <button
-            :if={Map.get(message, :kind) != :system && framed_message?(message)}
+            :if={Map.get(message, :kind) != :system && framed_message?(message, @appearance)}
             id={"message-author-#{dom_id}"}
             type="button"
             phx-hook="PrivateNickname"
@@ -67,7 +69,7 @@ defmodule ChatWeb.RoomComponents do
             {message.author}
           </button>
           <time
-            :if={Map.get(message, :kind) != :system && framed_message?(message)}
+            :if={Map.get(message, :kind) != :system && framed_message?(message, @appearance)}
             id={"message-time-#{dom_id}"}
             datetime={Map.get(message, :sent_at)}
             phx-hook=".LocalMessageTime"
@@ -88,7 +90,18 @@ defmodule ChatWeb.RoomComponents do
           </p>
           <%= case Map.get(message, :kind, :text) do %>
             <% :system -> %>
-              <p class="text-xs text-zinc-500">{message.body}</p>
+              <p class="inline-flex items-center gap-2 text-xs text-zinc-500">
+                <span>{message.body}</span>
+                <time
+                  id={"message-time-#{dom_id}"}
+                  datetime={Map.get(message, :sent_at)}
+                  phx-hook=".LocalMessageTime"
+                  phx-update="ignore"
+                  class="text-[10px] text-zinc-600"
+                >
+                  {message.at}
+                </time>
+              </p>
             <% kind when kind in [:image, :audio] -> %>
               <div
                 id={"media-preview-#{message.share_id}"}
@@ -132,7 +145,7 @@ defmodule ChatWeb.RoomComponents do
                 </div>
               </div>
             <% _text -> %>
-              <%= if framed_message?(message) do %>
+              <%= if framed_message?(message, @appearance) do %>
                 <p
                   class="chat-message-body break-words pr-12 text-sm leading-5"
                   style={appearance_style(message)}
@@ -161,7 +174,7 @@ defmodule ChatWeb.RoomComponents do
               <% end %>
           <% end %>
           <div
-            :if={reactable_message?(message) && framed_message?(message)}
+            :if={reactable_message?(message) && framed_message?(message, @appearance)}
             class="absolute -bottom-2.5 right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1"
             aria-label="Реакции на сообщение"
           >
@@ -310,11 +323,11 @@ defmodule ChatWeb.RoomComponents do
     Map.get(message, :kind, :text) == :text && message.author != "system"
   end
 
-  defp framed_message?(%{kind: :text, author: author, appearance: appearance})
+  defp framed_message?(%{kind: :text, author: author}, appearance)
        when author != "system",
        do: Appearance.message_frame?(appearance)
 
-  defp framed_message?(_message), do: true
+  defp framed_message?(_message, _appearance), do: true
 
   defp address_parts(%{kind: :private, recipient: recipient, body: body})
        when is_binary(recipient) and is_binary(body),
