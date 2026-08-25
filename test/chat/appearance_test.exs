@@ -27,4 +27,15 @@ defmodule Chat.AppearanceTest do
     assert appearance["dark"]["text_color"] == "#e4e4e7"
     refute Map.has_key?(appearance, "unknown")
   end
+
+  test "normalizes the message frame preference" do
+    refute Appearance.message_frame?(
+             Appearance.from_params(
+               %{"appearance" => %{"message_frame" => "false"}},
+               Appearance.default()
+             )
+           )
+
+    assert Appearance.message_frame?(Appearance.normalize(%{"message_frame" => "invalid"}))
+  end
 end

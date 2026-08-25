@@ -41,20 +41,23 @@ defmodule Chat.MediaShares do
     with :ok <- validate_peer_id(peer_id),
          {:ok, metadata} <- validate_metadata(attrs),
          :ok <- allow_media_share(subject) do
-      announcement = %{
-        id: "media-#{metadata.share_id}",
-        kind: metadata.kind,
-        room_id: room_id,
-        share_id: metadata.share_id,
-        sender_peer: peer_id,
-        author: author,
-        name: metadata.name,
-        content_type: metadata.content_type,
-        size: metadata.size,
-        theme_id: Themes.normalize_theme_id(attrs["theme_id"]),
-        appearance: Appearance.normalize(attrs["appearance"] || %{}),
-        at: current_time()
-      }
+      announcement =
+        Map.merge(
+          %{
+            id: "media-#{metadata.share_id}",
+            kind: metadata.kind,
+            room_id: room_id,
+            share_id: metadata.share_id,
+            sender_peer: peer_id,
+            author: author,
+            name: metadata.name,
+            content_type: metadata.content_type,
+            size: metadata.size,
+            theme_id: Themes.normalize_theme_id(attrs["theme_id"]),
+            appearance: Appearance.normalize(attrs["appearance"] || %{})
+          },
+          timestamp()
+        )
 
       with :ok <- Registry.register(announcement) do
         :ok =
@@ -326,5 +329,9 @@ defmodule Chat.MediaShares do
 
   defp room_topic(room_id), do: "room:#{room_id}"
   defp peer_topic(room_id, peer_id), do: "media-peer:#{room_id}:#{peer_id}"
-  defp current_time, do: Calendar.strftime(Time.utc_now(), "%H:%M:%S")
+
+  defp timestamp do
+    now = DateTime.utc_now()
+    %{at: Calendar.strftime(now, "%H:%M:%S"), sent_at: DateTime.to_iso8601(now)}
+  end
 end

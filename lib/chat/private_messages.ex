@@ -75,18 +75,25 @@ defmodule Chat.PrivateMessages do
   end
 
   defp build_message(author, recipient, sender_peer, recipient_peer, body, attrs) do
-    %{
-      id: "private-#{System.unique_integer([:positive])}",
-      kind: :private,
-      author: author,
-      body: body,
-      recipient: recipient,
-      sender_peer: sender_peer,
-      recipient_peer: recipient_peer,
-      theme_id: Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
-      appearance: Appearance.normalize(Map.get(attrs, "appearance", Appearance.default())),
-      at: Calendar.strftime(Time.utc_now(), "%H:%M:%S")
-    }
+    Map.merge(
+      %{
+        id: "private-#{System.unique_integer([:positive])}",
+        kind: :private,
+        author: author,
+        body: body,
+        recipient: recipient,
+        sender_peer: sender_peer,
+        recipient_peer: recipient_peer,
+        theme_id: Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
+        appearance: Appearance.normalize(Map.get(attrs, "appearance", Appearance.default()))
+      },
+      timestamp()
+    )
+  end
+
+  defp timestamp do
+    now = DateTime.utc_now()
+    %{at: Calendar.strftime(now, "%H:%M:%S"), sent_at: DateTime.to_iso8601(now)}
   end
 
   defp deliver(sender_peer, recipient_peer, message) do

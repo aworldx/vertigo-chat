@@ -8,23 +8,27 @@ defmodule Chat.Appearance do
 
   @defaults %{
     "dark" => %{"nickname_color" => "#fcd34d", "text_color" => "#e4e4e7"},
-    "light" => %{"nickname_color" => "#9a3412", "text_color" => "#1f2937"}
+    "light" => %{"nickname_color" => "#9a3412", "text_color" => "#1f2937"},
+    "message_frame" => true
   }
 
   def default, do: @defaults
 
   def normalize(appearance) when is_map(appearance) do
-    Map.new(Themes.mode_ids(), fn mode_id ->
-      defaults = Map.fetch!(@defaults, mode_id)
-      colors = Map.get(appearance, mode_id, %{})
+    colors =
+      Map.new(Themes.mode_ids(), fn mode_id ->
+        defaults = Map.fetch!(@defaults, mode_id)
+        colors = Map.get(appearance, mode_id, %{})
 
-      {mode_id,
-       %{
-         "nickname_color" =>
-           normalize_color(colors["nickname_color"], defaults["nickname_color"]),
-         "text_color" => normalize_color(colors["text_color"], defaults["text_color"])
-       }}
-    end)
+        {mode_id,
+         %{
+           "nickname_color" =>
+             normalize_color(colors["nickname_color"], defaults["nickname_color"]),
+           "text_color" => normalize_color(colors["text_color"], defaults["text_color"])
+         }}
+      end)
+
+    Map.put(colors, "message_frame", normalize_message_frame(appearance["message_frame"]))
   end
 
   def normalize(_appearance), do: default()
@@ -37,7 +41,7 @@ defmodule Chat.Appearance do
         appearance when is_map(appearance) -> appearance
         _appearance -> %{}
       end
-      |> Map.take(Themes.mode_ids())
+      |> Map.take(Themes.mode_ids() ++ ["message_frame"])
 
     current_appearance
     |> Map.merge(submitted_appearance)
@@ -55,9 +59,18 @@ defmodule Chat.Appearance do
     }
   end
 
+  def message_frame?(appearance) when is_map(appearance) do
+    normalize_message_frame(appearance["message_frame"])
+  end
+
+  def message_frame?(_appearance), do: true
+
   defp normalize_color("#" <> hex = color, fallback) when byte_size(hex) == 6 do
     if Regex.match?(~r/\A#[0-9a-fA-F]{6}\z/, color), do: String.downcase(color), else: fallback
   end
 
   defp normalize_color(_color, fallback), do: fallback
+
+  defp normalize_message_frame(value) when value in [false, "false", "0"], do: false
+  defp normalize_message_frame(_value), do: true
 end

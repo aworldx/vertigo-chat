@@ -57,6 +57,7 @@ defmodule ChatWeb.RoomLiveTest do
            )
 
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
+    assert has_element?(view, "#messages time[datetime]")
     assert has_element?(view, "#message-form.shrink-0")
     assert has_element?(view, "#emoji-input-controls.flex-wrap.sm\\:flex-nowrap")
     assert has_element?(view, "#message-body.text-base.basis-full.sm\\:basis-auto")
@@ -515,6 +516,11 @@ defmodule ChatWeb.RoomLiveTest do
     |> form("#message-form", message: %{body: "сообщение с реакцией"})
     |> render_submit()
 
+    assert has_element?(
+             alice_view,
+             "#messages [data-reaction-counts] [data-reaction-burst-layer][phx-update='ignore']"
+           )
+
     assert has_element?(bob_view, "button[data-reaction-picker-emoji='👍']")
 
     bob_view
@@ -523,7 +529,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(
              bob_view,
-             "button[data-reaction-emoji='👍'][data-reaction-count='1'][aria-pressed='true']"
+             "button.chat-reaction-entry[data-reaction-emoji='👍'][data-reaction-count='1'][aria-pressed='true']"
            )
 
     assert has_element?(
@@ -566,6 +572,7 @@ defmodule ChatWeb.RoomLiveTest do
            )
 
     assert has_element?(view, "#emoji-picker button[data-emoji='😀']")
+    assert has_element?(view, "#emoji-picker[phx-click-away]")
     assert has_element?(view, "#emoji-input-controls")
     assert has_element?(view, "#send-message[aria-label='Отправить сообщение'] .sm\\:hidden")
     assert has_element?(view, "#leave-chat[aria-label='Выйти из чата'] .sm\\:hidden")
@@ -636,6 +643,35 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(view, "#preferences-form")
     refute has_element?(view, "#online-list")
+  end
+
+  test "renders a frameless public message without badges or reactions", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "compact_user")
+    view |> element("#toggle-settings") |> render_click()
+
+    view
+    |> form("#preferences-form",
+      preferences: %{appearance: %{message_frame: "false"}}
+    )
+    |> render_submit()
+
+    view
+    |> form("#message-form", message: %{body: "сообщение строкой"})
+    |> render_submit()
+
+    assert has_element?(
+             view,
+             "#messages [data-message-frame='false'] [data-compact-message]",
+             "compact_user: сообщение строкой"
+           )
+
+    refute has_element?(
+             view,
+             "#messages [data-message-frame='false'] [aria-label='Реакции на сообщение']"
+           )
+
+    refute has_element?(view, "#messages [data-message-frame='false'] time")
   end
 
   test "previews nickname and text colors before saving", %{conn: conn} do
@@ -732,6 +768,7 @@ defmodule ChatWeb.RoomLiveTest do
       preferences: %{
         theme_id: "night_sky",
         appearance: %{
+          message_frame: "false",
           dark: %{nickname_color: "#aa44cc", text_color: "#22aa88"},
           light: %{nickname_color: "#9a3412", text_color: "#1f2937"}
         }
@@ -745,6 +782,7 @@ defmodule ChatWeb.RoomLiveTest do
     stored = Accounts.get_user(user.id)
     assert stored.theme_id == "night_sky"
     assert stored.appearance["dark"]["nickname_color"] == "#aa44cc"
+    refute stored.appearance["message_frame"]
 
     view |> element("#leave-chat") |> render_click()
 
@@ -753,6 +791,9 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(restored_view, "#chat-room[data-chat-theme='night_sky']")
     assert render(restored_view) =~ "--nick-dark: #aa44cc"
+
+    restored_view |> element("#toggle-settings") |> render_click()
+    assert has_element?(restored_view, "#message-frame option[value='false'][selected]")
   end
 
   test "loads saved guest preferences in the context of the saved nickname", %{conn: conn} do

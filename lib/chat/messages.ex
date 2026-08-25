@@ -74,17 +74,20 @@ defmodule Chat.Messages do
       when is_binary(nickname) and is_binary(room_id) and event in [:joined, :left] do
     action = if event == :joined, do: "вошёл в чат", else: "вышел из чата"
 
-    message = %{
-      id: System.unique_integer([:positive]),
-      kind: :system,
-      author: "system",
-      body: "#{nickname} #{action}",
-      recipient: nil,
-      reactions: %{},
-      theme_id: Themes.default_theme_id(),
-      appearance: Appearance.default(),
-      at: current_time()
-    }
+    message =
+      Map.merge(
+        %{
+          id: System.unique_integer([:positive]),
+          kind: :system,
+          author: "system",
+          body: "#{nickname} #{action}",
+          recipient: nil,
+          reactions: %{},
+          theme_id: Themes.default_theme_id(),
+          appearance: Appearance.default()
+        },
+        timestamp()
+      )
 
     :ok = Registry.append(room_id, message)
     :ok = Phoenix.PubSub.broadcast(Chat.PubSub, room_topic(room_id), {:message_created, message})
@@ -114,16 +117,18 @@ defmodule Chat.Messages do
     do: {:error, :invalid_reaction}
 
   defp welcome_message do
-    %{
-      id: "welcome-1",
-      kind: :text,
-      author: "system",
-      body: "Добро пожаловать в чат!",
-      recipient: nil,
-      theme_id: Themes.default_theme_id(),
-      appearance: Appearance.default(),
-      at: current_time()
-    }
+    Map.merge(
+      %{
+        id: "welcome-1",
+        kind: :text,
+        author: "system",
+        body: "Добро пожаловать в чат!",
+        recipient: nil,
+        theme_id: Themes.default_theme_id(),
+        appearance: Appearance.default()
+      },
+      timestamp()
+    )
   end
 
   def room_topic(room_id), do: "room:#{room_id}"
@@ -164,17 +169,19 @@ defmodule Chat.Messages do
   end
 
   defp build_message(author, body, theme_id, appearance) do
-    %{
-      id: System.unique_integer([:positive]),
-      kind: :text,
-      author: author,
-      body: body,
-      recipient: recipient_from_body(body),
-      reactions: %{},
-      theme_id: theme_id,
-      appearance: appearance,
-      at: current_time()
-    }
+    Map.merge(
+      %{
+        id: System.unique_integer([:positive]),
+        kind: :text,
+        author: author,
+        body: body,
+        recipient: recipient_from_body(body),
+        reactions: %{},
+        theme_id: theme_id,
+        appearance: appearance
+      },
+      timestamp()
+    )
   end
 
   defp recipient_from_body(body) do
@@ -184,7 +191,8 @@ defmodule Chat.Messages do
     end
   end
 
-  defp current_time do
-    Calendar.strftime(Time.utc_now(), "%H:%M:%S")
+  defp timestamp do
+    now = DateTime.utc_now()
+    %{at: Calendar.strftime(now, "%H:%M:%S"), sent_at: DateTime.to_iso8601(now)}
   end
 end

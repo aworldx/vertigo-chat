@@ -43,6 +43,7 @@ defmodule Chat.AccountsTest do
              Accounts.update_preferences(user, %{
                "theme_id" => "night_sky",
                "appearance" => %{
+                 "message_frame" => "false",
                  "dark" => %{"nickname_color" => "#AA44CC", "text_color" => "#22AA88"}
                }
              })
@@ -52,6 +53,7 @@ defmodule Chat.AccountsTest do
     assert preferences["theme_id"] == "night_sky"
     assert preferences["appearance"]["dark"]["nickname_color"] == "#aa44cc"
     assert preferences["appearance"]["dark"]["text_color"] == "#22aa88"
+    refute preferences["appearance"]["message_frame"]
   end
 
   test "detects registered nicknames" do

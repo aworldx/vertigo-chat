@@ -17,7 +17,7 @@ defmodule ChatWeb.RoomComponents do
         id="messages"
         phx-hook="ChatMessages"
         phx-update="stream"
-        class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3"
+        class="min-h-0 flex-1 overflow-y-auto p-3"
       >
         <div
           :for={{dom_id, message} <- @messages}
@@ -27,22 +27,36 @@ defmodule ChatWeb.RoomComponents do
           data-addressed-to-me={
             if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
           }
+          data-message-frame={to_string(framed_message?(message))}
+          data-reaction-counts={
+            if(message.author == @nickname && reactable_message?(message),
+              do: Jason.encode!(reaction_counts(message))
+            )
+          }
+          phx-hook={
+            if(message.author == @nickname && reactable_message?(message),
+              do: ".ReactionBurst"
+            )
+          }
           class={[
             "chat-message-entry group/message relative transition-colors",
             Map.get(message, :kind) == :system && "px-3 py-1 text-center",
-            Map.get(message, :kind) != :system &&
+            Map.get(message, :kind) != :system && framed_message?(message) &&
               "rounded border px-3 pb-2 pt-5 shadow-sm",
-            Map.get(message, :kind) != :system && Map.get(message, :recipient) == @nickname &&
+            Map.get(message, :kind) != :system && not framed_message?(message) && "px-1",
+            Map.get(message, :kind) != :system && framed_message?(message) &&
+              Map.get(message, :recipient) == @nickname &&
               "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30",
-            Map.get(message, :kind) == :private && Map.get(message, :recipient) != @nickname &&
+            Map.get(message, :kind) == :private && framed_message?(message) &&
+              Map.get(message, :recipient) != @nickname &&
               "border-sky-400/50 bg-sky-400/10",
-            Map.get(message, :kind) not in [:private, :system] &&
+            Map.get(message, :kind) not in [:private, :system] && framed_message?(message) &&
               Map.get(message, :recipient) != @nickname &&
               "border-zinc-800 bg-zinc-900"
           ]}
         >
           <button
-            :if={Map.get(message, :kind) != :system}
+            :if={Map.get(message, :kind) != :system && framed_message?(message)}
             id={"message-author-#{dom_id}"}
             type="button"
             phx-hook="PrivateNickname"
@@ -52,12 +66,16 @@ defmodule ChatWeb.RoomComponents do
           >
             {message.author}
           </button>
-          <span
-            :if={Map.get(message, :kind) != :system}
+          <time
+            :if={Map.get(message, :kind) != :system && framed_message?(message)}
+            id={"message-time-#{dom_id}"}
+            datetime={Map.get(message, :sent_at)}
+            phx-hook=".LocalMessageTime"
+            phx-update="ignore"
             class="absolute right-2 top-1 text-[10px] text-zinc-500"
           >
             {message.at}
-          </span>
+          </time>
           <p
             :if={Map.get(message, :kind) == :private}
             class="mb-0.5 pr-12 text-[10px] font-semibold uppercase tracking-wide text-amber-300"
@@ -114,20 +132,36 @@ defmodule ChatWeb.RoomComponents do
                 </div>
               </div>
             <% _text -> %>
-              <p
-                class="chat-message-body break-words pr-12 text-sm leading-5"
-                style={appearance_style(message)}
-              >
-                <%= case address_parts(message) do %>
-                  <% {prefix, whitespace, body} -> %>
-                    <strong class="font-semibold">{prefix}</strong>{whitespace}{body}
-                  <% nil -> %>
+              <%= if framed_message?(message) do %>
+                <p
+                  class="chat-message-body break-words pr-12 text-sm leading-5"
+                  style={appearance_style(message)}
+                >
+                  <%= case address_parts(message) do %>
+                    <% {prefix, whitespace, body} -> %>
+                      <strong class="font-semibold">{prefix}</strong>{whitespace}{body}
+                    <% nil -> %>
+                      {message.body}
+                  <% end %>
+                </p>
+              <% else %>
+                <p class="break-words text-sm leading-5" data-compact-message>
+                  <button
+                    id={"message-author-#{dom_id}"}
+                    type="button"
+                    phx-hook="PrivateNickname"
+                    data-private-nickname={message.author}
+                    class="chat-message-author font-semibold hover:underline"
+                    style={appearance_style(message)}
+                  >{message.author}:</button>
+                  <span class="chat-message-body" style={appearance_style(message)}>
                     {message.body}
-                <% end %>
-              </p>
+                  </span>
+                </p>
+              <% end %>
           <% end %>
           <div
-            :if={reactable_message?(message)}
+            :if={reactable_message?(message) && framed_message?(message)}
             class="absolute -bottom-2.5 right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1"
             aria-label="Реакции на сообщение"
           >
@@ -143,7 +177,7 @@ defmodule ChatWeb.RoomComponents do
                 data-reaction-count={reaction_count(message, emoji)}
                 aria-pressed={to_string(reacted?(message, emoji, @peer_id))}
                 class={[
-                  "inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] shadow-sm transition",
+                  "chat-reaction-entry inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] shadow-sm transition",
                   reacted?(message, emoji, @peer_id) &&
                     "border-amber-300/70 bg-amber-950 text-amber-100",
                   not reacted?(message, emoji, @peer_id) &&
@@ -158,7 +192,7 @@ defmodule ChatWeb.RoomComponents do
                 id={"reaction-#{dom_id}-#{reaction_dom_id(emoji)}"}
                 data-reaction-emoji={emoji}
                 data-reaction-count={reaction_count(message, emoji)}
-                class="inline-flex h-5 items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800 px-1.5 text-[11px] text-zinc-300 shadow-sm"
+                class="chat-reaction-entry inline-flex h-5 items-center gap-1 rounded-full border border-zinc-700 bg-zinc-800 px-1.5 text-[11px] text-zinc-300 shadow-sm"
               >
                 <span>{emoji}</span>
                 <span class="tabular-nums">{reaction_count(message, emoji)}</span>
@@ -189,6 +223,15 @@ defmodule ChatWeb.RoomComponents do
               </div>
             </details>
           </div>
+          <div
+            :if={message.author == @nickname && reactable_message?(message)}
+            id={"reaction-burst-#{dom_id}"}
+            data-reaction-burst-layer
+            phx-update="ignore"
+            class="pointer-events-none absolute inset-0 z-30 overflow-visible"
+            aria-hidden="true"
+          >
+          </div>
         </div>
       </div>
       <p
@@ -198,6 +241,62 @@ defmodule ChatWeb.RoomComponents do
       >
         {typing_label(@typing)}
       </p>
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".LocalMessageTime">
+        export default {
+          mounted() {
+            if (!this.el.dateTime) return
+
+            const sentAt = new Date(this.el.dateTime)
+            if (Number.isNaN(sentAt.getTime())) return
+
+            this.el.textContent = new Intl.DateTimeFormat([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            }).format(sentAt)
+          }
+        }
+      </script>
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".ReactionBurst">
+        export default {
+          mounted() {
+            this.reactionCounts = this.readReactionCounts()
+          },
+
+          updated() {
+            const nextCounts = this.readReactionCounts()
+
+            for (const [emoji, count] of Object.entries(nextCounts)) {
+              const added = Math.min(3, Math.max(0, count - (this.reactionCounts[emoji] || 0)))
+              for (let index = 0; index < added; index++) this.releaseEmoji(emoji, index)
+            }
+
+            this.reactionCounts = nextCounts
+          },
+
+          readReactionCounts() {
+            try {
+              return JSON.parse(this.el.dataset.reactionCounts || "{}")
+            } catch (_error) {
+              return {}
+            }
+          },
+
+          releaseEmoji(emoji, index) {
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+            const layer = this.el.querySelector("[data-reaction-burst-layer]")
+            if (!layer) return
+
+            const particle = document.createElement("span")
+            particle.className = "chat-reaction-burst"
+            particle.textContent = emoji
+            particle.style.setProperty("--reaction-drift", `${(index - 1) * 1.1 + (Math.random() - 0.5) * 1.4}rem`)
+            particle.addEventListener("animationend", () => particle.remove(), {once: true})
+            layer.appendChild(particle)
+          }
+        }
+      </script>
     </main>
     """
   end
@@ -210,6 +309,12 @@ defmodule ChatWeb.RoomComponents do
   defp reactable_message?(message) do
     Map.get(message, :kind, :text) == :text && message.author != "system"
   end
+
+  defp framed_message?(%{kind: :text, author: author, appearance: appearance})
+       when author != "system",
+       do: Appearance.message_frame?(appearance)
+
+  defp framed_message?(_message), do: true
 
   defp address_parts(%{kind: :private, recipient: recipient, body: body})
        when is_binary(recipient) and is_binary(body),
@@ -238,6 +343,10 @@ defmodule ChatWeb.RoomComponents do
     |> Map.get(:reactions, %{})
     |> Map.get(emoji, MapSet.new())
     |> MapSet.size()
+  end
+
+  defp reaction_counts(message) do
+    Map.new(Chat.Messages.reaction_emojis(), &{&1, reaction_count(message, &1)})
   end
 
   defp reacted?(message, emoji, peer_id) do
@@ -441,6 +550,7 @@ defmodule ChatWeb.RoomComponents do
           </button>
           <div
             id="emoji-picker"
+            phx-click-away={JS.add_class("emoji-picker-closed", to: "#emoji-picker")}
             class="emoji-picker-closed absolute bottom-full left-0 z-40 mb-2 grid w-64 grid-cols-6 gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-2xl"
           >
             <button
@@ -744,6 +854,22 @@ defmodule ChatWeb.RoomComponents do
           </select>
         </label>
 
+        <label class="block text-sm">
+          <span class="mb-1 block text-zinc-400">Вид сообщения</span>
+          <select
+            id="message-frame"
+            name="preferences[appearance][message_frame]"
+            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+          >
+            <option value="true" selected={Appearance.message_frame?(@appearance)}>
+              В рамке · с реакциями
+            </option>
+            <option value="false" selected={not Appearance.message_frame?(@appearance)}>
+              Строкой · без реакций
+            </option>
+          </select>
+        </label>
+
         <%= for mode <- @theme_modes do %>
           <div class="rounded border border-zinc-800 bg-zinc-900 p-2">
             <p class="mb-2 text-xs font-semibold text-zinc-400">
@@ -776,13 +902,15 @@ defmodule ChatWeb.RoomComponents do
           </div>
         <% end %>
 
-        <div class="rounded border border-zinc-800 bg-zinc-900 p-2 text-sm">
+        <div class={[
+          "p-2 text-sm",
+          Appearance.message_frame?(@appearance) &&
+            "rounded border border-zinc-800 bg-zinc-900"
+        ]}>
           <span class="chat-preview-nickname font-semibold" style={appearance_style(@appearance)}>
-            {@nickname}
+            {@nickname}{if Appearance.message_frame?(@appearance), do: "", else: ":"}
           </span>
-          <span class="chat-preview-text" style={appearance_style(@appearance)}>
-            пример текста
-          </span>
+          <span class="chat-preview-text" style={appearance_style(@appearance)}>пример текста</span>
         </div>
 
         <button

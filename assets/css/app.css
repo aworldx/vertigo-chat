@@ -55,23 +55,91 @@
 }
 
 @keyframes chat-message-enter {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(0.5rem);
+    transform: translate3d(0, 1rem, 0) scale(0.985);
   }
 
-  to {
+  72% {
+    opacity: 0.96;
+    transform: translate3d(0, 0.08rem, 0) scale(0.999);
+  }
+
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 .chat-message-entry {
-  animation: chat-message-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center bottom;
+  animation: chat-message-enter 680ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+}
+
+#messages > .chat-message-entry + .chat-message-entry {
+  margin-block-start: 0.75rem;
+}
+
+#messages
+  > .chat-message-entry[data-message-frame="false"]
+  + .chat-message-entry[data-message-frame="false"] {
+  margin-block-start: 0.375rem;
+}
+
+@keyframes chat-reaction-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0.25rem, 0) scale(0.65);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translate3d(0, -0.05rem, 0) scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.chat-reaction-entry {
+  transform-origin: center;
+  animation: chat-reaction-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes chat-reaction-burst {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 0.25rem, 0) scale(0.7) rotate(-8deg);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(-50% + var(--reaction-drift, 0rem)), -4.5rem, 0) scale(1.65)
+      rotate(10deg);
+  }
+}
+
+.chat-reaction-burst {
+  position: absolute;
+  bottom: 0.25rem;
+  left: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 0.2rem 0.35rem rgb(0 0 0 / 35%));
+  will-change: opacity, transform;
+  animation: chat-reaction-burst 1500ms cubic-bezier(0.16, 0.72, 0.28, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-message-entry {
+  .chat-message-entry,
+  .chat-reaction-entry,
+  .chat-reaction-burst {
     animation: none;
   }
 }
