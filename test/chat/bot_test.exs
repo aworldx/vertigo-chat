@@ -59,6 +59,9 @@ defmodule Chat.BotTest do
     assert_receive {:bot_generation, instructions, opts}
     assert instructions =~ "одно-два коротких предложения"
     assert instructions =~ "тебя ждут съёмка, монтажная или продюсер"
+    assert instructions =~ "обычные человеческие разговоры"
+    assert instructions =~ "не притягивая к ним кино"
+    assert instructions =~ "Не своди кино автоматически к саспенсу"
     assert opts[:max_output_tokens] == 120
   end
 
