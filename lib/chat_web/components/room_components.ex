@@ -9,6 +9,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:nickname, :string, required: true)
   attr(:peer_id, :string, required: true)
   attr(:appearance, :map, required: true)
+  attr(:online, :list, required: true)
   attr(:typing, :list, default: [])
 
   def dialogue_frame(assigns) do
@@ -152,7 +153,10 @@ defmodule ChatWeb.RoomComponents do
                 >
                   <%= case address_parts(message) do %>
                     <% {prefix, whitespace, body} -> %>
-                      <strong class="font-semibold">{prefix}</strong>{whitespace}{body}
+                      <strong
+                        class="chat-message-recipient font-semibold"
+                        style={recipient_appearance_style(message, @online)}
+                      >{prefix}</strong>{whitespace}{body}
                     <% nil -> %>
                       {message.body}
                   <% end %>
@@ -168,7 +172,15 @@ defmodule ChatWeb.RoomComponents do
                     style={appearance_style(message)}
                   >{message.author}:</button>
                   <span class="chat-message-body" style={appearance_style(message)}>
-                    {message.body}
+                    <%= case address_parts(message) do %>
+                      <% {prefix, whitespace, body} -> %>
+                        <strong
+                          class="chat-message-recipient font-semibold"
+                          style={recipient_appearance_style(message, @online)}
+                        >{prefix}</strong>{whitespace}{body}
+                      <% nil -> %>
+                        {message.body}
+                    <% end %>
                   </span>
                 </p>
               <% end %>
@@ -975,6 +987,14 @@ defmodule ChatWeb.RoomComponents do
       "--text-light: #{light["text_color"]}"
     ]
     |> Enum.join("; ")
+  end
+
+  defp recipient_appearance_style(%{recipient: recipient}, online)
+       when is_binary(recipient) do
+    case Enum.find(online, &(&1.nickname == recipient)) do
+      %{appearance: appearance} -> appearance_style(appearance)
+      _offline -> appearance_style(Appearance.default())
+    end
   end
 
   defp format_file_size(size) when is_integer(size) and size >= 1_000_000 do

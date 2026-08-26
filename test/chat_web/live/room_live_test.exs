@@ -457,12 +457,27 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(alice_view, "#message-body[value='bob_public, ']")
   end
 
-  test "renders the addressed nickname in bold", %{conn: conn} do
+  test "renders the addressed nickname in the recipient's selected color", %{conn: conn} do
     {:ok, alice_view, _html} = live(conn, ~p"/")
     {:ok, bob_view, _html} = live(build_conn(), ~p"/")
 
     enter_chat(alice_view, "alice_address")
     enter_chat(bob_view, "bob_address")
+
+    bob_view |> element("#toggle-settings") |> render_click()
+
+    bob_view
+    |> form("#preferences-form",
+      preferences: %{
+        appearance: %{
+          dark: %{nickname_color: "#12ab34", text_color: "#e4e4e7"},
+          light: %{nickname_color: "#7654ab", text_color: "#1f2937"}
+        }
+      }
+    )
+    |> render_submit()
+
+    render(alice_view)
 
     alice_view
     |> form("#message-form", message: %{body: "bob_address, привет"})
@@ -470,7 +485,11 @@ defmodule ChatWeb.RoomLiveTest do
 
     render(bob_view)
 
-    assert has_element?(bob_view, "#messages .chat-message-body strong", "bob_address,")
+    assert has_element?(
+             bob_view,
+             "#messages .chat-message-body strong.chat-message-recipient[style*='--nick-dark: #12ab34'][style*='--nick-light: #7654ab']",
+             "bob_address,"
+           )
   end
 
   test "accepts the Ctrl+Enter private-message event with comma addressing", %{conn: conn} do

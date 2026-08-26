@@ -226,6 +226,7 @@
 }
 
 .chat-message-author,
+.chat-message-recipient,
 .chat-user-nickname,
 .chat-current-nickname,
 .chat-preview-nickname {
@@ -311,6 +312,7 @@ a:hover .vertigo-mark {
 }
 
 .chat-shell[data-chat-mode="light"] .chat-message-author,
+.chat-shell[data-chat-mode="light"] .chat-message-recipient,
 .chat-shell[data-chat-mode="light"] .chat-user-nickname,
 .chat-shell[data-chat-mode="light"] .chat-current-nickname,
 .chat-shell[data-chat-mode="light"] .chat-preview-nickname {
