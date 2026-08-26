@@ -46,6 +46,8 @@ defmodule ChatWeb.RoomComponents do
             Map.get(message, :kind) != :system && framed_message?(message, @appearance) &&
               "rounded border px-3 pb-2 pt-5 shadow-sm",
             Map.get(message, :kind) != :system && not framed_message?(message, @appearance) && "px-1",
+            Map.get(message, :kind) != :system && not framed_message?(message, @appearance) &&
+              Map.get(message, :recipient) == @nickname && "rounded bg-amber-300/20",
             Map.get(message, :kind) != :system && framed_message?(message, @appearance) &&
               Map.get(message, :recipient) == @nickname &&
               "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30",
@@ -152,8 +154,8 @@ defmodule ChatWeb.RoomComponents do
                   style={appearance_style(message)}
                 >
                   <%= case address_parts(message) do %>
-                    <% {prefix, whitespace, body} -> %>
-                      <strong
+                    <% {before, prefix, whitespace, body} -> %>
+                      {before}<strong
                         class="chat-message-recipient font-semibold"
                         style={recipient_appearance_style(message, @online)}
                       >{prefix}</strong>{whitespace}{body}
@@ -173,8 +175,8 @@ defmodule ChatWeb.RoomComponents do
                   >{message.author}:</button>
                   <span class="chat-message-body" style={appearance_style(message)}>
                     <%= case address_parts(message) do %>
-                      <% {prefix, whitespace, body} -> %>
-                        <strong
+                      <% {before, prefix, whitespace, body} -> %>
+                        {before}<strong
                           class="chat-message-recipient font-semibold"
                           style={recipient_appearance_style(message, @online)}
                         >{prefix}</strong>{whitespace}{body}
@@ -343,17 +345,23 @@ defmodule ChatWeb.RoomComponents do
 
   defp address_parts(%{kind: :private, recipient: recipient, body: body})
        when is_binary(recipient) and is_binary(body),
-       do: {"^#{recipient},", " ", body}
+       do: {"", "^#{recipient},", " ", body}
 
   defp address_parts(%{recipient: recipient, body: body})
        when is_binary(recipient) and is_binary(body) do
-    case Regex.run(
-           ~r/\A([\p{L}\p{N}_-]{3,24}),(\s*)(.*)\z/us,
-           body,
-           capture: :all_but_first
-         ) do
-      [^recipient, whitespace, rest] -> {"#{recipient},", whitespace, rest}
-      _no_address -> nil
+    regex = Regex.compile!("(?<![\\p{L}\\p{N}_-])(#{Regex.escape(recipient)},)(\\s*)", "u")
+
+    case Regex.run(regex, body, return: :index) do
+      [{index, _length}, {_prefix_index, prefix_length}, {space_index, space_length}] ->
+        before = binary_part(body, 0, index)
+        prefix = binary_part(body, index, prefix_length)
+        whitespace = binary_part(body, space_index, space_length)
+        rest_index = space_index + space_length
+        rest = binary_part(body, rest_index, byte_size(body) - rest_index)
+        {before, prefix, whitespace, rest}
+
+      _no_address ->
+        nil
     end
   end
 

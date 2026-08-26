@@ -19,6 +19,24 @@ defmodule Chat.GalleryTest do
     assert stored.user.nickname == "photographer"
   end
 
+  test "stores a trimmed optional photo caption and validates its length" do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "caption_writer", "password" => "secret123"})
+
+    assert {:ok, photo} =
+             Gallery.upload_photo(user, webp_bytes(), "image/webp", "  Вечерний город  ")
+
+    assert photo.caption == "Вечерний город"
+
+    assert {:error, :invalid_caption} =
+             Gallery.upload_photo(
+               user,
+               webp_bytes(),
+               "image/webp",
+               String.duplicate("я", Gallery.max_caption_length() + 1)
+             )
+  end
+
   test "rejects an unsupported or oversized photo" do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "photo_rules", "password" => "secret123"})

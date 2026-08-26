@@ -20,13 +20,22 @@ defmodule Chat.MessagesTest do
       assert_receive {:message_created, ^message}
     end
 
-    test "extracts the addressed nickname from the beginning of a message" do
+    test "extracts only a known addressed nickname from anywhere in a message" do
       assert {:ok, message} =
                Messages.send_public_message("alice", "private-room", %{
-                 "body" => "bob, привет"
+                 "body" => "привет, bob, как дела?",
+                 "recipient_nicknames" => ["bob"]
                })
 
       assert message.recipient == "bob"
+
+      assert {:ok, ordinary_message} =
+               Messages.send_public_message("alice", "another-room", %{
+                 "body" => "слово, которое не является ником",
+                 "recipient_nicknames" => ["bob"]
+               })
+
+      assert ordinary_message.recipient == nil
     end
 
     test "broadcasts message colors" do

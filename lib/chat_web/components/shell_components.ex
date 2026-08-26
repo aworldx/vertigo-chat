@@ -3,6 +3,7 @@ defmodule ChatWeb.ShellComponents do
   use ChatWeb, :html
 
   attr :joined, :boolean, required: true
+  attr :registered, :boolean, required: true
 
   def top_menu(assigns) do
     ~H"""
@@ -20,40 +21,36 @@ defmodule ChatWeb.ShellComponents do
         <span class="vertigo-wordmark uppercase">Vertigo</span>
       </a>
 
-      <nav class="hidden items-center gap-4 text-sm text-zinc-300 sm:flex">
+      <nav class="flex items-center gap-4 text-sm text-zinc-300">
         <.link
           href={~p"/profiles"}
-          target="_blank"
-          rel="noopener"
-          class="transition hover:text-amber-300"
+          target="vertigo-profiles"
+          class="hidden transition hover:text-amber-300 sm:inline"
         >
           Анкеты
         </.link>
         <.link
           href={~p"/library"}
-          target="_blank"
-          rel="noopener"
-          class="transition hover:text-amber-300"
+          target="vertigo-library"
+          class="hidden transition hover:text-amber-300 sm:inline"
         >
           Библиотека
         </.link>
         <.link
           href={~p"/gallery"}
-          target="_blank"
-          rel="noopener"
-          class="transition hover:text-amber-300"
+          target="vertigo-gallery"
+          class="hidden transition hover:text-amber-300 sm:inline"
         >
           Фотоальбом
         </.link>
         <.link
           href={~p"/visits"}
-          target="_blank"
-          rel="noopener"
-          class="transition hover:text-amber-300"
+          target="vertigo-visits"
+          class="hidden transition hover:text-amber-300 sm:inline"
         >
           Кто был
         </.link>
-        <%= if !@joined do %>
+        <%= if !@registered do %>
           <button
             id="show-registration"
             type="button"

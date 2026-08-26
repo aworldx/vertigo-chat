@@ -3,6 +3,7 @@ const CHUNK_SIZE = 16 * 1024
 const MAX_BUFFERED_AMOUNT = 256 * 1024
 const FILE_TTL_MS = 15 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 20 * 1000
+const TRANSFER_INACTIVITY_TIMEOUT_MS = 30 * 1000
 const SIGNATURE_SCAN_SIZE = 64 * 1024
 
 const bytesEqual = (bytes, expected, offset = 0) =>
@@ -319,6 +320,7 @@ const MediaSharing = {
     this.form?.addEventListener("drop", this.onDrop)
 
     this.handleEvent("media-signal", signal => this.handleSignal(signal))
+    this.handleEvent("enable-media-sharing", () => this.enableSharing())
   },
 
   destroyed() {
@@ -371,6 +373,30 @@ const MediaSharing = {
 
   hideDropOverlay() {
     this.dropOverlay?.classList.replace("flex", "hidden")
+  },
+
+  enableSharing() {
+    if (this.canShare) return
+
+    this.canShare = true
+    this.el.dataset.canShare = "true"
+
+    if (!this.input) {
+      this.input = document.createElement("input")
+      this.input.id = "media-file-input"
+      this.input.type = "file"
+      this.input.accept = Array.from(this.acceptedTypes).join(",")
+      this.input.className = "sr-only"
+      this.input.tabIndex = -1
+      this.input.addEventListener("change", this.onFileChange)
+      this.el.prepend(this.input)
+    }
+
+    if (this.attachButton) {
+      this.attachButton.disabled = false
+      this.attachButton.setAttribute("aria-label", "Прикрепить изображение или музыку")
+      this.attachButton.title = "Прикрепить изображение или аудиофайл"
+    }
   },
 
   async prepareFile(file) {
@@ -592,9 +618,10 @@ const MediaSharing = {
     let lastProgress = -1
     let audioStream = null
     let signatureChecked = false
+    let signatureBytes = new Uint8Array()
 
     channel.onopen = () => {
-      if (peer.timeout) clearTimeout(peer.timeout)
+      this.resetPeerInactivityTimeout(peer)
       if (peer.card.dataset.mediaKind === "audio") {
         audioStream = createAudioStream(
           peer.card,
@@ -610,13 +637,35 @@ const MediaSharing = {
       }
     }
     channel.onmessage = async event => {
+      this.resetPeerInactivityTimeout(peer)
+
       if (typeof event.data !== "string") {
         const chunk = new Uint8Array(event.data)
 
         if (!signatureChecked) {
-          signatureChecked = true
-          const actualType = detectedImageType(chunk) || detectedAudioType(chunk)
-          if (actualType !== normalizedMediaType(peer.card.dataset.contentType)) {
+          const remainingSignatureBytes = SIGNATURE_SCAN_SIZE - signatureBytes.byteLength
+          const signatureChunk = chunk.slice(0, Math.max(0, remainingSignatureBytes))
+          const combinedSignature = new Uint8Array(
+            signatureBytes.byteLength + signatureChunk.byteLength,
+          )
+          combinedSignature.set(signatureBytes)
+          combinedSignature.set(signatureChunk, signatureBytes.byteLength)
+          signatureBytes = combinedSignature
+
+          const actualType = detectedImageType(signatureBytes) || detectedAudioType(signatureBytes)
+          const expectedType = normalizedMediaType(peer.card.dataset.contentType)
+          const expectedSize = Number(peer.card.dataset.fileSize)
+
+          if (actualType && actualType !== expectedType) {
+            setPlaceholderStatus(peer.card, "Полученный файл имеет неверный формат.", true)
+            this.closePeer(peer.shareId, peer.remotePeer)
+            return
+          }
+
+          if (actualType === expectedType) {
+            signatureChecked = true
+            signatureBytes = new Uint8Array()
+          } else if (signatureBytes.byteLength >= Math.min(SIGNATURE_SCAN_SIZE, expectedSize)) {
             setPlaceholderStatus(peer.card, "Полученный файл имеет неверный формат.", true)
             this.closePeer(peer.shareId, peer.remotePeer)
             return
@@ -656,6 +705,8 @@ const MediaSharing = {
       }
       if (message.type !== "complete") return
 
+      if (peer.timeout) clearTimeout(peer.timeout)
+
       const expectedSize = Number(peer.card.dataset.fileSize)
       if (receivedSize !== expectedSize || message.size !== expectedSize) {
         setPlaceholderStatus(peer.card, "Получен файл неверного размера.", true)
@@ -681,6 +732,11 @@ const MediaSharing = {
     }
     channel.onerror = () => {
       this.fallbackToRelay(peer.card, peer.shareId, peer.remotePeer)
+    }
+    channel.onclose = () => {
+      if (this.peers.has(peerKey(peer.shareId, peer.remotePeer))) {
+        this.fallbackToRelay(peer.card, peer.shareId, peer.remotePeer)
+      }
     }
   },
 
@@ -713,6 +769,13 @@ const MediaSharing = {
     })
   },
 
+  resetPeerInactivityTimeout(peer) {
+    if (peer.timeout) clearTimeout(peer.timeout)
+    peer.timeout = setTimeout(() => {
+      this.fallbackToRelay(peer.card, peer.shareId, peer.remotePeer)
+    }, TRANSFER_INACTIVITY_TIMEOUT_MS)
+  },
+
   fallbackToRelay(card, shareId, senderPeer) {
     if (!card || card.dataset.relayStarted === "true") return
 
@@ -721,28 +784,31 @@ const MediaSharing = {
 
     setPlaceholderStatus(card, "Прямое соединение недоступно. Передаём без сохранения на сервере…")
 
-    const mediaSize = Number(card.dataset.fileSize) || 0
-    const relayTimeoutMs = Math.max(REQUEST_TIMEOUT_MS, Math.ceil(mediaSize / 200_000) * 1000)
-    const timeout = setTimeout(() => {
-      this.relayTransfers.delete(shareId)
-      setPlaceholderStatus(card, "Автор не ответил. Файл недоступен.", true)
-    }, relayTimeoutMs)
-
-    this.relayTransfers.set(shareId, {
+    const transfer = {
       card,
       senderPeer,
       chunks: null,
       received: 0,
-      timeout,
-    })
+      timeout: null,
+    }
+    this.relayTransfers.set(shareId, transfer)
+    this.resetRelayInactivityTimeout(shareId, transfer)
 
     this.pushEvent("request_media_relay", {share_id: shareId}, reply => {
       if (reply?.ok) return
 
-      clearTimeout(timeout)
+      clearTimeout(transfer.timeout)
       this.relayTransfers.delete(shareId)
       setPlaceholderStatus(card, reply?.error || "Файл недоступен.", true)
     })
+  },
+
+  resetRelayInactivityTimeout(shareId, transfer) {
+    if (transfer.timeout) clearTimeout(transfer.timeout)
+    transfer.timeout = setTimeout(() => {
+      this.relayTransfers.delete(shareId)
+      setPlaceholderStatus(transfer.card, "Передача остановилась. Попробуйте ещё раз.", true)
+    }, TRANSFER_INACTIVITY_TIMEOUT_MS)
   },
 
   async sendRelayFile(signal) {
@@ -794,6 +860,14 @@ const MediaSharing = {
 
     transfer.chunks[signal.index] = bytes
     transfer.received += 1
+    this.resetRelayInactivityTimeout(signal.share_id, transfer)
+
+    const progress = Math.min(100, Math.floor((transfer.received / signal.total) * 100))
+    setPlaceholderStatus(
+      transfer.card,
+      `Передаём без сохранения на сервере… ${progress}%`,
+    )
+
     if (transfer.received !== signal.total) return
 
     clearTimeout(transfer.timeout)

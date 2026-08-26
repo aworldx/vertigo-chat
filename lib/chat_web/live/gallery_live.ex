@@ -13,6 +13,7 @@ defmodule ChatWeb.GalleryLive do
      |> assign(:page_title, "Фотоальбом")
      |> assign(:current_user, nil)
      |> assign(:auth_checked?, false)
+     |> assign(:gallery_upload_error, nil)
      |> assign(:upload_form, to_form(%{}, as: :gallery))
      |> allow_upload(:gallery_photo,
        accept: ~w(.jpg .jpeg .png .webp),
@@ -37,13 +38,33 @@ defmodule ChatWeb.GalleryLive do
     {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
   end
 
+  def handle_event("validate_gallery_photo", %{"gallery" => params}, socket) do
+    {:noreply,
+     socket
+     |> assign(:upload_form, to_form(params, as: :gallery))
+     |> assign(:gallery_upload_error, nil)}
+  end
+
   def handle_event("validate_gallery_photo", _params, socket), do: {:noreply, socket}
 
-  def handle_event("upload_gallery_photo", _params, socket) do
+  def handle_event("gallery_compression_error", _params, socket) do
+    {:noreply,
+     assign(
+       socket,
+       :gallery_upload_error,
+       "Не удалось прочитать изображение. Выберите исправный JPG, PNG или WebP."
+     )}
+  end
+
+  def handle_event("upload_gallery_photo", params, socket) do
+    caption = get_in(params, ["gallery", "caption"])
+
     with %{id: _user_id} = user <- socket.assigns.current_user,
-         {:ok, photo} <- consume_photo(socket, user) do
+         {:ok, photo} <- consume_photo(socket, user, caption) do
       {:noreply,
        socket
+       |> assign(:upload_form, to_form(%{}, as: :gallery))
+       |> assign(:gallery_upload_error, nil)
        |> stream_insert(:photos, photo, at: 0)
        |> put_flash(:info, "Фотография добавлена в альбом.")}
     else
@@ -63,6 +84,14 @@ defmodule ChatWeb.GalleryLive do
            "В альбоме одного автора может быть не больше #{Gallery.max_photos_per_user()} фотографий."
          )}
 
+      {:error, :invalid_caption} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Подпись должна быть не длиннее #{Gallery.max_caption_length()} символов."
+         )}
+
       _reason ->
         {:noreply, put_flash(socket, :error, "Не удалось загрузить фотографию.")}
     end
@@ -70,7 +99,21 @@ defmodule ChatWeb.GalleryLive do
 
   def image_url(photo), do: Media.data_url(photo.image, photo.content_type)
 
-  defp consume_photo(socket, user) do
+  def upload_error_message(:too_large),
+    do: "Фотография слишком большая: после сжатия файл должен быть не больше 2 МБ."
+
+  def upload_error_message(:not_accepted),
+    do: "Неподдерживаемый формат. Выберите фотографию в формате JPG, PNG или WebP."
+
+  def upload_error_message(:too_many_files), do: "Можно добавить только одну фотографию за раз."
+  def upload_error_message(_error), do: "Не удалось подготовить фотографию к загрузке."
+
+  def gallery_upload_errors(upload) do
+    upload_errors(upload) ++
+      Enum.flat_map(upload.entries, &upload_errors(upload, &1))
+  end
+
+  defp consume_photo(socket, user, caption) do
     case uploaded_entries(socket, :gallery_photo) do
       {[_entry], []} ->
         [result] =
@@ -79,7 +122,7 @@ defmodule ChatWeb.GalleryLive do
           end)
 
         {bytes, content_type} = result
-        Gallery.upload_photo(user, bytes, content_type)
+        Gallery.upload_photo(user, bytes, content_type, caption)
 
       _entries ->
         {:error, :photo_not_ready}

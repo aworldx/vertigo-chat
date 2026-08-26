@@ -156,6 +156,8 @@ const chatHooks = {
   },
   ChatPreferences: {
     mounted() {
+      window.name = "vertigo-chat"
+
       const store = readChatPreferenceStore()
       const currentNickname = store.current_nickname
       const currentPreferences = currentNickname && store.by_nickname[currentNickname]
@@ -201,6 +203,18 @@ const liveSocket = new LiveSocket("/live", Socket, {
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+document.addEventListener("click", event => {
+  const link = event.target.closest("[data-return-to-chat]")
+  if (!link || event.defaultPrevented || event.button !== 0) return
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+  const chatWindow = window.open("", "vertigo-chat")
+  if (!chatWindow) return
+
+  event.preventDefault()
+  if (chatWindow.location.href === "about:blank") chatWindow.location.href = link.href
+  chatWindow.focus()
+})
 window.addEventListener("phx:clear-message-input", _info => {
   const messageInput = document.getElementById("message-body")
 

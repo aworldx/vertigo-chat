@@ -34,7 +34,7 @@ defmodule Chat.Messages do
           "body" => body,
           "theme_id" => theme_id,
           "appearance" => appearance
-        },
+        } = attrs,
         %Subject{} = subject
       )
       when is_binary(body) do
@@ -44,11 +44,12 @@ defmodule Chat.Messages do
       body,
       Themes.normalize_theme_id(theme_id),
       Appearance.normalize(appearance),
+      Map.get(attrs, "recipient_nicknames", []),
       subject
     )
   end
 
-  def send_public_message(author, room_id, %{"body" => body}, %Subject{} = subject)
+  def send_public_message(author, room_id, %{"body" => body} = attrs, %Subject{} = subject)
       when is_binary(body) do
     deliver_message(
       author,
@@ -56,6 +57,7 @@ defmodule Chat.Messages do
       body,
       Themes.default_theme_id(),
       Appearance.default(),
+      Map.get(attrs, "recipient_nicknames", []),
       subject
     )
   end
@@ -136,7 +138,15 @@ defmodule Chat.Messages do
   def max_body_length, do: @max_body_length
   def reaction_emojis, do: @reaction_emojis
 
-  defp deliver_message(author, room_id, body, theme_id, appearance, subject) do
+  defp deliver_message(
+         author,
+         room_id,
+         body,
+         theme_id,
+         appearance,
+         recipient_nicknames,
+         subject
+       ) do
     body = String.trim(body)
 
     cond do
@@ -148,14 +158,24 @@ defmodule Chat.Messages do
 
       true ->
         case Security.allow_message(subject) do
-          :ok -> broadcast_message(author, room_id, body, theme_id, appearance)
-          {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
+          :ok ->
+            broadcast_message(
+              author,
+              room_id,
+              body,
+              theme_id,
+              appearance,
+              recipient_nicknames
+            )
+
+          {:error, {:rate_limited, _retry_after_ms}} ->
+            {:error, :rate_limited}
         end
     end
   end
 
-  defp broadcast_message(author, room_id, body, theme_id, appearance) do
-    message = build_message(author, body, theme_id, appearance)
+  defp broadcast_message(author, room_id, body, theme_id, appearance, recipient_nicknames) do
+    message = build_message(author, body, theme_id, appearance, recipient_nicknames)
     :ok = Registry.append(room_id, message)
 
     :ok =
@@ -168,14 +188,14 @@ defmodule Chat.Messages do
     {:ok, message}
   end
 
-  defp build_message(author, body, theme_id, appearance) do
+  defp build_message(author, body, theme_id, appearance, recipient_nicknames) do
     Map.merge(
       %{
         id: System.unique_integer([:positive]),
         kind: :text,
         author: author,
         body: body,
-        recipient: recipient_from_body(body),
+        recipient: recipient_from_body(body, recipient_nicknames),
         reactions: %{},
         theme_id: theme_id,
         appearance: appearance
@@ -184,12 +204,26 @@ defmodule Chat.Messages do
     )
   end
 
-  defp recipient_from_body(body) do
-    case Regex.run(~r/^([\p{L}\p{N}_-]{3,24}),(?:\s|$)/u, body, capture: :all_but_first) do
-      [nickname] -> nickname
-      _no_recipient -> nil
+  defp recipient_from_body(body, recipient_nicknames) when is_list(recipient_nicknames) do
+    recipient_nicknames
+    |> Enum.filter(&is_binary/1)
+    |> Enum.uniq()
+    |> Enum.flat_map(fn nickname ->
+      regex = Regex.compile!("(?<![\\p{L}\\p{N}_-])(#{Regex.escape(nickname)}),", "u")
+
+      case Regex.run(regex, body, return: :index) do
+        [{index, _length}, _nickname_match] -> [{index, nickname}]
+        _no_address -> []
+      end
+    end)
+    |> Enum.min_by(&elem(&1, 0), fn -> nil end)
+    |> case do
+      {_index, nickname} -> nickname
+      nil -> nil
     end
   end
+
+  defp recipient_from_body(_body, _recipient_nicknames), do: nil
 
   defp timestamp do
     now = DateTime.utc_now()

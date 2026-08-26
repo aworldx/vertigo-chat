@@ -24,10 +24,10 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ ~r/value="guest-[^"]+"/
     assert html =~ "Сейчас в чате"
     refute html =~ "Общая комната"
-    assert has_element?(view, "a[href='/profiles'][target='_blank']")
-    assert has_element?(view, "a[href='/gallery'][target='_blank']")
-    assert has_element?(view, "a[href='/visits'][target='_blank']")
-    assert has_element?(view, "a[href='/library'][target='_blank']")
+    assert has_element?(view, "a[href='/profiles'][target='vertigo-profiles']")
+    assert has_element?(view, "a[href='/gallery'][target='vertigo-gallery']")
+    assert has_element?(view, "a[href='/visits'][target='vertigo-visits']")
+    assert has_element?(view, "a[href='/library'][target='vertigo-library']")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
     assert has_element?(view, "#chat-room.h-dvh.max-h-dvh.min-h-0.overflow-hidden")
   end
@@ -260,6 +260,43 @@ defmodule ChatWeb.RoomLiveTest do
     assert Accounts.registered_nickname?("registered")
   end
 
+  test "lets a guest register the current nickname without leaving the chat", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "guest_registering")
+
+    assert has_element?(view, "#show-registration", "Регистрация")
+    assert view |> element("#show-registration") |> render_click() =~ "registration-modal"
+
+    assert has_element?(
+             view,
+             "#registration-modal #registration-nickname[readonly][value='guest_registering']"
+           )
+
+    view
+    |> form("#registration-form",
+      registration: %{nickname: "another_nickname", password: "secret123"}
+    )
+    |> render_submit()
+
+    assert has_element?(view, "#message-form")
+    assert_push_event(view, "enable-media-sharing", %{})
+    refute has_element?(view, "#registration-modal")
+    refute has_element?(view, "#show-registration")
+    assert Accounts.registered_nickname?("guest_registering")
+    refute Accounts.registered_nickname?("another_nickname")
+  end
+
+  test "closes in-chat registration without leaving the chat", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "guest_staying")
+
+    view |> element("#show-registration") |> render_click()
+    assert view |> element("#close-registration") |> render_click() =~ "message-form"
+
+    refute has_element?(view, "#registration-modal")
+    assert has_element?(view, "#show-registration")
+  end
+
   test "returns from registration to login and shows validation errors", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
@@ -480,7 +517,7 @@ defmodule ChatWeb.RoomLiveTest do
     render(alice_view)
 
     alice_view
-    |> form("#message-form", message: %{body: "bob_address, привет"})
+    |> form("#message-form", message: %{body: "привет, bob_address, как дела?"})
     |> render_submit()
 
     render(bob_view)
@@ -489,6 +526,57 @@ defmodule ChatWeb.RoomLiveTest do
              bob_view,
              "#messages .chat-message-body strong.chat-message-recipient[style*='--nick-dark: #12ab34'][style*='--nick-light: #7654ab']",
              "bob_address,"
+           )
+  end
+
+  test "does not highlight an ordinary word followed by a comma as a nickname", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "comma_writer")
+
+    view
+    |> form("#message-form", message: %{body: "слово, которое не никнейм"})
+    |> render_submit()
+
+    assert has_element?(
+             view,
+             "#messages [data-addressed-to-me='false'] .chat-message-body",
+             "слово, которое не никнейм"
+           )
+
+    refute has_element?(view, "#messages .chat-message-recipient", "слово,")
+  end
+
+  test "highlights an addressed message for a recipient using the frameless view", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(alice_view, "alice_compact_address")
+    enter_chat(bob_view, "bob_compact_address")
+
+    bob_view |> element("#toggle-settings") |> render_click()
+
+    bob_view
+    |> form("#preferences-form",
+      preferences: %{appearance: %{message_frame: "false"}}
+    )
+    |> render_submit()
+
+    alice_view
+    |> form("#message-form", message: %{body: "bob_compact_address, привет"})
+    |> render_submit()
+
+    render(bob_view)
+
+    assert has_element?(
+             bob_view,
+             "#messages [data-message-frame='false'][data-addressed-to-me='true'].bg-amber-300\\/20",
+             "bob_compact_address, привет"
+           )
+
+    refute has_element?(
+             alice_view,
+             "#messages [data-message-frame='true'][data-addressed-to-me='false'].bg-amber-300\\/20",
+             "bob_compact_address, привет"
            )
   end
 

@@ -22,6 +22,13 @@ defmodule ChatWeb.GalleryLiveTest do
     assert has_element?(view, "[data-photo-author='gallery_author'] [data-gallery-lightbox-open]")
     assert has_element?(view, "#gallery-lightbox[role='dialog'][phx-update='ignore']")
     assert has_element?(view, "#close-gallery-lightbox[data-gallery-lightbox-close]")
+
+    assert has_element?(
+             view,
+             "a[href='/'][target='vertigo-chat'][data-return-to-chat]",
+             "Вернуться в чат"
+           )
+
     refute has_element?(view, "#gallery-upload-form")
   end
 
@@ -40,10 +47,24 @@ defmodule ChatWeb.GalleryLiveTest do
       ])
 
     render_upload(upload, "photo.webp")
-    view |> element("#gallery-upload-form") |> render_submit()
 
-    assert has_element?(view, "[data-photo-author='gallery_uploader']")
-    assert [_photo] = Gallery.list_photos()
+    view
+    |> form("#gallery-upload-form", gallery: %{caption: "Летний вечер"})
+    |> render_submit()
+
+    assert has_element?(
+             view,
+             "[data-photo-author='gallery_uploader'][data-photo-caption='Летний вечер']",
+             "Летний вечер"
+           )
+
+    assert has_element?(
+             view,
+             "[data-photo-author='gallery_uploader'] [data-gallery-caption='Летний вечер']"
+           )
+
+    assert [photo] = Gallery.list_photos()
+    assert photo.caption == "Летний вечер"
   end
 
   test "rejects an invalid gallery authentication token", %{conn: conn} do
@@ -69,6 +90,38 @@ defmodule ChatWeb.GalleryLiveTest do
 
     assert html =~ "Не удалось загрузить фотографию"
     assert Gallery.list_photos() == []
+  end
+
+  test "explains unsupported formats and oversized gallery photos", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "invalid_gallery_photo", "password" => "secret123"})
+
+    {:ok, view, _html} = live(conn, ~p"/gallery")
+    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+
+    unsupported =
+      file_input(view, "#gallery-upload-form", :gallery_photo, [
+        %{name: "photo.gif", content: "GIF89a", type: "image/gif"}
+      ])
+
+    assert {:error, _errors} = render_upload(unsupported, "photo.gif")
+
+    assert render(view) =~
+             "Неподдерживаемый формат. Выберите фотографию в формате JPG, PNG или WebP."
+
+    oversized =
+      file_input(view, "#gallery-upload-form", :gallery_photo, [
+        %{
+          name: "large.webp",
+          content: :binary.copy(<<0>>, 2_000_001),
+          type: "image/webp"
+        }
+      ])
+
+    assert {:error, _errors} = render_upload(oversized, "large.webp")
+
+    assert render(view) =~
+             "Фотография слишком большая: после сжатия файл должен быть не больше 2 МБ."
   end
 
   test "rejects non-binary tokens and tokens for missing users" do

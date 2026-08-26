@@ -47,6 +47,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:screen, :login)
       |> assign(:entrance_error, nil)
       |> assign(:registration_error, nil)
+      |> assign(:registration_open?, false)
       |> assign(:message_error, nil)
       |> assign(:media_error, nil)
       |> assign(:online, [])
@@ -125,12 +126,24 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("show_registration", _params, socket) do
+    socket =
+      socket
+      |> assign(:entrance_error, nil)
+      |> assign(:registration_error, nil)
+      |> assign_registration_form()
+
+    if socket.assigns.joined? do
+      {:noreply, assign(socket, :registration_open?, true)}
+    else
+      {:noreply, assign(socket, :screen, :registration)}
+    end
+  end
+
+  def handle_event("close_registration", _params, socket) do
     {:noreply,
      socket
-     |> assign(:screen, :registration)
-     |> assign(:entrance_error, nil)
-     |> assign(:registration_error, nil)
-     |> assign_registration_form()}
+     |> assign(:registration_open?, false)
+     |> assign(:registration_error, nil)}
   end
 
   def handle_event("show_login", _params, socket) do
@@ -142,16 +155,36 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("register_user", %{"registration" => params}, socket) do
+    params =
+      if socket.assigns.joined? do
+        Map.put(params, "nickname", socket.assigns.nickname)
+      else
+        params
+      end
+
     case Accounts.register_user(params, socket.assigns.security_subject) do
       {:ok, user} ->
-        {:noreply,
-         socket
-         |> assign(:nickname, user.nickname)
-         |> assign(:screen, :login)
-         |> assign(:registration_error, nil)
-         |> assign(:entrance_error, "Регистрация завершена. Теперь введи пароль и войди.")
-         |> assign_nickname_form()
-         |> assign_registration_form()}
+        if socket.assigns.joined? do
+          {:noreply,
+           socket
+           |> assign(:current_user, user)
+           |> assign(:registration_open?, false)
+           |> assign(:registration_error, nil)
+           |> assign_registration_form()
+           |> update_presence()
+           |> sync_user_auth(user)
+           |> push_event("enable-media-sharing", %{})
+           |> put_flash(:info, "Регистрация завершена. Теперь доступны все возможности чата.")}
+        else
+          {:noreply,
+           socket
+           |> assign(:nickname, user.nickname)
+           |> assign(:screen, :login)
+           |> assign(:registration_error, nil)
+           |> assign(:entrance_error, "Регистрация завершена. Теперь введи пароль и войди.")
+           |> assign_nickname_form()
+           |> assign_registration_form()}
+        end
 
       {:error, changeset} ->
         {:noreply,
@@ -426,6 +459,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:current_user, nil)
       |> assign(:profile, nil)
       |> assign(:settings_open?, false)
+      |> assign(:registration_open?, false)
       |> assign(:screen, :login)
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
       |> assign(:media_error, nil)
@@ -600,7 +634,8 @@ defmodule ChatWeb.RoomLive do
           %{
             "body" => body,
             "theme_id" => socket.assigns.theme_id,
-            "appearance" => socket.assigns.appearance
+            "appearance" => socket.assigns.appearance,
+            "recipient_nicknames" => Enum.map(socket.assigns.online, & &1.nickname)
           },
           message_security_subject(socket)
         )

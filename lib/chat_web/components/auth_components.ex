@@ -53,14 +53,21 @@ defmodule ChatWeb.AuthComponents do
 
   attr :registration_error, :string, default: nil
   attr :registration_form, :any, required: true
+  attr :in_chat, :boolean, default: false
 
   def registration_screen(assigns) do
     ~H"""
     <div class="w-full max-w-md">
       <p class="text-sm text-zinc-400">Новый чатланин</p>
-      <h1 class="mt-2 text-3xl font-semibold">Регистрация</h1>
+      <h1 id={if(@in_chat, do: "registration-modal-title")} class="mt-2 text-3xl font-semibold">
+        Регистрация
+      </h1>
       <p class="mt-3 text-sm leading-6 text-zinc-400">
-        Зарегистрированный ник нельзя занять гостем. После регистрации вернём тебя на вход.
+        <%= if @in_chat do %>
+          Зарегистрируй текущий ник и продолжай общение без повторного входа.
+        <% else %>
+          Зарегистрированный ник нельзя занять гостем. После регистрации вернём тебя на вход.
+        <% end %>
       </p>
 
       <%= if @registration_error do %>
@@ -82,6 +89,7 @@ defmodule ChatWeb.AuthComponents do
           autocomplete="nickname"
           maxlength="24"
           placeholder="например, Scottie"
+          readonly={@in_chat}
         />
         <.auth_text_input
           field={@registration_form[:password]}
@@ -101,12 +109,12 @@ defmodule ChatWeb.AuthComponents do
         </button>
 
         <button
-          id="show-login"
+          id={if(@in_chat, do: "close-registration", else: "show-login")}
           type="button"
-          phx-click="show_login"
+          phx-click={if(@in_chat, do: "close_registration", else: "show_login")}
           class="w-full rounded border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-amber-300 hover:text-amber-300"
         >
-          Уже есть ник? Войти
+          {if(@in_chat, do: "Остаться в чате", else: "Уже есть ник? Войти")}
         </button>
       </.form>
     </div>
@@ -120,6 +128,7 @@ defmodule ChatWeb.AuthComponents do
   attr :autocomplete, :string, default: nil
   attr :maxlength, :string, default: nil
   attr :placeholder, :string, default: nil
+  attr :readonly, :boolean, default: false
 
   defp auth_text_input(assigns) do
     ~H"""
@@ -133,6 +142,7 @@ defmodule ChatWeb.AuthComponents do
         autocomplete={@autocomplete}
         maxlength={@maxlength}
         placeholder={@placeholder}
+        readonly={@readonly}
         class="w-full rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
       />
     </label>
