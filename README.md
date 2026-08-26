@@ -56,6 +56,52 @@ embedded into `DATABASE_URL`, so use URL-safe characters or percent-encode reser
 For deployment without a domain, set `PHX_SCHEME=http`, `PHX_URL_PORT=80`, and
 `CADDY_SITE_ADDRESS=http://SERVER_IP`.
 
+### Current production VPS
+
+The current production instance runs on the Kazakhstan VPS at `109.248.170.47` in
+`/opt/apps/vertigo-chat`. SSH access is key-only:
+
+```sh
+ssh root@109.248.170.47
+```
+
+The secret production values are stored only in `/opt/apps/vertigo-chat/.env`.
+The server-specific public override is `/opt/apps/vertigo-chat/.env.vps`:
+
+```env
+PHX_HOST=109.248.170.47
+PHX_SCHEME=http
+PHX_URL_PORT=80
+CADDY_SITE_ADDRESS=http://109.248.170.47
+```
+
+To deploy a checked local change, do not copy either environment file. Run the
+checks locally, upload the source, then build and restart the Compose stack:
+
+```sh
+mix precommit
+
+rsync -az \
+  --exclude='.git/' \
+  --exclude='.env' \
+  --exclude='.env.vps' \
+  --exclude='_build/' \
+  --exclude='deps/' \
+  --exclude='assets/node_modules/' \
+  ./ root@109.248.170.47:/opt/apps/vertigo-chat/
+
+ssh root@109.248.170.47 '\
+  cd /opt/apps/vertigo-chat && \
+  docker compose --env-file .env --env-file .env.vps build app && \
+  docker compose --env-file .env --env-file .env.vps up -d && \
+  docker compose --env-file .env --env-file .env.vps ps'
+```
+
+`migrate` runs before the application starts. Verify the result with
+`curl -I http://109.248.170.47`. The firewall allows only SSH, HTTP and HTTPS;
+password authentication is disabled. Do not use `rsync --delete` against the
+production directory.
+
 Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
 
 ## Learn more
