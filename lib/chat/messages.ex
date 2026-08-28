@@ -74,7 +74,8 @@ defmodule Chat.Messages do
 
   def announce_presence(nickname, room_id, event)
       when is_binary(nickname) and is_binary(room_id) and event in [:joined, :left] do
-    action = if event == :joined, do: "вошёл в чат", else: "вышел из чата"
+    body =
+      if event == :joined, do: "в чат заходит #{nickname}", else: "из чата выходит #{nickname}"
 
     message =
       Map.merge(
@@ -82,7 +83,7 @@ defmodule Chat.Messages do
           id: System.unique_integer([:positive]),
           kind: :system,
           author: "system",
-          body: "#{nickname} #{action}",
+          body: body,
           recipient: nil,
           reactions: %{},
           theme_id: Themes.default_theme_id(),

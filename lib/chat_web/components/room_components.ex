@@ -153,11 +153,11 @@ defmodule ChatWeb.RoomComponents do
                   class="chat-message-body break-words pr-12 text-sm leading-5"
                   style={appearance_style(message)}
                 >
-                  <%= case address_parts(message) do %>
-                    <% {before, prefix, whitespace, body} -> %>
+                  <%= case nickname_parts(message, @online) do %>
+                    <% {before, prefix, whitespace, body, nickname} -> %>
                       {before}<strong
                         class="chat-message-recipient font-semibold"
-                        style={recipient_appearance_style(message, @online)}
+                        style={nickname_appearance_style(nickname, @online)}
                       >{prefix}</strong>{whitespace}{body}
                     <% nil -> %>
                       {message.body}
@@ -174,11 +174,11 @@ defmodule ChatWeb.RoomComponents do
                     style={appearance_style(message)}
                   >{message.author}:</button>
                   <span class="chat-message-body" style={appearance_style(message)}>
-                    <%= case address_parts(message) do %>
-                      <% {before, prefix, whitespace, body} -> %>
+                    <%= case nickname_parts(message, @online) do %>
+                      <% {before, prefix, whitespace, body, nickname} -> %>
                         {before}<strong
                           class="chat-message-recipient font-semibold"
-                          style={recipient_appearance_style(message, @online)}
+                          style={nickname_appearance_style(nickname, @online)}
                         >{prefix}</strong>{whitespace}{body}
                       <% nil -> %>
                         {message.body}
@@ -343,13 +343,22 @@ defmodule ChatWeb.RoomComponents do
 
   defp framed_message?(_message, _appearance), do: true
 
-  defp address_parts(%{kind: :private, recipient: recipient, body: body})
+  defp nickname_parts(%{kind: :private, recipient: recipient, body: body}, _online)
        when is_binary(recipient) and is_binary(body),
-       do: {"", "^#{recipient},", " ", body}
+       do: {"", "^#{recipient},", " ", body, recipient}
 
-  defp address_parts(%{recipient: recipient, body: body})
-       when is_binary(recipient) and is_binary(body) do
-    regex = Regex.compile!("(?<![\\p{L}\\p{N}_-])(#{Regex.escape(recipient)},)(\\s*)", "u")
+  defp nickname_parts(%{recipient: recipient, body: body}, online) when is_binary(body) do
+    nickname = recipient || nickname_in_body(body, online)
+
+    if is_binary(nickname) do
+      nickname_parts_from_body(body, nickname)
+    end
+  end
+
+  defp nickname_parts(_message, _online), do: nil
+
+  defp nickname_parts_from_body(body, nickname) do
+    regex = Regex.compile!("(?<![\\p{L}\\p{N}_-])(#{Regex.escape(nickname)},?)(\\s*)", "u")
 
     case Regex.run(regex, body, return: :index) do
       [{index, _length}, {_prefix_index, prefix_length}, {space_index, space_length}] ->
@@ -358,14 +367,25 @@ defmodule ChatWeb.RoomComponents do
         whitespace = binary_part(body, space_index, space_length)
         rest_index = space_index + space_length
         rest = binary_part(body, rest_index, byte_size(body) - rest_index)
-        {before, prefix, whitespace, rest}
+        {before, prefix, whitespace, rest, nickname}
 
       _no_address ->
         nil
     end
   end
 
-  defp address_parts(_message), do: nil
+  defp nickname_in_body(body, online) do
+    online
+    |> Enum.map(& &1.nickname)
+    |> Enum.filter(&is_binary/1)
+    |> Enum.sort_by(&byte_size/1, :desc)
+    |> Enum.find(fn nickname ->
+      Regex.match?(
+        Regex.compile!("(?<![\\p{L}\\p{N}_-])#{Regex.escape(nickname)}(?![\\p{L}\\p{N}_-])", "u"),
+        body
+      )
+    end)
+  end
 
   defp present_reactions(message) do
     Enum.filter(Chat.Messages.reaction_emojis(), &(reaction_count(message, &1) > 0))
@@ -997,9 +1017,8 @@ defmodule ChatWeb.RoomComponents do
     |> Enum.join("; ")
   end
 
-  defp recipient_appearance_style(%{recipient: recipient}, online)
-       when is_binary(recipient) do
-    case Enum.find(online, &(&1.nickname == recipient)) do
+  defp nickname_appearance_style(nickname, online) when is_binary(nickname) do
+    case Enum.find(online, &(&1.nickname == nickname)) do
       %{appearance: appearance} -> appearance_style(appearance)
       _offline -> appearance_style(Appearance.default())
     end

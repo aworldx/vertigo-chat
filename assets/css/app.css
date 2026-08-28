@@ -242,14 +242,16 @@
   width: 2.25rem;
   height: 2.25rem;
   flex: 0 0 auto;
-  color: #fb7185;
+  background-color: #fb7185;
+  mask: url("/images/spiral.png") center / contain no-repeat;
+  -webkit-mask: url("/images/spiral.png") center / contain no-repeat;
   transition:
-    color 180ms ease,
+    background-color 180ms ease,
     transform 300ms ease;
 }
 
 a:hover .vertigo-mark {
-  color: #fda4af;
+  background-color: #fda4af;
   transform: rotate(-8deg) scale(1.04);
 }
 

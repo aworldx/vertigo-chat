@@ -190,12 +190,12 @@ defmodule Chat.MessagesTest do
 
     assert {:ok, joined} = Messages.announce_presence("alice", room_id, :joined)
     assert joined.kind == :system
-    assert joined.body == "alice вошёл в чат"
+    assert joined.body == "в чат заходит alice"
     assert_receive {:message_created, ^joined}
 
     assert {:ok, left} = Messages.announce_presence("alice", room_id, :left)
     assert left.kind == :system
-    assert left.body == "alice вышел из чата"
+    assert left.body == "из чата выходит alice"
     assert_receive {:message_created, ^left}
     assert [^joined, ^left] = Messages.list_recent_messages(room_id)
   end

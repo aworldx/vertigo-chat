@@ -1,0 +1,255 @@
+<Layouts.app flash={@flash}>
+  <div
+    id="checkers-page"
+    phx-hook=".CheckersAuth"
+    class="min-h-screen bg-zinc-950 px-4 py-8 text-zinc-100"
+  >
+    <div class="mx-auto max-w-6xl">
+      <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400">
+            Vertigo games
+          </p>
+          <h1 class="mt-1 text-4xl font-black tracking-tight">Шашки для чатлан</h1>
+        </div>
+        <.link
+          href={~p"/"}
+          id="back-to-chat"
+          class="rounded-full border border-zinc-700 px-4 py-2 text-sm hover:border-amber-400 hover:text-amber-300"
+        >Вернуться в чат</.link>
+      </header>
+
+      <%= cond do %>
+        <% !@auth_checked? -> %>
+          <p
+            id="checkers-auth-check"
+            class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-zinc-400"
+          >
+            Проверяем вход…
+          </p>
+        <% is_nil(@current_user) -> %>
+          <div
+            id="checkers-login-hint"
+            class="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-8 text-center"
+          >
+            <h2 class="text-2xl font-bold">Сначала войди в чат</h2>
+            <p class="mt-2 text-zinc-400">
+              Играть и приглашать соперников могут зарегистрированные чатлане.
+            </p>
+          </div>
+        <% true -> %>
+          <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+            <main class="space-y-6">
+              <section
+                id="checkers-lobby"
+                class="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5"
+              >
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <h2 class="text-xl font-bold">Игровая</h2>
+                    <p class="text-sm text-zinc-400">
+                      Ты вошёл как <span class="text-amber-300">{@current_user.nickname}</span>
+                    </p>
+                  </div>
+                  <.form
+                    for={@invite_form}
+                    id="checkers-invite-form"
+                    phx-submit="invite"
+                    class="flex gap-2"
+                  >
+                    <.input
+                      field={@invite_form[:opponent_id]}
+                      type="select"
+                      prompt="Выбрать чатланина"
+                      options={Enum.map(@opponents, &{&1.nickname, &1.id})}
+                    />
+                    <button
+                      id="send-checkers-invite"
+                      class="rounded-xl bg-amber-400 px-4 font-bold text-zinc-950 transition hover:bg-amber-300"
+                    >Пригласить</button>
+                  </.form>
+                </div>
+
+                <div id="checkers-games" class="mt-5 grid gap-3 sm:grid-cols-2">
+                  <p :if={@games == []} id="checkers-games-empty" class="text-sm text-zinc-500">
+                    Открытых партий пока нет.
+                  </p>
+                  <article
+                    :for={game <- @games}
+                    id={"checkers-game-#{game.id}"}
+                    class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <strong>{opponent_name(game, @current_user.id)}</strong>
+                      <span class="text-xs uppercase tracking-wider text-zinc-500">{if game.status ==
+                                                                                         "pending",
+                                                                                       do:
+                                                                                         "приглашение",
+                                                                                       else:
+                                                                                         "идёт игра"}</span>
+                    </div>
+                    <div
+                      :if={game.status == "pending" and game.opponent_id == @current_user.id}
+                      class="mt-3 flex gap-2"
+                    >
+                      <button
+                        id={"accept-game-#{game.id}"}
+                        phx-click="accept"
+                        phx-value-id={game.id}
+                        class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-bold text-zinc-950"
+                      >Принять</button>
+                      <button
+                        id={"decline-game-#{game.id}"}
+                        phx-click="decline"
+                        phx-value-id={game.id}
+                        class="rounded-lg border border-zinc-700 px-3 py-2 text-sm"
+                      >Отклонить</button>
+                    </div>
+                    <button
+                      :if={game.status == "active"}
+                      id={"open-game-#{game.id}"}
+                      phx-click="open_game"
+                      phx-value-id={game.id}
+                      class="mt-3 text-sm font-semibold text-amber-300 hover:text-amber-200"
+                    >Открыть доску →</button>
+                    <p
+                      :if={game.status == "pending" and game.inviter_id == @current_user.id}
+                      class="mt-3 text-sm text-zinc-500"
+                    >
+                      Ждём ответа соперника.
+                    </p>
+                  </article>
+                </div>
+
+                <div
+                  :if={@active_games != []}
+                  id="checkers-spectator-games"
+                  class="mt-6 border-t border-zinc-800 pt-5"
+                >
+                  <h3 class="font-bold">Сейчас играют</h3>
+                  <p class="mt-1 text-sm text-zinc-500">Можно открыть доску в режиме зрителя.</p>
+                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                    <article
+                      :for={game <- @active_games}
+                      id={"spectator-game-#{game.id}"}
+                      class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
+                    >
+                      <strong>{game.inviter.nickname} — {game.opponent.nickname}</strong>
+                      <button
+                        id={"watch-game-#{game.id}"}
+                        phx-click="open_game"
+                        phx-value-id={game.id}
+                        class="mt-3 block text-sm font-semibold text-amber-300 hover:text-amber-200"
+                      >Смотреть игру →</button>
+                    </article>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                :if={@game && @game.status == "active"}
+                id="active-checkers-game"
+                class="rounded-3xl border border-zinc-800 bg-zinc-900 p-5"
+              >
+                <div class="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 class="text-xl font-bold">
+                      {@game.inviter.nickname} — {@game.opponent.nickname}
+                    </h2><p id="checkers-turn" class="text-sm text-zinc-400">
+                      Ходят {if @game.turn == "white", do: "белые", else: "чёрные"}{if @game.forced_from,
+                        do: " · продолжи взятие",
+                        else: ""}
+                    </p>
+                  </div>
+                  <span class="rounded-full bg-zinc-800 px-3 py-1 text-xs">{if player?(
+                                                                                 @game,
+                                                                                 @current_user
+                                                                               ),
+                                                                               do:
+                                                                                 "Ты — " <>
+                                                                                   if(
+                                                                                     @game.white_id ==
+                                                                                       @current_user.id,
+                                                                                     do: "белые",
+                                                                                     else:
+                                                                                       "чёрные"
+                                                                                   ),
+                                                                               else:
+                                                                                 "Режим зрителя"}</span>
+                </div>
+                <div
+                  id="checkers-board"
+                  class="mx-auto grid aspect-square w-full max-w-[36rem] grid-cols-8 overflow-hidden rounded-xl border-4 border-amber-900 shadow-2xl"
+                  role="grid"
+                  aria-label="Шахматная доска"
+                >
+                  <button
+                    :for={{row, col, square} <- squares()}
+                    id={"square-#{row}-#{col}"}
+                    type="button"
+                    disabled={!player?(@game, @current_user)}
+                    phx-click={if player?(@game, @current_user), do: "square"}
+                    phx-value-square={if player?(@game, @current_user), do: square}
+                    class={[
+                      "relative grid aspect-square place-items-center",
+                      dark_square?(row, col) && "bg-amber-800",
+                      !dark_square?(row, col) && "bg-amber-100",
+                      @selected_square == square && "ring-4 ring-inset ring-cyan-400",
+                      !player?(@game, @current_user) && "cursor-default"
+                    ]}
+                    aria-label={"Поле #{row + 1}, #{col + 1}"}
+                  >
+                    <span
+                      :if={piece = @game.board[square]}
+                      class={[
+                        "grid size-[72%] place-items-center rounded-full border-2 text-[clamp(1rem,4vw,2.3rem)] shadow-lg",
+                        piece_color(piece) == "white" &&
+                          "border-zinc-300 bg-zinc-100 text-amber-700",
+                        piece_color(piece) == "black" &&
+                          "border-zinc-600 bg-zinc-950 text-amber-300"
+                      ]}
+                    >{piece_label(piece)}</span>
+                  </button>
+                </div>
+                <p class="mt-4 text-center text-xs text-zinc-500">
+                  {if player?(@game, @current_user),
+                    do:
+                      "Выбери свою шашку, затем поле хода. Взятие обязательно; серия взятий продолжается той же шашкой.",
+                    else: "Вы смотрите игру: ходить могут только её участники."}
+                </p>
+              </section>
+            </main>
+
+            <aside
+              id="checkers-leaderboard"
+              class="h-fit rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5"
+            >
+              <h2 class="text-xl font-bold">Таблица победителей</h2>
+              <p class="mt-1 text-sm text-zinc-500">Завершённые партии</p>
+              <ol class="mt-5 space-y-3">
+                <li
+                  :for={{row, index} <- Enum.with_index(@leaderboard, 1)}
+                  id={"leaderboard-user-#{row.user.id}"}
+                  class="flex items-center gap-3 rounded-xl bg-zinc-950/60 p-3"
+                >
+                  <span class="grid size-8 place-items-center rounded-full bg-amber-400 font-black text-zinc-950">{index}</span>
+                  <span class="min-w-0 flex-1 truncate font-semibold">{row.user.nickname}</span>
+                  <span class="text-right text-sm"><strong class="text-amber-300">{row.wins}</strong><small class="block text-zinc-500">из {row.played}</small></span>
+                </li>
+                <li
+                  :if={@leaderboard == []}
+                  id="checkers-leaderboard-empty"
+                  class="text-sm text-zinc-500"
+                >
+                  Первый чемпион ещё не определён.
+                </li>
+              </ol>
+            </aside>
+          </div>
+      <% end %>
+    </div>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".CheckersAuth">
+      export default { mounted() { const token = localStorage.getItem("chat:user-auth"); this.pushEvent("authenticate_checkers", token ? {token} : {}) } }
+    </script>
+  </div>
+</Layouts.app>

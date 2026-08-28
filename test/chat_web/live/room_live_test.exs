@@ -54,7 +54,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(
              view,
              "#messages [data-message-kind='system'].text-center",
-             "tester вошёл в чат"
+             "в чат заходит tester"
            )
 
     assert has_element?(view, "#messages [data-message-kind='system'] time[datetime]")
@@ -80,6 +80,36 @@ defmodule ChatWeb.RoomLiveTest do
     assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
     refute has_element?(view, "#media-file-input")
+  end
+
+  test "restores a registered chatlan after a LiveView reconnect", %{conn: conn} do
+    assert {:ok, user} =
+             Accounts.register_user(%{
+               "nickname" => "returning_member",
+               "password" => "secret123"
+             })
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    render_hook(view, "restore_user_session", %{"token" => ChatWeb.UserAuth.sign(user)})
+
+    assert has_element?(view, "#message-form")
+    assert has_element?(view, "#online-list", "returning_member")
+    assert_push_event(view, "save-user-auth", %{token: _token})
+  end
+
+  test "restores a guest chatlan only from an active saved session", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    render_hook(view, "restore_guest_session", %{
+      "nickname" => "returning_guest",
+      "theme_id" => "vertigo",
+      "appearance" => %{}
+    })
+
+    assert has_element?(view, "#message-form")
+    assert has_element?(view, "#online-list", "returning_guest")
+    assert_push_event(view, "save-chat-preferences", %{"nickname" => "returning_guest"})
   end
 
   test "answers a public address so that the whole room sees it", %{conn: conn} do
@@ -544,6 +574,21 @@ defmodule ChatWeb.RoomLiveTest do
            )
 
     refute has_element?(view, "#messages .chat-message-recipient", "слово,")
+  end
+
+  test "highlights an addressed nickname at the end of a message without a comma", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(alice_view, "alice_trailing_address")
+    enter_chat(bob_view, "bob_trailing_address")
+    render(alice_view)
+
+    alice_view
+    |> form("#message-form", message: %{body: "тест bob_trailing_address"})
+    |> render_submit()
+
+    assert has_element?(bob_view, "#messages .chat-message-recipient", "bob_trailing_address")
   end
 
   test "highlights an addressed message for a recipient using the frameless view", %{conn: conn} do
@@ -1102,7 +1147,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(
              observer,
              "#messages [data-message-kind='system'].text-center p.text-zinc-500",
-             "participant вошёл в чат"
+             "в чат заходит participant"
            )
 
     participant |> element("#leave-chat") |> render_click()
@@ -1110,7 +1155,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(
              observer,
              "#messages [data-message-kind='system'].text-center p.text-zinc-500",
-             "participant вышел из чата"
+             "из чата выходит participant"
            )
 
     refute has_element?(observer, "#messages [data-message-kind='system'] .chat-message-author")

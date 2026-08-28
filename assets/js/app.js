@@ -157,10 +157,11 @@ const chatHooks = {
   ChatPreferences: {
     mounted() {
       window.name = "vertigo-chat"
-
       const store = readChatPreferenceStore()
       const currentNickname = store.current_nickname
       const currentPreferences = currentNickname && store.by_nickname[currentNickname]
+
+      this.restoreSession()
 
       if (currentNickname && currentPreferences) {
         const appearance = appearanceFrom(currentPreferences)
@@ -185,9 +186,35 @@ const chatHooks = {
           theme_id: preferences.theme_id,
           appearance: appearanceFrom(preferences),
         }
+        nextStore.active = true
 
         writeChatPreferenceStore(nextStore)
       })
+
+      this.handleEvent("clear-guest-session", () => {
+        const nextStore = readChatPreferenceStore()
+        nextStore.active = false
+        writeChatPreferenceStore(nextStore)
+      })
+    },
+    reconnected() {
+      this.restoreSession()
+    },
+    restoreSession() {
+      const userAuthToken = localStorage.getItem(USER_AUTH_KEY)
+      const store = readChatPreferenceStore()
+      const currentNickname = store.current_nickname
+      const currentPreferences = currentNickname && store.by_nickname[currentNickname]
+
+      if (userAuthToken) {
+        this.pushEvent("restore_user_session", {token: userAuthToken})
+      } else if (store.active && currentNickname && currentPreferences) {
+        this.pushEvent("restore_guest_session", {
+          nickname: currentNickname,
+          theme_id: currentPreferences.theme_id,
+          appearance: appearanceFrom(currentPreferences),
+        })
+      }
     },
   },
 }

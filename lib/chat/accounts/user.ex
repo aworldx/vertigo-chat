@@ -5,6 +5,7 @@ defmodule Chat.Accounts.User do
   import Ecto.Changeset
 
   alias Chat.Accounts.Password
+  alias Chat.Checkers.Game
   alias Chat.Library.Article
   alias Chat.Profiles.Profile
 
@@ -16,6 +17,8 @@ defmodule Chat.Accounts.User do
     field(:appearance, :map, default: %{})
     has_one(:profile, Profile)
     has_many(:library_articles, Article)
+    has_many(:sent_checkers_games, Game, foreign_key: :inviter_id)
+    has_many(:received_checkers_games, Game, foreign_key: :opponent_id)
 
     timestamps(type: :utc_datetime)
   end
