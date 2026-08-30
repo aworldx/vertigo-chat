@@ -30,6 +30,9 @@ import "./theme"
 
 const CHAT_PREFERENCES_KEY = "chat:guest-preferences"
 const USER_AUTH_KEY = "chat:user-auth"
+const USER_SESSION_KEY = "chat:user-session"
+const GUEST_SESSION_KEY = "chat:guest-session"
+const GUEST_SESSION_TOKEN_KEY = "chat:guest-session-token"
 
 // Auth is deliberately limited to the current browser tab. Older versions
 // stored this token in localStorage, so discard that persistent copy once.
@@ -190,15 +193,14 @@ const chatHooks = {
           theme_id: preferences.theme_id,
           appearance: appearanceFrom(preferences),
         }
-        nextStore.active = true
-
         writeChatPreferenceStore(nextStore)
+        sessionStorage.setItem(GUEST_SESSION_KEY, "true")
+        sessionStorage.setItem(GUEST_SESSION_TOKEN_KEY, preferences.session_token)
       })
 
       this.handleEvent("clear-guest-session", () => {
-        const nextStore = readChatPreferenceStore()
-        nextStore.active = false
-        writeChatPreferenceStore(nextStore)
+        sessionStorage.removeItem(GUEST_SESSION_KEY)
+        sessionStorage.removeItem(GUEST_SESSION_TOKEN_KEY)
       })
     },
     reconnected() {
@@ -211,12 +213,16 @@ const chatHooks = {
       const currentPreferences = currentNickname && store.by_nickname[currentNickname]
 
       if (userAuthToken) {
-        this.pushEvent("restore_user_session", {token: userAuthToken})
-      } else if (store.active && currentNickname && currentPreferences) {
+        this.pushEvent("restore_user_session", {
+          token: userAuthToken,
+          session_token: sessionStorage.getItem(USER_SESSION_KEY),
+        })
+      } else if (sessionStorage.getItem(GUEST_SESSION_KEY) && currentNickname && currentPreferences) {
         this.pushEvent("restore_guest_session", {
           nickname: currentNickname,
           theme_id: currentPreferences.theme_id,
           appearance: appearanceFrom(currentPreferences),
+          session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
         })
       }
     },
@@ -271,10 +277,12 @@ window.addEventListener("phx:focus-message-input", _info => {
 
 window.addEventListener("phx:save-user-auth", event => {
   sessionStorage.setItem(USER_AUTH_KEY, event.detail.token)
+  sessionStorage.setItem(USER_SESSION_KEY, event.detail.session_token)
 })
 
 window.addEventListener("phx:clear-user-auth", _event => {
   sessionStorage.removeItem(USER_AUTH_KEY)
+  sessionStorage.removeItem(USER_SESSION_KEY)
 })
 
 // connect if there are any LiveViews on the page

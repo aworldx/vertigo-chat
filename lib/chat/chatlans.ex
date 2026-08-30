@@ -5,6 +5,7 @@ defmodule Chat.Chatlans do
   """
 
   alias Chat.Appearance
+  alias Chat.Accounts
   alias Chat.Bot
   alias Chat.Messages
   alias Chat.Presence
@@ -27,13 +28,14 @@ defmodule Chat.Chatlans do
     |> Messages.room_topic()
     |> Presence.list()
     |> Enum.flat_map(fn {id, %{metas: metas}} ->
-      for meta <- metas do
+      for meta <- [List.last(metas)] do
         appearance = appearance_from(meta)
         theme_id = Map.get(meta, :theme_id, Themes.default_theme_id())
 
         %{
           id: "#{id}:#{meta.phx_ref}",
           peer_id: id,
+          session_id: Map.get(meta, :session_id),
           nickname: meta.nickname,
           registered?: Map.get(meta, :registered?, false),
           rank: Map.get(meta, :rank),
@@ -42,6 +44,7 @@ defmodule Chat.Chatlans do
         }
       end
     end)
+    |> Enum.uniq_by(&(&1.session_id || &1.peer_id))
     |> Kernel.++([Bot.chatlan()])
     |> Enum.sort_by(& &1.nickname)
   end
@@ -71,16 +74,37 @@ defmodule Chat.Chatlans do
     end
   end
 
-  def ensure_nickname_available(room_id, nickname)
+  def ensure_nickname_available(room_id, nickname, current_peer_id \\ nil, session_id \\ nil)
+
+  def ensure_nickname_available(room_id, nickname, current_peer_id, session_id)
       when is_binary(room_id) and is_binary(nickname) do
-    if Enum.any?(list_online(room_id), &(&1.nickname == nickname)) do
+    if Enum.any?(list_online(room_id), fn chatlan ->
+         chatlan.nickname == nickname and chatlan.peer_id != current_peer_id and
+           (is_nil(session_id) or chatlan.session_id != session_id)
+       end) do
       {:error, :nickname_online}
     else
       :ok
     end
   end
 
-  def ensure_nickname_available(_room_id, _nickname), do: {:error, :invalid_nickname}
+  def ensure_nickname_available(_room_id, _nickname, _current_peer_id, _session_id),
+    do: {:error, :invalid_nickname}
+
+  def restore_session(room_id, nickname, current_presence_key, stored_presence_key, opts \\ []) do
+    nickname = normalize_nickname(nickname, nil)
+    presence_key = restored_presence_key(current_presence_key, stored_presence_key)
+
+    with nickname when not is_nil(nickname) <- nickname,
+         false <- Keyword.get(opts, :guest?, false) and Accounts.registered_nickname?(nickname),
+         :ok <- ensure_nickname_available(room_id, nickname, presence_key, opts[:session_id]) do
+      {:ok, %{nickname: nickname, presence_key: presence_key}}
+    else
+      true -> {:error, :registered_nickname}
+      {:error, reason} -> {:error, reason}
+      _invalid -> {:error, :invalid_nickname}
+    end
+  end
 
   def broadcast_typing(room_id, peer_id, nickname, typing?)
       when is_binary(room_id) and is_binary(peer_id) and is_binary(nickname) and
@@ -100,6 +124,7 @@ defmodule Chat.Chatlans do
       nickname: normalize_nickname(nickname, nil),
       registered?: Keyword.get(opts, :registered?, false),
       rank: Keyword.get(opts, :rank),
+      session_id: Keyword.get(opts, :session_id),
       theme_id: theme_id,
       appearance: appearance
     }
@@ -113,6 +138,7 @@ defmodule Chat.Chatlans do
       nickname: attrs.nickname,
       registered?: Map.get(attrs, :registered?, false),
       rank: Map.get(attrs, :rank),
+      session_id: Map.get(attrs, :session_id),
       theme_id: theme_id,
       appearance: appearance
     }
@@ -123,4 +149,13 @@ defmodule Chat.Chatlans do
     |> Map.get(:appearance, Appearance.default())
     |> Appearance.normalize()
   end
+
+  defp restored_presence_key(current_presence_key, "presence-" <> encoded = presence_key)
+       when byte_size(encoded) in 8..64 do
+    if Regex.match?(~r/\A[A-Za-z0-9_-]+\z/, encoded),
+      do: presence_key,
+      else: current_presence_key
+  end
+
+  defp restored_presence_key(current_presence_key, _stored_presence_key), do: current_presence_key
 end

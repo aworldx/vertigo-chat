@@ -34,4 +34,30 @@ defmodule Chat.VisitsTest do
     assert {:error, changeset} = Visits.start_visit("x")
     assert %{nickname: [_message]} = errors_on(changeset)
   end
+
+  test "reuses an active visit for the same server session" do
+    session_id = Ecto.UUID.generate()
+    entered_at = ~U[2026-08-17 08:00:00Z]
+
+    assert {:ok, first} = Visits.start_visit("visitor", entered_at, session_id: session_id)
+
+    assert {:ok, same_visit} =
+             Visits.start_visit("visitor", DateTime.add(entered_at, 1, :minute),
+               session_id: session_id
+             )
+
+    assert same_visit.id == first.id
+    assert [^first] = Visits.list_recent_visits(since: DateTime.add(entered_at, -1, :second))
+  end
+
+  test "shows only the newest active visit for duplicate legacy nicknames" do
+    entered_at = ~U[2026-08-17 08:00:00Z]
+    assert {:ok, older} = Visits.start_visit("legacy_visitor", entered_at)
+
+    assert {:ok, newer} =
+             Visits.start_visit("legacy_visitor", DateTime.add(entered_at, 1, :minute))
+
+    assert [^newer] = Visits.list_recent_visits(since: DateTime.add(entered_at, -1, :second))
+    assert newer.id != older.id
+  end
 end

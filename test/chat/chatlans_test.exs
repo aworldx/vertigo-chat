@@ -44,6 +44,8 @@ defmodule Chat.ChatlansTest do
     assert {:error, :nickname_online} =
              Chatlans.ensure_nickname_available(room_id, "alice")
 
+    assert :ok = Chatlans.ensure_nickname_available(room_id, "alice", presence_key)
+
     assert :ok = Chatlans.ensure_nickname_available(room_id, "bob")
     assert {:error, :nickname_online} = Chatlans.ensure_nickname_available(room_id, "Хичкок")
 
@@ -88,6 +90,33 @@ defmodule Chat.ChatlansTest do
     assert :ok = Chatlans.untrack(self(), room_id, presence_key)
     assert [] = human_chatlans(room_id)
     assert :ok = Chatlans.ensure_nickname_available(room_id, "alice")
+  end
+
+  test "restores a session with its previous presence key without duplicating its nickname" do
+    room_id = "restoration-test"
+    presence_key = Chatlans.guest_presence_key()
+
+    assert {:ok, _ref} =
+             Chatlans.track(self(), room_id, presence_key, %{
+               nickname: "returning",
+               registered?: false
+             })
+
+    assert {:ok, %{nickname: "returning", presence_key: ^presence_key}} =
+             Chatlans.restore_session(
+               room_id,
+               " returning ",
+               Chatlans.guest_presence_key(),
+               presence_key
+             )
+
+    assert {:error, :nickname_online} =
+             Chatlans.restore_session(room_id, "returning", Chatlans.guest_presence_key(), nil)
+
+    assert {:ok, %{presence_key: current_key}} =
+             Chatlans.restore_session(room_id, "another", "presence-current", "not-a-key")
+
+    assert current_key == "presence-current"
   end
 
   defp human_chatlans(room_id) do

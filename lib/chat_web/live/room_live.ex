@@ -32,6 +32,8 @@ defmodule ChatWeb.RoomLive do
       socket
       |> assign(:nickname, nil)
       |> assign(:presence_key, presence_key)
+      |> assign(:chat_session_token, nil)
+      |> assign(:chat_session_id, nil)
       |> assign(:security_subject, security_subject)
       |> assign(:preference_nickname, nil)
       |> assign(:theme_id, Themes.default_theme_id())
@@ -89,11 +91,16 @@ defmodule ChatWeb.RoomLive do
 
     with {:ok, user} <- Accounts.authorize_entrance(nickname, params["password"]),
          :ok <- Chatlans.ensure_nickname_available(@room_id, nickname),
-         {:ok, visit} <- Visits.start_visit(user || nickname) do
+         session_token = UserAuth.sign_chat_session(nickname),
+         {:ok, session_id} <- UserAuth.verify_chat_session(session_token, nickname),
+         {:ok, visit} <-
+           Visits.start_visit(user || nickname, DateTime.utc_now(), session_id: session_id) do
       socket =
         socket
         |> assign(:nickname, nickname)
         |> assign(:current_user, user)
+        |> assign(:chat_session_token, session_token)
+        |> assign(:chat_session_id, session_id)
         |> assign(:visit, visit)
         |> assign(:entrance_error, nil)
         |> reset_colors_for_new_nickname(nickname)
@@ -129,65 +136,20 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  def handle_event("restore_user_session", %{"token" => token}, socket) do
-    with {:ok, user} <- UserAuth.verify(token),
-         :ok <- Chatlans.ensure_nickname_available(@room_id, user.nickname),
-         {:ok, visit} <- Visits.start_visit(user) do
-      socket =
-        socket
-        |> assign(:nickname, user.nickname)
-        |> assign(:current_user, user)
-        |> assign(:visit, visit)
-        |> assign(:entrance_error, nil)
-        |> apply_registered_preferences(user)
-        |> assign(:joined?, true)
-        |> assign_nickname_form()
-        |> assign_settings_form()
-        |> reset_messages(Messages.list_recent_messages(@room_id))
+  def handle_event("restore_user_session", _params, %{assigns: %{joined?: true}} = socket),
+    do: {:noreply, socket}
 
-      track_presence(socket)
-
-      {:noreply,
-       socket
-       |> assign(:online, Chatlans.list_online(@room_id))
-       |> sync_user_auth(user)
-       |> push_event("focus-message-input", %{})}
-    else
-      _reason -> {:noreply, socket}
-    end
+  def handle_event("restore_user_session", %{"token" => token} = params, socket) do
+    restore_user_session(token, params["session_token"], 0, socket)
   end
 
   def handle_event("restore_user_session", _params, socket), do: {:noreply, socket}
 
+  def handle_event("restore_guest_session", _params, %{assigns: %{joined?: true}} = socket),
+    do: {:noreply, socket}
+
   def handle_event("restore_guest_session", %{} = params, socket) do
-    nickname = Chatlans.normalize_nickname(params["nickname"], nil)
-
-    with nickname when not is_nil(nickname) <- nickname,
-         false <- Accounts.registered_nickname?(nickname),
-         :ok <- Chatlans.ensure_nickname_available(@room_id, nickname),
-         {:ok, visit} <- Visits.start_visit(nickname) do
-      socket =
-        socket
-        |> assign(:nickname, nickname)
-        |> assign(:visit, visit)
-        |> assign(:entrance_error, nil)
-        |> assign_preferences(params, allow_nickname?: true)
-        |> assign(:preference_nickname, nickname)
-        |> assign(:joined?, true)
-        |> assign_nickname_form()
-        |> assign_settings_form()
-        |> reset_messages(Messages.list_recent_messages(@room_id))
-
-      track_presence(socket)
-
-      {:noreply,
-       socket
-       |> assign(:online, Chatlans.list_online(@room_id))
-       |> maybe_save_guest_preferences(nil)
-       |> push_event("focus-message-input", %{})}
-    else
-      _reason -> {:noreply, socket}
-    end
+    restore_guest_session(params, 0, socket)
   end
 
   def handle_event("restore_guest_session", _params, socket), do: {:noreply, socket}
@@ -550,6 +512,115 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp restore_user_session(
+         _token,
+         _presence_key,
+         _attempt,
+         %{assigns: %{joined?: true}} = socket
+       ),
+       do: {:noreply, socket}
+
+  defp restore_user_session(token, session_token, attempt, socket) do
+    with {:ok, user} <- UserAuth.verify(token),
+         {:ok, session_id} <- UserAuth.verify_chat_session(session_token, user.nickname),
+         {:ok, restored} <-
+           Chatlans.restore_session(
+             @room_id,
+             user.nickname,
+             socket.assigns.presence_key,
+             nil,
+             session_id: session_id
+           ),
+         {:ok, visit} <-
+           Visits.start_visit(user, DateTime.utc_now(), session_id: session_id) do
+      socket =
+        socket
+        |> assign(:nickname, restored.nickname)
+        |> assign(:presence_key, restored.presence_key)
+        |> assign(:chat_session_token, session_token)
+        |> assign(:chat_session_id, session_id)
+        |> assign(:current_user, user)
+        |> assign(:visit, visit)
+        |> assign(:entrance_error, nil)
+        |> apply_registered_preferences(user)
+        |> assign(:joined?, true)
+        |> assign_nickname_form()
+        |> assign_settings_form()
+        |> reset_messages(Messages.list_recent_messages(@room_id))
+
+      track_presence(socket)
+
+      {:noreply,
+       socket
+       |> assign(:online, Chatlans.list_online(@room_id))
+       |> sync_user_auth(user)
+       |> push_event("focus-message-input", %{})}
+    else
+      {:error, :nickname_online} when attempt < 4 ->
+        Process.send_after(
+          self(),
+          {:restore_user_session, token, session_token, attempt + 1},
+          200
+        )
+
+        {:noreply, socket}
+
+      _reason ->
+        {:noreply, socket}
+    end
+  end
+
+  defp restore_guest_session(_params, _attempt, %{assigns: %{joined?: true}} = socket),
+    do: {:noreply, socket}
+
+  defp restore_guest_session(params, attempt, socket) do
+    nickname = Chatlans.normalize_nickname(params["nickname"], nil)
+
+    with nickname when not is_nil(nickname) <- nickname,
+         {:ok, session_id} <- UserAuth.verify_chat_session(params["session_token"], nickname),
+         {:ok, restored} <-
+           Chatlans.restore_session(
+             @room_id,
+             nickname,
+             socket.assigns.presence_key,
+             nil,
+             guest?: true,
+             session_id: session_id
+           ),
+         {:ok, visit} <-
+           Visits.start_visit(restored.nickname, DateTime.utc_now(), session_id: session_id) do
+      socket =
+        socket
+        |> assign(:nickname, restored.nickname)
+        |> assign(:presence_key, restored.presence_key)
+        |> assign(:chat_session_token, params["session_token"])
+        |> assign(:chat_session_id, session_id)
+        |> assign(:visit, visit)
+        |> assign(:entrance_error, nil)
+        |> assign_preferences(params, allow_nickname?: true)
+        |> assign(:preference_nickname, restored.nickname)
+        |> assign(:joined?, true)
+        |> assign_nickname_form()
+        |> assign_settings_form()
+        |> reset_messages(Messages.list_recent_messages(@room_id))
+
+      track_presence(socket)
+
+      {:noreply,
+       socket
+       |> assign(:online, Chatlans.list_online(@room_id))
+       |> maybe_save_guest_preferences(nil)
+       |> push_event("focus-message-input", %{})}
+    else
+      {:error, :nickname_online} when attempt < 4 ->
+        Process.send_after(self(), {:restore_guest_session, params, attempt + 1}, 200)
+        {:noreply, socket}
+
+      _reason ->
+        {:noreply, socket}
+    end
+  end
+
   defp leave_chat(socket) do
     if socket.assigns.joined? do
       :ok = broadcast_stopped_typing(socket)
@@ -604,6 +675,14 @@ defmodule ChatWeb.RoomLive do
 
   def handle_info({:bot_status_changed, _status}, socket) do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
+  end
+
+  def handle_info({:restore_user_session, token, presence_key, attempt}, socket) do
+    restore_user_session(token, presence_key, attempt, socket)
+  end
+
+  def handle_info({:restore_guest_session, params, attempt}, socket) do
+    restore_guest_session(params, attempt, socket)
   end
 
   def handle_info({:start_bot_answer, request}, %{assigns: %{bot_pending?: true}} = socket) do
@@ -673,7 +752,6 @@ defmodule ChatWeb.RoomLive do
   def terminate(_reason, socket) do
     if socket.assigns.joined? do
       :ok = broadcast_stopped_typing(socket)
-      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
     end
 
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
@@ -972,7 +1050,8 @@ defmodule ChatWeb.RoomLive do
     %{
       "nickname" => socket.assigns.nickname,
       "theme_id" => socket.assigns.theme_id,
-      "appearance" => socket.assigns.appearance
+      "appearance" => socket.assigns.appearance,
+      "session_token" => socket.assigns.chat_session_token
     }
   end
 
@@ -1145,7 +1224,8 @@ defmodule ChatWeb.RoomLive do
       socket.assigns.theme_id,
       socket.assigns.appearance,
       registered?: not is_nil(socket.assigns.current_user),
-      rank: Ranks.for_user(socket.assigns.current_user)
+      rank: Ranks.for_user(socket.assigns.current_user),
+      session_id: socket.assigns.chat_session_id
     )
   end
 
@@ -1287,7 +1367,10 @@ defmodule ChatWeb.RoomLive do
   defp sync_user_auth(socket, nil), do: push_event(socket, "clear-user-auth", %{})
 
   defp sync_user_auth(socket, user) do
-    push_event(socket, "save-user-auth", %{token: UserAuth.sign(user)})
+    push_event(socket, "save-user-auth", %{
+      token: UserAuth.sign(user),
+      session_token: socket.assigns.chat_session_token
+    })
   end
 
   defp close_visit(socket) do

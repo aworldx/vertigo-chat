@@ -64,7 +64,7 @@ defmodule ChatWeb.ShellComponents do
             id="show-registration"
             type="button"
             phx-click="show_registration"
-            class="text-amber-300 transition hover:text-amber-200"
+            class="font-inherit uppercase tracking-[0.09em] transition hover:text-amber-300"
           >
             Регистрация
           </button>

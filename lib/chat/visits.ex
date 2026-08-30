@@ -11,26 +11,34 @@ defmodule Chat.Visits do
 
   @history_hours 48
 
-  def start_visit(subject, entered_at \\ DateTime.utc_now())
+  def start_visit(subject, entered_at \\ DateTime.utc_now(), opts \\ [])
 
-  def start_visit(%User{} = user, entered_at) do
-    start_visit(user.nickname, entered_at, user.id)
+  def start_visit(%User{} = user, entered_at, opts) do
+    start_visit(user.nickname, entered_at, user.id, opts)
   end
 
-  def start_visit(nickname, entered_at) do
-    start_visit(nickname, entered_at, nil)
+  def start_visit(nickname, entered_at, opts) do
+    start_visit(nickname, entered_at, nil, opts)
   end
 
-  defp start_visit(nickname, entered_at, user_id) do
+  defp start_visit(nickname, entered_at, user_id, opts) do
     nickname = Chatlans.normalize_nickname(nickname, nil)
+    session_id = Keyword.get(opts, :session_id)
 
-    %Visit{}
-    |> Visit.entrance_changeset(%{
-      nickname: nickname,
-      entered_at: normalize_datetime(entered_at),
-      user_id: user_id
-    })
-    |> Repo.insert()
+    case active_visit(session_id) do
+      %Visit{} = visit ->
+        {:ok, visit}
+
+      nil ->
+        %Visit{}
+        |> Visit.entrance_changeset(%{
+          nickname: nickname,
+          session_id: session_id,
+          entered_at: normalize_datetime(entered_at),
+          user_id: user_id
+        })
+        |> Repo.insert()
+    end
   end
 
   def finish_visit(visit, left_at \\ DateTime.utc_now())
@@ -68,11 +76,37 @@ defmodule Chat.Visits do
     |> where([visit], visit.entered_at >= ^since)
     |> order_by([visit], desc: visit.entered_at, desc: visit.id)
     |> Repo.all()
+    |> collapse_active_visits()
   end
 
   def history_hours, do: @history_hours
 
   defp normalize_datetime(%DateTime{} = datetime), do: DateTime.truncate(datetime, :second)
+
+  defp active_visit(session_id) when is_binary(session_id) do
+    Repo.one(
+      from visit in Visit, where: visit.session_id == ^session_id and is_nil(visit.left_at)
+    )
+  end
+
+  defp active_visit(_session_id), do: nil
+
+  defp collapse_active_visits(visits) do
+    {visits, _nicknames} =
+      Enum.reduce(visits, {[], MapSet.new()}, fn
+        %Visit{left_at: nil, nickname: nickname} = visit, {acc, nicknames} ->
+          if MapSet.member?(nicknames, nickname) do
+            {acc, nicknames}
+          else
+            {[visit | acc], MapSet.put(nicknames, nickname)}
+          end
+
+        visit, {acc, nicknames} ->
+          {[visit | acc], nicknames}
+      end)
+
+    Enum.reverse(visits)
+  end
 
   defp increment_chat_time(%Visit{user_id: nil}, _left_at), do: :ok
 

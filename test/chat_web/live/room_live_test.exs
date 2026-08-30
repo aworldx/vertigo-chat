@@ -4,6 +4,8 @@ defmodule ChatWeb.RoomLiveTest do
 
   alias Chat.Accounts
   alias Chat.Bot.Status, as: BotStatus
+  alias Chat.Chatlans
+  alias Chat.Messages
   alias Chat.Messages.Registry, as: MessageRegistry
   alias Chat.Visits
 
@@ -63,8 +65,15 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
     assert has_element?(view, "#messages time[datetime]")
     assert has_element?(view, "#message-form.shrink-0")
+    assert has_element?(view, "#command-autocomplete")
+
+    assert has_element?(
+             view,
+             "#command-autocomplete-menu[role='listbox'] [data-command='/помощь']"
+           )
+
     assert has_element?(view, "#emoji-input-controls.flex-wrap.sm\\:flex-nowrap")
-    assert has_element?(view, "#message-body.text-base.basis-full.sm\\:basis-auto")
+    assert has_element?(view, "#message-body.w-full.text-base")
     assert has_element?(view, "#current-chatlan-online", "В сети")
     assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
     assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")
@@ -92,7 +101,10 @@ defmodule ChatWeb.RoomLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/")
 
-    render_hook(view, "restore_user_session", %{"token" => ChatWeb.UserAuth.sign(user)})
+    render_hook(view, "restore_user_session", %{
+      "token" => ChatWeb.UserAuth.sign(user),
+      "session_token" => ChatWeb.UserAuth.sign_chat_session(user.nickname)
+    })
 
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#online-list", "returning_member")
@@ -104,6 +116,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     render_hook(view, "restore_guest_session", %{
       "nickname" => "returning_guest",
+      "session_token" => ChatWeb.UserAuth.sign_chat_session("returning_guest"),
       "theme_id" => "vertigo",
       "appearance" => %{}
     })
@@ -111,6 +124,51 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#online-list", "returning_guest")
     assert_push_event(view, "save-chat-preferences", %{"nickname" => "returning_guest"})
+  end
+
+  test "does not duplicate a chatlan when the restore event is received twice", %{conn: conn} do
+    assert {:ok, user} =
+             Accounts.register_user(%{
+               "nickname" => "restored_once",
+               "password" => "secret123"
+             })
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    params = %{
+      "token" => ChatWeb.UserAuth.sign(user),
+      "session_token" => ChatWeb.UserAuth.sign_chat_session(user.nickname)
+    }
+
+    render_hook(view, "restore_user_session", params)
+    render_hook(view, "restore_user_session", params)
+
+    assert 1 == Enum.count(Chatlans.list_online("lobby"), &(&1.nickname == "restored_once"))
+  end
+
+  test "restores a guest during page refresh while its previous connection is still online", %{
+    conn: conn
+  } do
+    nickname = "guest_refresh_#{System.unique_integer([:positive])}"
+    session_token = ChatWeb.UserAuth.sign_chat_session(nickname)
+
+    params = %{
+      "nickname" => nickname,
+      "session_token" => session_token,
+      "theme_id" => "vertigo",
+      "appearance" => %{}
+    }
+
+    {:ok, previous_view, _html} = live(conn, ~p"/")
+    render_hook(previous_view, "restore_guest_session", params)
+    assert has_element?(previous_view, "#message-form")
+
+    {:ok, refreshed_view, _html} = live(build_conn(), ~p"/")
+    render_hook(refreshed_view, "restore_guest_session", params)
+
+    assert has_element?(refreshed_view, "#message-form")
+    assert 1 == Enum.count(Chatlans.list_online("lobby"), &(&1.nickname == nickname))
+    assert 1 == Enum.count(Visits.list_recent_visits(), &(&1.nickname == nickname))
   end
 
   test "answers a public address so that the whole room sees it", %{conn: conn} do
@@ -1211,6 +1269,19 @@ defmodule ChatWeb.RoomLiveTest do
            )
 
     refute has_element?(observer, "#messages [data-message-kind='system'] .chat-message-author")
+  end
+
+  test "does not announce a departure when a LiveView process terminates", %{conn: conn} do
+    nickname = "reload_#{System.unique_integer([:positive])}"
+    :ok = Messages.subscribe("lobby")
+
+    {:ok, participant, _html} = live(conn, ~p"/")
+    enter_chat(participant, nickname)
+    assert_receive {:message_created, %{body: "в чат заходит " <> ^nickname}}
+
+    :ok = GenServer.stop(participant.pid, :normal)
+
+    refute_receive {:message_created, %{body: "из чата выходит " <> ^nickname}}, 100
   end
 
   test "records entrance and exit timestamps", %{conn: conn} do

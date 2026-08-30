@@ -686,15 +686,47 @@ defmodule ChatWeb.RoomComponents do
             </button>
           </div>
         </div>
-        <input
-          id="message-body"
-          name={@message_form[:body].name}
-          value={@message_form[:body].value}
-          autocomplete="off"
-          maxlength={Chat.Messages.max_body_length()}
-          placeholder="Напиши сообщение..."
-          class="order-first min-w-0 basis-full flex-1 rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300 sm:order-none sm:basis-auto"
-        />
+        <div
+          id="command-autocomplete"
+          phx-hook=".CommandAutocomplete"
+          class="relative order-first min-w-0 basis-full flex-1 sm:order-none sm:basis-auto"
+        >
+          <input
+            id="message-body"
+            name={@message_form[:body].name}
+            value={@message_form[:body].value}
+            autocomplete="off"
+            maxlength={Chat.Messages.max_body_length()}
+            placeholder="Напиши сообщение..."
+            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
+          />
+          <div
+            id="command-autocomplete-menu"
+            role="listbox"
+            aria-label="Команды чата"
+            class="absolute bottom-full left-0 z-40 mb-2 hidden w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
+          >
+            <button
+              :for={
+                {command, description} <- [
+                  {"/помощь", "Список команд"},
+                  {"/кто", "Кто сейчас в чате"},
+                  {"/инфо ", "Открыть анкету"},
+                  {"/игнор ", "Скрыть или вернуть чатланина"},
+                  {"/игноры", "Список игноров"},
+                  {"/выход", "Выйти из чата"}
+                ]
+              }
+              type="button"
+              role="option"
+              data-command={command}
+              class="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
+            >
+              <span class="font-semibold text-amber-200">{command}</span>
+              <span class="text-zinc-400">{description}</span>
+            </button>
+          </div>
+        </div>
         <div
           id="media-share-controls"
           phx-hook="MediaSharing"
@@ -780,6 +812,89 @@ defmodule ChatWeb.RoomComponents do
               this.el.querySelector("#emoji-picker").classList.add("emoji-picker-closed")
               input.focus()
             })
+          }
+        }
+      </script>
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".CommandAutocomplete">
+        export default {
+          mounted() {
+            this.input = this.el.querySelector("#message-body")
+            this.menu = this.el.querySelector("#command-autocomplete-menu")
+            this.items = [...this.menu.querySelectorAll("[data-command]")]
+            this.selectedIndex = -1
+
+            this.visibleItems = () => this.items.filter(item => !item.hidden)
+            this.select = index => {
+              const items = this.visibleItems()
+              this.selectedIndex = items.length ? (index + items.length) % items.length : -1
+
+              items.forEach((item, itemIndex) => {
+                const selected = itemIndex === this.selectedIndex
+                item.classList.toggle("bg-amber-300/15", selected)
+                item.setAttribute("aria-selected", selected.toString())
+              })
+            }
+
+            this.apply = item => {
+              if (!item) return
+
+              this.input.value = item.dataset.command
+              this.input.dispatchEvent(new Event("input", {bubbles: true}))
+              this.menu.classList.add("hidden")
+              this.select(-1)
+              this.input.focus()
+            }
+
+            this.refresh = () => {
+              const query = this.input.value.trim().toLowerCase()
+              const visible = query.startsWith("/")
+
+              this.items.forEach(item => {
+                item.hidden = !visible || !item.dataset.command.startsWith(query)
+              })
+
+              this.menu.classList.toggle("hidden", !visible || this.items.every(item => item.hidden))
+              this.select(-1)
+            }
+
+            this.onInput = () => this.refresh()
+            this.onClick = event => {
+              const item = event.target.closest("[data-command]")
+              if (!item) return
+
+              this.apply(item)
+            }
+
+            this.onKeydown = event => {
+              const items = this.visibleItems()
+              const menuOpen = !this.menu.classList.contains("hidden")
+
+              if (event.key === "Escape") {
+                this.menu.classList.add("hidden")
+                this.select(-1)
+              } else if (menuOpen && event.key === "ArrowDown") {
+                event.preventDefault()
+                this.select(this.selectedIndex + 1)
+              } else if (menuOpen && event.key === "ArrowUp") {
+                event.preventDefault()
+                this.select(this.selectedIndex - 1)
+              } else if (menuOpen && event.key === "Tab") {
+                event.preventDefault()
+                this.apply(items[this.selectedIndex] || items[0])
+              } else if (menuOpen && event.key === "Enter") {
+                event.preventDefault()
+                this.apply(items[this.selectedIndex] || items[0])
+              }
+            }
+
+            this.input.addEventListener("input", this.onInput)
+            this.input.addEventListener("keydown", this.onKeydown)
+            this.menu.addEventListener("click", this.onClick)
+          },
+          destroyed() {
+            this.input.removeEventListener("input", this.onInput)
+            this.input.removeEventListener("keydown", this.onKeydown)
+            this.menu.removeEventListener("click", this.onClick)
           }
         }
       </script>

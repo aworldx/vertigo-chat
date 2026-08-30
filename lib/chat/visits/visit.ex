@@ -8,6 +8,7 @@ defmodule Chat.Visits.Visit do
 
   schema "visits" do
     field :nickname, :string
+    field :session_id, :string
     field :entered_at, :utc_datetime
     field :left_at, :utc_datetime
 
@@ -18,7 +19,7 @@ defmodule Chat.Visits.Visit do
 
   def entrance_changeset(visit, attrs) do
     visit
-    |> cast(attrs, [:nickname, :entered_at, :user_id])
+    |> cast(attrs, [:nickname, :session_id, :entered_at, :user_id])
     |> validate_required([:nickname, :entered_at])
     |> validate_length(:nickname, min: 3, max: 24)
   end
