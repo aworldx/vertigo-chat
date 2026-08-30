@@ -4,12 +4,13 @@ defmodule Chat.Messages do
   Public chat message context.
 
   This module owns message creation, realtime publication and the bounded
-  in-memory history of public room messages. Messages are not persisted.
+  persistent history of public room messages.
   """
 
   alias Chat.Accounts.User
   alias Chat.Appearance
   alias Chat.Messages.Registry
+  alias Chat.Messages.History
   alias Chat.Ranks
   alias Chat.Security
   alias Chat.Security.Subject
@@ -88,9 +89,13 @@ defmodule Chat.Messages do
     do: {:error, :invalid_message}
 
   def list_recent_messages(room_id \\ @default_room_id) do
-    case Registry.list(room_id) do
-      [] -> [welcome_message()]
-      messages -> messages
+    case History.list_recent(room_id) do
+      [] ->
+        [welcome_message()]
+
+      messages ->
+        :ok = Registry.replace(room_id, messages)
+        messages
     end
   end
 
@@ -114,9 +119,7 @@ defmodule Chat.Messages do
         timestamp()
       )
 
-    :ok = Registry.append(room_id, message)
-    :ok = Phoenix.PubSub.broadcast(Chat.PubSub, room_topic(room_id), {:message_created, message})
-    {:ok, message}
+    persist_and_broadcast(room_id, message)
   end
 
   def toggle_reaction(reactor, reactor_key, room_id, message_id, emoji)
@@ -124,6 +127,8 @@ defmodule Chat.Messages do
              is_binary(message_id) and emoji in @reaction_emojis do
     case Registry.toggle_reaction(room_id, message_id, reactor, reactor_key, emoji) do
       {:ok, message} ->
+        :ok = History.update_reactions(room_id, message.id, message.reactions)
+
         :ok =
           Phoenix.PubSub.broadcast(
             Chat.PubSub,
@@ -201,16 +206,18 @@ defmodule Chat.Messages do
 
   defp broadcast_message(author, room_id, body, theme_id, appearance, recipient_nicknames, rank) do
     message = build_message(author, body, theme_id, appearance, recipient_nicknames, rank)
-    :ok = Registry.append(room_id, message)
+    persist_and_broadcast(room_id, message)
+  end
 
-    :ok =
-      Phoenix.PubSub.broadcast(
-        Chat.PubSub,
-        room_topic(room_id),
-        {:message_created, message}
-      )
+  defp persist_and_broadcast(room_id, message) do
+    with {:ok, message} <- History.save(room_id, message) do
+      :ok = Registry.append(room_id, message)
 
-    {:ok, message}
+      :ok =
+        Phoenix.PubSub.broadcast(Chat.PubSub, room_topic(room_id), {:message_created, message})
+
+      {:ok, message}
+    end
   end
 
   defp deliver_registered_message(user, room_id, body, theme_id, appearance, recipients, subject) do

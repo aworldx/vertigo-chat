@@ -24,6 +24,7 @@ defmodule ChatWeb.GalleryLiveTest do
     assert has_element?(view, "#gallery-photos[phx-update='stream']")
     assert has_element?(view, "[data-photo-author='gallery_author']")
     assert has_element?(view, "[data-photo-author='gallery_author'] [data-gallery-lightbox-open]")
+    assert has_element?(view, "[data-photo-author='gallery_author'] img[data-gallery-full-image]")
     assert has_element?(view, "#gallery-lightbox[role='dialog'][phx-update='ignore']")
     assert has_element?(view, "#close-gallery-lightbox[data-gallery-lightbox-close]")
 
@@ -71,6 +72,7 @@ defmodule ChatWeb.GalleryLiveTest do
 
     assert [photo] = Gallery.list_photos()
     assert photo.caption == "Летний вечер"
+    assert has_element?(view, "#gallery-photo-thumbnail[type='hidden']")
   end
 
   test "rejects an invalid gallery authentication token", %{conn: conn} do

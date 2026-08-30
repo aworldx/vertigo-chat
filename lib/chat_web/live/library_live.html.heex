@@ -312,7 +312,7 @@
       export default {
         mounted() {
           this.authenticate = () => {
-            const token = localStorage.getItem("chat:user-auth")
+            const token = sessionStorage.getItem("chat:user-auth")
             this.pushEvent("authenticate_library", token ? {token} : {})
           }
           this.onStorage = event => {

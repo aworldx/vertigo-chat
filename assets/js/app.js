@@ -31,6 +31,10 @@ import "./theme"
 const CHAT_PREFERENCES_KEY = "chat:guest-preferences"
 const USER_AUTH_KEY = "chat:user-auth"
 
+// Auth is deliberately limited to the current browser tab. Older versions
+// stored this token in localStorage, so discard that persistent copy once.
+localStorage.removeItem(USER_AUTH_KEY)
+
 const readChatPreferenceStore = () => {
   const fallback = {current_nickname: null, by_nickname: {}}
   const storedPreferences = localStorage.getItem(CHAT_PREFERENCES_KEY)
@@ -201,7 +205,7 @@ const chatHooks = {
       this.restoreSession()
     },
     restoreSession() {
-      const userAuthToken = localStorage.getItem(USER_AUTH_KEY)
+      const userAuthToken = sessionStorage.getItem(USER_AUTH_KEY)
       const store = readChatPreferenceStore()
       const currentNickname = store.current_nickname
       const currentPreferences = currentNickname && store.by_nickname[currentNickname]
@@ -266,11 +270,11 @@ window.addEventListener("phx:focus-message-input", _info => {
 })
 
 window.addEventListener("phx:save-user-auth", event => {
-  localStorage.setItem(USER_AUTH_KEY, event.detail.token)
+  sessionStorage.setItem(USER_AUTH_KEY, event.detail.token)
 })
 
 window.addEventListener("phx:clear-user-auth", _event => {
-  localStorage.removeItem(USER_AUTH_KEY)
+  sessionStorage.removeItem(USER_AUTH_KEY)
 })
 
 // connect if there are any LiveViews on the page

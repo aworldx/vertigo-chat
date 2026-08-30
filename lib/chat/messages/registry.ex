@@ -1,4 +1,4 @@
-# Назначение файла: хранит в памяти последние публичные сообщения каждой комнаты.
+# Назначение файла: хранит в памяти realtime-кэш последних публичных сообщений каждой комнаты.
 defmodule Chat.Messages.Registry do
   use GenServer
 
@@ -16,6 +16,10 @@ defmodule Chat.Messages.Registry do
 
   def list(room_id) when is_binary(room_id) do
     GenServer.call(__MODULE__, {:list, room_id})
+  end
+
+  def replace(room_id, messages) when is_binary(room_id) and is_list(messages) do
+    GenServer.call(__MODULE__, {:replace, room_id, messages})
   end
 
   def toggle_reaction(room_id, message_id, reactor, reactor_key, emoji) do
@@ -41,6 +45,10 @@ defmodule Chat.Messages.Registry do
 
   def handle_call({:list, room_id}, _from, state) do
     {:reply, Map.get(state, room_id, []), state}
+  end
+
+  def handle_call({:replace, room_id, messages}, _from, state) do
+    {:reply, :ok, Map.put(state, room_id, messages)}
   end
 
   def handle_call(

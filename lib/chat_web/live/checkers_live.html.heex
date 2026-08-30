@@ -249,7 +249,7 @@
       <% end %>
     </div>
     <script :type={Phoenix.LiveView.ColocatedHook} name=".CheckersAuth">
-      export default { mounted() { const token = localStorage.getItem("chat:user-auth"); this.pushEvent("authenticate_checkers", token ? {token} : {}) } }
+      export default { mounted() { const token = sessionStorage.getItem("chat:user-auth"); this.pushEvent("authenticate_checkers", token ? {token} : {}) } }
     </script>
   </div>
 </Layouts.app>

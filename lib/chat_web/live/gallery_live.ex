@@ -117,6 +117,13 @@ defmodule ChatWeb.GalleryLive do
 
   def image_url(photo), do: Media.data_url(photo.image, photo.content_type)
 
+  def thumbnail_url(photo) do
+    Media.data_url(
+      photo.thumbnail || photo.image,
+      photo.thumbnail_content_type || photo.content_type
+    )
+  end
+
   def upload_error_message(:too_large),
     do: "Фотография слишком большая: после сжатия файл должен быть не больше 2 МБ."
 
@@ -140,10 +147,30 @@ defmodule ChatWeb.GalleryLive do
           end)
 
         {bytes, content_type} = result
-        Gallery.upload_photo(user, bytes, content_type, caption)
+
+        {thumbnail, thumbnail_content_type} =
+          thumbnail_from_params(socket.assigns.upload_form.params)
+
+        Gallery.upload_photo(
+          user,
+          bytes,
+          content_type,
+          caption,
+          thumbnail,
+          thumbnail_content_type
+        )
 
       _entries ->
         {:error, :photo_not_ready}
     end
   end
+
+  defp thumbnail_from_params(%{"thumbnail" => "data:image/webp;base64," <> encoded}) do
+    case Base.decode64(encoded) do
+      {:ok, thumbnail} -> {thumbnail, "image/webp"}
+      :error -> {nil, nil}
+    end
+  end
+
+  defp thumbnail_from_params(_params), do: {nil, nil}
 end

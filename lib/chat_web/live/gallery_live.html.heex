@@ -53,6 +53,12 @@
                 maxlength={Gallery.max_caption_length()}
                 placeholder="Необязательно"
               />
+              <input
+                id="gallery-photo-thumbnail"
+                type="hidden"
+                name="gallery[thumbnail]"
+                value=""
+              />
               <div
                 id="gallery-photo-compressor"
                 phx-hook=".GalleryPhotoCompressor"
@@ -132,7 +138,8 @@
             class="block w-full cursor-zoom-in overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300"
           >
             <img
-              src={image_url(photo)}
+              src={thumbnail_url(photo)}
+              data-gallery-full-image={image_url(photo)}
               alt={"Фотография от #{photo.user.nickname}"}
               loading="lazy"
               class="block h-auto w-full transition duration-500 group-hover:scale-[1.02]"
@@ -218,7 +225,7 @@
 
             clearTimeout(this.hideTimer)
             this.previousFocus = button
-            this.image.src = sourceImage.currentSrc || sourceImage.src
+            this.image.src = sourceImage.dataset.galleryFullImage || sourceImage.currentSrc || sourceImage.src
             this.image.alt = sourceImage.alt
             this.title.textContent = button.dataset.galleryCaption || sourceImage.alt
             this.el.inert = false
@@ -277,7 +284,7 @@
       export default {
         mounted() {
           this.authenticate = () => {
-            const token = localStorage.getItem("chat:user-auth")
+            const token = sessionStorage.getItem("chat:user-auth")
             this.pushEvent("authenticate_gallery", token ? {token} : {})
           }
           this.onStorage = event => {
@@ -308,10 +315,24 @@
               canvas.width = Math.max(1, Math.round(image.width * scale))
               canvas.height = Math.max(1, Math.round(image.height * scale))
               canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height)
+              const thumbnailScale = Math.min(1, 480 / image.width, 480 / image.height)
+              const thumbnailCanvas = document.createElement("canvas")
+              thumbnailCanvas.width = Math.max(1, Math.round(image.width * thumbnailScale))
+              thumbnailCanvas.height = Math.max(1, Math.round(image.height * thumbnailScale))
+              thumbnailCanvas.getContext("2d").drawImage(image, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height)
               image.close()
 
               const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.82))
-              if (!blob) throw new Error("image compression failed")
+              const thumbnailBlob = await new Promise(resolve => thumbnailCanvas.toBlob(resolve, "image/webp", 0.72))
+              if (!blob || !thumbnailBlob) throw new Error("image compression failed")
+
+              const thumbnail = await new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = () => resolve(reader.result)
+                reader.onerror = reject
+                reader.readAsDataURL(thumbnailBlob)
+              })
+              this.el.closest("form").querySelector("#gallery-photo-thumbnail").value = thumbnail
 
               const files = new DataTransfer()
               files.items.add(new File([blob], "gallery-photo.webp", {type: "image/webp"}))

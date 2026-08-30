@@ -42,6 +42,36 @@ defmodule Chat.GalleryTest do
              )
   end
 
+  test "stores a separate thumbnail for gallery previews" do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "thumbnail_author", "password" => "secret123"})
+
+    user = promote_to_statist(user)
+
+    assert {:ok, photo} =
+             Gallery.upload_photo(
+               user,
+               webp_bytes(),
+               "image/webp",
+               nil,
+               webp_bytes(),
+               "image/webp"
+             )
+
+    assert photo.thumbnail == webp_bytes()
+    assert photo.thumbnail_content_type == "image/webp"
+  end
+
+  test "rejects an invalid thumbnail" do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "invalid_thumbnail", "password" => "secret123"})
+
+    user = promote_to_statist(user)
+
+    assert {:error, :invalid_thumbnail} =
+             Gallery.upload_photo(user, webp_bytes(), "image/webp", nil, <<1>>, "image/webp")
+  end
+
   test "rejects an unsupported or oversized photo" do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "photo_rules", "password" => "secret123"})

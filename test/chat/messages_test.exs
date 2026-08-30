@@ -3,6 +3,7 @@ defmodule Chat.MessagesTest do
   use Chat.DataCase, async: false
 
   alias Chat.Messages
+  alias Chat.Messages.Registry
   alias Chat.Security.Subject
 
   describe "send_public_message/3" do
@@ -214,5 +215,28 @@ defmodule Chat.MessagesTest do
 
     assert length(messages) == 30
     assert Enum.map(messages, & &1.body) == Enum.map(2..31, &"message #{&1}")
+  end
+
+  test "loads public history from the database after the realtime cache is cleared" do
+    room_id = "persistent-history-#{System.unique_integer([:positive])}"
+
+    assert {:ok, sent} = Messages.send_public_message("alice", room_id, %{"body" => "останется"})
+    :sys.replace_state(Registry, &Map.delete(&1, room_id))
+
+    assert [%{id: message_id, body: "останется"}] = Messages.list_recent_messages(room_id)
+    assert message_id == sent.id
+  end
+
+  test "restores persisted reactions with the message" do
+    room_id = "persistent-reactions-#{System.unique_integer([:positive])}"
+    assert {:ok, message} = Messages.send_public_message("alice", room_id, %{"body" => "реакция"})
+
+    assert {:ok, _reacted} =
+             Messages.toggle_reaction("bob", "peer-bob", room_id, to_string(message.id), "❤️")
+
+    :sys.replace_state(Registry, &Map.delete(&1, room_id))
+
+    assert [%{reactions: reactions}] = Messages.list_recent_messages(room_id)
+    assert MapSet.equal?(reactions["❤️"], MapSet.new(["peer-bob"]))
   end
 end

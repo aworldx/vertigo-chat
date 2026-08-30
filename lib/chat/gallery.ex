@@ -11,6 +11,7 @@ defmodule Chat.Gallery do
   alias Chat.Uploads
 
   @max_photo_bytes 2_000_000
+  @max_thumbnail_bytes 300_000
   @max_photos_per_user 20
   @max_photos_per_day 5
   @max_caption_length 280
@@ -30,6 +31,20 @@ defmodule Chat.Gallery do
 
   def upload_photo(%User{} = user, image, content_type, caption)
       when is_binary(image) and (is_binary(caption) or is_nil(caption)) do
+    upload_photo(user, image, content_type, caption, nil, nil)
+  end
+
+  def upload_photo(_user, _image, _content_type, _caption), do: {:error, :invalid_photo}
+
+  def upload_photo(
+        %User{} = user,
+        image,
+        content_type,
+        caption,
+        thumbnail,
+        thumbnail_content_type
+      )
+      when is_binary(image) and (is_binary(caption) or is_nil(caption)) do
     caption = normalize_caption(caption)
 
     cond do
@@ -39,21 +54,25 @@ defmodule Chat.Gallery do
       not Uploads.valid_image?(image, content_type) ->
         {:error, :invalid_photo}
 
+      not valid_thumbnail?(thumbnail, thumbnail_content_type) ->
+        {:error, :invalid_thumbnail}
+
       caption && String.length(caption) > @max_caption_length ->
         {:error, :invalid_caption}
 
       true ->
-        insert_with_quota(user, image, content_type, caption)
+        insert_with_quota(user, image, content_type, caption, thumbnail, thumbnail_content_type)
     end
   end
 
-  def upload_photo(_user, _image, _content_type, _caption), do: {:error, :invalid_photo}
+  def upload_photo(_user, _image, _content_type, _caption, _thumbnail, _thumbnail_content_type),
+    do: {:error, :invalid_photo}
 
   def max_photos_per_user, do: @max_photos_per_user
   def max_photos_per_day, do: @max_photos_per_day
   def max_caption_length, do: @max_caption_length
 
-  defp insert_with_quota(user, image, content_type, caption) do
+  defp insert_with_quota(user, image, content_type, caption, thumbnail, thumbnail_content_type) do
     Repo.transaction(fn ->
       user = lock_user!(user.id)
 
@@ -81,7 +100,14 @@ defmodule Chat.Gallery do
 
         true ->
           case %Photo{}
-               |> Photo.create_changeset(user, image, content_type, caption)
+               |> Photo.create_changeset(
+                 user,
+                 image,
+                 content_type,
+                 caption,
+                 thumbnail,
+                 thumbnail_content_type
+               )
                |> Repo.insert() do
             {:ok, photo} -> photo
             {:error, changeset} -> Repo.rollback(changeset)
@@ -102,4 +128,13 @@ defmodule Chat.Gallery do
       caption -> caption
     end
   end
+
+  defp valid_thumbnail?(nil, nil), do: true
+
+  defp valid_thumbnail?(thumbnail, content_type)
+       when is_binary(thumbnail) and is_binary(content_type) do
+    byte_size(thumbnail) <= @max_thumbnail_bytes and Uploads.valid_image?(thumbnail, content_type)
+  end
+
+  defp valid_thumbnail?(_thumbnail, _content_type), do: false
 end
