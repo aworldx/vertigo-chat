@@ -6,6 +6,7 @@ defmodule Chat.Library do
 
   alias Chat.Accounts.User
   alias Chat.Library.Article
+  alias Chat.Ranks
   alias Chat.Repo
 
   @max_articles_per_user 50
@@ -63,7 +64,7 @@ defmodule Chat.Library do
 
   def create_article(%User{} = user, attrs) do
     Repo.transaction(fn ->
-      lock_user!(user.id)
+      user = lock_user!(user.id)
 
       total = Repo.aggregate(from(article in Article, where: article.user_id == ^user.id), :count)
 
@@ -78,6 +79,9 @@ defmodule Chat.Library do
         )
 
       cond do
+        not Ranks.can_add_library_articles?(user) ->
+          Repo.rollback(:kinoman_required)
+
         total >= @max_articles_per_user ->
           Repo.rollback(:article_limit_reached)
 

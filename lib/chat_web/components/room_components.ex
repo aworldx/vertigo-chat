@@ -3,6 +3,7 @@ defmodule ChatWeb.RoomComponents do
   use ChatWeb, :html
 
   alias Chat.Appearance
+  alias Chat.Ranks
   alias ChatWeb.Media
 
   attr(:messages, :any, required: true)
@@ -43,9 +44,12 @@ defmodule ChatWeb.RoomComponents do
           class={[
             "chat-message-entry group/message relative transition-colors",
             Map.get(message, :kind) == :system && "px-3 py-0.5 text-center",
-            Map.get(message, :kind) != :system && framed_message?(message, @appearance) &&
+            Map.get(message, :kind) == :command && "px-1 py-1",
+            Map.get(message, :kind) not in [:system, :command] &&
+              framed_message?(message, @appearance) &&
               "rounded border px-3 pb-2 pt-5 shadow-sm",
-            Map.get(message, :kind) != :system && not framed_message?(message, @appearance) && "px-1",
+            Map.get(message, :kind) not in [:system, :command] &&
+              not framed_message?(message, @appearance) && "px-1",
             Map.get(message, :kind) != :system && not framed_message?(message, @appearance) &&
               Map.get(message, :recipient) == @nickname && "rounded bg-amber-300/20",
             Map.get(message, :kind) != :system && framed_message?(message, @appearance) &&
@@ -61,7 +65,10 @@ defmodule ChatWeb.RoomComponents do
           ]}
         >
           <button
-            :if={Map.get(message, :kind) != :system && framed_message?(message, @appearance)}
+            :if={
+              Map.get(message, :kind) not in [:system, :command] &&
+                framed_message?(message, @appearance)
+            }
             id={"message-author-#{dom_id}"}
             type="button"
             phx-hook="PrivateNickname"
@@ -72,7 +79,10 @@ defmodule ChatWeb.RoomComponents do
             {message.author}
           </button>
           <time
-            :if={Map.get(message, :kind) != :system && framed_message?(message, @appearance)}
+            :if={
+              Map.get(message, :kind) not in [:system, :command] &&
+                framed_message?(message, @appearance)
+            }
             id={"message-time-#{dom_id}"}
             datetime={Map.get(message, :sent_at)}
             phx-hook=".LocalMessageTime"
@@ -105,6 +115,53 @@ defmodule ChatWeb.RoomComponents do
                   {message.at}
                 </time>
               </p>
+            <% :command -> %>
+              <section
+                class="rounded-xl border border-amber-300/35 bg-zinc-900/95 px-4 py-3 shadow-lg shadow-black/20"
+                data-command-result={message.command}
+              >
+                <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
+                  <.icon name="hero-command-line" class="size-4" />
+                  <span>{message.title}</span>
+                  <time
+                    id={"message-time-#{dom_id}"}
+                    datetime={message.sent_at}
+                    phx-hook=".LocalMessageTime"
+                    phx-update="ignore"
+                    class="ml-auto text-[10px] font-normal normal-case tracking-normal text-zinc-500"
+                  >
+                    {message.at}
+                  </time>
+                </div>
+                <p class="mt-2 text-sm leading-5 text-zinc-300">{message.body}</p>
+                <div :if={message.entries != []} class="mt-3 flex flex-wrap gap-2">
+                  <%= for entry <- message.entries do %>
+                    <button
+                      :if={Map.has_key?(entry, :nickname) && message.command == :who}
+                      id={"command-chatlan-#{dom_id}-#{entry.nickname}"}
+                      type="button"
+                      phx-click="start_public_message"
+                      phx-value-nickname={entry.nickname}
+                      class="rounded-lg border border-emerald-300/35 bg-emerald-300/10 px-2.5 py-1 text-sm font-medium text-emerald-200 transition hover:border-emerald-200 hover:bg-emerald-300/20"
+                    >
+                      {entry.nickname}
+                    </button>
+                    <span
+                      :if={Map.has_key?(entry, :nickname) && message.command != :who}
+                      class="rounded-lg border border-zinc-700 bg-zinc-950/50 px-2.5 py-1 text-sm text-zinc-300"
+                    >
+                      {entry.nickname}
+                    </span>
+                    <p
+                      :if={Map.has_key?(entry, :label)}
+                      class="w-full text-sm leading-5 text-zinc-300 sm:w-[calc(50%-0.25rem)]"
+                    >
+                      <code class="font-semibold text-amber-200">{entry.label}</code>
+                      <span class="text-zinc-500"> — {entry.description}</span>
+                    </p>
+                  <% end %>
+                </div>
+              </section>
             <% kind when kind in [:image, :audio] -> %>
               <div
                 id={"media-preview-#{message.share_id}"}
@@ -412,14 +469,7 @@ defmodule ChatWeb.RoomComponents do
   defp reaction_dom_id(emoji), do: Base.url_encode64(emoji, padding: false)
 
   attr(:joined, :boolean, required: true)
-  attr(:settings_open, :boolean, required: true)
   attr(:online, :list, required: true)
-  attr(:settings_form, :any, required: true)
-  attr(:themes, :list, required: true)
-  attr(:theme_id, :string, required: true)
-  attr(:theme_modes, :list, required: true)
-  attr(:appearance, :map, required: true)
-  attr(:nickname, :string, required: true)
   attr(:peer_id, :string, required: true)
 
   def chatlan_sidebar(assigns) do
@@ -427,15 +477,10 @@ defmodule ChatWeb.RoomComponents do
     <aside class="hidden min-h-0 overflow-y-auto bg-zinc-900/80 p-4 md:block">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold">
-            {if @settings_open, do: "Настройки", else: "Сейчас в чате"}
-          </h2>
+          <h2 class="text-lg font-semibold">Сейчас в чате</h2>
         </div>
         <div class="flex items-center gap-2">
-          <span
-            :if={not @settings_open}
-            class="rounded bg-emerald-500/15 px-2 py-1 text-sm text-emerald-300"
-          >
+          <span class="rounded bg-emerald-500/15 px-2 py-1 text-sm text-emerald-300">
             {length(@online)}
           </span>
           <%= if @joined do %>
@@ -445,24 +490,13 @@ defmodule ChatWeb.RoomComponents do
               phx-click="toggle_settings"
               class="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-amber-300 hover:text-amber-300"
             >
-              {if @settings_open, do: "Закрыть", else: "Настройки"}
+              Настройки
             </button>
           <% end %>
         </div>
       </div>
 
-      <%= if @joined && @settings_open do %>
-        <.settings_panel
-          settings_form={@settings_form}
-          themes={@themes}
-          theme_id={@theme_id}
-          theme_modes={@theme_modes}
-          appearance={@appearance}
-          nickname={@nickname}
-        />
-      <% end %>
-
-      <div :if={not @settings_open} id="online-list" class="mt-4 space-y-2">
+      <div id="online-list" class="mt-4 space-y-2">
         <%= for user <- @online do %>
           <div class="flex items-center gap-2 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2">
             <button
@@ -507,6 +541,7 @@ defmodule ChatWeb.RoomComponents do
             >
               {user.nickname}
             </button>
+            <.rank_badge rank={Map.get(user, :rank)} />
             <span
               class="shrink-0 text-[10px] font-medium"
               role={if(user.peer_id == @peer_id, do: "status")}
@@ -540,6 +575,22 @@ defmodule ChatWeb.RoomComponents do
         <% end %>
       </div>
     </aside>
+    """
+  end
+
+  attr(:rank, :map, default: nil)
+
+  def rank_badge(assigns) do
+    ~H"""
+    <span
+      :if={@rank}
+      class="ml-1 inline-flex shrink-0 items-center gap-1 align-middle text-[10px] font-medium text-amber-200"
+      title={@rank.title}
+      aria-label={@rank.title}
+    >
+      <.rank_icon rank={@rank} class="size-4" />
+      <span class="sr-only">{@rank.title}</span>
+    </span>
     """
   end
 
@@ -743,11 +794,12 @@ defmodule ChatWeb.RoomComponents do
 
   def profile_modal(assigns) do
     assigns =
-      assign(
-        assigns,
+      assigns
+      |> assign(
         :photo_url,
         Media.data_url(assigns.profile.photo, assigns.profile.photo_content_type)
       )
+      |> assign(:rank, Ranks.for_user(assigns.profile.user))
 
     ~H"""
     <div
@@ -765,6 +817,10 @@ defmodule ChatWeb.RoomComponents do
           <div>
             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Анкета</p>
             <h2 class="mt-1 text-2xl font-semibold text-white">{@profile.user.nickname}</h2>
+            <div class="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-100">
+              <.rank_icon rank={@rank} class="size-4" />
+              {@rank.title}
+            </div>
           </div>
           <button
             id="close-profile"
@@ -822,6 +878,20 @@ defmodule ChatWeb.RoomComponents do
           </div>
 
           <div class="space-y-5">
+            <div class="grid grid-cols-2 gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3 text-center text-xs">
+              <div>
+                <p class="text-lg font-semibold text-zinc-100">
+                  {@profile.user.public_message_count}
+                </p>
+                <p class="text-zinc-500">публичных фраз</p>
+              </div>
+              <div>
+                <p class="text-lg font-semibold text-zinc-100">
+                  {div(@profile.user.chat_seconds, 3600)}
+                </p>
+                <p class="text-zinc-500">часов в чате</p>
+              </div>
+            </div>
             <.input
               name="profile[nickname]"
               value={@profile.user.nickname}
@@ -900,6 +970,55 @@ defmodule ChatWeb.RoomComponents do
   attr(:appearance, :map, required: true)
   attr(:nickname, :string, required: true)
 
+  def settings_modal(assigns) do
+    ~H"""
+    <div
+      id="settings-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-modal-title"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm"
+    >
+      <button
+        id="settings-modal-backdrop"
+        type="button"
+        phx-click="toggle_settings"
+        class="absolute inset-0 cursor-default"
+        aria-label="Закрыть настройки"
+      ></button>
+      <section class="relative z-10 max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl sm:p-6">
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+              Личный стиль
+            </p>
+            <h2 id="settings-modal-title" class="mt-1 text-2xl font-semibold text-white">
+              Настройки
+            </h2>
+          </div>
+          <button
+            id="close-settings"
+            type="button"
+            phx-click="toggle_settings"
+            class="rounded-lg border border-zinc-700 p-2 text-zinc-400 transition hover:border-zinc-500 hover:text-white"
+            aria-label="Закрыть настройки"
+          >
+            <.icon name="hero-x-mark" class="size-5" />
+          </button>
+        </div>
+        <.settings_panel
+          settings_form={@settings_form}
+          themes={@themes}
+          theme_id={@theme_id}
+          theme_modes={@theme_modes}
+          appearance={@appearance}
+          nickname={@nickname}
+        />
+      </section>
+    </div>
+    """
+  end
+
   defp settings_panel(assigns) do
     ~H"""
     <.form
@@ -907,7 +1026,7 @@ defmodule ChatWeb.RoomComponents do
       id="preferences-form"
       phx-change="preview_preferences"
       phx-submit="save_preferences"
-      class="mt-4 rounded border border-zinc-800 bg-zinc-950/70 p-3"
+      class="rounded border border-zinc-800 bg-zinc-950/70 p-3"
     >
       <div class="space-y-3">
         <label class="block text-sm">

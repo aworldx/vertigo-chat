@@ -44,7 +44,7 @@
 
           <div class="min-h-11">
             <%= cond do %>
-              <% @current_user -> %>
+              <% @current_user && @can_add_library_articles? -> %>
                 <button
                   id="new-library-article"
                   type="button"
@@ -53,6 +53,10 @@
                 >
                   <.icon name="hero-pencil-square" class="size-5" /> Новая статья
                 </button>
+              <% @current_user -> %>
+                <p id="library-rank-hint" class="max-w-sm text-sm leading-6 text-stone-400">
+                  Добавлять статьи можно со звания «Киноман».
+                </p>
               <% @auth_checked? -> %>
                 <p id="library-login-hint" class="max-w-sm text-sm leading-6 text-stone-400">
                   Чтобы писать и редактировать статьи, войди под зарегистрированным ником в чате.

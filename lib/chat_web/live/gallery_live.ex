@@ -3,6 +3,7 @@ defmodule ChatWeb.GalleryLive do
   use ChatWeb, :live_view
 
   alias Chat.Gallery
+  alias Chat.Ranks
   alias ChatWeb.Media
   alias ChatWeb.UserAuth
 
@@ -12,6 +13,7 @@ defmodule ChatWeb.GalleryLive do
      socket
      |> assign(:page_title, "Фотоальбом")
      |> assign(:current_user, nil)
+     |> assign(:can_add_gallery_photos?, false)
      |> assign(:auth_checked?, false)
      |> assign(:gallery_upload_error, nil)
      |> assign(:upload_form, to_form(%{}, as: :gallery))
@@ -27,15 +29,27 @@ defmodule ChatWeb.GalleryLive do
   def handle_event("authenticate_gallery", %{"token" => token}, socket) do
     case UserAuth.verify(token) do
       {:ok, user} ->
-        {:noreply, socket |> assign(:current_user, user) |> assign(:auth_checked?, true)}
+        {:noreply,
+         socket
+         |> assign(:current_user, user)
+         |> assign(:can_add_gallery_photos?, Ranks.can_add_gallery_photos?(user))
+         |> assign(:auth_checked?, true)}
 
       {:error, :invalid_token} ->
-        {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
+        {:noreply,
+         socket
+         |> assign(:current_user, nil)
+         |> assign(:can_add_gallery_photos?, false)
+         |> assign(:auth_checked?, true)}
     end
   end
 
   def handle_event("authenticate_gallery", _params, socket) do
-    {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
+    {:noreply,
+     socket
+     |> assign(:current_user, nil)
+     |> assign(:can_add_gallery_photos?, false)
+     |> assign(:auth_checked?, true)}
   end
 
   def handle_event("validate_gallery_photo", %{"gallery" => params}, socket) do
@@ -91,6 +105,10 @@ defmodule ChatWeb.GalleryLive do
            :error,
            "Подпись должна быть не длиннее #{Gallery.max_caption_length()} символов."
          )}
+
+      {:error, :statist_required} ->
+        {:noreply,
+         put_flash(socket, :error, "Добавлять фото могут чатлане со званием «Статист».")}
 
       _reason ->
         {:noreply, put_flash(socket, :error, "Не удалось загрузить фотографию.")}

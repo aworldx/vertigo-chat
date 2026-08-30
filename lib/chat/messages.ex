@@ -7,8 +7,10 @@ defmodule Chat.Messages do
   in-memory history of public room messages. Messages are not persisted.
   """
 
+  alias Chat.Accounts.User
   alias Chat.Appearance
   alias Chat.Messages.Registry
+  alias Chat.Ranks
   alias Chat.Security
   alias Chat.Security.Subject
   alias Chat.Themes
@@ -23,6 +25,24 @@ defmodule Chat.Messages do
 
   def send_public_message(author, room_id \\ @default_room_id, attrs) do
     send_public_message(author, room_id, attrs, Subject.internal({room_id, author}))
+  end
+
+  def send_registered_public_message(%User{} = user, room_id, attrs, %Subject{} = subject) do
+    case Map.get(attrs, "body") do
+      body when is_binary(body) ->
+        deliver_registered_message(
+          user,
+          room_id,
+          body,
+          Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
+          Appearance.normalize(Map.get(attrs, "appearance")),
+          Map.get(attrs, "recipient_nicknames", []),
+          subject
+        )
+
+      _body ->
+        {:error, :invalid_message}
+    end
   end
 
   def send_public_message(author, room_id, attrs, subject)
@@ -45,6 +65,7 @@ defmodule Chat.Messages do
       Themes.normalize_theme_id(theme_id),
       Appearance.normalize(appearance),
       Map.get(attrs, "recipient_nicknames", []),
+      Map.get(attrs, "rank"),
       subject
     )
   end
@@ -58,6 +79,7 @@ defmodule Chat.Messages do
       Themes.default_theme_id(),
       Appearance.default(),
       Map.get(attrs, "recipient_nicknames", []),
+      Map.get(attrs, "rank"),
       subject
     )
   end
@@ -146,6 +168,7 @@ defmodule Chat.Messages do
          theme_id,
          appearance,
          recipient_nicknames,
+         rank,
          subject
        ) do
     body = String.trim(body)
@@ -166,7 +189,8 @@ defmodule Chat.Messages do
               body,
               theme_id,
               appearance,
-              recipient_nicknames
+              recipient_nicknames,
+              rank
             )
 
           {:error, {:rate_limited, _retry_after_ms}} ->
@@ -175,8 +199,8 @@ defmodule Chat.Messages do
     end
   end
 
-  defp broadcast_message(author, room_id, body, theme_id, appearance, recipient_nicknames) do
-    message = build_message(author, body, theme_id, appearance, recipient_nicknames)
+  defp broadcast_message(author, room_id, body, theme_id, appearance, recipient_nicknames, rank) do
+    message = build_message(author, body, theme_id, appearance, recipient_nicknames, rank)
     :ok = Registry.append(room_id, message)
 
     :ok =
@@ -189,7 +213,40 @@ defmodule Chat.Messages do
     {:ok, message}
   end
 
-  defp build_message(author, body, theme_id, appearance, recipient_nicknames) do
+  defp deliver_registered_message(user, room_id, body, theme_id, appearance, recipients, subject) do
+    body = String.trim(body)
+
+    cond do
+      body == "" ->
+        {:error, :empty_body}
+
+      String.length(body) > @max_body_length ->
+        {:error, :message_too_long}
+
+      true ->
+        case Security.allow_message(subject) do
+          :ok ->
+            with {:ok, updated_user} <- Ranks.public_message_sent(user),
+                 {:ok, message} <-
+                   broadcast_message(
+                     updated_user.nickname,
+                     room_id,
+                     body,
+                     theme_id,
+                     appearance,
+                     recipients,
+                     Ranks.for_user(updated_user)
+                   ) do
+              {:ok, message, updated_user}
+            end
+
+          {:error, {:rate_limited, _retry_after_ms}} ->
+            {:error, :rate_limited}
+        end
+    end
+  end
+
+  defp build_message(author, body, theme_id, appearance, recipient_nicknames, rank) do
     Map.merge(
       %{
         id: System.unique_integer([:positive]),
@@ -200,10 +257,14 @@ defmodule Chat.Messages do
         reactions: %{},
         theme_id: theme_id,
         appearance: appearance
-      },
+      }
+      |> maybe_put_rank(rank),
       timestamp()
     )
   end
+
+  defp maybe_put_rank(message, nil), do: message
+  defp maybe_put_rank(message, rank), do: Map.put(message, :rank, rank)
 
   defp recipient_from_body(body, recipient_nicknames) when is_list(recipient_nicknames) do
     recipient_nicknames

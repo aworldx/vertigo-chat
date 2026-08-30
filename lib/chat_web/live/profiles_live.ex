@@ -3,6 +3,7 @@ defmodule ChatWeb.ProfilesLive do
   use ChatWeb, :live_view
 
   alias Chat.Profiles
+  alias Chat.Ranks
   alias ChatWeb.Media
 
   @impl true
@@ -59,6 +60,9 @@ defmodule ChatWeb.ProfilesLive do
   def gender_label("female"), do: "Женский"
   def gender_label("other"), do: "Другой"
   def gender_label(_gender), do: "Не указан"
+
+  def rank(profile), do: Ranks.for_user(profile.user)
+  def chat_hours(profile), do: div(profile.user.chat_seconds, 3600)
 
   defp visible_pages(page, total_pages) do
     first = max(page - 2, 1)

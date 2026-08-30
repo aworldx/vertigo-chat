@@ -2,6 +2,8 @@
 defmodule ChatWeb.GalleryLiveTest do
   use ChatWeb.ConnCase
 
+  import Ecto.Query
+
   alias Chat.Accounts
   alias Chat.Accounts.User
   alias Chat.Gallery
@@ -12,6 +14,8 @@ defmodule ChatWeb.GalleryLiveTest do
   test "shows photos as a gallery with their uploader", %{conn: conn} do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "gallery_author", "password" => "secret123"})
+
+    user = promote_to_statist(user)
 
     {:ok, _photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
 
@@ -35,6 +39,8 @@ defmodule ChatWeb.GalleryLiveTest do
   test "lets an authenticated registered user upload a photo", %{conn: conn} do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "gallery_uploader", "password" => "secret123"})
+
+    user = promote_to_statist(user)
 
     {:ok, view, _html} = live(conn, ~p"/gallery")
     render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
@@ -84,6 +90,8 @@ defmodule ChatWeb.GalleryLiveTest do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "empty_upload", "password" => "secret123"})
 
+    user = promote_to_statist(user)
+
     render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
     view |> element("#gallery-upload-form") |> render_change()
     html = view |> element("#gallery-upload-form") |> render_submit()
@@ -95,6 +103,8 @@ defmodule ChatWeb.GalleryLiveTest do
   test "explains unsupported formats and oversized gallery photos", %{conn: conn} do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "invalid_gallery_photo", "password" => "secret123"})
+
+    user = promote_to_statist(user)
 
     {:ok, view, _html} = live(conn, ~p"/gallery")
     render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
@@ -135,6 +145,8 @@ defmodule ChatWeb.GalleryLiveTest do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "daily_gallery", "password" => "secret123"})
 
+    user = promote_to_statist(user)
+
     for _index <- 1..Gallery.max_photos_per_day() do
       assert {:ok, _photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
     end
@@ -149,6 +161,8 @@ defmodule ChatWeb.GalleryLiveTest do
   test "explains the total upload quota", %{conn: conn} do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "total_gallery", "password" => "secret123"})
+
+    user = promote_to_statist(user)
 
     inserted_at = DateTime.utc_now() |> DateTime.add(-172_800) |> DateTime.truncate(:second)
 
@@ -187,4 +201,12 @@ defmodule ChatWeb.GalleryLiveTest do
   end
 
   defp webp_bytes, do: <<"RIFF", 0, 0, 0, 0, "WEBP", "test">>
+
+  defp promote_to_statist(user) do
+    Repo.update_all(from(user_row in User, where: user_row.id == ^user.id),
+      set: [public_message_count: 200, chat_seconds: 72_000]
+    )
+
+    Accounts.get_user(user.id)
+  end
 end

@@ -27,6 +27,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "a[href='/profiles'][target='vertigo-profiles']")
     assert has_element?(view, "a[href='/gallery'][target='vertigo-gallery']")
     assert has_element?(view, "a[href='/visits'][target='vertigo-visits']")
+    assert has_element?(view, "a[href='/help'][target='vertigo-help']", "Помощь")
     assert has_element?(view, "a[href='/library'][target='vertigo-library']")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
     assert has_element?(view, "#chat-room.h-dvh.max-h-dvh.min-h-0.overflow-hidden")
@@ -851,7 +852,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "--text-dark: #3366aa"
   end
 
-  test "hides the chatlan list while settings are open", %{conn: conn} do
+  test "opens settings in a modal without hiding the chatlan list", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "settings_focus")
 
@@ -859,8 +860,9 @@ defmodule ChatWeb.RoomLiveTest do
 
     view |> element("#toggle-settings") |> render_click()
 
-    assert has_element?(view, "#preferences-form")
-    refute has_element?(view, "#online-list")
+    assert has_element?(view, "#settings-modal[role='dialog'] #preferences-form")
+    assert has_element?(view, "#online-list")
+    assert has_element?(view, "#close-settings")
   end
 
   test "renders a frameless public message without badges or reactions", %{conn: conn} do
@@ -1136,6 +1138,56 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Общая комната"
     refute html =~ "Напиши сообщение"
     refute html =~ "Настройки"
+  end
+
+  test "renders a local framed command result and lets a chatlan be addressed", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "command_user")
+
+    view
+    |> form("#message-form", message: %{body: "/помощь"})
+    |> render_submit()
+
+    assert has_element?(view, "[data-command-result='help']", "Доступные текстовые команды")
+    assert has_element?(view, "[data-command-result='help']", "/игнор ник")
+
+    view
+    |> form("#message-form", message: %{body: "/кто"})
+    |> render_submit()
+
+    assert has_element?(view, "[data-command-result='who']")
+    assert has_element?(view, "[data-command-result='who'] button", "command_user")
+  end
+
+  test "toggles ignored chatlan messages without publishing the command", %{conn: conn} do
+    {:ok, viewer, _html} = live(conn, ~p"/")
+    {:ok, sender, _html} = live(build_conn(), ~p"/")
+    enter_chat(viewer, "ignore_viewer")
+    enter_chat(sender, "ignore_sender")
+
+    sender
+    |> form("#message-form", message: %{body: "Это должно исчезнуть"})
+    |> render_submit()
+
+    assert has_element?(viewer, ".chat-message-body", "Это должно исчезнуть")
+
+    viewer
+    |> form("#message-form", message: %{body: "/игнор ignore_sender"})
+    |> render_submit()
+
+    refute has_element?(viewer, ".chat-message-body", "Это должно исчезнуть")
+
+    assert has_element?(
+             viewer,
+             "[data-command-result='ignore']",
+             "Сообщения ignore_sender скрыты"
+           )
+
+    viewer
+    |> form("#message-form", message: %{body: "/игнор ignore_sender"})
+    |> render_submit()
+
+    assert has_element?(viewer, ".chat-message-body", "Это должно исчезнуть")
   end
 
   test "shows subtle system messages when a chatlan joins and leaves", %{conn: conn} do

@@ -2,7 +2,10 @@
 defmodule ChatWeb.LibraryLiveTest do
   use ChatWeb.ConnCase
 
+  import Ecto.Query
+
   alias Chat.Accounts
+  alias Chat.Accounts.User
   alias Chat.Library
   alias Chat.Library.Article
   alias Chat.Repo
@@ -11,6 +14,8 @@ defmodule ChatWeb.LibraryLiveTest do
   test "shows public articles and series to every visitor", %{conn: conn} do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "public_writer", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     {:ok, _article} =
       Library.create_article(author, %{
@@ -33,6 +38,8 @@ defmodule ChatWeb.LibraryLiveTest do
   test "lets an authenticated author create and edit an article", %{conn: conn} do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "live_writer", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     {:ok, view, _html} = live(conn, ~p"/library")
     render_hook(view, "authenticate_library", %{"token" => UserAuth.sign(author)})
@@ -83,6 +90,8 @@ defmodule ChatWeb.LibraryLiveTest do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "real_author", "password" => "secret123"})
 
+    author = promote_to_kinoman(author)
+
     {:ok, stranger} =
       Accounts.register_user(%{"nickname" => "reader_only", "password" => "secret123"})
 
@@ -100,6 +109,8 @@ defmodule ChatWeb.LibraryLiveTest do
   test "filters one author's series in part order", %{conn: conn} do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "series_writer", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     {:ok, _second} =
       Library.create_article(author, %{
@@ -131,7 +142,7 @@ defmodule ChatWeb.LibraryLiveTest do
 
     render_hook(view, "authenticate_library", %{})
     render_hook(view, "new_article", %{})
-    assert render(view) =~ "Войди как зарегистрированный пользователь"
+    assert render(view) =~ "со званием «Киноман»"
 
     render_hook(view, "authenticate_library", %{"token" => "invalid"})
     render_hook(view, "edit_article", %{"id" => "missing"})
@@ -141,6 +152,8 @@ defmodule ChatWeb.LibraryLiveTest do
   test "keeps invalid data in the editor and lets the author cancel", %{conn: conn} do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "careful_writer", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     {:ok, view, _html} = live(conn, ~p"/library")
     render_hook(view, "authenticate_library", %{"token" => UserAuth.sign(author)})
@@ -160,6 +173,8 @@ defmodule ChatWeb.LibraryLiveTest do
   test "rejects saving when the authenticated user changes during editing", %{conn: conn} do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "switch_author", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     {:ok, stranger} =
       Accounts.register_user(%{"nickname" => "switch_reader", "password" => "secret123"})
@@ -197,6 +212,8 @@ defmodule ChatWeb.LibraryLiveTest do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "safe_writer", "password" => "secret123"})
 
+    author = promote_to_kinoman(author)
+
     {:ok, _article} =
       Library.create_article(author, %{
         "title" => "<script>alert(1)</script>",
@@ -214,6 +231,8 @@ defmodule ChatWeb.LibraryLiveTest do
   test "explains the daily article quota", %{conn: conn} do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "daily_library", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     for index <- 1..Library.max_articles_per_day() do
       assert {:ok, _article} =
@@ -233,6 +252,8 @@ defmodule ChatWeb.LibraryLiveTest do
   test "explains the total article quota", %{conn: conn} do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "total_library", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     inserted_at = DateTime.utc_now() |> DateTime.add(-172_800) |> DateTime.truncate(:second)
 
@@ -257,4 +278,12 @@ defmodule ChatWeb.LibraryLiveTest do
   end
 
   defp valid_article_params, do: %{"title" => "Лишняя статья", "body" => "Содержание"}
+
+  defp promote_to_kinoman(user) do
+    Repo.update_all(from(user_row in User, where: user_row.id == ^user.id),
+      set: [public_message_count: 50, chat_seconds: 18_000]
+    )
+
+    Accounts.get_user(user.id)
+  end
 end

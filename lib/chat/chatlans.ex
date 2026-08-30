@@ -36,6 +36,7 @@ defmodule Chat.Chatlans do
           peer_id: id,
           nickname: meta.nickname,
           registered?: Map.get(meta, :registered?, false),
+          rank: Map.get(meta, :rank),
           theme_id: theme_id,
           appearance: appearance
         }
@@ -98,6 +99,7 @@ defmodule Chat.Chatlans do
     %{
       nickname: normalize_nickname(nickname, nil),
       registered?: Keyword.get(opts, :registered?, false),
+      rank: Keyword.get(opts, :rank),
       theme_id: theme_id,
       appearance: appearance
     }
@@ -110,6 +112,7 @@ defmodule Chat.Chatlans do
     %{
       nickname: attrs.nickname,
       registered?: Map.get(attrs, :registered?, false),
+      rank: Map.get(attrs, :rank),
       theme_id: theme_id,
       appearance: appearance
     }

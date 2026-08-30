@@ -22,6 +22,8 @@ defmodule ChatWeb.Router do
     live "/profiles", ProfilesLive, :index
     live "/gallery", GalleryLive, :index
     live "/visits", VisitsLive, :index
+    live "/help", RanksLive, :index
+    live "/ranks", RanksLive, :index
     live "/library", LibraryLive, :index
     live "/checkers", CheckersLive, :index
   end

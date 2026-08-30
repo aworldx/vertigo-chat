@@ -3,11 +3,14 @@ defmodule Chat.LibraryTest do
   use Chat.DataCase
 
   alias Chat.Accounts
+  alias Chat.Accounts.User
   alias Chat.Library
 
   test "creates a public article and normalizes editor input" do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "writer", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     assert {:ok, article} =
              Library.create_article(author, %{
@@ -30,6 +33,8 @@ defmodule Chat.LibraryTest do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "article_owner", "password" => "secret123"})
 
+    author = promote_to_kinoman(author)
+
     {:ok, stranger} =
       Accounts.register_user(%{"nickname" => "article_other", "password" => "secret123"})
 
@@ -47,8 +52,12 @@ defmodule Chat.LibraryTest do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "serial_author", "password" => "secret123"})
 
+    author = promote_to_kinoman(author)
+
     {:ok, another} =
       Accounts.register_user(%{"nickname" => "another_author", "password" => "secret123"})
+
+    another = promote_to_kinoman(another)
 
     {:ok, second} = Library.create_article(author, series_attrs("Вторая", "Хроники", 2))
     {:ok, first} = Library.create_article(author, series_attrs("Первая", "Хроники", 1))
@@ -70,6 +79,8 @@ defmodule Chat.LibraryTest do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "limit_writer", "password" => "secret123"})
 
+    author = promote_to_kinoman(author)
+
     attrs = valid_attrs("Слишком длинно") |> Map.put("body", String.duplicate("я", 12_001))
     assert {:error, changeset} = Library.create_article(author, attrs)
     assert %{body: [_message]} = errors_on(changeset)
@@ -82,6 +93,8 @@ defmodule Chat.LibraryTest do
   test "enforces the daily article quota in the context" do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "article_quota", "password" => "secret123"})
+
+    author = promote_to_kinoman(author)
 
     for index <- 1..Library.max_articles_per_day() do
       assert {:ok, _article} = Library.create_article(author, valid_attrs("Статья #{index}"))
@@ -102,5 +115,13 @@ defmodule Chat.LibraryTest do
       "series" => series,
       "part_number" => part_number
     }
+  end
+
+  defp promote_to_kinoman(user) do
+    Repo.update_all(from(user_row in User, where: user_row.id == ^user.id),
+      set: [public_message_count: 50, chat_seconds: 18_000]
+    )
+
+    Accounts.get_user(user.id)
   end
 end

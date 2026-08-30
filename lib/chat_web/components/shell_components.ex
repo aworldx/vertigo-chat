@@ -13,7 +13,10 @@ defmodule ChatWeb.ShellComponents do
         <span class="vertigo-wordmark uppercase">Vertigo</span>
       </a>
 
-      <nav class="flex items-center gap-4 text-sm text-zinc-300">
+      <nav
+        class="cinema-menu flex items-center gap-4 text-sm text-zinc-300"
+        aria-label="Основное меню"
+      >
         <.link
           href={~p"/profiles"}
           target="vertigo-profiles"
@@ -48,6 +51,13 @@ defmodule ChatWeb.ShellComponents do
           class="hidden transition hover:text-amber-300 sm:inline"
         >
           Кто был
+        </.link>
+        <.link
+          href={~p"/help"}
+          target="vertigo-help"
+          class="hidden transition hover:text-amber-300 lg:inline"
+        >
+          Помощь
         </.link>
         <%= if !@registered do %>
           <button

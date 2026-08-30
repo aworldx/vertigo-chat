@@ -6,11 +6,13 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Appearance
   alias Chat.Bot
   alias Chat.Chatlans
+  alias Chat.Commands
   alias Chat.MediaShares
   alias Chat.Messages
   alias Chat.Profiles
   alias Chat.PrivateMessages
   alias Chat.Themes
+  alias Chat.Ranks
   alias Chat.Visits
   alias ChatWeb.AuthComponents
   alias ChatWeb.ClientSecurity
@@ -53,7 +55,9 @@ defmodule ChatWeb.RoomLive do
       |> assign(:online, [])
       |> assign(:typing_peers, %{})
       |> assign(:bot_pending?, false)
+      |> assign(:ignored_nicknames, MapSet.new())
       |> assign(:message_items, messages)
+      |> assign(:all_message_items, messages)
       |> assign_nickname_form()
       |> assign_registration_form()
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
@@ -85,7 +89,7 @@ defmodule ChatWeb.RoomLive do
 
     with {:ok, user} <- Accounts.authorize_entrance(nickname, params["password"]),
          :ok <- Chatlans.ensure_nickname_available(@room_id, nickname),
-         {:ok, visit} <- Visits.start_visit(nickname) do
+         {:ok, visit} <- Visits.start_visit(user || nickname) do
       socket =
         socket
         |> assign(:nickname, nickname)
@@ -128,7 +132,7 @@ defmodule ChatWeb.RoomLive do
   def handle_event("restore_user_session", %{"token" => token}, socket) do
     with {:ok, user} <- UserAuth.verify(token),
          :ok <- Chatlans.ensure_nickname_available(@room_id, user.nickname),
-         {:ok, visit} <- Visits.start_visit(user.nickname) do
+         {:ok, visit} <- Visits.start_visit(user) do
       socket =
         socket
         |> assign(:nickname, user.nickname)
@@ -258,10 +262,16 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("send_message", %{"message" => %{"body" => body}}, socket) do
-    if PrivateMessages.private_syntax?(body) do
-      send_private_message(body, socket)
-    else
-      send_public_message(body, socket)
+    case execute_command(body, socket) do
+      {:handled, result} ->
+        result
+
+      :not_a_command ->
+        if PrivateMessages.private_syntax?(body) do
+          send_private_message(body, socket)
+        else
+          send_public_message(body, socket)
+        end
     end
   end
 
@@ -451,26 +461,7 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("open_profile", %{"nickname" => nickname}, socket) do
-    case Profiles.get_by_nickname(nickname) do
-      {:ok, profile} ->
-        editable? =
-          socket.assigns.current_user && socket.assigns.current_user.id == profile.user_id
-
-        {:noreply,
-         socket
-         |> assign(:profile, profile)
-         |> assign(:profile_editable?, editable?)
-         |> assign(:profile_form, to_form(Profiles.change_profile(profile)))}
-
-      {:error, :not_found} ->
-        profile = Profiles.guest_profile(nickname)
-
-        {:noreply,
-         socket
-         |> assign(:profile, profile)
-         |> assign(:profile_editable?, false)
-         |> assign(:profile_form, to_form(Profiles.change_profile(profile)))}
-    end
+    {:noreply, open_profile(socket, nickname)}
   end
 
   def handle_event("close_profile", _params, socket) do
@@ -507,32 +498,7 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("leave_chat", _params, socket) do
-    if socket.assigns.joined? do
-      :ok = broadcast_stopped_typing(socket)
-      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
-      Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
-    end
-
-    MediaShares.close_peer(@room_id, socket.assigns.presence_key)
-
-    socket =
-      socket
-      |> close_visit()
-      |> assign(:joined?, false)
-      |> assign(:current_user, nil)
-      |> assign(:profile, nil)
-      |> assign(:settings_open?, false)
-      |> assign(:registration_open?, false)
-      |> assign(:screen, :login)
-      |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
-      |> assign(:media_error, nil)
-      |> assign_nickname_form()
-      |> assign(:online, Chatlans.list_online(@room_id))
-      |> assign(:typing_peers, %{})
-      |> push_event("clear-user-auth", %{})
-      |> push_event("clear-guest-session", %{})
-
-    {:noreply, socket}
+    {:noreply, leave_chat(socket)}
   end
 
   def handle_event("toggle_settings", _params, socket) do
@@ -582,6 +548,32 @@ defmodule ChatWeb.RoomLive do
          |> assign_settings_draft(params)
          |> put_flash(:error, preferences_error(changeset))}
     end
+  end
+
+  defp leave_chat(socket) do
+    if socket.assigns.joined? do
+      :ok = broadcast_stopped_typing(socket)
+      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
+      Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
+    end
+
+    MediaShares.close_peer(@room_id, socket.assigns.presence_key)
+
+    socket
+    |> close_visit()
+    |> assign(:joined?, false)
+    |> assign(:current_user, nil)
+    |> assign(:profile, nil)
+    |> assign(:settings_open?, false)
+    |> assign(:registration_open?, false)
+    |> assign(:screen, :login)
+    |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
+    |> assign(:media_error, nil)
+    |> assign_nickname_form()
+    |> assign(:online, Chatlans.list_online(@room_id))
+    |> assign(:typing_peers, %{})
+    |> push_event("clear-user-auth", %{})
+    |> push_event("clear-guest-session", %{})
   end
 
   @impl true
@@ -696,22 +688,25 @@ defmodule ChatWeb.RoomLive do
   defp send_public_message(body, socket) do
     result =
       if socket.assigns.joined? do
-        Messages.send_public_message(
-          socket.assigns.nickname,
-          @room_id,
-          %{
-            "body" => body,
-            "theme_id" => socket.assigns.theme_id,
-            "appearance" => socket.assigns.appearance,
-            "recipient_nicknames" => Enum.map(socket.assigns.online, & &1.nickname)
-          },
-          message_security_subject(socket)
-        )
+        send_chatlan_public_message(body, socket)
       else
         {:error, :not_joined}
       end
 
     case result do
+      {:ok, message, user} ->
+        socket =
+          socket
+          |> assign(:current_user, user)
+          |> clear_message_input()
+          |> update_presence()
+
+        if message.recipient == Bot.name() do
+          start_bot_reply(message.body, socket)
+        else
+          {:noreply, socket}
+        end
+
       {:ok, message} ->
         socket = clear_message_input(socket)
 
@@ -741,6 +736,112 @@ defmodule ChatWeb.RoomLive do
 
       {:error, _reason} ->
         send_chatlan_private_message(body, socket)
+    end
+  end
+
+  defp execute_command(body, socket) do
+    case Commands.parse(body) do
+      :not_command ->
+        :not_a_command
+
+      {:ok, :help} ->
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(:help, "Команды", "Доступные текстовые команды:", [
+            %{label: "/помощь", description: "список команд"},
+            %{label: "/кто", description: "первые 10 чатлан онлайн"},
+            %{label: "/выход", description: "выйти из чата"},
+            %{label: "/инфо ник", description: "открыть анкету"},
+            %{label: "/игнор ник", description: "скрыть или вернуть сообщения"},
+            %{label: "/игноры", description: "показать список игноров"}
+          ])
+          |> clear_message_input()}}
+
+      {:ok, :who} ->
+        chatlans = socket.assigns.online |> Enum.take(10) |> Enum.map(& &1.nickname)
+
+        body =
+          if chatlans == [],
+            do: "Сейчас никого нет онлайн.",
+            else: "Нажми на ник, чтобы обратиться к чатланину."
+
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(
+            :who,
+            "Сейчас онлайн",
+            body,
+            Enum.map(chatlans, &%{nickname: &1})
+          )
+          |> clear_message_input()}}
+
+      {:ok, :exit} ->
+        {:handled, {:noreply, leave_chat(socket)}}
+
+      {:ok, {:info, nickname}} ->
+        {:handled,
+         {:noreply,
+          socket
+          |> open_profile(nickname)
+          |> insert_command_result(:info, "Анкета", "Открыта анкета чатланина #{nickname}.")
+          |> clear_message_input()}}
+
+      {:ok, {:toggle_ignore, nickname}} ->
+        {ignored_nicknames, body} =
+          if MapSet.member?(socket.assigns.ignored_nicknames, nickname) do
+            {MapSet.delete(socket.assigns.ignored_nicknames, nickname),
+             "Сообщения #{nickname} снова показываются."}
+          else
+            {MapSet.put(socket.assigns.ignored_nicknames, nickname),
+             "Сообщения #{nickname} скрыты. Повтори команду, чтобы вернуть их."}
+          end
+
+        {:handled,
+         {:noreply,
+          socket
+          |> assign(:ignored_nicknames, ignored_nicknames)
+          |> filter_ignored_messages()
+          |> insert_command_result(:ignore, "Игнор", body)
+          |> clear_message_input()}}
+
+      {:ok, :ignores} ->
+        nicknames = socket.assigns.ignored_nicknames |> MapSet.to_list() |> Enum.sort()
+        body = if nicknames == [], do: "Список игноров пуст.", else: "Скрытые чатлане:"
+
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(
+            :ignores,
+            "Игноры",
+            body,
+            Enum.map(nicknames, &%{nickname: &1})
+          )
+          |> clear_message_input()}}
+
+      {:error, :nickname_required} ->
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(
+            :error,
+            "Команда не выполнена",
+            "Укажи ник: /инфо ник или /игнор ник."
+          )
+          |> clear_message_input()}}
+
+      {:error, :unknown_command} ->
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(
+            :error,
+            "Неизвестная команда",
+            "Используй /помощь, чтобы увидеть список команд."
+          )
+          |> clear_message_input()}}
     end
   end
 
@@ -952,24 +1053,88 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp reset_messages(socket, messages) do
+    visible_messages = visible_messages(messages, socket.assigns.ignored_nicknames)
+
+    socket
+    |> assign(:all_message_items, messages)
+    |> assign(:message_items, visible_messages)
+    |> stream(:messages, visible_messages, reset: true)
+  end
+
+  defp insert_message(socket, message) do
+    all_messages = replace_message(socket.assigns.all_message_items, message)
+    socket = assign(socket, :all_message_items, all_messages)
+
+    if visible_message?(message, socket.assigns.ignored_nicknames) do
+      messages = replace_message(socket.assigns.message_items, message)
+
+      socket
+      |> assign(:message_items, messages)
+      |> stream_insert(:messages, message)
+    else
+      socket
+    end
+  end
+
+  defp open_profile(socket, nickname) do
+    case Profiles.get_by_nickname(nickname) do
+      {:ok, profile} ->
+        editable? =
+          socket.assigns.current_user && socket.assigns.current_user.id == profile.user_id
+
+        socket
+        |> assign(:profile, profile)
+        |> assign(:profile_editable?, editable?)
+        |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
+
+      {:error, :not_found} ->
+        profile = Profiles.guest_profile(nickname)
+
+        socket
+        |> assign(:profile, profile)
+        |> assign(:profile_editable?, false)
+        |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
+    end
+  end
+
+  defp insert_command_result(socket, command, title, body, entries \\ []) do
+    sent_at = DateTime.utc_now()
+
+    insert_message(socket, %{
+      id: "command-#{System.unique_integer([:positive])}",
+      kind: :command,
+      command: command,
+      author: "system",
+      title: title,
+      body: body,
+      entries: entries,
+      recipient: nil,
+      reactions: %{},
+      sent_at: sent_at,
+      at: Calendar.strftime(sent_at, "%H:%M")
+    })
+  end
+
+  defp filter_ignored_messages(socket) do
+    messages =
+      visible_messages(socket.assigns.all_message_items, socket.assigns.ignored_nicknames)
+
     socket
     |> assign(:message_items, messages)
     |> stream(:messages, messages, reset: true)
   end
 
-  defp insert_message(socket, message) do
-    messages =
-      case Enum.find_index(
-             socket.assigns.message_items,
-             &(to_string(&1.id) == to_string(message.id))
-           ) do
-        nil -> socket.assigns.message_items ++ [message]
-        index -> List.replace_at(socket.assigns.message_items, index, message)
-      end
+  defp visible_messages(messages, ignored_nicknames),
+    do: Enum.filter(messages, &visible_message?(&1, ignored_nicknames))
 
-    socket
-    |> assign(:message_items, messages)
-    |> stream_insert(:messages, message)
+  defp visible_message?(message, ignored_nicknames),
+    do: not MapSet.member?(ignored_nicknames, Map.get(message, :author))
+
+  defp replace_message(messages, message) do
+    case Enum.find_index(messages, &(to_string(&1.id) == to_string(message.id))) do
+      nil -> messages ++ [message]
+      index -> List.replace_at(messages, index, message)
+    end
   end
 
   defp preferences_error(%Ecto.Changeset{}), do: "Не удалось сохранить настройки."
@@ -979,8 +1144,36 @@ defmodule ChatWeb.RoomLive do
       socket.assigns.nickname,
       socket.assigns.theme_id,
       socket.assigns.appearance,
-      registered?: not is_nil(socket.assigns.current_user)
+      registered?: not is_nil(socket.assigns.current_user),
+      rank: Ranks.for_user(socket.assigns.current_user)
     )
+  end
+
+  defp send_chatlan_public_message(body, %{assigns: %{current_user: %{} = user}} = socket) do
+    Messages.send_registered_public_message(
+      user,
+      @room_id,
+      public_message_attrs(body, socket),
+      message_security_subject(socket)
+    )
+  end
+
+  defp send_chatlan_public_message(body, socket) do
+    Messages.send_public_message(
+      socket.assigns.nickname,
+      @room_id,
+      public_message_attrs(body, socket),
+      message_security_subject(socket)
+    )
+  end
+
+  defp public_message_attrs(body, socket) do
+    %{
+      "body" => body,
+      "theme_id" => socket.assigns.theme_id,
+      "appearance" => socket.assigns.appearance,
+      "recipient_nicknames" => Enum.map(socket.assigns.online, & &1.nickname)
+    }
   end
 
   defp assign_active_colors(socket) do

@@ -6,6 +6,7 @@ defmodule Chat.Gallery do
 
   alias Chat.Accounts.User
   alias Chat.Gallery.Photo
+  alias Chat.Ranks
   alias Chat.Repo
   alias Chat.Uploads
 
@@ -54,7 +55,7 @@ defmodule Chat.Gallery do
 
   defp insert_with_quota(user, image, content_type, caption) do
     Repo.transaction(fn ->
-      lock_user!(user.id)
+      user = lock_user!(user.id)
 
       total = Repo.aggregate(from(photo in Photo, where: photo.user_id == ^user.id), :count)
 
@@ -69,6 +70,9 @@ defmodule Chat.Gallery do
         )
 
       cond do
+        not Ranks.can_add_gallery_photos?(user) ->
+          Repo.rollback(:statist_required)
+
         total >= @max_photos_per_user ->
           Repo.rollback(:photo_limit_reached)
 

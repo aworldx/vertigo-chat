@@ -8,6 +8,7 @@
 @source "../css";
 @source "../js";
 @source "../../lib/chat_web";
+@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film");
 
 @font-face {
   font-family: "Vertigo Display";
@@ -178,6 +179,43 @@
   line-height: 1;
 }
 
+.chat-shell .cinema-menu {
+  font-family: "Vertigo Display", "Arial Narrow", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 520;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.chat-shell .cinema-menu > a,
+.chat-shell .cinema-menu > button {
+  position: relative;
+}
+
+.chat-shell .cinema-menu > a::after,
+.chat-shell .cinema-menu > button::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.35rem;
+  left: 0;
+  height: 1px;
+  background: currentColor;
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.3);
+  transform-origin: center;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.chat-shell .cinema-menu > a:hover::after,
+.chat-shell .cinema-menu > a:focus-visible::after,
+.chat-shell .cinema-menu > button:hover::after,
+.chat-shell .cinema-menu > button:focus-visible::after {
+  opacity: 0.8;
+  transform: scaleX(1);
+}
+
 .chat-shell .chat-message-author,
 .chat-shell .chat-user-nickname,
 .chat-shell .chat-current-nickname,
@@ -263,6 +301,46 @@ a:hover .vertigo-mark {
   color: #f5f0df;
 }
 
+.chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"]::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(2, 9, 10, 0.96) 0%, rgba(2, 9, 10, 0.76) 48%, rgba(8, 14, 15, 0.44) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(51, 6, 17, 0.2)),
+    url("/images/noir-hero.png") 72% center / cover no-repeat;
+  filter: saturate(0.72) contrast(1.08);
+  opacity: 0.76;
+}
+
+/* В разделах за пределами комнаты фон остаётся на месте при прокрутке длинных страниц. */
+#profiles-page[data-chat-theme="vertigo"][data-chat-mode="dark"]::before,
+#gallery-page[data-chat-theme="vertigo"][data-chat-mode="dark"]::before,
+#visits-page[data-chat-theme="vertigo"][data-chat-mode="dark"]::before,
+#library-page[data-chat-theme="vertigo"][data-chat-mode="dark"]::before,
+#help-page[data-chat-theme="vertigo"][data-chat-mode="dark"]::before {
+  position: fixed;
+}
+
+.chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] > :not([role="dialog"]) {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 767px) {
+  .chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"]::before {
+    background-position: center, center, 67% center;
+    opacity: 0.62;
+  }
+}
+
+.chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] aside.bg-zinc-900\/80 {
+  background:
+    linear-gradient(180deg, rgba(5, 20, 18, 0.56), rgba(5, 20, 18, 0.86)),
+    url("/images/noir-hero.png") 81% center / cover no-repeat;
+}
+
 .chat-shell[data-chat-theme="vertigo"] header {
   background:
     linear-gradient(90deg, rgba(6, 78, 59, 0.92), rgba(63, 7, 18, 0.92)),
@@ -271,6 +349,11 @@ a:hover .vertigo-mark {
 
 .chat-shell[data-chat-theme="vertigo"] .bg-zinc-950 {
   background-color: rgba(5, 20, 18, 0.94);
+}
+
+.chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] main.bg-zinc-950 {
+  background-color: rgba(5, 20, 18, 0.78);
+  backdrop-filter: blur(2px);
 }
 
 .chat-shell[data-chat-theme="vertigo"] .bg-zinc-900,

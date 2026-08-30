@@ -87,6 +87,7 @@ defmodule ChatWeb do
       import Phoenix.HTML
       # Core UI components
       import ChatWeb.CoreComponents
+      import ChatWeb.RankComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

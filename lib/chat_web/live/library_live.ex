@@ -4,6 +4,7 @@ defmodule ChatWeb.LibraryLive do
 
   alias Chat.Library
   alias Chat.Library.Article
+  alias Chat.Ranks
   alias ChatWeb.UserAuth
 
   @impl true
@@ -12,6 +13,7 @@ defmodule ChatWeb.LibraryLive do
      socket
      |> assign(:page_title, "Библиотека")
      |> assign(:current_user, nil)
+     |> assign(:can_add_library_articles?, false)
      |> assign(:auth_checked?, false)
      |> assign(:selected_series, nil)
      |> assign(:selected_author_id, nil)
@@ -45,6 +47,7 @@ defmodule ChatWeb.LibraryLive do
         {:noreply,
          socket
          |> assign(:current_user, user)
+         |> assign(:can_add_library_articles?, Ranks.can_add_library_articles?(user))
          |> assign(:auth_checked?, true)
          |> refresh_articles()}
 
@@ -52,6 +55,7 @@ defmodule ChatWeb.LibraryLive do
         {:noreply,
          socket
          |> assign(:current_user, nil)
+         |> assign(:can_add_library_articles?, false)
          |> assign(:auth_checked?, true)
          |> refresh_articles()}
     end
@@ -61,11 +65,16 @@ defmodule ChatWeb.LibraryLive do
     {:noreply,
      socket
      |> assign(:current_user, nil)
+     |> assign(:can_add_library_articles?, false)
      |> assign(:auth_checked?, true)
      |> refresh_articles()}
   end
 
-  def handle_event("new_article", _params, %{assigns: %{current_user: %{} = _user}} = socket) do
+  def handle_event(
+        "new_article",
+        _params,
+        %{assigns: %{current_user: %{}, can_add_library_articles?: true}} = socket
+      ) do
     article = %Article{}
 
     {:noreply,
@@ -77,7 +86,7 @@ defmodule ChatWeb.LibraryLive do
   end
 
   def handle_event("new_article", _params, socket) do
-    {:noreply, put_flash(socket, :error, "Войди как зарегистрированный пользователь в чате.")}
+    {:noreply, put_flash(socket, :error, "Добавлять статьи могут чатлане со званием «Киноман».")}
   end
 
   def handle_event("edit_article", %{"id" => id}, socket) do
@@ -136,6 +145,10 @@ defmodule ChatWeb.LibraryLive do
 
       {:error, :forbidden} ->
         {:noreply, put_flash(socket, :error, "Редактировать статью может только автор.")}
+
+      {:error, :kinoman_required} ->
+        {:noreply,
+         put_flash(socket, :error, "Добавлять статьи могут чатлане со званием «Киноман».")}
 
       {:error, :daily_article_limit_reached} ->
         {:noreply,

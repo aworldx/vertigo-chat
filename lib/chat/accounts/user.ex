@@ -15,6 +15,8 @@ defmodule Chat.Accounts.User do
     field(:password, :string, virtual: true)
     field(:theme_id, :string, default: "vertigo")
     field(:appearance, :map, default: %{})
+    field(:public_message_count, :integer, default: 0)
+    field(:chat_seconds, :integer, default: 0)
     has_one(:profile, Profile)
     has_many(:library_articles, Article)
     has_many(:sent_checkers_games, Game, foreign_key: :inviter_id)
