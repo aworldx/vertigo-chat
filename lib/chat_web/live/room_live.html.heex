@@ -14,6 +14,7 @@
     }
     data-chat-theme={@theme_id}
     data-chat-mode={@theme_mode}
+    data-chat-joined={@joined?}
     class="chat-shell relative isolate flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100"
   >
     <ShellComponents.top_menu joined={@joined?} registered={not is_nil(@current_user)} />
@@ -29,7 +30,17 @@
           typing={@typing_peers |> Map.values() |> Enum.sort()}
         />
       <% else %>
-        <main class="flex min-h-0 items-center justify-center overflow-y-auto border-b border-zinc-800 bg-zinc-950 p-4 md:border-b-0 md:border-r">
+        <main
+          id="chat-session-restoring"
+          class="hidden min-h-0 items-center justify-center overflow-y-auto border-b border-zinc-800 bg-zinc-950 p-4 md:border-b-0 md:border-r"
+          aria-live="polite"
+        >
+          <p class="text-sm text-zinc-400">Восстанавливаем сессию…</p>
+        </main>
+        <main
+          id="chat-entrance-screen"
+          class="flex min-h-0 items-center justify-center overflow-y-auto border-b border-zinc-800 bg-zinc-950 p-4 md:border-b-0 md:border-r"
+        >
           <%= if @screen == :registration do %>
             <AuthComponents.registration_screen
               registration_form={@registration_form}
@@ -68,6 +79,14 @@
         form={@profile_form}
         editable={@profile_editable?}
         uploads={@uploads}
+      />
+    <% end %>
+
+    <%= if @feedback_open? do %>
+      <RoomComponents.feedback_modal
+        form={@feedback_form}
+        registered={not is_nil(@current_user)}
+        nickname={@nickname}
       />
     <% end %>
 

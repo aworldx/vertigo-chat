@@ -8,6 +8,7 @@ defmodule ChatWeb.RanksLiveTest do
     assert has_element?(view, "#help-page")
     assert has_element?(view, "#commands-list", "/помощь")
     assert has_element?(view, "#commands-list", "/игнор ник")
+    assert has_element?(view, "#commands-list", "/музыка запрос")
     assert has_element?(view, "#ranks-list")
     assert has_element?(view, "#ranks-list > #rank-10[data-rank-title='Режиссер']")
     assert has_element?(view, "#rank-2", "50 фраз")

@@ -67,6 +67,36 @@ const appearanceFrom = preferences => {
   return preferences.appearance || {}
 }
 
+const chatSessionParams = () => {
+  const userAuthToken = sessionStorage.getItem(USER_AUTH_KEY)
+
+  if (userAuthToken) {
+    return {
+      user_auth_token: userAuthToken,
+      chat_session_token: sessionStorage.getItem(USER_SESSION_KEY),
+    }
+  }
+
+  const store = readChatPreferenceStore()
+  const currentNickname = store.current_nickname
+  const currentPreferences = currentNickname && store.by_nickname[currentNickname]
+
+  if (sessionStorage.getItem(GUEST_SESSION_KEY) && currentNickname && currentPreferences) {
+    return {
+      guest_nickname: currentNickname,
+      guest_session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
+      theme_id: currentPreferences.theme_id,
+      appearance: appearanceFrom(currentPreferences),
+    }
+  }
+
+  return {}
+}
+
+if (Object.keys(chatSessionParams()).length > 0) {
+  document.documentElement.dataset.chatSessionRestoring = "true"
+}
+
 const chatHooks = {
   PrivateNickname: {
     mounted() {
@@ -150,14 +180,24 @@ const chatHooks = {
   },
   ChatMessages: {
     mounted() {
-      this.scrollToBottom()
+      this.shouldStickToBottom = true
+      this.scrollToBottom(false)
+    },
+    beforeUpdate() {
+      this.shouldStickToBottom =
+        this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 80
     },
     updated() {
-      this.scrollToBottom()
+      if (this.shouldStickToBottom) {
+        this.scrollToBottom(true)
+      }
     },
-    scrollToBottom() {
+    scrollToBottom(smooth) {
       requestAnimationFrame(() => {
-        this.el.scrollTop = this.el.scrollHeight
+        this.el.scrollTo({
+          top: this.el.scrollHeight,
+          behavior: smooth ? "smooth" : "auto",
+        })
       })
     },
   },
@@ -169,6 +209,12 @@ const chatHooks = {
       const currentPreferences = currentNickname && store.by_nickname[currentNickname]
 
       this.restoreSession()
+
+      if (this.el.dataset.chatJoined === "true") {
+        this.finishSessionRestoration()
+      } else {
+        this.restorationTimer = window.setTimeout(() => this.finishSessionRestoration(), 1500)
+      }
 
       if (currentNickname && currentPreferences) {
         const appearance = appearanceFrom(currentPreferences)
@@ -206,6 +252,18 @@ const chatHooks = {
     reconnected() {
       this.restoreSession()
     },
+    updated() {
+      if (this.el.dataset.chatJoined === "true") {
+        this.finishSessionRestoration()
+      }
+    },
+    destroyed() {
+      window.clearTimeout(this.restorationTimer)
+    },
+    finishSessionRestoration() {
+      window.clearTimeout(this.restorationTimer)
+      delete document.documentElement.dataset.chatSessionRestoring
+    },
     restoreSession() {
       const userAuthToken = sessionStorage.getItem(USER_AUTH_KEY)
       const store = readChatPreferenceStore()
@@ -232,7 +290,7 @@ const chatHooks = {
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  params: () => ({_csrf_token: csrfToken, ...chatSessionParams()}),
   hooks: {...colocatedHooks, ...chatHooks, MediaSharing},
 })
 

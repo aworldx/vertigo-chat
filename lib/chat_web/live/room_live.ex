@@ -7,7 +7,10 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Bot
   alias Chat.Chatlans
   alias Chat.Commands
+  alias Chat.Feedback
+  alias Chat.Gifs
   alias Chat.MediaShares
+  alias Chat.Music
   alias Chat.Messages
   alias Chat.Profiles
   alias Chat.PrivateMessages
@@ -52,16 +55,24 @@ defmodule ChatWeb.RoomLive do
       |> assign(:entrance_error, nil)
       |> assign(:registration_error, nil)
       |> assign(:registration_open?, false)
+      |> assign(:feedback_open?, false)
       |> assign(:message_error, nil)
       |> assign(:media_error, nil)
       |> assign(:online, [])
       |> assign(:typing_peers, %{})
       |> assign(:bot_pending?, false)
+      |> assign(:music_pending?, false)
+      |> assign(:music_results, [])
+      |> assign(:music_search_message_id, nil)
+      |> assign(:gif_pending?, false)
+      |> assign(:gif_results, [])
+      |> assign(:gif_search_message_id, nil)
       |> assign(:ignored_nicknames, MapSet.new())
       |> assign(:message_items, messages)
       |> assign(:all_message_items, messages)
       |> assign_nickname_form()
       |> assign_registration_form()
+      |> assign_feedback_form()
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
       |> assign_settings_form()
       |> stream(:messages, messages)
@@ -77,7 +88,9 @@ defmodule ChatWeb.RoomLive do
         PrivateMessages.subscribe(presence_key)
         MediaShares.subscribe_peer(@room_id, presence_key)
 
-        assign(socket, :online, Chatlans.list_online(@room_id))
+        socket
+        |> restore_connection_session()
+        |> assign(:online, Chatlans.list_online(@room_id))
       else
         socket
       end
@@ -109,6 +122,7 @@ defmodule ChatWeb.RoomLive do
         |> assign_nickname_form()
         |> assign_settings_form()
         |> reset_messages(Messages.list_recent_messages(@room_id))
+        |> insert_features_notice()
 
       track_presence(socket)
       {:ok, _message} = Messages.announce_presence(nickname, @room_id, :joined)
@@ -183,6 +197,41 @@ defmodule ChatWeb.RoomLive do
      |> assign_nickname_form()}
   end
 
+  def handle_event("show_feedback", _params, socket) do
+    {:noreply, socket |> assign(:feedback_open?, true) |> assign_feedback_form()}
+  end
+
+  def handle_event("close_feedback", _params, socket) do
+    {:noreply, socket |> assign(:feedback_open?, false) |> assign_feedback_form()}
+  end
+
+  def handle_event("validate_feedback", %{"feedback" => params}, socket) do
+    form =
+      socket.assigns.current_user
+      |> Feedback.change_entry(params)
+      |> Map.put(:action, :validate)
+      |> to_form(as: :feedback)
+
+    {:noreply, assign(socket, :feedback_form, form)}
+  end
+
+  def handle_event("submit_feedback", %{"feedback" => params}, socket) do
+    case Feedback.submit(socket.assigns.current_user, params, socket.assigns.security_subject) do
+      {:ok, _entry} ->
+        {:noreply,
+         socket
+         |> assign(:feedback_open?, false)
+         |> assign_feedback_form()
+         |> put_flash(:info, "Спасибо! Пожелание отправлено.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, :feedback_form, to_form(changeset, as: :feedback))}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, feedback_error(reason))}
+    end
+  end
+
   def handle_event("register_user", %{"registration" => params}, socket) do
     params =
       if socket.assigns.joined? do
@@ -244,6 +293,32 @@ defmodule ChatWeb.RoomLive do
   def handle_event("send_private_message", _params, socket) do
     {:reply, %{ok: false}, assign(socket, :message_error, "Сообщение имеет неверный формат.")}
   end
+
+  def handle_event("send_gif", %{"id" => id}, %{assigns: %{joined?: true}} = socket) do
+    case Enum.find(socket.assigns.gif_results, &(&1.id == id)) do
+      nil ->
+        {:noreply,
+         assign(socket, :message_error, "Эта GIF больше недоступна. Выполни поиск ещё раз.")}
+
+      gif ->
+        send_chatlan_gif(gif, socket)
+    end
+  end
+
+  def handle_event("send_gif", _params, socket), do: {:noreply, socket}
+
+  def handle_event("send_music", %{"id" => id}, %{assigns: %{joined?: true}} = socket) do
+    case Enum.find(socket.assigns.music_results, &(to_string(&1.id) == id)) do
+      nil ->
+        {:noreply,
+         assign(socket, :message_error, "Этот трек больше недоступен. Выполни поиск ещё раз.")}
+
+      track ->
+        send_chatlan_music(track, socket)
+    end
+  end
+
+  def handle_event("send_music", _params, socket), do: {:noreply, socket}
 
   def handle_event("typing", %{"typing" => typing?}, %{assigns: %{joined?: true}} = socket)
       when is_boolean(typing?) do
@@ -547,6 +622,7 @@ defmodule ChatWeb.RoomLive do
         |> assign_nickname_form()
         |> assign_settings_form()
         |> reset_messages(Messages.list_recent_messages(@room_id))
+        |> insert_features_notice()
 
       track_presence(socket)
 
@@ -603,6 +679,7 @@ defmodule ChatWeb.RoomLive do
         |> assign_nickname_form()
         |> assign_settings_form()
         |> reset_messages(Messages.list_recent_messages(@room_id))
+        |> insert_features_notice()
 
       track_presence(socket)
 
@@ -621,6 +698,39 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp restore_connection_session(socket) do
+    case get_connect_params(socket) || %{} do
+      %{"user_auth_token" => token, "chat_session_token" => session_token}
+      when is_binary(token) and is_binary(session_token) ->
+        {:noreply, socket} = restore_user_session(token, session_token, 0, socket)
+        socket
+
+      %{
+        "guest_nickname" => nickname,
+        "guest_session_token" => session_token,
+        "theme_id" => theme_id,
+        "appearance" => appearance
+      }
+      when is_binary(nickname) and is_binary(session_token) ->
+        {:noreply, socket} =
+          restore_guest_session(
+            %{
+              "nickname" => nickname,
+              "session_token" => session_token,
+              "theme_id" => theme_id,
+              "appearance" => appearance
+            },
+            0,
+            socket
+          )
+
+        socket
+
+      _ ->
+        socket
+    end
+  end
+
   defp leave_chat(socket) do
     if socket.assigns.joined? do
       :ok = broadcast_stopped_typing(socket)
@@ -631,18 +741,27 @@ defmodule ChatWeb.RoomLive do
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
 
     socket
+    |> cancel_async(:music_search)
+    |> cancel_async(:gif_search)
     |> close_visit()
     |> assign(:joined?, false)
     |> assign(:current_user, nil)
     |> assign(:profile, nil)
     |> assign(:settings_open?, false)
     |> assign(:registration_open?, false)
+    |> assign(:feedback_open?, false)
     |> assign(:screen, :login)
     |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
     |> assign(:media_error, nil)
     |> assign_nickname_form()
     |> assign(:online, Chatlans.list_online(@room_id))
     |> assign(:typing_peers, %{})
+    |> assign(:music_pending?, false)
+    |> assign(:music_results, [])
+    |> assign(:music_search_message_id, nil)
+    |> assign(:gif_pending?, false)
+    |> assign(:gif_results, [])
+    |> assign(:gif_search_message_id, nil)
     |> push_event("clear-user-auth", %{})
     |> push_event("clear-guest-session", %{})
   end
@@ -662,6 +781,85 @@ defmodule ChatWeb.RoomLive do
      socket
      |> assign(:bot_pending?, false)
      |> assign(:message_error, "Хичкок сейчас не расположен к беседе. Попробуй немного позже.")}
+  end
+
+  def handle_async(:music_search, {:ok, {:ok, tracks}}, %{assigns: %{joined?: true}} = socket) do
+    entries = music_entries(tracks)
+
+    {:noreply,
+     socket
+     |> assign(:music_pending?, false)
+     |> assign(:music_results, entries)
+     |> assign(:message_error, nil)
+     |> replace_music_search_result(
+       "Музыка",
+       "Выбери трек для общей комнаты.",
+       entries
+     )}
+  end
+
+  def handle_async(:music_search, _result, %{assigns: %{joined?: false}} = socket) do
+    {:noreply, assign(socket, :music_pending?, false)}
+  end
+
+  def handle_async(:music_search, {:ok, {:error, :not_found}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:music_pending?, false)
+     |> replace_music_search_result("Музыка", "Ничего не найдено. Попробуй другой запрос.")}
+  end
+
+  def handle_async(:music_search, {:ok, {:error, :query_too_long}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:music_pending?, false)
+     |> replace_music_search_result("Поиск музыки", "Запрос слишком длинный.")}
+  end
+
+  def handle_async(:music_search, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:music_pending?, false)
+     |> replace_music_search_result("Поиск музыки", "Не удалось найти музыку. Попробуй ещё раз.")}
+  end
+
+  def handle_async(:gif_search, {:ok, {:ok, gifs}}, %{assigns: %{joined?: true}} = socket) do
+    {:noreply,
+     socket
+     |> assign(:gif_pending?, false)
+     |> assign(:gif_results, gifs)
+     |> assign(:message_error, nil)
+     |> replace_gif_search_result(
+       "GIF",
+       "Выбери GIF — она будет отправлена в общую комнату.",
+       gif_entries(gifs)
+     )}
+  end
+
+  def handle_async(:gif_search, _result, %{assigns: %{joined?: false}} = socket) do
+    {:noreply, socket |> assign(:gif_pending?, false) |> assign(:gif_results, [])}
+  end
+
+  def handle_async(:gif_search, {:ok, {:error, :not_found}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:gif_pending?, false)
+     |> assign(:gif_results, [])
+     |> replace_gif_search_result("GIF", "Ничего не найдено. Попробуй другой запрос.")}
+  end
+
+  def handle_async(:gif_search, {:ok, {:error, :query_too_long}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:gif_pending?, false)
+     |> replace_gif_search_result("Поиск GIF", "Запрос слишком длинный.")}
+  end
+
+  def handle_async(:gif_search, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:gif_pending?, false)
+     |> replace_gif_search_result("Поиск GIF", "Не удалось найти GIF. Попробуй ещё раз.")}
   end
 
   @impl true
@@ -756,10 +954,6 @@ defmodule ChatWeb.RoomLive do
 
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
 
-    socket.assigns
-    |> Map.get(:visit)
-    |> finish_visit()
-
     :ok
   end
 
@@ -832,7 +1026,10 @@ defmodule ChatWeb.RoomLive do
             %{label: "/выход", description: "выйти из чата"},
             %{label: "/инфо ник", description: "открыть анкету"},
             %{label: "/игнор ник", description: "скрыть или вернуть сообщения"},
-            %{label: "/игноры", description: "показать список игноров"}
+            %{label: "/игноры", description: "показать список игноров"},
+            %{label: "/музыка запрос", description: "найти трек и открыть плеер"},
+            %{label: "/гиф запрос", description: "найти и отправить GIF"},
+            %{label: "/очистить", description: "очистить окно чата только у себя"}
           ])
           |> clear_message_input()}}
 
@@ -857,6 +1054,9 @@ defmodule ChatWeb.RoomLive do
 
       {:ok, :exit} ->
         {:handled, {:noreply, leave_chat(socket)}}
+
+      {:ok, :clear} ->
+        {:handled, {:noreply, socket |> clear_message_frame() |> clear_message_input()}}
 
       {:ok, {:info, nickname}} ->
         {:handled,
@@ -884,6 +1084,12 @@ defmodule ChatWeb.RoomLive do
           |> insert_command_result(:ignore, "Игнор", body)
           |> clear_message_input()}}
 
+      {:ok, {:music, query}} ->
+        start_music_search(query, socket)
+
+      {:ok, {:gif, query}} ->
+        start_gif_search(query, socket)
+
       {:ok, :ignores} ->
         nicknames = socket.assigns.ignored_nicknames |> MapSet.to_list() |> Enum.sort()
         body = if nicknames == [], do: "Список игноров пуст.", else: "Скрытые чатлане:"
@@ -908,6 +1114,24 @@ defmodule ChatWeb.RoomLive do
             "Команда не выполнена",
             "Укажи ник: /инфо ник или /игнор ник."
           )
+          |> clear_message_input()}}
+
+      {:error, :music_query_required} ->
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(
+            :error,
+            "Поиск музыки",
+            "Укажи запрос: /музыка исполнитель или название."
+          )
+          |> clear_message_input()}}
+
+      {:error, :gif_query_required} ->
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(:error, "Поиск GIF", "Укажи запрос: /гиф эмоция или сюжет.")
           |> clear_message_input()}}
 
       {:error, :unknown_command} ->
@@ -959,6 +1183,45 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp start_music_search(_query, %{assigns: %{music_pending?: true}} = socket) do
+    {:handled, {:noreply, assign(socket, :message_error, "Дождись окончания поиска музыки.")}}
+  end
+
+  defp start_music_search(query, socket) do
+    search_message_id = "music-search-#{System.unique_integer([:positive])}"
+
+    socket =
+      socket
+      |> remove_music_search_result()
+      |> assign(:music_pending?, true)
+      |> assign(:music_search_message_id, search_message_id)
+      |> assign(:message_error, nil)
+      |> insert_command_result(:music, "Поиск музыки", "Ищу «#{query}»…", [], search_message_id)
+      |> clear_message_input()
+
+    {:handled, {:noreply, start_async(socket, :music_search, fn -> Music.search(query) end)}}
+  end
+
+  defp start_gif_search(_query, %{assigns: %{gif_pending?: true}} = socket) do
+    {:handled, {:noreply, assign(socket, :message_error, "Дождись окончания поиска GIF.")}}
+  end
+
+  defp start_gif_search(query, socket) do
+    search_message_id = "gif-search-#{System.unique_integer([:positive])}"
+
+    socket =
+      socket
+      |> remove_gif_search_result()
+      |> assign(:gif_pending?, true)
+      |> assign(:gif_results, [])
+      |> assign(:gif_search_message_id, search_message_id)
+      |> assign(:message_error, nil)
+      |> insert_command_result(:gif, "Поиск GIF", "Ищу «#{query}»…", [], search_message_id)
+      |> clear_message_input()
+
+    {:handled, {:noreply, start_async(socket, :gif_search, fn -> Gifs.search(query) end)}}
+  end
+
   defp send_chatlan_private_message(body, socket) do
     result =
       if socket.assigns.joined? do
@@ -983,6 +1246,80 @@ defmodule ChatWeb.RoomLive do
 
       {:error, reason} ->
         {:reply, %{ok: false}, assign(socket, :message_error, private_message_error(reason))}
+    end
+  end
+
+  defp send_chatlan_gif(gif, %{assigns: %{current_user: %{} = user}} = socket) do
+    case Messages.send_registered_gif(
+           user,
+           @room_id,
+           gif,
+           public_message_attrs("", socket),
+           message_security_subject(socket)
+         ) do
+      {:ok, _message, updated_user} ->
+        {:noreply,
+         socket
+         |> assign(:current_user, updated_user)
+         |> assign(:gif_results, [])
+         |> remove_gif_search_result()
+         |> update_presence()}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, :message_error, message_error(reason))}
+    end
+  end
+
+  defp send_chatlan_gif(gif, socket) do
+    case Messages.send_gif(
+           socket.assigns.nickname,
+           @room_id,
+           gif,
+           public_message_attrs("", socket),
+           message_security_subject(socket)
+         ) do
+      {:ok, _message} ->
+        {:noreply, socket |> assign(:gif_results, []) |> remove_gif_search_result()}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, :message_error, message_error(reason))}
+    end
+  end
+
+  defp send_chatlan_music(track, %{assigns: %{current_user: %{} = user}} = socket) do
+    case Messages.send_registered_music(
+           user,
+           @room_id,
+           track,
+           public_message_attrs("", socket),
+           message_security_subject(socket)
+         ) do
+      {:ok, _message, updated_user} ->
+        {:noreply,
+         socket
+         |> assign(:current_user, updated_user)
+         |> assign(:music_results, [])
+         |> remove_music_search_result()
+         |> update_presence()}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, :message_error, message_error(reason))}
+    end
+  end
+
+  defp send_chatlan_music(track, socket) do
+    case Messages.send_music(
+           socket.assigns.nickname,
+           @room_id,
+           track,
+           public_message_attrs("", socket),
+           message_security_subject(socket)
+         ) do
+      {:ok, _message} ->
+        {:noreply, socket |> assign(:music_results, []) |> remove_music_search_result()}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, :message_error, message_error(reason))}
     end
   end
 
@@ -1043,6 +1380,14 @@ defmodule ChatWeb.RoomLive do
       socket,
       :registration_form,
       to_form(%{"nickname" => socket.assigns.nickname, "password" => ""}, as: :registration)
+    )
+  end
+
+  defp assign_feedback_form(socket) do
+    assign(
+      socket,
+      :feedback_form,
+      to_form(Feedback.change_entry(socket.assigns.current_user), as: :feedback)
     )
   end
 
@@ -1140,6 +1485,31 @@ defmodule ChatWeb.RoomLive do
     |> stream(:messages, visible_messages, reset: true)
   end
 
+  defp insert_features_notice(socket) do
+    sent_at = DateTime.utc_now()
+
+    insert_message(socket, %{
+      id: "features-notice-#{System.unique_integer([:positive])}",
+      kind: :system,
+      system_variant: :features,
+      author: "system",
+      title: "Новое в чате",
+      features: [
+        %{icon: "hero-command-line", label: "Команды", text: "/помощь"},
+        %{icon: "hero-musical-note", label: "Музыка", text: "/музыка"},
+        %{icon: "hero-film", label: "GIF", text: "/гиф"},
+        %{icon: "hero-chat-bubble-bottom-center-text", label: "Фидбэк", text: "в меню"},
+        %{icon: "hero-squares-2x2", label: "Шашки", text: "в меню"}
+      ],
+      recipient: nil,
+      reactions: %{},
+      theme_id: Themes.default_theme_id(),
+      appearance: Appearance.default(),
+      sent_at: DateTime.to_iso8601(sent_at),
+      at: Calendar.strftime(sent_at, "%H:%M:%S")
+    })
+  end
+
   defp insert_message(socket, message) do
     all_messages = replace_message(socket.assigns.all_message_items, message)
     socket = assign(socket, :all_message_items, all_messages)
@@ -1176,11 +1546,11 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  defp insert_command_result(socket, command, title, body, entries \\ []) do
+  defp insert_command_result(socket, command, title, body, entries \\ [], id \\ nil) do
     sent_at = DateTime.utc_now()
 
     insert_message(socket, %{
-      id: "command-#{System.unique_integer([:positive])}",
+      id: id || "command-#{System.unique_integer([:positive])}",
       kind: :command,
       command: command,
       author: "system",
@@ -1192,6 +1562,79 @@ defmodule ChatWeb.RoomLive do
       sent_at: sent_at,
       at: Calendar.strftime(sent_at, "%H:%M")
     })
+  end
+
+  defp replace_gif_search_result(socket, title, body, entries \\ []) do
+    case socket.assigns.gif_search_message_id do
+      nil ->
+        insert_command_result(socket, :gif, title, body, entries)
+
+      id ->
+        insert_command_result(socket, :gif, title, body, entries, id)
+    end
+  end
+
+  defp replace_music_search_result(socket, title, body, entries \\ []) do
+    case socket.assigns.music_search_message_id do
+      nil -> insert_command_result(socket, :music, title, body, entries)
+      id -> insert_command_result(socket, :music, title, body, entries, id)
+    end
+  end
+
+  defp remove_gif_search_result(%{assigns: %{gif_search_message_id: nil}} = socket), do: socket
+
+  defp remove_gif_search_result(socket) do
+    message_id = socket.assigns.gif_search_message_id
+    message = Enum.find(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+
+    socket =
+      socket
+      |> assign(
+        :all_message_items,
+        Enum.reject(socket.assigns.all_message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(
+        :message_items,
+        Enum.reject(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(:gif_search_message_id, nil)
+
+    if message, do: stream_delete(socket, :messages, message), else: socket
+  end
+
+  defp remove_music_search_result(%{assigns: %{music_search_message_id: nil}} = socket),
+    do: socket
+
+  defp remove_music_search_result(socket) do
+    message_id = socket.assigns.music_search_message_id
+    message = Enum.find(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+
+    socket =
+      socket
+      |> assign(
+        :all_message_items,
+        Enum.reject(socket.assigns.all_message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(
+        :message_items,
+        Enum.reject(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(:music_search_message_id, nil)
+
+    if message, do: stream_delete(socket, :messages, message), else: socket
+  end
+
+  defp music_entries(tracks) do
+    Enum.with_index(tracks, 1)
+    |> Enum.map(fn {track, index} ->
+      Map.put(track, :type, :track) |> Map.put(:id, index)
+    end)
+  end
+
+  defp gif_entries(gifs) do
+    Enum.map(gifs, fn gif ->
+      Map.put(gif, :type, :gif)
+    end)
   end
 
   defp filter_ignored_messages(socket) do
@@ -1325,6 +1768,12 @@ defmodule ChatWeb.RoomLive do
     |> push_event("clear-message-input", %{})
   end
 
+  defp clear_message_frame(socket) do
+    socket
+    |> assign(:message_items, [])
+    |> stream(:messages, [], reset: true)
+  end
+
   defp broadcast_stopped_typing(socket) do
     Chatlans.broadcast_typing(
       @room_id,
@@ -1343,6 +1792,9 @@ defmodule ChatWeb.RoomLive do
   defp media_error(:rate_limited), do: "Слишком много вложений. Попробуй позже."
   defp media_error(:share_unavailable), do: "Файл больше недоступен."
   defp media_error(_reason), do: "Не удалось отправить файл."
+
+  defp feedback_error(:rate_limited), do: "Слишком много пожеланий. Попробуй позже."
+  defp feedback_error(_reason), do: "Не удалось отправить пожелание."
 
   defp save_uploaded_photo(socket, profile) do
     case uploaded_entries(socket, :profile_photo) do

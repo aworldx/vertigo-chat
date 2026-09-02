@@ -10,6 +10,7 @@ defmodule Chat.Security do
   @message_rules [{3, 2_000}, {12, 60_000}]
   @guest_ip_message_rules [{30, 60_000}]
   @media_share_rules [{3, 60_000}, {10, 3_600_000}]
+  @feedback_rules [{2, 60_000}, {8, 3_600_000}]
 
   def allow_message(%Subject{actor_id: actor_id}) when is_integer(actor_id) do
     RateLimiter.check({:message, {:user, actor_id}}, @message_rules)
@@ -33,6 +34,18 @@ defmodule Chat.Security do
   end
 
   def allow_media_share(%Subject{}), do: {:error, :registration_required}
+
+  def allow_feedback(%Subject{actor_id: actor_id}) when is_integer(actor_id) do
+    RateLimiter.check({:feedback, {:user, actor_id}}, @feedback_rules)
+  end
+
+  def allow_feedback(%Subject{client_ip: nil, connection_id: connection_id}) do
+    RateLimiter.check({:feedback, {:client, nil, connection_id}}, @feedback_rules)
+  end
+
+  def allow_feedback(%Subject{client_ip: ip, connection_id: connection_id}) do
+    RateLimiter.check({:feedback, {:client, ip, connection_id}}, @feedback_rules)
+  end
 
   def claim_registration(nil), do: :ok
 

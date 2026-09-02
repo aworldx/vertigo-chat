@@ -22,6 +22,14 @@ defmodule ChatWeb.VisitsLiveTest do
     assert render(view) =~ "Сейчас в чате"
     assert render(view) =~ "Дата входа"
     assert render(view) =~ "Дата выхода"
+
+    assert has_element?(
+             view,
+             "#visits [data-visit-nickname='#{active.nickname}']",
+             "Сейчас в чате"
+           )
+
+    assert has_element?(view, "#visits [data-visit-nickname='#{finished.nickname}']", "Вышел:")
   end
 
   test "formats timestamps for Moscow and handles active visits" do

@@ -3,6 +3,8 @@ defmodule ChatWeb.RoomComponents do
   use ChatWeb, :html
 
   alias Chat.Appearance
+  alias Chat.Gifs
+  alias Chat.Music
   alias Chat.Ranks
   alias ChatWeb.Media
 
@@ -103,18 +105,55 @@ defmodule ChatWeb.RoomComponents do
           </p>
           <%= case Map.get(message, :kind, :text) do %>
             <% :system -> %>
-              <p class="inline-flex items-center gap-2 text-xs leading-4 text-zinc-500">
-                <span>{message.body}</span>
-                <time
-                  id={"message-time-#{dom_id}"}
-                  datetime={Map.get(message, :sent_at)}
-                  phx-hook=".LocalMessageTime"
-                  phx-update="ignore"
-                  class="text-[10px] text-zinc-600"
+              <%= if Map.get(message, :system_variant) == :features do %>
+                <section
+                  data-system-notice="features"
+                  class="mx-auto my-2 max-w-xl rounded-2xl border border-amber-300/25 bg-gradient-to-br from-amber-300/10 via-zinc-900 to-zinc-950 px-3 py-2.5 text-left shadow-lg shadow-black/20"
                 >
-                  {message.at}
-                </time>
-              </p>
+                  <div class="flex items-center gap-2">
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-lg border border-amber-300/30 bg-amber-300/10 text-amber-200">
+                      <.icon name="hero-sparkles" class="size-4" />
+                    </span>
+                    <p class="text-sm font-semibold text-amber-100">{message.title}</p>
+                    <time
+                      id={"message-time-#{dom_id}"}
+                      datetime={Map.get(message, :sent_at)}
+                      phx-hook=".LocalMessageTime"
+                      phx-update="ignore"
+                      class="ml-auto text-[10px] text-zinc-500"
+                    >
+                      {message.at}
+                    </time>
+                  </div>
+                  <div class="mt-2.5 grid grid-cols-5 gap-1">
+                    <div
+                      :for={feature <- message.features}
+                      class="flex min-w-0 flex-col items-center rounded-lg bg-zinc-950/55 px-1 py-2 text-center"
+                    >
+                      <.icon name={feature.icon} class="size-4 shrink-0 text-amber-200" />
+                      <span class="mt-1 min-w-0 text-[10px] font-semibold leading-3 text-zinc-100">
+                        {feature.label}
+                      </span>
+                      <span class="mt-0.5 min-w-0 text-[9px] leading-3 text-zinc-500">
+                        {feature.text}
+                      </span>
+                    </div>
+                  </div>
+                </section>
+              <% else %>
+                <p class="inline-flex items-center gap-2 text-xs leading-4 text-zinc-500">
+                  <span>{message.body}</span>
+                  <time
+                    id={"message-time-#{dom_id}"}
+                    datetime={Map.get(message, :sent_at)}
+                    phx-hook=".LocalMessageTime"
+                    phx-update="ignore"
+                    class="text-[10px] text-zinc-600"
+                  >
+                    {message.at}
+                  </time>
+                </p>
+              <% end %>
             <% :command -> %>
               <section
                 class="rounded-xl border border-amber-300/35 bg-zinc-900/95 px-4 py-3 shadow-lg shadow-black/20"
@@ -134,8 +173,71 @@ defmodule ChatWeb.RoomComponents do
                   </time>
                 </div>
                 <p class="mt-2 text-sm leading-5 text-zinc-300">{message.body}</p>
-                <div :if={message.entries != []} class="mt-3 flex flex-wrap gap-2">
+                <div
+                  :if={message.entries != []}
+                  class={
+                    if message.command == :gif,
+                      do: "mt-3 flex gap-2 overflow-x-auto pb-1",
+                      else:
+                        if(message.command == :music,
+                          do: "mt-3 space-y-2",
+                          else: "mt-3 flex flex-wrap gap-2"
+                        )
+                  }
+                >
                   <%= for entry <- message.entries do %>
+                    <button
+                      :if={Map.get(entry, :type) == :gif}
+                      id={"gif-result-#{dom_id}-#{entry.id}"}
+                      type="button"
+                      phx-click="send_gif"
+                      phx-value-id={entry.id}
+                      class="group/gif relative size-24 shrink-0 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950 text-left transition hover:border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-200 sm:size-28"
+                      aria-label={"Отправить GIF: #{entry.title}"}
+                    >
+                      <img
+                        src={Gifs.proxy_url(entry.preview_url)}
+                        alt={entry.title}
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
+                        class="size-full object-cover transition duration-200 group-hover/gif:scale-[1.03]"
+                      />
+                      <span class="absolute inset-x-0 bottom-0 bg-zinc-950/75 px-1.5 py-1 text-center text-[10px] text-zinc-100 opacity-0 transition group-hover/gif:opacity-100">
+                        Отправить GIF
+                      </span>
+                    </button>
+                    <article
+                      :if={Map.get(entry, :type) == :track}
+                      id={"music-track-#{dom_id}-#{entry.id}"}
+                      class="flex w-full items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-1.5"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <div class="min-w-0">
+                          <p class="truncate text-xs font-semibold text-zinc-100">{entry.artist}</p>
+                          <p class="truncate text-[11px] text-zinc-400">{entry.title}</p>
+                        </div>
+                        <span class="text-[11px] text-zinc-500">{entry.duration}</span>
+                      </div>
+                      <audio
+                        id={"music-player-#{dom_id}-#{entry.id}"}
+                        controls
+                        preload="none"
+                        controlslist="nodownload"
+                        src={Music.proxy_url(entry.audio_url)}
+                        referrerpolicy="no-referrer"
+                        aria-label={"Воспроизвести #{entry.artist} — #{entry.title}"}
+                        class="h-7 w-28 shrink-0 sm:w-36"
+                      ></audio>
+                      <button
+                        id={"send-music-#{dom_id}-#{entry.id}"}
+                        type="button"
+                        phx-click="send_music"
+                        phx-value-id={entry.id}
+                        class="shrink-0 rounded-md border border-amber-300/50 px-2 py-1 text-[11px] font-semibold text-amber-200 transition hover:border-amber-200 hover:bg-amber-300/10"
+                      >
+                        В чат
+                      </button>
+                    </article>
                     <button
                       :if={Map.has_key?(entry, :nickname) && message.command == :who}
                       id={"command-chatlan-#{dom_id}-#{entry.nickname}"}
@@ -204,6 +306,54 @@ defmodule ChatWeb.RoomComponents do
                   </button>
                 </div>
               </div>
+            <% :gif -> %>
+              <figure class="mt-2 max-w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/80">
+                <img
+                  id={"gif-message-#{dom_id}"}
+                  src={Gifs.proxy_url(message.media_url)}
+                  alt={message.body}
+                  loading="lazy"
+                  referrerpolicy="no-referrer"
+                  class="max-h-56 w-full object-contain"
+                />
+                <figcaption class="px-2 py-1 text-xs text-zinc-500">
+                  <button
+                    :if={!framed_message?(message, @appearance)}
+                    id={"message-author-#{dom_id}"}
+                    type="button"
+                    phx-hook="PrivateNickname"
+                    data-private-nickname={message.author}
+                    class="chat-message-author font-semibold hover:underline"
+                    style={appearance_style(message)}
+                  >
+                    {message.author}:
+                  </button>
+                  <span :if={!framed_message?(message, @appearance)} class="mr-1"></span>
+                  {message.body}
+                </figcaption>
+              </figure>
+            <% :music -> %>
+              <article class="mt-2 max-w-md rounded-lg border border-zinc-700 bg-zinc-950/80 px-2.5 py-2">
+                <div class="flex items-center gap-2">
+                  <.icon name="hero-musical-note" class="size-4 shrink-0 text-amber-200" />
+                  <p class="min-w-0 flex-1 truncate text-xs text-zinc-300">
+                    <span class="font-semibold text-zinc-100">{message.media_artist}</span>
+                    <span class="text-zinc-500"> — </span>
+                    <span>{message.body}</span>
+                  </p>
+                  <span class="shrink-0 text-[11px] text-zinc-500">{message.media_duration}</span>
+                </div>
+                <audio
+                  id={"music-message-player-#{dom_id}"}
+                  controls
+                  preload="none"
+                  controlslist="nodownload"
+                  src={Music.proxy_url(message.media_url)}
+                  referrerpolicy="no-referrer"
+                  aria-label={"Воспроизвести #{message.media_artist} — #{message.body}"}
+                  class="mt-2 h-8 w-full"
+                ></audio>
+              </article>
             <% _text -> %>
               <%= if framed_message?(message, @appearance) do %>
                 <p
@@ -391,11 +541,11 @@ defmodule ChatWeb.RoomComponents do
   defp typing_label(nicknames), do: "#{length(nicknames)} участника печатают…"
 
   defp reactable_message?(message) do
-    Map.get(message, :kind, :text) == :text && message.author != "system"
+    Map.get(message, :kind, :text) in [:text, :gif] && message.author != "system"
   end
 
-  defp framed_message?(%{kind: :text, author: author}, appearance)
-       when author != "system",
+  defp framed_message?(%{kind: kind, author: author}, appearance)
+       when kind in [:text, :gif] and author != "system",
        do: Appearance.message_frame?(appearance)
 
   defp framed_message?(_message, _appearance), do: true
@@ -496,9 +646,9 @@ defmodule ChatWeb.RoomComponents do
         </div>
       </div>
 
-      <div id="online-list" class="mt-4 space-y-2">
+      <div id="online-list" class="mt-4 space-y-0">
         <%= for user <- @online do %>
-          <div class="flex items-center gap-2 rounded border border-zinc-800 bg-zinc-950/70 px-3 py-2">
+          <div class="flex items-center gap-2 rounded bg-zinc-950/70 px-3 py-1">
             <button
               :if={user.registered?}
               id={"profile-link-#{user.id}"}
@@ -714,6 +864,9 @@ defmodule ChatWeb.RoomComponents do
                   {"/инфо ", "Открыть анкету"},
                   {"/игнор ", "Скрыть или вернуть чатланина"},
                   {"/игноры", "Список игноров"},
+                  {"/музыка ", "Найти трек и открыть плеер"},
+                  {"/гиф ", "Найти и отправить GIF"},
+                  {"/очистить", "Очистить окно чата только у себя"},
                   {"/выход", "Выйти из чата"}
                 ]
               }
@@ -1129,6 +1282,97 @@ defmodule ChatWeb.RoomComponents do
           appearance={@appearance}
           nickname={@nickname}
         />
+      </section>
+    </div>
+    """
+  end
+
+  attr(:form, :any, required: true)
+  attr(:registered, :boolean, required: true)
+  attr(:nickname, :string, default: nil)
+
+  def feedback_modal(assigns) do
+    ~H"""
+    <div
+      id="feedback-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="feedback-modal-title"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm"
+    >
+      <button
+        id="feedback-modal-backdrop"
+        type="button"
+        phx-click="close_feedback"
+        class="absolute inset-0 cursor-default"
+        aria-label="Закрыть форму обратной связи"
+      ></button>
+      <section class="relative z-10 w-full max-w-lg rounded-3xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl sm:p-6">
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Vertigo</p>
+            <h2 id="feedback-modal-title" class="mt-1 text-2xl font-semibold text-white">
+              Обратная связь
+            </h2>
+            <p class="mt-2 text-sm leading-5 text-zinc-400">
+              Расскажи, что стоит улучшить в чате.
+            </p>
+          </div>
+          <button
+            id="close-feedback"
+            type="button"
+            phx-click="close_feedback"
+            class="rounded-lg border border-zinc-700 p-2 text-zinc-400 transition hover:border-zinc-500 hover:text-white"
+            aria-label="Закрыть форму обратной связи"
+          >
+            <.icon name="hero-x-mark" class="size-5" />
+          </button>
+        </div>
+        <.form
+          for={@form}
+          id="feedback-form"
+          phx-change="validate_feedback"
+          phx-submit="submit_feedback"
+          class="space-y-4"
+        >
+          <.input
+            :if={not @registered}
+            field={@form[:name]}
+            type="text"
+            label="Твоё имя"
+            autocomplete="name"
+            maxlength="40"
+            required
+          />
+          <p :if={@registered} class="text-sm text-zinc-400">
+            Отправим от имени <span class="font-semibold text-zinc-100">{@nickname}</span>.
+          </p>
+          <.input
+            field={@form[:body]}
+            type="textarea"
+            label="Пожелание"
+            maxlength="2000"
+            required
+            placeholder="Например: добавьте поиск по сообщениям…"
+          />
+          <div class="flex justify-end gap-3">
+            <button
+              id="cancel-feedback"
+              type="button"
+              phx-click="close_feedback"
+              class="rounded-lg px-4 py-2 text-sm text-zinc-400 transition hover:text-white"
+            >
+              Отмена
+            </button>
+            <button
+              id="submit-feedback"
+              type="submit"
+              class="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200"
+            >
+              Отправить
+            </button>
+          </div>
+        </.form>
       </section>
     </div>
     """

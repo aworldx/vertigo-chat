@@ -6,9 +6,13 @@ defmodule Chat.Messages.StoredMessage do
 
   schema "room_messages" do
     field :room_id, :string
-    field :kind, Ecto.Enum, values: [:text, :system]
+    field :kind, Ecto.Enum, values: [:text, :system, :gif, :music]
     field :author, :string
     field :body, :string
+    field :media_url, :string
+    field :media_artist, :string
+    field :media_duration, :string
+    field :media_source_url, :string
     field :recipient, :string
     field :theme_id, :string
     field :appearance, :map, default: %{}
@@ -26,6 +30,10 @@ defmodule Chat.Messages.StoredMessage do
       :kind,
       :author,
       :body,
+      :media_url,
+      :media_artist,
+      :media_duration,
+      :media_source_url,
       :recipient,
       :theme_id,
       :appearance,

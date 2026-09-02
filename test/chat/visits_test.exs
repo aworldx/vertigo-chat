@@ -3,6 +3,8 @@ defmodule Chat.VisitsTest do
   use Chat.DataCase
 
   alias Chat.Visits
+  alias Chat.Visits.Visit
+  alias Chat.Repo
 
   test "starts and finishes a visit" do
     entered_at = ~U[2026-08-17 08:00:00Z]
@@ -59,5 +61,23 @@ defmodule Chat.VisitsTest do
 
     assert [^newer] = Visits.list_recent_visits(since: DateTime.add(entered_at, -1, :second))
     assert newer.id != older.id
+  end
+
+  test "cleans up an active visit after its session disappears" do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    entered_at = DateTime.add(now, -6, :minute)
+    session_id = Ecto.UUID.generate()
+
+    visit =
+      Repo.insert!(%Visit{
+        nickname: "stale_visitor",
+        session_id: session_id,
+        entered_at: entered_at,
+        inserted_at: entered_at,
+        updated_at: entered_at
+      })
+
+    assert :ok = Visits.cleanup_stale_visits(now: now)
+    assert %{left_at: ^now} = Repo.get!(Visit, visit.id)
   end
 end

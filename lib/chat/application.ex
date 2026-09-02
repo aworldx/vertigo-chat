@@ -14,6 +14,7 @@ defmodule Chat.Application do
       {DNSCluster, query: Application.get_env(:chat, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Chat.PubSub},
       Chat.Presence,
+      Chat.Visits.Janitor,
       Chat.Security.RateLimiter,
       Chat.Bot.Status,
       Chat.Messages.Registry,

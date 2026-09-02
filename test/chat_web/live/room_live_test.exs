@@ -31,6 +31,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "a[href='/visits'][target='vertigo-visits']")
     assert has_element?(view, "a[href='/help'][target='vertigo-help']", "Помощь")
     assert has_element?(view, "a[href='/library'][target='vertigo-library']")
+    assert has_element?(view, "#show-feedback", "Обратная связь")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
     assert has_element?(view, "#chat-room.h-dvh.max-h-dvh.min-h-0.overflow-hidden")
   end
@@ -45,6 +46,21 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#message-form")
   end
 
+  test "collects feedback from a guest and requires their name", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view |> element("#show-feedback") |> render_click()
+
+    assert has_element?(view, "#feedback-modal[role='dialog'] #feedback-form")
+    assert has_element?(view, "#feedback-form #feedback_name")
+
+    view
+    |> form("#feedback-form", feedback: %{name: "", body: "Добавьте поиск"})
+    |> render_submit()
+
+    assert has_element?(view, "#feedback-form [role='alert']", "can't be blank")
+  end
+
   test "enters the chat with a nickname and renders the initial system message", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
@@ -53,6 +69,9 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Общая комната"
     assert html =~ "Добро пожаловать в чат!"
     assert html =~ "tester"
+    assert has_element?(view, "[data-system-notice='features']", "Новое в чате")
+    assert has_element?(view, "[data-system-notice='features']", "/музыка")
+    assert has_element?(view, "[data-system-notice='features']", "/гиф")
 
     assert has_element?(
              view,
@@ -71,6 +90,9 @@ defmodule ChatWeb.RoomLiveTest do
              view,
              "#command-autocomplete-menu[role='listbox'] [data-command='/помощь']"
            )
+
+    assert has_element?(view, "#command-autocomplete-menu [data-command='/гиф ']")
+    assert has_element?(view, "#command-autocomplete-menu [data-command='/очистить']")
 
     assert has_element?(view, "#emoji-input-controls.flex-wrap.sm\\:flex-nowrap")
     assert has_element?(view, "#message-body.w-full.text-base")
@@ -109,6 +131,25 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#online-list", "returning_member")
     assert_push_event(view, "save-user-auth", %{token: _token})
+  end
+
+  test "restores a registered chatlan during the initial LiveView connection", %{conn: conn} do
+    assert {:ok, user} =
+             Accounts.register_user(%{
+               "nickname" => "initial_returning_member",
+               "password" => "secret123"
+             })
+
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{
+        "user_auth_token" => ChatWeb.UserAuth.sign(user),
+        "chat_session_token" => ChatWeb.UserAuth.sign_chat_session(user.nickname)
+      })
+      |> live(~p"/")
+
+    assert has_element?(view, "#message-form")
+    refute has_element?(view, "#chat-entrance-screen")
   end
 
   test "restores a guest chatlan only from an active saved session", %{conn: conn} do
@@ -202,6 +243,50 @@ defmodule ChatWeb.RoomLiveTest do
     render(observer)
     assert has_element?(observer, "#messages .chat-message-author", "Хичкок")
     assert render(observer) =~ "Как создать саспенс?"
+  end
+
+  test "sends a selected music search result to the shared chat", %{conn: conn} do
+    previous_config = Application.get_env(:chat, Chat.Music)
+
+    Application.put_env(:chat, Chat.Music,
+      endpoint: "https://mp3mn.net/",
+      plug: {Req.Test, __MODULE__},
+      retry: false
+    )
+
+    on_exit(fn -> Application.put_env(:chat, Chat.Music, previous_config) end)
+
+    Req.Test.expect(__MODULE__, fn request ->
+      Req.Test.html(request, """
+      <ul class="playlist">
+        <li>
+          <a class="playlist-play" data-url="https://mn1.sunproxy.net/file/test/Bakr_-_Privet.mp3">Прослушать</a>
+          <a href="/t/165-bakr_privet/" class="playlist-down">Скачать</a>
+          <span class="playlist-duration">2:35</span>
+          <span class="playlist-name-artist"><a>Bakr</a></span>
+          <span class="playlist-name-title"><a>Привет</a></span>
+        </li>
+      </ul>
+      """)
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "music_picker")
+
+    view
+    |> form("#message-form", message: %{body: "/музыка Bakr Привет"})
+    |> render_submit()
+
+    render_async(view)
+
+    assert has_element?(view, "[id^='send-music-']", "В чат")
+
+    view
+    |> element("[id^='send-music-']")
+    |> render_click()
+
+    assert has_element?(view, "[data-message-kind='music'] [id^='music-message-player-']")
+    refute has_element?(view, "[data-command-result='music']")
   end
 
   test "does not answer a private message addressed to Hitchcock", %{conn: conn} do
@@ -1215,6 +1300,24 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(view, "[data-command-result='who']")
     assert has_element?(view, "[data-command-result='who'] button", "command_user")
+  end
+
+  test "clears only the current chat frame", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "clear_frame_user")
+
+    view
+    |> form("#message-form", message: %{body: "Сообщение для очистки"})
+    |> render_submit()
+
+    assert has_element?(view, ".chat-message-body", "Сообщение для очистки")
+
+    view
+    |> form("#message-form", message: %{body: "/очистить"})
+    |> render_submit()
+
+    refute has_element?(view, ".chat-message-body", "Сообщение для очистки")
+    refute has_element?(view, "[data-command-result='clear']")
   end
 
   test "toggles ignored chatlan messages without publishing the command", %{conn: conn} do

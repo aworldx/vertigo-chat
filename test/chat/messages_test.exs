@@ -123,6 +123,92 @@ defmodule Chat.MessagesTest do
     end
   end
 
+  describe "send_gif/5" do
+    test "broadcasts a trusted GIF as a persistent public message" do
+      room_id = "gif-room"
+      :ok = Messages.subscribe(room_id)
+
+      assert {:ok, message} =
+               Messages.send_gif(
+                 "alice",
+                 room_id,
+                 %{
+                   title: "Аплодисменты",
+                   url: "https://gifsnap.com/api/v1/media/animated-gif"
+                 },
+                 %{},
+                 Subject.internal(:gif_test)
+               )
+
+      assert message.kind == :gif
+      assert message.media_url == "https://gifsnap.com/api/v1/media/animated-gif"
+      assert_receive {:message_created, ^message}
+      assert [stored] = Messages.list_recent_messages(room_id)
+      assert stored.kind == :gif
+      assert stored.media_url == message.media_url
+    end
+
+    test "rejects GIFs from an untrusted media host" do
+      assert {:error, :invalid_gif} =
+               Messages.send_gif(
+                 "alice",
+                 "gif-room",
+                 %{title: "Unsafe", url: "https://example.com/gif"},
+                 %{},
+                 Subject.internal(:unsafe_gif_test)
+               )
+    end
+  end
+
+  describe "send_music/5" do
+    test "broadcasts a selected track as a persistent public message" do
+      room_id = "music-room"
+      :ok = Messages.subscribe(room_id)
+
+      assert {:ok, message} =
+               Messages.send_music(
+                 "alice",
+                 room_id,
+                 %{
+                   artist: "Bakr",
+                   title: "Привет",
+                   duration: "2:35",
+                   audio_url: "https://mn1.sunproxy.net/file/test/Bakr_-_Privet.mp3",
+                   source_url: "https://mp3mn.net/t/165-bakr_privet/"
+                 },
+                 %{},
+                 Subject.internal(:music_test)
+               )
+
+      assert message.kind == :music
+      assert message.media_artist == "Bakr"
+      assert message.media_duration == "2:35"
+      assert_receive {:message_created, ^message}
+
+      assert [stored] = Messages.list_recent_messages(room_id)
+      assert stored.kind == :music
+      assert stored.media_url == message.media_url
+      assert stored.media_source_url == message.media_source_url
+    end
+
+    test "rejects tracks from an untrusted audio host" do
+      assert {:error, :invalid_track} =
+               Messages.send_music(
+                 "alice",
+                 "music-room",
+                 %{
+                   artist: "Unsafe",
+                   title: "Track",
+                   duration: "2:35",
+                   audio_url: "https://example.com/file/track.mp3",
+                   source_url: "https://mp3mn.net/t/unsafe/"
+                 },
+                 %{},
+                 Subject.internal(:unsafe_music_test)
+               )
+    end
+  end
+
   test "room_topic/1 returns the canonical realtime topic" do
     assert Messages.room_topic("lobby") == "room:lobby"
   end

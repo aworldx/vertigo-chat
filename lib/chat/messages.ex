@@ -9,6 +9,8 @@ defmodule Chat.Messages do
 
   alias Chat.Accounts.User
   alias Chat.Appearance
+  alias Chat.Gifs
+  alias Chat.Music
   alias Chat.Messages.Registry
   alias Chat.Messages.History
   alias Chat.Ranks
@@ -87,6 +89,72 @@ defmodule Chat.Messages do
 
   def send_public_message(_author, _room_id, _attrs, %Subject{}),
     do: {:error, :invalid_message}
+
+  def send_gif(author, room_id, gif, attrs, %Subject{} = subject)
+      when is_binary(author) and is_binary(room_id) and is_map(gif) and is_map(attrs) do
+    with {:ok, gif} <- normalize_gif(gif),
+         :ok <- allow_gif_message(subject) do
+      broadcast_gif(author, room_id, gif, attrs, nil)
+    end
+  end
+
+  def send_gif(_author, _room_id, _gif, _attrs, %Subject{}), do: {:error, :invalid_gif}
+
+  def send_registered_gif(
+        %User{id: user_id} = user,
+        room_id,
+        gif,
+        attrs,
+        %Subject{actor_id: user_id} = subject
+      )
+      when is_binary(room_id) and is_map(gif) and is_map(attrs) do
+    with {:ok, gif} <- normalize_gif(gif),
+         :ok <- allow_gif_message(subject),
+         {:ok, updated_user} <- Ranks.public_message_sent(user),
+         {:ok, message} <-
+           broadcast_gif(updated_user.nickname, room_id, gif, attrs, Ranks.for_user(updated_user)) do
+      {:ok, message, updated_user}
+    end
+  end
+
+  def send_registered_gif(_user, _room_id, _gif, _attrs, %Subject{}),
+    do: {:error, :invalid_gif}
+
+  def send_music(author, room_id, track, attrs, %Subject{} = subject)
+      when is_binary(author) and is_binary(room_id) and is_map(track) and is_map(attrs) do
+    with {:ok, track} <- Music.normalize_track(track),
+         :ok <- allow_music_message(subject) do
+      broadcast_music(author, room_id, track, attrs, nil)
+    end
+  end
+
+  def send_music(_author, _room_id, _track, _attrs, %Subject{}), do: {:error, :invalid_track}
+
+  def send_registered_music(
+        %User{id: user_id} = user,
+        room_id,
+        track,
+        attrs,
+        %Subject{actor_id: user_id} = subject
+      )
+      when is_binary(room_id) and is_map(track) and is_map(attrs) do
+    with {:ok, track} <- Music.normalize_track(track),
+         :ok <- allow_music_message(subject),
+         {:ok, updated_user} <- Ranks.public_message_sent(user),
+         {:ok, message} <-
+           broadcast_music(
+             updated_user.nickname,
+             room_id,
+             track,
+             attrs,
+             Ranks.for_user(updated_user)
+           ) do
+      {:ok, message, updated_user}
+    end
+  end
+
+  def send_registered_music(_user, _room_id, _track, _attrs, %Subject{}),
+    do: {:error, :invalid_track}
 
   def list_recent_messages(room_id \\ @default_room_id) do
     case History.list_recent(room_id) do
@@ -209,6 +277,32 @@ defmodule Chat.Messages do
     persist_and_broadcast(room_id, message)
   end
 
+  defp broadcast_gif(author, room_id, gif, attrs, rank) do
+    message =
+      build_gif_message(
+        author,
+        gif,
+        Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
+        Appearance.normalize(Map.get(attrs, "appearance") || %{}),
+        rank
+      )
+
+    persist_and_broadcast(room_id, message)
+  end
+
+  defp broadcast_music(author, room_id, track, attrs, rank) do
+    message =
+      build_music_message(
+        author,
+        track,
+        Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
+        Appearance.normalize(Map.get(attrs, "appearance") || %{}),
+        rank
+      )
+
+    persist_and_broadcast(room_id, message)
+  end
+
   defp persist_and_broadcast(room_id, message) do
     with {:ok, message} <- History.save(room_id, message) do
       :ok = Registry.append(room_id, message)
@@ -268,6 +362,70 @@ defmodule Chat.Messages do
       |> maybe_put_rank(rank),
       timestamp()
     )
+  end
+
+  defp build_gif_message(author, gif, theme_id, appearance, rank) do
+    Map.merge(
+      %{
+        id: System.unique_integer([:positive]),
+        kind: :gif,
+        author: author,
+        body: gif.title,
+        media_url: gif.url,
+        recipient: nil,
+        reactions: %{},
+        theme_id: theme_id,
+        appearance: appearance
+      }
+      |> maybe_put_rank(rank),
+      timestamp()
+    )
+  end
+
+  defp build_music_message(author, track, theme_id, appearance, rank) do
+    Map.merge(
+      %{
+        id: System.unique_integer([:positive]),
+        kind: :music,
+        author: author,
+        body: track.title,
+        media_url: track.audio_url,
+        media_artist: track.artist,
+        media_duration: track.duration,
+        media_source_url: track.source_url,
+        recipient: nil,
+        reactions: %{},
+        theme_id: theme_id,
+        appearance: appearance
+      }
+      |> maybe_put_rank(rank),
+      timestamp()
+    )
+  end
+
+  defp normalize_gif(gif) do
+    url = Map.get(gif, :url) || Map.get(gif, "url")
+    title = Map.get(gif, :title) || Map.get(gif, "title") || "GIF"
+
+    cond do
+      not Gifs.valid_media_url?(url) -> {:error, :invalid_gif}
+      not is_binary(title) -> {:error, :invalid_gif}
+      true -> {:ok, %{url: url, title: String.trim(title) |> String.slice(0, 160)}}
+    end
+  end
+
+  defp allow_gif_message(subject) do
+    case Security.allow_message(subject) do
+      :ok -> :ok
+      {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
+    end
+  end
+
+  defp allow_music_message(subject) do
+    case Security.allow_message(subject) do
+      :ok -> :ok
+      {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
+    end
   end
 
   defp maybe_put_rank(message, nil), do: message

@@ -55,26 +55,33 @@
   text-rendering: optimizeLegibility;
 }
 
+html[data-chat-session-restoring] #chat-entrance-screen {
+  display: none;
+}
+
+html[data-chat-session-restoring] #chat-session-restoring {
+  display: flex;
+}
+
 @keyframes chat-message-enter {
   0% {
     opacity: 0;
-    transform: translate3d(0, 1rem, 0) scale(0.985);
+    transform: translate3d(0, 1.5rem, 0);
   }
 
-  72% {
-    opacity: 0.96;
-    transform: translate3d(0, 0.08rem, 0) scale(0.999);
+  45% {
+    opacity: 0.72;
+    transform: translate3d(0, 0.55rem, 0);
   }
 
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 .chat-message-entry {
-  transform-origin: center bottom;
-  animation: chat-message-enter 680ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+  animation: chat-message-enter 850ms cubic-bezier(0.16, 0.78, 0.3, 1) both;
 }
 
 #messages > .chat-message-entry + .chat-message-entry {
@@ -326,6 +333,11 @@ a:hover .vertigo-mark {
 .chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] > :not([role="dialog"]) {
   position: relative;
   z-index: 1;
+}
+
+/* Выпадающее меню должно быть над полупрозрачным основным слоем, иначе тот размывает его. */
+.chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] > header:not([role="dialog"]) {
+  z-index: 50;
 }
 
 @media (max-width: 767px) {

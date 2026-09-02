@@ -15,6 +15,17 @@ defmodule ChatWeb.Router do
     }
   end
 
+  pipeline :media do
+    plug :put_secure_browser_headers
+  end
+
+  scope "/", ChatWeb do
+    pipe_through :media
+
+    get "/gif-proxy", GifProxyController, :show
+    get "/music-proxy", MusicProxyController, :show
+  end
+
   scope "/", ChatWeb do
     pipe_through :browser
 

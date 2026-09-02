@@ -10,6 +10,7 @@ defmodule Chat.Visits do
   alias Chat.Visits.Visit
 
   @history_hours 48
+  @stale_after_seconds 300
 
   def start_visit(subject, entered_at \\ DateTime.utc_now(), opts \\ [])
 
@@ -64,6 +65,32 @@ defmodule Chat.Visits do
 
   def finish_visit(%Visit{} = visit, _left_at), do: {:ok, visit}
 
+  @doc """
+  Finishes active visits whose session has disappeared from the online chat.
+
+  A short grace period allows a browser refresh to reconnect and reuse the
+  same active visit before it is considered abandoned.
+  """
+  def cleanup_stale_visits(opts \\ []) do
+    now = opts |> Keyword.get(:now, DateTime.utc_now()) |> normalize_datetime()
+    cutoff = DateTime.add(now, -@stale_after_seconds, :second)
+    {online_session_ids, online_nicknames} = online_participants()
+
+    Visit
+    |> where([visit], is_nil(visit.left_at))
+    |> where([visit], visit.updated_at < ^cutoff)
+    |> Repo.all()
+    |> Enum.reject(fn visit ->
+      MapSet.member?(online_session_ids, visit.session_id) or
+        MapSet.member?(online_nicknames, visit.nickname)
+    end)
+    |> Enum.each(fn visit ->
+      finish_visit(visit, now)
+    end)
+
+    :ok
+  end
+
   def list_recent_visits(opts \\ []) do
     since =
       opts
@@ -80,6 +107,15 @@ defmodule Chat.Visits do
   end
 
   def history_hours, do: @history_hours
+
+  defp online_participants do
+    online = Chatlans.list_online("lobby")
+
+    {
+      online |> Enum.map(&Map.get(&1, :session_id)) |> Enum.reject(&is_nil/1) |> MapSet.new(),
+      online |> Enum.map(& &1.nickname) |> MapSet.new()
+    }
+  end
 
   defp normalize_datetime(%DateTime{} = datetime), do: DateTime.truncate(datetime, :second)
 
