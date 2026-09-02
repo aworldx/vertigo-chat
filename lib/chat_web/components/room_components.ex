@@ -333,14 +333,14 @@ defmodule ChatWeb.RoomComponents do
                 </div>
               </div>
             <% :gif -> %>
-              <figure class="mt-2 max-w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/80">
+              <figure class="mt-2 max-w-48 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/80">
                 <img
                   id={"gif-message-#{dom_id}"}
                   src={Gifs.proxy_url(message.media_url)}
                   alt={message.body}
                   loading="lazy"
                   referrerpolicy="no-referrer"
-                  class="max-h-56 w-full object-contain"
+                  class="max-h-48 w-full object-contain"
                 />
                 <figcaption class="px-2 py-1 text-xs text-zinc-500">
                   <button
