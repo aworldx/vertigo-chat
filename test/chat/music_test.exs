@@ -51,6 +51,29 @@ defmodule Chat.MusicTest do
     assert {:error, :not_found} = Music.search("unknown")
   end
 
+  test "returns at most fifteen tracks for three preview pages" do
+    Req.Test.expect(__MODULE__, fn conn ->
+      tracks =
+        for index <- 1..16 do
+          """
+          <li>
+            <a class="playlist-play" data-url="https://mn1.sunproxy.net/file/test/track-#{index}.mp3">Прослушать</a>
+            <a href="/t/track-#{index}/" class="playlist-down">Скачать</a>
+            <span class="playlist-duration">2:30</span>
+            <span class="playlist-name-artist"><a>Исполнитель #{index}</a></span>
+            <span class="playlist-name-title"><a>Трек #{index}</a></span>
+          </li>
+          """
+        end
+
+      Req.Test.html(conn, "<ul>#{tracks}</ul>")
+    end)
+
+    assert {:ok, tracks} = Music.search("тест")
+    assert length(tracks) == 15
+    assert List.last(tracks).title == "Трек 15"
+  end
+
   test "normalizes only tracks from trusted MP3mn and Sunproxy URLs" do
     assert {:ok, track} =
              Music.normalize_track(%{

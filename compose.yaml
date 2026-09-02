@@ -12,12 +12,15 @@ x-app-environment: &app-environment
   OPENAI_BOT_DAILY_TOKEN_LIMIT: ${OPENAI_BOT_DAILY_TOKEN_LIMIT:-120000}
   OPENAI_BOT_TOKEN_WARNING_PERCENT: ${OPENAI_BOT_TOKEN_WARNING_PERCENT:-90}
   OPENAI_BOT_UTC_OFFSET_MINUTES: ${OPENAI_BOT_UTC_OFFSET_MINUTES:-180}
+  MUSIC_PROXY_FILE: /run/secrets/music_proxies
 
 x-app-image: &app-image
   build:
     context: .
   image: chat-app:latest
   environment: *app-environment
+  volumes:
+    - ${MUSIC_PROXY_HOST_FILE:-./.music_proxies}:/run/secrets/music_proxies:ro
 
 services:
   migrate:

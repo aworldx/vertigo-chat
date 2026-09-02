@@ -2,8 +2,9 @@ defmodule Chat.Music do
   @moduledoc "Searches MP3mn's public catalogue and returns playable track metadata."
 
   @endpoint "https://mp3mn.net/"
-  @max_results 5
+  @max_results 15
   @max_query_length 120
+  @proxy_attempts 3
 
   @type track :: %{
           artist: String.t(),
@@ -75,11 +76,34 @@ defmodule Chat.Music do
 
   defp fetch_results(query) do
     config = Application.get_env(:chat, __MODULE__, [])
+    endpoint = config[:endpoint] || @endpoint
+    proxies = Chat.Music.ProxyPool.candidates(@proxy_attempts)
 
-    with {:ok, response} <-
-           Req.get(config[:endpoint] || @endpoint, request_options(config, query)),
+    if proxies == [] do
+      fetch_results(endpoint, config, query, nil)
+    else
+      fetch_results_through_proxies(endpoint, config, query, proxies)
+    end
+  end
+
+  defp fetch_results_through_proxies(endpoint, config, query, proxies) do
+    Enum.reduce_while(proxies, {:error, :provider_unavailable}, fn proxy, _result ->
+      case fetch_results(endpoint, config, query, proxy) do
+        {:ok, _tracks} = result ->
+          Chat.Music.ProxyPool.report_success(proxy.id)
+          {:halt, result}
+
+        {:error, _reason} ->
+          Chat.Music.ProxyPool.report_failure(proxy.id)
+          {:cont, {:error, :provider_unavailable}}
+      end
+    end)
+  end
+
+  defp fetch_results(endpoint, config, query, proxy) do
+    with {:ok, response} <- Req.get(endpoint, request_options(config, query, proxy)),
          :ok <- successful_status(response.status),
-         tracks = parse_tracks(response.body, config[:endpoint] || @endpoint),
+         tracks = parse_tracks(response.body, endpoint),
          false <- tracks == [] do
       {:ok, tracks}
     else
@@ -89,7 +113,7 @@ defmodule Chat.Music do
     end
   end
 
-  defp request_options(config, query) do
+  defp request_options(config, query, proxy) do
     options = [
       params: [song: query],
       headers: [{"user-agent", "VertigoChat/1.0 (+https://mp3mn.net/)"}],
@@ -97,7 +121,19 @@ defmodule Chat.Music do
       retry: Keyword.get(config, :retry, :transient)
     ]
 
-    if config[:plug], do: Keyword.put(options, :plug, config[:plug]), else: options
+    options = if config[:plug], do: Keyword.put(options, :plug, config[:plug]), else: options
+
+    if is_nil(proxy) do
+      options
+    else
+      options
+      |> Keyword.put(:retry, false)
+      |> Keyword.put(:connect_options,
+        timeout: 8_000,
+        proxy: {:http, proxy.host, proxy.port, []},
+        proxy_headers: [{"proxy-authorization", proxy.authorization}]
+      )
+    end
   end
 
   defp successful_status(status) when status in 200..299, do: :ok

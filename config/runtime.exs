@@ -57,6 +57,8 @@ config :chat, Chat.Bot.Usage,
   warning_percent: warning_percent,
   utc_offset_minutes: utc_offset_minutes
 
+config :chat, Chat.Music, proxy_file: System.get_env("MUSIC_PROXY_FILE")
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :chat, ChatWeb.Endpoint,

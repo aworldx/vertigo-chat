@@ -289,6 +289,61 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "[data-command-result='music']")
   end
 
+  test "paginates music search results in groups of five", %{conn: conn} do
+    previous_config = Application.get_env(:chat, Chat.Music)
+
+    Application.put_env(:chat, Chat.Music,
+      endpoint: "https://mp3mn.net/",
+      plug: {Req.Test, __MODULE__},
+      retry: false
+    )
+
+    on_exit(fn -> Application.put_env(:chat, Chat.Music, previous_config) end)
+
+    Req.Test.expect(__MODULE__, fn request ->
+      tracks =
+        for index <- 1..6 do
+          """
+          <li>
+            <a class="playlist-play" data-url="https://mn1.sunproxy.net/file/test/track-#{index}.mp3">Прослушать</a>
+            <a href="/t/track-#{index}/" class="playlist-down">Скачать</a>
+            <span class="playlist-duration">3:#{index}0</span>
+            <span class="playlist-name-artist"><a>Исполнитель #{index}</a></span>
+            <span class="playlist-name-title"><a>Трек #{index}</a></span>
+          </li>
+          """
+        end
+
+      Req.Test.html(request, "<ul>#{tracks}</ul>")
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "music_pagination")
+
+    view
+    |> form("#message-form", message: %{body: "/музыка тест"})
+    |> render_submit()
+
+    render_async(view)
+
+    for index <- 1..5 do
+      assert has_element?(view, "[id^='music-track-'][id$='-#{index}']")
+    end
+
+    refute has_element?(view, "[id^='music-track-'][id$='-6']")
+    assert has_element?(view, "[id^='music-page-'][phx-value-page='2']", "2")
+    assert has_element?(view, "[data-command-result='music']", "Исполнитель 1")
+
+    view
+    |> element("[id^='music-page-'][phx-value-page='2']")
+    |> render_click()
+
+    assert has_element?(view, "[id^='music-track-'][id$='-6']")
+    refute has_element?(view, "[id^='music-track-'][id$='-1']")
+    assert has_element?(view, "[data-command-result='music']", "Исполнитель 6")
+    refute has_element?(view, "[data-command-result='music']", "Исполнитель 1")
+  end
+
   test "does not answer a private message addressed to Hitchcock", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "private_bot_sender")

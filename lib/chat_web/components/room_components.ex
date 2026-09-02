@@ -180,7 +180,7 @@ defmodule ChatWeb.RoomComponents do
                       do: "mt-3 flex gap-2 overflow-x-auto pb-1",
                       else:
                         if(message.command == :music,
-                          do: "mt-3 space-y-2",
+                          do: "mt-3 space-y-1.5",
                           else: "mt-3 flex flex-wrap gap-2"
                         )
                   }
@@ -209,14 +209,13 @@ defmodule ChatWeb.RoomComponents do
                     <article
                       :if={Map.get(entry, :type) == :track}
                       id={"music-track-#{dom_id}-#{entry.id}"}
-                      class="flex w-full items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-1.5"
+                      class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 rounded-md border border-zinc-800 bg-zinc-950/70 px-2.5 py-2 sm:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)_auto] sm:gap-3"
                     >
-                      <div class="min-w-0 flex-1">
-                        <div class="min-w-0">
-                          <p class="truncate text-xs font-semibold text-zinc-100">{entry.artist}</p>
-                          <p class="truncate text-[11px] text-zinc-400">{entry.title}</p>
-                        </div>
-                        <span class="text-[11px] text-zinc-500">{entry.duration}</span>
+                      <div class="min-w-0 truncate text-xs leading-4 text-zinc-300">
+                        <span class="font-semibold text-zinc-100">{entry.artist}</span>
+                        <span class="text-zinc-500"> — </span>
+                        <span>{entry.title}</span>
+                        <span class="ml-1 text-[11px] text-zinc-500">{entry.duration}</span>
                       </div>
                       <audio
                         id={"music-player-#{dom_id}-#{entry.id}"}
@@ -226,7 +225,7 @@ defmodule ChatWeb.RoomComponents do
                         src={Music.proxy_url(entry.audio_url)}
                         referrerpolicy="no-referrer"
                         aria-label={"Воспроизвести #{entry.artist} — #{entry.title}"}
-                        class="h-7 w-28 shrink-0 sm:w-36"
+                        class="col-span-2 h-8 w-full sm:col-span-1"
                       ></audio>
                       <button
                         id={"send-music-#{dom_id}-#{entry.id}"}
@@ -263,6 +262,30 @@ defmodule ChatWeb.RoomComponents do
                     </p>
                   <% end %>
                 </div>
+                <nav
+                  :if={message.command == :music && Map.get(message, :music_pages, 1) > 1}
+                  id={"music-pagination-#{dom_id}"}
+                  class="mt-2 flex items-center justify-center gap-1.5"
+                  aria-label="Страницы результатов музыки"
+                >
+                  <button
+                    :for={page <- 1..message.music_pages}
+                    id={"music-page-#{dom_id}-#{page}"}
+                    type="button"
+                    phx-click="change_music_page"
+                    phx-value-page={page}
+                    aria-current={if(page == message.music_page, do: "page", else: nil)}
+                    class={[
+                      "flex size-7 items-center justify-center rounded-md border text-xs font-semibold transition",
+                      page == message.music_page &&
+                        "border-amber-200 bg-amber-300/15 text-amber-100",
+                      page != message.music_page &&
+                        "border-zinc-700 text-zinc-400 hover:border-amber-300/60 hover:text-amber-100"
+                    ]}
+                  >
+                    {page}
+                  </button>
+                </nav>
               </section>
             <% kind when kind in [:image, :audio] -> %>
               <div

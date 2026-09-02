@@ -24,6 +24,7 @@ defmodule ChatWeb.RoomLive do
   alias ChatWeb.UserAuth
 
   @room_id "lobby"
+  @music_page_size 5
 
   @impl true
   def mount(_params, _session, socket) do
@@ -63,6 +64,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:bot_pending?, false)
       |> assign(:music_pending?, false)
       |> assign(:music_results, [])
+      |> assign(:music_page, 1)
       |> assign(:music_search_message_id, nil)
       |> assign(:gif_pending?, false)
       |> assign(:gif_results, [])
@@ -319,6 +321,26 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("send_music", _params, socket), do: {:noreply, socket}
+
+  def handle_event("change_music_page", %{"page" => page}, %{assigns: %{joined?: true}} = socket) do
+    case music_page(page, socket.assigns.music_results) do
+      nil ->
+        {:noreply, socket}
+
+      page ->
+        {:noreply,
+         socket
+         |> assign(:music_page, page)
+         |> replace_music_search_result(
+           "Музыка",
+           "Выбери трек для общей комнаты.",
+           socket.assigns.music_results,
+           page
+         )}
+    end
+  end
+
+  def handle_event("change_music_page", _params, socket), do: {:noreply, socket}
 
   def handle_event("typing", %{"typing" => typing?}, %{assigns: %{joined?: true}} = socket)
       when is_boolean(typing?) do
@@ -758,6 +780,7 @@ defmodule ChatWeb.RoomLive do
     |> assign(:typing_peers, %{})
     |> assign(:music_pending?, false)
     |> assign(:music_results, [])
+    |> assign(:music_page, 1)
     |> assign(:music_search_message_id, nil)
     |> assign(:gif_pending?, false)
     |> assign(:gif_results, [])
@@ -790,11 +813,13 @@ defmodule ChatWeb.RoomLive do
      socket
      |> assign(:music_pending?, false)
      |> assign(:music_results, entries)
+     |> assign(:music_page, 1)
      |> assign(:message_error, nil)
      |> replace_music_search_result(
        "Музыка",
        "Выбери трек для общей комнаты.",
-       entries
+       entries,
+       1
      )}
   end
 
@@ -1194,6 +1219,8 @@ defmodule ChatWeb.RoomLive do
       socket
       |> remove_music_search_result()
       |> assign(:music_pending?, true)
+      |> assign(:music_results, [])
+      |> assign(:music_page, 1)
       |> assign(:music_search_message_id, search_message_id)
       |> assign(:message_error, nil)
       |> insert_command_result(:music, "Поиск музыки", "Ищу «#{query}»…", [], search_message_id)
@@ -1299,6 +1326,7 @@ defmodule ChatWeb.RoomLive do
          socket
          |> assign(:current_user, updated_user)
          |> assign(:music_results, [])
+         |> assign(:music_page, 1)
          |> remove_music_search_result()
          |> update_presence()}
 
@@ -1316,7 +1344,11 @@ defmodule ChatWeb.RoomLive do
            message_security_subject(socket)
          ) do
       {:ok, _message} ->
-        {:noreply, socket |> assign(:music_results, []) |> remove_music_search_result()}
+        {:noreply,
+         socket
+         |> assign(:music_results, [])
+         |> assign(:music_page, 1)
+         |> remove_music_search_result()}
 
       {:error, reason} ->
         {:noreply, assign(socket, :message_error, message_error(reason))}
@@ -1546,22 +1578,28 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  defp insert_command_result(socket, command, title, body, entries \\ [], id \\ nil) do
+  defp insert_command_result(socket, command, title, body, entries \\ [], id \\ nil, extra \\ %{}) do
     sent_at = DateTime.utc_now()
 
-    insert_message(socket, %{
-      id: id || "command-#{System.unique_integer([:positive])}",
-      kind: :command,
-      command: command,
-      author: "system",
-      title: title,
-      body: body,
-      entries: entries,
-      recipient: nil,
-      reactions: %{},
-      sent_at: sent_at,
-      at: Calendar.strftime(sent_at, "%H:%M")
-    })
+    insert_message(
+      socket,
+      Map.merge(
+        %{
+          id: id || "command-#{System.unique_integer([:positive])}",
+          kind: :command,
+          command: command,
+          author: "system",
+          title: title,
+          body: body,
+          entries: entries,
+          recipient: nil,
+          reactions: %{},
+          sent_at: sent_at,
+          at: Calendar.strftime(sent_at, "%H:%M")
+        },
+        extra
+      )
+    )
   end
 
   defp replace_gif_search_result(socket, title, body, entries \\ []) do
@@ -1574,10 +1612,14 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  defp replace_music_search_result(socket, title, body, entries \\ []) do
+  defp replace_music_search_result(socket, title, body, entries \\ [], page \\ 1) do
+    page = music_page(page, entries) || 1
+    pagination = music_pagination(entries, page)
+    page_entries = music_page_entries(entries, page)
+
     case socket.assigns.music_search_message_id do
-      nil -> insert_command_result(socket, :music, title, body, entries)
-      id -> insert_command_result(socket, :music, title, body, entries, id)
+      nil -> insert_command_result(socket, :music, title, body, page_entries, nil, pagination)
+      id -> insert_command_result(socket, :music, title, body, page_entries, id, pagination)
     end
   end
 
@@ -1629,6 +1671,33 @@ defmodule ChatWeb.RoomLive do
     |> Enum.map(fn {track, index} ->
       Map.put(track, :type, :track) |> Map.put(:id, index)
     end)
+  end
+
+  defp music_page(value, entries) when is_binary(value) do
+    case Integer.parse(value) do
+      {page, ""} -> music_page(page, entries)
+      _invalid -> nil
+    end
+  end
+
+  defp music_page(page, entries) when is_integer(page) and is_list(entries) do
+    if page in 1..music_page_count(entries), do: page, else: nil
+  end
+
+  defp music_page(_value, _entries), do: nil
+
+  defp music_page_count(entries), do: max(1, ceil(length(entries) / @music_page_size))
+
+  defp music_page_entries(entries, page) do
+    entries
+    |> Enum.drop((page - 1) * @music_page_size)
+    |> Enum.take(@music_page_size)
+  end
+
+  defp music_pagination([], _page), do: %{}
+
+  defp music_pagination(entries, page) do
+    %{music_page: page, music_pages: music_page_count(entries)}
   end
 
   defp gif_entries(gifs) do
