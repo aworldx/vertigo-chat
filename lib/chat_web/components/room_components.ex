@@ -385,6 +385,14 @@ defmodule ChatWeb.RoomComponents do
                   <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-300/10 text-amber-200">
                     <.icon name="hero-musical-note" class="size-4" />
                   </span>
+                  <span
+                    class="shrink-0 text-base leading-none motion-safe:animate-spin motion-reduce:animate-none"
+                    role="img"
+                    aria-label="Музыка играет"
+                    title="Музыка играет"
+                  >
+                    💿
+                  </span>
                   <p class="min-w-0 flex-1 truncate text-sm text-zinc-300">
                     <span class="font-semibold text-zinc-100">{message.media_artist}</span>
                     <span class="text-zinc-500"> — </span>
