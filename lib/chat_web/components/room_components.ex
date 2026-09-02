@@ -47,9 +47,12 @@ defmodule ChatWeb.RoomComponents do
             "chat-message-entry group/message relative transition-colors",
             Map.get(message, :kind) == :system && "px-3 py-0.5 text-center",
             Map.get(message, :kind) == :command && "px-1 py-1",
-            Map.get(message, :kind) not in [:system, :command] &&
+            Map.get(message, :kind) not in [:system, :command, :music] &&
               framed_message?(message, @appearance) &&
               "rounded border px-3 pb-2 pt-5 shadow-sm",
+            Map.get(message, :kind) == :music &&
+              framed_message?(message, @appearance) &&
+              "w-full max-w-xl border-zinc-700 bg-zinc-950/90 px-3 py-2.5",
             Map.get(message, :kind) not in [:system, :command] &&
               not framed_message?(message, @appearance) && "px-1",
             Map.get(message, :kind) != :system && not framed_message?(message, @appearance) &&
@@ -60,7 +63,7 @@ defmodule ChatWeb.RoomComponents do
             Map.get(message, :kind) == :private && framed_message?(message, @appearance) &&
               Map.get(message, :recipient) != @nickname &&
               "border-sky-400/50 bg-sky-400/10",
-            Map.get(message, :kind) not in [:private, :system] &&
+            Map.get(message, :kind) not in [:private, :system, :music] &&
               framed_message?(message, @appearance) &&
               Map.get(message, :recipient) != @nickname &&
               "border-zinc-800 bg-zinc-900"
@@ -68,7 +71,7 @@ defmodule ChatWeb.RoomComponents do
         >
           <button
             :if={
-              Map.get(message, :kind) not in [:system, :command] &&
+              Map.get(message, :kind) not in [:system, :command, :music] &&
                 framed_message?(message, @appearance)
             }
             id={"message-author-#{dom_id}"}
@@ -82,7 +85,7 @@ defmodule ChatWeb.RoomComponents do
           </button>
           <time
             :if={
-              Map.get(message, :kind) not in [:system, :command] &&
+              Map.get(message, :kind) not in [:system, :command, :music] &&
                 framed_message?(message, @appearance)
             }
             id={"message-time-#{dom_id}"}
@@ -356,15 +359,38 @@ defmodule ChatWeb.RoomComponents do
                 </figcaption>
               </figure>
             <% :music -> %>
-              <article class="mt-2 max-w-md rounded-lg border border-zinc-700 bg-zinc-950/80 px-2.5 py-2">
-                <div class="flex items-center gap-2">
-                  <.icon name="hero-musical-note" class="size-4 shrink-0 text-amber-200" />
-                  <p class="min-w-0 flex-1 truncate text-xs text-zinc-300">
+              <article class="max-w-xl">
+                <div class="flex items-center justify-between gap-3 text-[11px] leading-4">
+                  <button
+                    id={"message-author-#{dom_id}"}
+                    type="button"
+                    phx-hook="PrivateNickname"
+                    data-private-nickname={message.author}
+                    class="chat-message-author min-w-0 truncate font-semibold hover:underline"
+                    style={appearance_style(message)}
+                  >
+                    {message.author}
+                  </button>
+                  <time
+                    id={"message-time-#{dom_id}"}
+                    datetime={Map.get(message, :sent_at)}
+                    phx-hook=".LocalMessageTime"
+                    phx-update="ignore"
+                    class="shrink-0 text-zinc-500"
+                  >
+                    {message.at}
+                  </time>
+                </div>
+                <div class="mt-1 flex items-center gap-2">
+                  <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-300/10 text-amber-200">
+                    <.icon name="hero-musical-note" class="size-4" />
+                  </span>
+                  <p class="min-w-0 flex-1 truncate text-sm text-zinc-300">
                     <span class="font-semibold text-zinc-100">{message.media_artist}</span>
                     <span class="text-zinc-500"> — </span>
                     <span>{message.body}</span>
                   </p>
-                  <span class="shrink-0 text-[11px] text-zinc-500">{message.media_duration}</span>
+                  <span class="shrink-0 text-xs text-emerald-200">{message.media_duration}</span>
                 </div>
                 <audio
                   id={"music-message-player-#{dom_id}"}
@@ -374,7 +400,7 @@ defmodule ChatWeb.RoomComponents do
                   src={Music.proxy_url(message.media_url)}
                   referrerpolicy="no-referrer"
                   aria-label={"Воспроизвести #{message.media_artist} — #{message.body}"}
-                  class="mt-2 h-8 w-full"
+                  class="mt-2 h-9 w-full"
                 ></audio>
               </article>
             <% _text -> %>
