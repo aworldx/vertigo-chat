@@ -85,7 +85,7 @@ defmodule Chat.Visits do
         MapSet.member?(online_nicknames, visit.nickname)
     end)
     |> Enum.each(fn visit ->
-      finish_visit(visit, now)
+      finish_visit(visit, stale_left_at(visit, now))
     end)
 
     :ok
@@ -142,6 +142,15 @@ defmodule Chat.Visits do
       end)
 
     Enum.reverse(visits)
+  end
+
+  # Presence tells us whether a connection is still alive. Once it disappears,
+  # account for only the reconnect grace period even if the janitor runs late.
+  defp stale_left_at(%Visit{updated_at: updated_at, entered_at: entered_at}, now) do
+    last_seen_at = updated_at || entered_at
+    grace_ended_at = DateTime.add(last_seen_at, @stale_after_seconds, :second)
+
+    if DateTime.compare(grace_ended_at, now) == :gt, do: now, else: grace_ended_at
   end
 
   defp increment_chat_time(%Visit{user_id: nil}, _left_at), do: :ok

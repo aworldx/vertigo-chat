@@ -63,9 +63,9 @@ defmodule Chat.VisitsTest do
     assert newer.id != older.id
   end
 
-  test "cleans up an active visit after its session disappears" do
+  test "charges only the reconnect grace period when cleanup runs late" do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
-    entered_at = DateTime.add(now, -6, :minute)
+    entered_at = DateTime.add(now, -2, :day)
     session_id = Ecto.UUID.generate()
 
     visit =
@@ -78,6 +78,7 @@ defmodule Chat.VisitsTest do
       })
 
     assert :ok = Visits.cleanup_stale_visits(now: now)
-    assert %{left_at: ^now} = Repo.get!(Visit, visit.id)
+    left_at = DateTime.add(entered_at, 5, :minute)
+    assert %{left_at: ^left_at} = Repo.get!(Visit, visit.id)
   end
 end
