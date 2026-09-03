@@ -992,7 +992,6 @@ defmodule ChatWeb.RoomLive do
     {:noreply,
      socket
      |> assign(:online, online)
-     |> rerender_messages()
      |> update(
        :typing_peers,
        &Map.filter(&1, fn {peer_id, _nickname} ->
