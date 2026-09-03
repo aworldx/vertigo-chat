@@ -222,10 +222,13 @@ const chatHooks = {
       if (distance <= 0) return
 
       const startedAt = performance.now()
-      const duration = 720
+      const duration = 900
       const tick = now => {
         const progress = Math.min((now - startedAt) / duration, 1)
-        const eased = 1 - Math.pow(1 - progress, 3)
+        const eased =
+          progress < 0.5
+            ? 4 * Math.pow(progress, 3)
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2
         this.el.scrollTop = startTop + distance * eased
 
         if (progress < 1) this.scrollAnimationFrame = requestAnimationFrame(tick)
