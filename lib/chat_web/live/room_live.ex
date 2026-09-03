@@ -25,6 +25,7 @@ defmodule ChatWeb.RoomLive do
 
   @room_id "lobby"
   @music_page_size 5
+  @session_idle_timeout :timer.minutes(5)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -38,6 +39,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:presence_key, presence_key)
       |> assign(:chat_session_token, nil)
       |> assign(:chat_session_id, nil)
+      |> assign(:session_timeout, nil)
       |> assign(:security_subject, security_subject)
       |> assign(:preference_nickname, nil)
       |> assign(:theme_id, Themes.default_theme_id())
@@ -121,6 +123,7 @@ defmodule ChatWeb.RoomLive do
         |> reset_colors_for_new_nickname(nickname)
         |> apply_registered_preferences(user)
         |> assign(:joined?, true)
+        |> activate_chat_session()
         |> assign_nickname_form()
         |> assign_settings_form()
         |> reset_messages(Messages.list_recent_messages(@room_id))
@@ -169,6 +172,12 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("restore_guest_session", _params, socket), do: {:noreply, socket}
+
+  def handle_event("touch_chat_session", _params, %{assigns: %{joined?: true}} = socket) do
+    {:noreply, renew_chat_session(socket)}
+  end
+
+  def handle_event("touch_chat_session", _params, socket), do: {:noreply, socket}
 
   def handle_event("show_registration", _params, socket) do
     socket =
@@ -641,10 +650,9 @@ defmodule ChatWeb.RoomLive do
         |> assign(:entrance_error, nil)
         |> apply_registered_preferences(user)
         |> assign(:joined?, true)
+        |> activate_chat_session()
         |> assign_nickname_form()
         |> assign_settings_form()
-        |> reset_messages(Messages.list_recent_messages(@room_id))
-        |> insert_features_notice()
 
       track_presence(socket)
 
@@ -698,10 +706,9 @@ defmodule ChatWeb.RoomLive do
         |> assign_preferences(params, allow_nickname?: true)
         |> assign(:preference_nickname, restored.nickname)
         |> assign(:joined?, true)
+        |> activate_chat_session()
         |> assign_nickname_form()
         |> assign_settings_form()
-        |> reset_messages(Messages.list_recent_messages(@room_id))
-        |> insert_features_notice()
 
       track_presence(socket)
 
@@ -763,10 +770,13 @@ defmodule ChatWeb.RoomLive do
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
 
     socket
+    |> cancel_session_timeout()
     |> cancel_async(:music_search)
     |> cancel_async(:gif_search)
     |> close_visit()
     |> assign(:joined?, false)
+    |> assign(:chat_session_token, nil)
+    |> assign(:chat_session_id, nil)
     |> assign(:current_user, nil)
     |> assign(:profile, nil)
     |> assign(:settings_open?, false)
@@ -907,6 +917,23 @@ defmodule ChatWeb.RoomLive do
   def handle_info({:restore_guest_session, params, attempt}, socket) do
     restore_guest_session(params, attempt, socket)
   end
+
+  def handle_info(
+        {:expire_chat_session, session_id, timeout_id},
+        %{
+          assigns: %{
+            joined?: true,
+            chat_session_id: session_id,
+            session_timeout: %{id: timeout_id}
+          }
+        } =
+          socket
+      ) do
+    {:noreply, leave_chat(socket)}
+  end
+
+  def handle_info({:expire_chat_session, _session_id, _timeout_id}, socket),
+    do: {:noreply, socket}
 
   def handle_info({:start_bot_answer, request}, %{assigns: %{bot_pending?: true}} = socket) do
     {:noreply, start_async(socket, :bot_reply, fn -> Bot.answer(request) end)}
@@ -1893,6 +1920,45 @@ defmodule ChatWeb.RoomLive do
       session_token: socket.assigns.chat_session_token
     })
   end
+
+  defp activate_chat_session(socket), do: schedule_session_timeout(socket)
+
+  defp renew_chat_session(socket) do
+    session_token =
+      UserAuth.sign_chat_session(socket.assigns.nickname, socket.assigns.chat_session_id)
+
+    socket =
+      socket
+      |> assign(:chat_session_token, session_token)
+      |> schedule_session_timeout()
+
+    if socket.assigns.current_user do
+      sync_user_auth(socket, socket.assigns.current_user)
+    else
+      maybe_save_guest_preferences(socket, nil)
+    end
+  end
+
+  defp schedule_session_timeout(socket) do
+    socket = cancel_session_timeout(socket)
+    timeout_id = make_ref()
+
+    timer_ref =
+      Process.send_after(
+        self(),
+        {:expire_chat_session, socket.assigns.chat_session_id, timeout_id},
+        @session_idle_timeout
+      )
+
+    assign(socket, :session_timeout, %{id: timeout_id, timer_ref: timer_ref})
+  end
+
+  defp cancel_session_timeout(%{assigns: %{session_timeout: %{timer_ref: timer_ref}}} = socket) do
+    Process.cancel_timer(timer_ref)
+    assign(socket, :session_timeout, nil)
+  end
+
+  defp cancel_session_timeout(socket), do: socket
 
   defp close_visit(socket) do
     socket.assigns

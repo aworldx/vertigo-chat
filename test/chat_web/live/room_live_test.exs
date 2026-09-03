@@ -131,6 +131,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#online-list", "returning_member")
     assert_push_event(view, "save-user-auth", %{token: _token})
+    refute has_element?(view, "[data-system-notice='features']")
   end
 
   test "restores a registered chatlan during the initial LiveView connection", %{conn: conn} do
@@ -165,6 +166,39 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#online-list", "returning_guest")
     assert_push_event(view, "save-chat-preferences", %{"nickname" => "returning_guest"})
+    refute has_element?(view, "[data-system-notice='features']")
+  end
+
+  test "renews a guest session without creating a new visit", %{conn: conn} do
+    nickname = "guest_heartbeat_#{System.unique_integer([:positive])}"
+    session_token = ChatWeb.UserAuth.sign_chat_session(nickname)
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    render_hook(view, "restore_guest_session", %{
+      "nickname" => nickname,
+      "session_token" => session_token,
+      "theme_id" => "vertigo",
+      "appearance" => %{}
+    })
+
+    assert [%{id: visit_id}] =
+             Enum.filter(Visits.list_recent_visits(), &(&1.nickname == nickname))
+
+    assert_push_event(view, "save-chat-preferences", %{"session_token" => ^session_token})
+
+    render_hook(view, "touch_chat_session", %{})
+
+    assert_push_event(view, "save-chat-preferences", %{
+      "nickname" => ^nickname,
+      "session_token" => renewed_token
+    })
+
+    assert {:ok, _session_id} = ChatWeb.UserAuth.verify_chat_session(renewed_token, nickname)
+    refute renewed_token == session_token
+
+    assert [%{id: ^visit_id}] =
+             Enum.filter(Visits.list_recent_visits(), &(&1.nickname == nickname))
   end
 
   test "does not duplicate a chatlan when the restore event is received twice", %{conn: conn} do

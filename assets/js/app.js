@@ -204,6 +204,12 @@ const chatHooks = {
   ChatPreferences: {
     mounted() {
       window.name = "vertigo-chat"
+      this.onVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          this.touchChatSession()
+        }
+      }
+      document.addEventListener("visibilitychange", this.onVisibilityChange)
       const store = readChatPreferenceStore()
       const currentNickname = store.current_nickname
       const currentPreferences = currentNickname && store.by_nickname[currentNickname]
@@ -212,6 +218,7 @@ const chatHooks = {
 
       if (this.el.dataset.chatJoined === "true") {
         this.finishSessionRestoration()
+        this.startSessionHeartbeat()
       } else {
         this.restorationTimer = window.setTimeout(() => this.finishSessionRestoration(), 1500)
       }
@@ -251,14 +258,20 @@ const chatHooks = {
     },
     reconnected() {
       this.restoreSession()
+      this.startSessionHeartbeat()
     },
     updated() {
       if (this.el.dataset.chatJoined === "true") {
         this.finishSessionRestoration()
+        this.startSessionHeartbeat()
+      } else {
+        this.stopSessionHeartbeat()
       }
     },
     destroyed() {
       window.clearTimeout(this.restorationTimer)
+      document.removeEventListener("visibilitychange", this.onVisibilityChange)
+      this.stopSessionHeartbeat()
     },
     finishSessionRestoration() {
       window.clearTimeout(this.restorationTimer)
@@ -282,6 +295,23 @@ const chatHooks = {
           appearance: appearanceFrom(currentPreferences),
           session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
         })
+      }
+    },
+    startSessionHeartbeat() {
+      if (this.sessionHeartbeat || this.el.dataset.chatJoined !== "true") {
+        return
+      }
+
+      this.touchChatSession()
+      this.sessionHeartbeat = window.setInterval(() => this.touchChatSession(), 60_000)
+    },
+    stopSessionHeartbeat() {
+      window.clearInterval(this.sessionHeartbeat)
+      this.sessionHeartbeat = null
+    },
+    touchChatSession() {
+      if (this.el.dataset.chatJoined === "true" && document.visibilityState === "visible") {
+        this.pushEvent("touch_chat_session", {})
       }
     },
   },
