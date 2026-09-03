@@ -843,7 +843,7 @@ defmodule ChatWeb.RoomComponents do
       id="message-form"
       phx-submit="send_message"
       phx-hook="PrivateMessageComposer"
-      class="relative shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 transition"
+      class="relative z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition"
     >
       <p
         :if={@message_error}
@@ -989,8 +989,9 @@ defmodule ChatWeb.RoomComponents do
         <button
           id="send-message"
           type="submit"
+          phx-disable-with="Отправляем…"
           aria-label="Отправить сообщение"
-          class="flex shrink-0 items-center justify-center rounded bg-amber-300 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 sm:px-4"
+          class="flex shrink-0 items-center justify-center rounded bg-amber-300 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:opacity-75 sm:px-4"
         >
           <.icon name="hero-paper-airplane" class="size-5 sm:hidden" />
           <span class="hidden sm:inline">Отправить</span>

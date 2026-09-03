@@ -1024,6 +1024,7 @@ defmodule ChatWeb.RoomLive do
         socket =
           socket
           |> assign(:current_user, user)
+          |> insert_message(message)
           |> clear_message_input()
           |> update_presence()
 
@@ -1034,7 +1035,7 @@ defmodule ChatWeb.RoomLive do
         end
 
       {:ok, message} ->
-        socket = clear_message_input(socket)
+        socket = socket |> insert_message(message) |> clear_message_input()
 
         if message.recipient == Bot.name() do
           start_bot_reply(message.body, socket)

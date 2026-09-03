@@ -952,6 +952,8 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert html =~ "привет из теста"
     refute html =~ "  привет из теста  "
+    assert has_element?(view, "#send-message[phx-disable-with='Отправляем…']")
+    assert has_element?(view, "#message-form.relative.z-20")
   end
 
   test "keeps a registered user in chat after the first message", %{conn: conn} do

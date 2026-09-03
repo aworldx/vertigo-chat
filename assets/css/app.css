@@ -461,12 +461,12 @@ html[data-chat-session-restoring] #chat-session-restoring {
 @keyframes chat-message-enter {
   0% {
     opacity: 0;
-    transform: translate3d(0, 1.5rem, 0);
+    transform: translate3d(0, 2.5rem, 0);
   }
 
-  45% {
-    opacity: 0.72;
-    transform: translate3d(0, 0.55rem, 0);
+  55% {
+    opacity: 0.78;
+    transform: translate3d(0, 0.6rem, 0);
   }
 
   100% {
@@ -476,7 +476,13 @@ html[data-chat-session-restoring] #chat-session-restoring {
 }
 
 .chat-message-entry {
-  animation: chat-message-enter 850ms cubic-bezier(0.16, 0.78, 0.3, 1) both;
+  animation: chat-message-enter 680ms cubic-bezier(0.16, 0.78, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-message-entry {
+    animation: none;
+  }
 }
 
 #messages > .chat-message-entry + .chat-message-entry {
