@@ -55,6 +55,401 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Keep the profile dialog out of the chat flex layout even if utility CSS is stale. */
+#profile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+/* Игровые столы: небольшие материальные детали вместо тяжёлых иллюстраций. */
+.games-page {
+  background:
+    radial-gradient(circle at 12% 0%, rgb(251 191 36 / 0.12), transparent 22rem),
+    radial-gradient(circle at 92% 18%, rgb(56 189 248 / 0.1), transparent 26rem),
+    #09090b;
+}
+
+.games-page--durak {
+  background:
+    radial-gradient(circle at 15% 0%, rgb(248 113 113 / 0.12), transparent 24rem),
+    linear-gradient(135deg, #17110f, #0d1b16 58%, #09090b);
+}
+
+.games-page--balda {
+  background:
+    radial-gradient(circle at 84% 5%, rgb(251 191 36 / 0.14), transparent 22rem),
+    linear-gradient(135deg, #21160d, #15110d 58%, #09090b);
+}
+
+.games-page--checkers {
+  background:
+    radial-gradient(circle at 13% 0%, rgb(217 119 6 / 0.15), transparent 22rem),
+    linear-gradient(135deg, #20150e, #120f0c 58%, #09090b);
+}
+
+.game-catalog-card {
+  position: relative;
+  isolation: isolate;
+  min-height: 13rem;
+  overflow: hidden;
+  box-shadow: 0 1.25rem 3.5rem rgb(0 0 0 / 0.22), inset 0 1px rgb(255 255 255 / 0.06);
+}
+
+.game-catalog-card > :not(.game-catalog-card__art) {
+  position: relative;
+  z-index: 1;
+}
+
+.game-catalog-card__art {
+  position: absolute;
+  right: -1.25rem;
+  bottom: -1.75rem;
+  width: 9.5rem;
+  height: 9.5rem;
+  opacity: 0.88;
+  transform: rotate(-8deg);
+  transition: transform 220ms ease;
+}
+
+.game-catalog-card:hover .game-catalog-card__art {
+  transform: rotate(-3deg) translateY(-0.4rem);
+}
+
+.game-catalog-card--battleship .game-catalog-card__art {
+  border-radius: 50% 50% 30% 30%;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 0.9rem, rgb(186 230 253 / 0.24) 0.95rem 1.05rem),
+    linear-gradient(160deg, #38bdf8, #0e7490 68%, #082f49);
+  box-shadow: inset 0 0 1.75rem rgb(255 255 255 / 0.28), 0 1rem 1.6rem rgb(0 0 0 / 0.26);
+}
+
+.game-catalog-card--battleship .game-catalog-card__art::after {
+  position: absolute;
+  right: 1.35rem;
+  bottom: 2.35rem;
+  width: 4.7rem;
+  height: 1.25rem;
+  content: "";
+  border-radius: 20% 55% 70% 35%;
+  background: #e5e7eb;
+  box-shadow: 1.1rem -0.7rem 0 -0.35rem #e5e7eb, 0 0.6rem 0 -0.2rem #0f172a;
+}
+
+.game-catalog-card--durak .game-catalog-card__art,
+.game-catalog-card--durak .game-catalog-card__art::after {
+  border: 1px solid rgb(120 53 15 / 0.65);
+  border-radius: 0.7rem;
+  background: #fff8e8;
+  box-shadow: 0 0.65rem 1.2rem rgb(0 0 0 / 0.28);
+}
+
+.game-catalog-card--durak .game-catalog-card__art::after {
+  position: absolute;
+  top: -0.85rem;
+  left: -1.25rem;
+  width: 9.5rem;
+  height: 9.5rem;
+  content: "♥";
+  color: #be123c;
+  font-family: Georgia, serif;
+  font-size: 5rem;
+  line-height: 9rem;
+  text-align: center;
+  transform: rotate(-12deg);
+}
+
+.game-catalog-card--balda .game-catalog-card__art {
+  display: grid;
+  place-items: center;
+  border: 0.4rem solid #713f12;
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(90deg, rgb(120 53 15 / 0.25) 1px, transparent 1px),
+    linear-gradient(rgb(120 53 15 / 0.25) 1px, transparent 1px),
+    #fef3c7;
+  background-size: 1.8rem 1.8rem;
+  color: #78350f;
+  box-shadow: inset 0 0 0 0.2rem #d97706, 0 0.75rem 1.4rem rgb(0 0 0 / 0.3);
+  font-family: Georgia, serif;
+  font-size: 3.75rem;
+  font-weight: 800;
+}
+
+.game-catalog-card--balda .game-catalog-card__art::after {
+  content: "Б";
+}
+
+.game-catalog-card--checkers .game-catalog-card__art {
+  border-radius: 1rem;
+  background:
+    conic-gradient(#713f12 25%, #fef3c7 0 50%, #713f12 0 75%, #fef3c7 0) 0 0 / 3rem 3rem;
+  box-shadow: inset 0 0 0 0.4rem #78350f, 0 0.75rem 1.4rem rgb(0 0 0 / 0.3);
+}
+
+.game-catalog-card--checkers .game-catalog-card__art::after {
+  position: absolute;
+  top: 2.75rem;
+  left: 2.75rem;
+  width: 4rem;
+  height: 4rem;
+  content: "";
+  border: 0.25rem solid #27272a;
+  border-radius: 999px;
+  background: radial-gradient(circle at 37% 30%, #71717a, #18181b 62%);
+  box-shadow: 0 0.55rem 0 #09090b, 0 0.85rem 1rem rgb(0 0 0 / 0.34);
+}
+
+#games-lobby,
+#active-game,
+#games-leaderboard,
+#checkers-lobby,
+#active-checkers-game,
+#checkers-leaderboard {
+  box-shadow: 0 1.25rem 3.75rem rgb(0 0 0 / 0.2), inset 0 1px rgb(255 255 255 / 0.04);
+}
+
+#battleship-own-board,
+#battleship-target-board {
+  border-width: 0.35rem;
+  border-color: #0c4a6e;
+  background: #0e7490;
+  box-shadow: 0 0.8rem 1.75rem rgb(0 0 0 / 0.28), inset 0 0 1.25rem rgb(2 132 199 / 0.45);
+}
+
+.battleship-cell {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 74% 20%, rgb(224 242 254 / 0.5) 0 0.07rem, transparent 0.09rem),
+    linear-gradient(145deg, #155e75, #0e7490 60%, #164e63);
+  transition: transform 130ms ease, filter 130ms ease;
+}
+
+.battleship-target-cell:not(:disabled):hover {
+  z-index: 1;
+  filter: brightness(1.35);
+  transform: scale(1.09);
+}
+
+.battleship-cell--ship {
+  background: linear-gradient(145deg, #155e75, #0e7490 55%, #083344);
+}
+
+.ship-token {
+  position: relative;
+  display: block;
+  width: 67%;
+  height: 29%;
+  border: 1px solid rgb(255 255 255 / 0.65);
+  border-radius: 28% 55% 70% 35%;
+  background: linear-gradient(#f8fafc 0 44%, #94a3b8 45% 100%);
+  box-shadow: 0 0.18rem 0 rgb(15 23 42 / 0.68);
+}
+
+.ship-token::before {
+  position: absolute;
+  bottom: 88%;
+  left: 38%;
+  width: 24%;
+  height: 105%;
+  content: "";
+  border-radius: 0.08rem 0.08rem 0 0;
+  background: #e2e8f0;
+}
+
+.ship-token::after {
+  position: absolute;
+  right: -16%;
+  bottom: -0.2rem;
+  left: -16%;
+  height: 0.22rem;
+  content: "";
+  border-radius: 999px;
+  background: rgb(186 230 253 / 0.8);
+}
+
+.battleship-cell--hit {
+  color: #fff7ed;
+  background: radial-gradient(circle, #fef3c7 0 13%, #f97316 16% 34%, #991b1b 38% 100%);
+}
+
+.battleship-cell--hit::after {
+  position: absolute;
+  inset: 20%;
+  content: "";
+  border: 1px solid rgb(255 255 255 / 0.75);
+  border-radius: 999px;
+}
+
+.battleship-cell--miss {
+  color: #e0f2fe;
+  background: radial-gradient(circle, #e0f2fe 0 9%, transparent 11%), #155e75;
+}
+
+#durak-table {
+  min-height: 8rem;
+  border-color: #365314;
+  background:
+    radial-gradient(circle at 50% 0, rgb(190 242 100 / 0.14), transparent 45%),
+    linear-gradient(145deg, #1f4d34, #173c2b);
+  box-shadow: inset 0 0 1.75rem rgb(0 0 0 / 0.28), 0 0.7rem 1.5rem rgb(0 0 0 / 0.16);
+}
+
+.playing-card {
+  position: relative;
+  display: inline-flex;
+  min-width: 4rem;
+  min-height: 5.8rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.45rem;
+  overflow: hidden;
+  border: 1px solid #d6b77d;
+  border-radius: 0.55rem;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.86), transparent 38%),
+    #fff8e8;
+  box-shadow: 0 0.45rem 0 #b08d57, 0 0.85rem 1.25rem rgb(0 0 0 / 0.28);
+  color: #172033;
+  font-family: Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.playing-card::after {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.4rem;
+  opacity: 0.14;
+  content: "♠";
+  font-size: 2.5rem;
+}
+
+.playing-card > span {
+  align-self: flex-end;
+  font-size: 1.4rem;
+}
+
+.playing-card--red {
+  color: #be123c;
+}
+
+.playing-card--red::after {
+  content: "♥";
+}
+
+#durak-hand .playing-card:not(:disabled):hover {
+  z-index: 1;
+  cursor: pointer;
+  box-shadow: 0 0.55rem 0 #b08d57, 0 1.2rem 1.5rem rgb(0 0 0 / 0.3);
+  transform: translateY(-0.55rem) rotate(-1deg);
+}
+
+.playing-card:disabled {
+  filter: saturate(0.55) brightness(0.72);
+}
+
+.playing-card--table {
+  min-width: 2.5rem;
+  min-height: 3.6rem;
+  box-shadow: 0 0.22rem 0 #b08d57, 0 0.5rem 0.7rem rgb(0 0 0 / 0.22);
+  font-size: 0.9rem;
+}
+
+.playing-card--table::after {
+  font-size: 1.55rem;
+}
+
+.playing-card--table > span {
+  font-size: 1rem;
+}
+
+#balda-board {
+  padding: 0.28rem;
+  border-color: #78350f;
+  background: #713f12;
+  box-shadow: 0 0.65rem 0 #451a03, 0 1.35rem 2rem rgb(0 0 0 / 0.3), inset 0 0 0 0.16rem #d97706;
+}
+
+.balda-tile {
+  position: relative;
+  background:
+    linear-gradient(125deg, rgb(255 255 255 / 0.5), transparent 38%),
+    #fef3c7;
+  box-shadow: inset 0 0 0 1px rgb(120 53 15 / 0.13), inset 0 -0.14rem rgb(180 83 9 / 0.25);
+  text-shadow: 0 1px rgb(255 255 255 / 0.65);
+  transition: transform 130ms ease, filter 130ms ease;
+}
+
+.balda-tile:not(:disabled):hover {
+  z-index: 1;
+  filter: brightness(1.06);
+  transform: scale(1.05);
+}
+
+#checkers-board {
+  border-color: #78350f;
+  box-shadow: 0 0.65rem 0 #451a03, 0 1.4rem 2.1rem rgb(0 0 0 / 0.32), inset 0 0 0 0.15rem #fbbf24;
+}
+
+.checker-square {
+  background-image: linear-gradient(135deg, rgb(255 255 255 / 0.08), transparent 50%);
+}
+
+.checker-square--dark {
+  background-color: #78350f;
+}
+
+.checker-square--light {
+  background-color: #fde68a;
+}
+
+.checker-piece {
+  position: relative;
+  box-shadow: 0 0.28rem 0 rgb(0 0 0 / 0.34), 0 0.55rem 0.75rem rgb(0 0 0 / 0.26), inset 0 0.22rem rgb(255 255 255 / 0.28);
+  text-shadow: 0 1px rgb(255 255 255 / 0.25);
+}
+
+.checker-piece::after {
+  position: absolute;
+  right: 17%;
+  bottom: 14%;
+  left: 17%;
+  height: 18%;
+  content: "";
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.14);
+}
+
+.checker-piece--white {
+  border-color: #e4e4e7;
+  background: radial-gradient(circle at 36% 28%, #fff, #e4e4e7 58%, #a1a1aa);
+  color: #92400e;
+}
+
+.checker-piece--black {
+  border-color: #52525b;
+  background: radial-gradient(circle at 36% 28%, #71717a, #18181b 58%, #09090b);
+  color: #fde68a;
+}
+
+[data-game-sound]:not(:disabled):active {
+  transform: translateY(0.1rem) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-catalog-card,
+  .game-catalog-card__art,
+  .battleship-cell,
+  .playing-card,
+  .balda-tile {
+    transition: none;
+  }
+}
+
 html[data-chat-session-restoring] #chat-entrance-screen {
   display: none;
 }

@@ -2,7 +2,7 @@
   <div
     id="checkers-page"
     phx-hook=".CheckersAuth"
-    class="min-h-screen bg-zinc-950 px-4 py-8 text-zinc-100"
+    class="games-page games-page--checkers min-h-screen bg-zinc-950 px-4 py-8 text-zinc-100"
   >
     <div class="mx-auto max-w-6xl">
       <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
@@ -190,10 +190,11 @@
                     disabled={!player?(@game, @current_user)}
                     phx-click={if player?(@game, @current_user), do: "square"}
                     phx-value-square={if player?(@game, @current_user), do: square}
+                    data-game-sound={if player?(@game, @current_user), do: "checker"}
                     class={[
-                      "relative grid aspect-square place-items-center",
-                      dark_square?(row, col) && "bg-amber-800",
-                      !dark_square?(row, col) && "bg-amber-100",
+                      "checker-square relative grid aspect-square place-items-center",
+                      dark_square?(row, col) && "checker-square--dark",
+                      !dark_square?(row, col) && "checker-square--light",
                       @selected_square == square && "ring-4 ring-inset ring-cyan-400",
                       !player?(@game, @current_user) && "cursor-default"
                     ]}
@@ -202,11 +203,9 @@
                     <span
                       :if={piece = @game.board[square]}
                       class={[
-                        "grid size-[72%] place-items-center rounded-full border-2 text-[clamp(1rem,4vw,2.3rem)] shadow-lg",
-                        piece_color(piece) == "white" &&
-                          "border-zinc-300 bg-zinc-100 text-amber-700",
-                        piece_color(piece) == "black" &&
-                          "border-zinc-600 bg-zinc-950 text-amber-300"
+                        "checker-piece grid size-[72%] place-items-center rounded-full border-2 text-[clamp(1rem,4vw,2.3rem)]",
+                        piece_color(piece) == "white" && "checker-piece--white",
+                        piece_color(piece) == "black" && "checker-piece--black"
                       ]}
                     >{piece_label(piece)}</span>
                   </button>

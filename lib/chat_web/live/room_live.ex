@@ -25,7 +25,6 @@ defmodule ChatWeb.RoomLive do
 
   @room_id "lobby"
   @music_page_size 5
-  @session_idle_timeout :timer.minutes(5)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -39,7 +38,6 @@ defmodule ChatWeb.RoomLive do
       |> assign(:presence_key, presence_key)
       |> assign(:chat_session_token, nil)
       |> assign(:chat_session_id, nil)
-      |> assign(:session_timeout, nil)
       |> assign(:security_subject, security_subject)
       |> assign(:preference_nickname, nil)
       |> assign(:theme_id, Themes.default_theme_id())
@@ -53,6 +51,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:profile, nil)
       |> assign(:profile_form, nil)
       |> assign(:profile_editable?, false)
+      |> assign(:profile_editing?, false)
       |> assign(:settings_open?, false)
       |> assign(:screen, :login)
       |> assign(:entrance_error, nil)
@@ -123,7 +122,6 @@ defmodule ChatWeb.RoomLive do
         |> reset_colors_for_new_nickname(nickname)
         |> apply_registered_preferences(user)
         |> assign(:joined?, true)
-        |> activate_chat_session()
         |> assign_nickname_form()
         |> assign_settings_form()
         |> reset_messages(Messages.list_recent_messages(@room_id))
@@ -533,10 +531,31 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("close_profile", _params, socket) do
-    {:noreply, socket |> assign(:profile, nil) |> assign(:profile_form, nil)}
+    {:noreply,
+     socket
+     |> assign(:profile, nil)
+     |> assign(:profile_form, nil)
+     |> assign(:profile_editing?, false)}
   end
 
-  def handle_event("validate_profile", %{"profile" => params}, socket) do
+  def handle_event("edit_profile", _params, %{assigns: %{profile_editable?: true}} = socket) do
+    {:noreply, assign(socket, :profile_editing?, true)}
+  end
+
+  def handle_event("edit_profile", _params, socket), do: {:noreply, socket}
+
+  def handle_event("cancel_profile_edit", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:profile_editing?, false)
+     |> assign(:profile_form, to_form(Profiles.change_profile(socket.assigns.profile)))}
+  end
+
+  def handle_event(
+        "validate_profile",
+        %{"profile" => params},
+        %{assigns: %{profile_editable?: true, profile_editing?: true}} = socket
+      ) do
     form =
       socket.assigns.profile
       |> Profiles.change_profile(params)
@@ -546,8 +565,11 @@ defmodule ChatWeb.RoomLive do
     {:noreply, assign(socket, :profile_form, form)}
   end
 
+  def handle_event("validate_profile", _params, socket), do: {:noreply, socket}
+
   def handle_event("save_profile", %{"profile" => params}, socket) do
     with true <- socket.assigns.profile_editable?,
+         true <- socket.assigns.profile_editing?,
          {:ok, profile} <-
            Profiles.update_profile(socket.assigns.current_user, socket.assigns.profile, params),
          {:ok, profile} <- save_uploaded_photo(socket, profile) do
@@ -555,6 +577,7 @@ defmodule ChatWeb.RoomLive do
        socket
        |> assign(:profile, profile)
        |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
+       |> assign(:profile_editing?, false)
        |> put_flash(:info, "Анкета сохранена.")}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -650,7 +673,6 @@ defmodule ChatWeb.RoomLive do
         |> assign(:entrance_error, nil)
         |> apply_registered_preferences(user)
         |> assign(:joined?, true)
-        |> activate_chat_session()
         |> assign_nickname_form()
         |> assign_settings_form()
 
@@ -706,7 +728,6 @@ defmodule ChatWeb.RoomLive do
         |> assign_preferences(params, allow_nickname?: true)
         |> assign(:preference_nickname, restored.nickname)
         |> assign(:joined?, true)
-        |> activate_chat_session()
         |> assign_nickname_form()
         |> assign_settings_form()
 
@@ -770,7 +791,6 @@ defmodule ChatWeb.RoomLive do
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
 
     socket
-    |> cancel_session_timeout()
     |> cancel_async(:music_search)
     |> cancel_async(:gif_search)
     |> close_visit()
@@ -917,23 +937,6 @@ defmodule ChatWeb.RoomLive do
   def handle_info({:restore_guest_session, params, attempt}, socket) do
     restore_guest_session(params, attempt, socket)
   end
-
-  def handle_info(
-        {:expire_chat_session, session_id, timeout_id},
-        %{
-          assigns: %{
-            joined?: true,
-            chat_session_id: session_id,
-            session_timeout: %{id: timeout_id}
-          }
-        } =
-          socket
-      ) do
-    {:noreply, leave_chat(socket)}
-  end
-
-  def handle_info({:expire_chat_session, _session_id, _timeout_id}, socket),
-    do: {:noreply, socket}
 
   def handle_info({:start_bot_answer, request}, %{assigns: %{bot_pending?: true}} = socket) do
     {:noreply, start_async(socket, :bot_reply, fn -> Bot.answer(request) end)}
@@ -1558,7 +1561,7 @@ defmodule ChatWeb.RoomLive do
         %{icon: "hero-musical-note", label: "Музыка", text: "/музыка"},
         %{icon: "hero-film", label: "GIF", text: "/гиф"},
         %{icon: "hero-chat-bubble-bottom-center-text", label: "Фидбэк", text: "в меню"},
-        %{icon: "hero-squares-2x2", label: "Шашки", text: "в меню"}
+        %{icon: "hero-puzzle-piece", label: "Игры", text: "в меню"}
       ],
       recipient: nil,
       reactions: %{},
@@ -1588,11 +1591,13 @@ defmodule ChatWeb.RoomLive do
     case Profiles.get_by_nickname(nickname) do
       {:ok, profile} ->
         editable? =
-          socket.assigns.current_user && socket.assigns.current_user.id == profile.user_id
+          not is_nil(socket.assigns.current_user) and
+            socket.assigns.current_user.id == profile.user_id
 
         socket
         |> assign(:profile, profile)
         |> assign(:profile_editable?, editable?)
+        |> assign(:profile_editing?, false)
         |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
 
       {:error, :not_found} ->
@@ -1601,6 +1606,7 @@ defmodule ChatWeb.RoomLive do
         socket
         |> assign(:profile, profile)
         |> assign(:profile_editable?, false)
+        |> assign(:profile_editing?, false)
         |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
     end
   end
@@ -1921,16 +1927,11 @@ defmodule ChatWeb.RoomLive do
     })
   end
 
-  defp activate_chat_session(socket), do: schedule_session_timeout(socket)
-
   defp renew_chat_session(socket) do
     session_token =
       UserAuth.sign_chat_session(socket.assigns.nickname, socket.assigns.chat_session_id)
 
-    socket =
-      socket
-      |> assign(:chat_session_token, session_token)
-      |> schedule_session_timeout()
+    socket = assign(socket, :chat_session_token, session_token)
 
     if socket.assigns.current_user do
       sync_user_auth(socket, socket.assigns.current_user)
@@ -1938,27 +1939,6 @@ defmodule ChatWeb.RoomLive do
       maybe_save_guest_preferences(socket, nil)
     end
   end
-
-  defp schedule_session_timeout(socket) do
-    socket = cancel_session_timeout(socket)
-    timeout_id = make_ref()
-
-    timer_ref =
-      Process.send_after(
-        self(),
-        {:expire_chat_session, socket.assigns.chat_session_id, timeout_id},
-        @session_idle_timeout
-      )
-
-    assign(socket, :session_timeout, %{id: timeout_id, timer_ref: timer_ref})
-  end
-
-  defp cancel_session_timeout(%{assigns: %{session_timeout: %{timer_ref: timer_ref}}} = socket) do
-    Process.cancel_timer(timer_ref)
-    assign(socket, :session_timeout, nil)
-  end
-
-  defp cancel_session_timeout(socket), do: socket
 
   defp close_visit(socket) do
     socket.assigns

@@ -1,0 +1,394 @@
+<Layouts.app flash={@flash}>
+  <div
+    id="games-page"
+    phx-hook=".GamesAuth"
+    class={"games-page games-page--#{@kind || "catalog"} min-h-screen bg-zinc-950 px-4 py-8 text-zinc-100"}
+  >
+    <div class="mx-auto max-w-6xl">
+      <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400">
+            Vertigo games
+          </p><h1 class="mt-1 text-4xl font-black tracking-tight">
+            {if @kind, do: title(@kind), else: "Игры для чатлан"}
+          </h1>
+        </div>
+        <.link
+          href={~p"/"}
+          id="games-back-to-chat"
+          class="rounded-full border border-zinc-700 px-4 py-2 text-sm hover:border-amber-400"
+        >Вернуться в чат</.link>
+      </header>
+
+      <%= if is_nil(@kind) do %>
+        <section id="games-catalog" class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <.link
+            :for={{kind, info} <- kinds()}
+            id={"game-card-#{kind}"}
+            navigate={~p"/games/#{kind}"}
+            class={"game-catalog-card game-catalog-card--#{kind} rounded-3xl border border-zinc-800 bg-zinc-900 p-6 transition hover:-translate-y-1 hover:border-amber-400"}
+          >
+            <span class="game-catalog-card__art" aria-hidden="true"></span>
+            <h2 class="text-2xl font-bold">{info.title}</h2><p class="mt-2 text-sm text-zinc-400">
+              {if kind == "battleship",
+                do: "Потопи флот соперника",
+                else:
+                  if(kind == "durak",
+                    do: "Карты для 2–4 игроков",
+                    else: "Составляй слова на общем поле"
+                  )}
+            </p><span class="mt-5 inline-block text-amber-300">Открыть →</span>
+          </.link>
+          <.link
+            id="game-card-checkers"
+            href={~p"/checkers"}
+            class="game-catalog-card game-catalog-card--checkers rounded-3xl border border-zinc-800 bg-zinc-900 p-6 transition hover:-translate-y-1 hover:border-amber-400"
+          ><span class="game-catalog-card__art" aria-hidden="true"></span><h2 class="text-2xl font-bold">
+            Шашки
+          </h2><p class="mt-2 text-sm text-zinc-400">
+            Классическая партия на двоих
+          </p><span class="mt-5 inline-block text-amber-300">Открыть →</span></.link>
+        </section>
+      <% else %>
+        <%= cond do %>
+          <% !@auth_checked? -> %>
+            <p
+              id="games-auth-check"
+              class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-zinc-400"
+            >
+              Проверяем вход…
+            </p>
+          <% is_nil(@current_user) -> %>
+            <div
+              id="games-login-hint"
+              class="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-8 text-center"
+            >
+              <h2 class="text-2xl font-bold">Сначала войди в чат</h2><p class="mt-2 text-zinc-400">
+                Играть могут зарегистрированные чатлане.
+              </p>
+            </div>
+          <% true -> %>
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+              <main class="space-y-6">
+                <section
+                  id="games-lobby"
+                  class="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 class="text-xl font-bold">Игровая</h2><p class="text-sm text-zinc-400">
+                        Ты вошёл как <span class="text-amber-300">{@current_user.nickname}</span>
+                      </p>
+                    </div><button
+                      id="create-game"
+                      phx-click="create"
+                      class="rounded-xl bg-amber-400 px-4 py-2 font-bold text-zinc-950"
+                    >Создать стол</button>
+                  </div>
+                  <div id="my-games" class="mt-5 grid gap-3 sm:grid-cols-2">
+                    <p :if={@games == []} id="games-empty" class="text-sm text-zinc-500">
+                      Твоих открытых столов пока нет.
+                    </p><article
+                      :for={game <- @games}
+                      id={"game-#{game.id}"}
+                      class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
+                    >
+                      <strong>{Enum.map_join(game.players, " · ", & &1.user.nickname)}</strong><p class="mt-1 text-sm text-zinc-500">
+                        {if game.status == "waiting", do: "Набираем игроков", else: "Идёт партия"} · {length(
+                          game.players
+                        )}/{Games.max_players(@kind)}
+                      </p><button
+                        id={"open-game-#{game.id}"}
+                        phx-click="open"
+                        phx-value-id={game.id}
+                        class="mt-3 text-sm font-semibold text-amber-300"
+                      >Открыть →</button><button
+                        :if={can_start?(game, @current_user)}
+                        id={"start-game-#{game.id}"}
+                        phx-click="start"
+                        phx-value-id={game.id}
+                        class="ml-3 mt-3 text-sm font-semibold text-emerald-300"
+                      >Начать</button>
+                    </article>
+                  </div>
+                  <div
+                    :if={@waiting_games != []}
+                    id="waiting-games"
+                    class="mt-6 border-t border-zinc-800 pt-5"
+                  >
+                    <h3 class="font-bold">Свободные столы</h3>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                      <article
+                        :for={game <- @waiting_games}
+                        id={"waiting-game-#{game.id}"}
+                        class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
+                      >
+                        <strong>{game.creator.nickname}</strong>
+                        <p class="mt-1 text-sm text-zinc-500">
+                          Игроков: {length(game.players)}/{Games.max_players(@kind)}
+                        </p>
+                        <button
+                          id={"join-game-#{game.id}"}
+                          phx-click="join"
+                          phx-value-id={game.id}
+                          class="mt-3 text-sm font-semibold text-emerald-300"
+                        >Присоединиться</button>
+                      </article>
+                    </div>
+                  </div>
+                  <div
+                    :if={@active_games != []}
+                    id="spectator-games"
+                    class="mt-6 border-t border-zinc-800 pt-5"
+                  >
+                    <h3 class="font-bold">Сейчас играют</h3><p class="mt-1 text-sm text-zinc-500">
+                      Можно наблюдать за активными партиями.
+                    </p><article
+                      :for={game <- @active_games}
+                      id={"spectator-game-#{game.id}"}
+                      class="mt-3 rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
+                    >
+                      <strong>{Enum.map_join(game.players, " — ", & &1.user.nickname)}</strong><button
+                        id={"watch-game-#{game.id}"}
+                        phx-click="open"
+                        phx-value-id={game.id}
+                        class="ml-3 text-sm font-semibold text-amber-300"
+                      >Смотреть →</button>
+                    </article>
+                  </div>
+                </section>
+
+                <section
+                  :if={@game}
+                  id="active-game"
+                  class="rounded-3xl border border-zinc-800 bg-zinc-900 p-5"
+                >
+                  <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 class="text-xl font-bold">
+                        {Enum.map_join(@game.players, " — ", & &1.user.nickname)}
+                      </h2><p id="game-status" class="text-sm text-zinc-400">
+                        {if @game.status == "finished",
+                          do: "Партия завершена",
+                          else:
+                            if(player?(@game, @current_user),
+                              do: "Ты за столом",
+                              else: "Режим зрителя"
+                            )}
+                      </p>
+                    </div><span
+                      :if={@game.winner}
+                      id="game-winner"
+                      class="rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-zinc-950"
+                    >Победитель: {@game.winner.nickname}</span>
+                  </div>
+                  <div :if={@game.kind == "battleship"}>
+                    <div
+                      :if={@game.status == "waiting" and player?(@game, @current_user)}
+                      id="fleet-setup"
+                    >
+                      <p class="mb-3 text-sm text-zinc-400">
+                        Расставь флот автоматически. Партия начнётся, когда оба игрока готовы.
+                      </p><button
+                        :if={!fleet_ready?(@game, @current_user)}
+                        id="place-fleet"
+                        phx-click="fleet"
+                        phx-value-id={@game.id}
+                        class="rounded-xl bg-amber-400 px-4 py-2 font-bold text-zinc-950"
+                      >Расставить флот</button><p
+                        :if={fleet_ready?(@game, @current_user)}
+                        class="text-emerald-300"
+                      >
+                        Твой флот готов. Ждём соперника.
+                      </p>
+                    </div><div
+                      :if={@game.status in ["active", "finished"]}
+                      class="grid gap-6 md:grid-cols-2"
+                    >
+                      <div>
+                        <h3 class="mb-2 font-bold">Твой флот</h3><div
+                          id="battleship-own-board"
+                          class="grid grid-cols-10 overflow-hidden rounded border border-zinc-700"
+                        >
+                          <span
+                            :for={{row, col, square} <- squares(10)}
+                            class={[
+                              "battleship-cell grid aspect-square place-items-center border border-zinc-800 text-[9px]",
+                              own_board(@game, @current_user)[square] == "ship" &&
+                                "battleship-cell--ship",
+                              own_shots(@game, @current_user)[square] == "hit" &&
+                                "battleship-cell--hit"
+                            ]}
+                          ><span
+                            :if={own_board(@game, @current_user)[square] == "ship"}
+                            class="ship-token"
+                            aria-label="Корабль"
+                          ></span></span>
+                        </div>
+                      </div><div>
+                        <h3 class="mb-2 font-bold">Выстрелы</h3><div
+                          id="battleship-target-board"
+                          class="grid grid-cols-10 overflow-hidden rounded border border-zinc-700"
+                        >
+                          <button
+                            :for={{row, col, square} <- squares(10)}
+                            id={"shot-#{row}-#{col}"}
+                            disabled={
+                              !current_turn?(@game, @current_user) or
+                                !player?(@game, @current_user) or @game.status == "finished"
+                            }
+                            phx-click="shot"
+                            phx-value-square={square}
+                            data-game-sound="shot"
+                            class={[
+                              "battleship-cell battleship-target-cell aspect-square border border-zinc-800 text-[9px]",
+                              own_shots(@game, @current_user)[square] == "hit" &&
+                                "battleship-cell--hit",
+                              own_shots(@game, @current_user)[square] == "miss" &&
+                                "battleship-cell--miss"
+                            ]}
+                          >{if own_shots(@game, @current_user)[square] == "hit",
+                            do: "×",
+                            else: if(own_shots(@game, @current_user)[square] == "miss", do: "·")}</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div :if={@game.kind == "durak"}>
+                    <p id="durak-turn" class="mb-3 text-sm text-zinc-400">
+                      {if @game.status == "active",
+                        do: "Ходит " <> player_name(@game, @game.state["turn_id"]),
+                        else: "Партия завершена"} · козырь {card_suit(
+                        @game.state["trump"] || "6-♠"
+                      )}
+                    </p><div
+                      id="durak-table"
+                      class="min-h-24 rounded-2xl border border-dashed border-zinc-700 p-4"
+                    >
+                      <span
+                        :for={row <- @game.state["table"] || []}
+                        class="durak-table-pair mr-3 inline-flex items-center gap-2"
+                      ><span class={[
+                        "playing-card playing-card--table",
+                        card_suit(row["attack"]) in ["♥", "♦"] && "playing-card--red"
+                      ]}>{card_rank(row["attack"])}<span>{card_suit(row["attack"])}</span></span><span
+                        :if={row["defense"]}
+                        class={[
+                          "playing-card playing-card--table",
+                          card_suit(row["defense"]) in ["♥", "♦"] && "playing-card--red"
+                        ]}
+                      >{card_rank(row["defense"])}<span>{card_suit(row["defense"])}</span></span></span>
+                    </div><div
+                      :if={player?(@game, @current_user)}
+                      id="durak-hand"
+                      class="mt-5 flex flex-wrap gap-2"
+                    >
+                      <button
+                        :for={card <- hand(@game, @current_user)}
+                        id={"card-#{String.replace(card, ~r/[^a-zA-Z0-9]/u, "-")}"}
+                        phx-click="card"
+                        phx-value-card={card}
+                        data-game-sound="card"
+                        disabled={
+                          !current_turn?(@game, @current_user) or @game.status != "active"
+                        }
+                        class={[
+                          "playing-card",
+                          card_suit(card) in ["♥", "♦"] && "playing-card--red"
+                        ]}
+                      >{card_rank(card)}<span>{card_suit(card)}</span></button>
+                    </div><div :if={player?(@game, @current_user)} class="mt-4 flex gap-2">
+                      <button
+                        id="take-cards"
+                        phx-click="take"
+                        class="rounded-lg border border-zinc-600 px-3 py-2"
+                      >Взять</button><button
+                        id="pass-cards"
+                        phx-click="pass"
+                        class="rounded-lg border border-zinc-600 px-3 py-2"
+                      >Бито</button>
+                    </div>
+                  </div>
+                  <div :if={@game.kind == "balda"}>
+                    <p id="balda-turn" class="mb-3 text-sm text-zinc-400">
+                      {if @game.status == "active",
+                        do: "Ходит " <> player_name(@game, @game.state["turn_id"]),
+                        else: "Партия завершена"}
+                    </p><div
+                      id="balda-board"
+                      class="mx-auto grid aspect-square max-w-md grid-cols-5 overflow-hidden rounded-xl border-4 border-amber-900"
+                    >
+                      <button
+                        :for={{row, col, square} <- squares(5)}
+                        id={"balda-#{row}-#{col}"}
+                        disabled={
+                          !player?(@game, @current_user) or !current_turn?(@game, @current_user) or
+                            !is_nil(balda_board(@game)[square]) or @game.status != "active"
+                        }
+                        phx-click="balda_square"
+                        phx-value-square={square}
+                        data-game-sound="tile"
+                        class={[
+                          "balda-tile border border-amber-800 bg-amber-100 text-lg font-black text-zinc-900",
+                          @selected_square == square && "ring-4 ring-inset ring-cyan-400"
+                        ]}
+                      >{balda_board(@game)[square]}</button>
+                    </div><.form
+                      :if={player?(@game, @current_user) and @game.status == "active"}
+                      for={@word_form}
+                      id="balda-word-form"
+                      phx-submit="word"
+                      class="mt-4 flex flex-wrap gap-2"
+                    >
+                      <.input
+                        field={@word_form[:letter]}
+                        type="text"
+                        label="Буква"
+                        maxlength="1"
+                      /><.input field={@word_form[:word]} type="text" label="Слово" /><button
+                        id="submit-word"
+                        class="self-end rounded-xl bg-amber-400 px-4 py-2 font-bold text-zinc-950"
+                      >Сыграть</button><button
+                        id="skip-balda"
+                        type="button"
+                        phx-click="skip"
+                        class="self-end rounded-xl border border-zinc-700 px-4 py-2"
+                      >Пропустить</button>
+                    </.form><div id="balda-scores" class="mt-4 flex flex-wrap gap-3">
+                      <span :for={player <- @game.players}>{player.user.nickname}:
+                      <strong>{score(@game, player.user_id)}</strong></span>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              <aside
+                id="games-leaderboard"
+                class="h-fit rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5"
+              >
+                <h2 class="text-xl font-bold">Лидерборд</h2><p class="mt-1 text-sm text-zinc-500">
+                  Завершённые партии
+                </p><ol class="mt-5 space-y-3">
+                  <li
+                    :for={{row, index} <- Enum.with_index(@leaderboard, 1)}
+                    id={"leaderboard-user-#{row.user.id}"}
+                    class="flex items-center gap-3 rounded-xl bg-zinc-950/60 p-3"
+                  >
+                    <span class="grid size-8 place-items-center rounded-full bg-amber-400 font-black text-zinc-950">{index}</span><span class="min-w-0 flex-1 truncate font-semibold">{row.user.nickname}</span><span class="text-right text-sm"><strong class="text-amber-300">{row.wins}</strong><small class="block text-zinc-500">из {row.played}</small></span>
+                  </li><li
+                    :if={@leaderboard == []}
+                    id="games-leaderboard-empty"
+                    class="text-sm text-zinc-500"
+                  >
+                    Первый чемпион ещё не определён.
+                  </li>
+                </ol>
+              </aside>
+            </div>
+        <% end %>
+      <% end %>
+    </div>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".GamesAuth">
+      export default { mounted() { const token = sessionStorage.getItem("chat:user-auth"); this.pushEvent("authenticate_games", token ? {token} : {}) } }
+    </script>
+  </div>
+</Layouts.app>

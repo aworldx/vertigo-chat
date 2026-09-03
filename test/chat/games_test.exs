@@ -1,0 +1,92 @@
+# Назначение файла: тесты жизненного цикла, доступа и рейтинга новых игр.
+defmodule Chat.GamesTest do
+  use Chat.DataCase, async: true
+
+  alias Chat.Accounts
+  alias Chat.Games
+  alias Chat.Games.Game
+  alias Chat.Repo
+
+  setup do
+    users =
+      for number <- 1..5 do
+        {:ok, user} =
+          Accounts.register_user(%{nickname: "game_player_#{number}", password: "secret123"})
+
+        user
+      end
+
+    %{users: users}
+  end
+
+  test "battleship starts after both fleets are ready, enforces turns, and hides the opponent fleet",
+       %{users: [host, opponent, spectator | _]} do
+    assert {:ok, game} = Games.create(host, "battleship")
+    assert [%{id: game_id}] = Games.list_waiting_games(opponent, "battleship")
+    assert game_id == game.id
+    assert {:ok, game} = Games.join(opponent, game.id)
+    assert {:ok, game} = Games.start(host, game.id)
+    assert {:ok, game} = Games.place_fleet(host, game.id)
+    assert game.status == "waiting"
+    assert {:ok, game} = Games.place_fleet(opponent, game.id)
+    assert game.status == "active"
+
+    assert {:error, :invalid_shot} = Games.shoot(opponent, game.id, "0,0")
+    assert {:ok, game} = Games.shoot(host, game.id, "0,0")
+    assert game.state["shots"][Integer.to_string(host.id)]["0,0"] in ["hit", "miss"]
+
+    assert {:ok, host_view} = Games.get_game(host, game.id)
+    assert map_size(host_view.state["boards"]) == 1
+    assert {:ok, spectator_view} = Games.get_game(spectator, game.id)
+    assert spectator_view.state["boards"] == %{}
+  end
+
+  test "durak supports four players and keeps cards private", %{
+    users: [first, second, third, fourth, spectator]
+  } do
+    assert {:ok, game} = Games.create(first, "durak")
+    assert {:ok, game} = Games.join(second, game.id)
+    assert {:ok, game} = Games.join(third, game.id)
+    assert {:ok, game} = Games.join(fourth, game.id)
+    assert {:error, :full} = Games.join(spectator, game.id)
+    assert {:ok, game} = Games.start(first, game.id)
+    assert game.status == "active"
+
+    assert {:ok, first_view} = Games.get_game(first, game.id)
+    assert length(first_view.state["hands"][Integer.to_string(first.id)]) == 6
+    assert Map.has_key?(first_view.state["hand_counts"], Integer.to_string(second.id))
+    refute Map.has_key?(first_view.state["hands"], Integer.to_string(second.id))
+
+    card = hd(first_view.state["hands"][Integer.to_string(first.id)])
+    assert {:ok, _game} = Games.play_card(first, game.id, card)
+    assert {:ok, spectator_view} = Games.get_game(spectator, game.id)
+    assert spectator_view.state["hands"] == %{}
+  end
+
+  test "balda validates the board path, awards points and rotates turns", %{
+    users: [first, second | _]
+  } do
+    assert {:ok, game} = Games.create(first, "balda")
+    assert {:ok, game} = Games.join(second, game.id)
+    assert {:ok, game} = Games.start(first, game.id)
+
+    assert {:error, :invalid_word} = Games.play_word(first, game.id, "0,0", "Я", "ЯЯЯ")
+    assert {:ok, game} = Games.play_word(first, game.id, "1,0", "Б", "ББАЛДА")
+    assert game.state["turn_id"] == second.id
+    assert Enum.find(game.players, &(&1.user_id == first.id)).score == 6
+    assert {:error, :forbidden} = Games.skip(first, game.id)
+    assert {:ok, _game} = Games.skip(second, game.id)
+  end
+
+  test "leaderboard aggregates finished games by kind", %{users: [winner, other | _]} do
+    assert {:ok, game} = Games.create(winner, "balda")
+    assert {:ok, game} = Games.join(other, game.id)
+
+    game
+    |> Game.changeset(%{status: "finished", winner_id: winner.id})
+    |> Repo.update!()
+
+    assert [%{user: user, wins: 1, played: 1}, %{wins: 0, played: 1}] = Games.leaderboard("balda")
+    assert user.id == winner.id
+  end
+end

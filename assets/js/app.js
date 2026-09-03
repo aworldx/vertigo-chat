@@ -206,6 +206,7 @@ const chatHooks = {
       window.name = "vertigo-chat"
       this.onVisibilityChange = () => {
         if (document.visibilityState === "visible") {
+          this.restoreSession()
           this.touchChatSession()
         }
       }
@@ -328,7 +329,42 @@ const liveSocket = new LiveSocket("/live", Socket, {
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+
+let gameAudioContext = null
+let lastGameSoundAt = 0
+
+const playGameSound = kind => {
+  const now = performance.now()
+
+  // One quiet, short response per deliberate move is enough; never create a soundtrack.
+  if (now - lastGameSoundAt < 90) return
+  lastGameSoundAt = now
+
+  const AudioContext = window.AudioContext || window.webkitAudioContext
+  if (!AudioContext) return
+
+  gameAudioContext ||= new AudioContext()
+  if (gameAudioContext.state === "suspended") gameAudioContext.resume()
+
+  const notes = {card: 392, checker: 220, shot: 104, tile: 523}
+  const oscillator = gameAudioContext.createOscillator()
+  const gain = gameAudioContext.createGain()
+  const startedAt = gameAudioContext.currentTime
+
+  oscillator.type = kind === "shot" ? "triangle" : "sine"
+  oscillator.frequency.setValueAtTime(notes[kind] || 330, startedAt)
+  gain.gain.setValueAtTime(0.0001, startedAt)
+  gain.gain.exponentialRampToValueAtTime(0.035, startedAt + 0.012)
+  gain.gain.exponentialRampToValueAtTime(0.0001, startedAt + 0.085)
+  oscillator.connect(gain).connect(gameAudioContext.destination)
+  oscillator.start(startedAt)
+  oscillator.stop(startedAt + 0.09)
+}
+
 document.addEventListener("click", event => {
+  const gameControl = event.target.closest("[data-game-sound]")
+  if (gameControl && !gameControl.disabled) playGameSound(gameControl.dataset.gameSound)
+
   const link = event.target.closest("[data-return-to-chat]")
   if (!link || event.defaultPrevented || event.button !== 0) return
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return

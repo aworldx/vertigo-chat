@@ -36,6 +36,8 @@ defmodule ChatWeb.Router do
     live "/help", RanksLive, :index
     live "/ranks", RanksLive, :index
     live "/library", LibraryLive, :index
+    live "/games", GamesLive, :index
+    live "/games/:kind", GamesLive, :show
     live "/checkers", CheckersLive, :index
   end
 

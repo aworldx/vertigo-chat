@@ -8,10 +8,10 @@ defmodule ChatWeb.ShellComponents do
   def top_menu(assigns) do
     ~H"""
     <header class="relative z-50 flex min-h-14 shrink-0 items-center justify-between overflow-visible border-b border-zinc-800 bg-zinc-900 px-4">
-      <a href="/" class="flex items-center gap-3">
+      <div id="chat-logo" class="flex items-center gap-3" aria-label="Vertigo">
         <span class="vertigo-mark" aria-hidden="true"></span>
         <span class="vertigo-wordmark uppercase">Vertigo</span>
-      </a>
+      </div>
 
       <nav
         class="cinema-menu flex shrink-0 items-center gap-4 text-sm text-zinc-300"
@@ -38,13 +38,38 @@ defmodule ChatWeb.ShellComponents do
         >
           Фотоальбом
         </.link>
-        <.link
-          href={~p"/checkers"}
-          target="vertigo-checkers"
-          class="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
-        >
-          Шашки
-        </.link>
+        <details id="games-main-menu" class="relative hidden lg:block">
+          <summary class="cursor-pointer whitespace-nowrap transition hover:text-amber-300 [&::-webkit-details-marker]:hidden">
+            Игры
+          </summary>
+          <div class="absolute right-0 top-7 z-50 w-44 rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-2xl shadow-black/50">
+            <.link
+              href={~p"/games"}
+              target="vertigo-games"
+              class="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >Все игры</.link>
+            <.link
+              href={~p"/checkers"}
+              target="vertigo-checkers"
+              class="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >Шашки</.link>
+            <.link
+              href={~p"/games/battleship"}
+              target="vertigo-battleship"
+              class="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >Морской бой</.link>
+            <.link
+              href={~p"/games/durak"}
+              target="vertigo-durak"
+              class="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >Дурак</.link>
+            <.link
+              href={~p"/games/balda"}
+              target="vertigo-balda"
+              class="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >Балда</.link>
+          </div>
+        </details>
         <.link
           href={~p"/visits"}
           target="vertigo-visits"
@@ -120,7 +145,7 @@ defmodule ChatWeb.ShellComponents do
       {"Анкеты", ~p"/profiles"},
       {"Библиотека", ~p"/library"},
       {"Фотоальбом", ~p"/gallery"},
-      {"Шашки", ~p"/checkers"},
+      {"Игры", ~p"/games"},
       {"Кто был", ~p"/visits"},
       {"Помощь", ~p"/help"}
     ]

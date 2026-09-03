@@ -23,6 +23,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "Ник"
     assert has_element?(view, "#entrance-nickname")
     assert has_element?(view, "#entrance-nickname.text-base")
+    assert has_element?(view, "#chat-logo", "Vertigo")
+    refute has_element?(view, "#chat-logo[href]")
     refute html =~ ~r/value="guest-[^"]+"/
     assert html =~ "Сейчас в чате"
     refute html =~ "Общая комната"
@@ -31,6 +33,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "a[href='/visits'][target='vertigo-visits']")
     assert has_element?(view, "a[href='/help'][target='vertigo-help']", "Помощь")
     assert has_element?(view, "a[href='/library'][target='vertigo-library']")
+    assert has_element?(view, "#games-main-menu a[href='/games'][target='vertigo-games']")
     assert has_element?(view, "#show-feedback", "Обратная связь")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
     assert has_element?(view, "#chat-room.h-dvh.max-h-dvh.min-h-0.overflow-hidden")
@@ -602,6 +605,12 @@ defmodule ChatWeb.RoomLiveTest do
       |> render_click()
 
     assert html =~ "profile-modal"
+    assert has_element?(view, "#profile-modal.fixed.inset-0.z-50")
+    assert has_element?(view, "#profile-view")
+    assert has_element?(view, "#edit-profile")
+    refute has_element?(view, "#profile-form")
+
+    view |> element("#edit-profile") |> render_click()
     assert has_element?(view, "#profile-form")
     assert has_element?(view, "#save-profile")
 
@@ -616,7 +625,8 @@ defmodule ChatWeb.RoomLiveTest do
     )
     |> render_submit()
 
-    assert has_element?(view, "#profile-form input[value='Мария']")
+    assert has_element?(view, "#profile-display-name", "Мария")
+    refute has_element?(view, "#profile-form")
   end
 
   test "does not show profile editing controls to a guest", %{conn: conn} do
@@ -637,7 +647,9 @@ defmodule ChatWeb.RoomLiveTest do
     view |> element("#message-form") |> render_submit(%{message: %{body: "hello"}})
     render_hook(view, "open_profile", %{"nickname" => "readonly"})
 
-    assert has_element?(view, "#profile-form")
+    assert has_element?(view, "#profile-view")
+    refute has_element?(view, "#profile-form")
+    refute has_element?(view, "#edit-profile")
     refute has_element?(view, "#save-profile")
   end
 
@@ -647,10 +659,12 @@ defmodule ChatWeb.RoomLiveTest do
 
     render_hook(view, "open_profile", %{"nickname" => "guest_missing"})
     assert has_element?(view, "#profile-modal")
+    assert has_element?(view, "#profile-view", "Пока ничего не рассказал о себе.")
+    refute has_element?(view, "#profile-form")
     refute has_element?(view, "#save-profile")
 
     render_hook(view, "validate_profile", %{"profile" => %{"name" => String.duplicate("x", 81)}})
-    assert has_element?(view, "#profile-form")
+    refute has_element?(view, "#profile-form")
 
     view |> element("#close-profile") |> render_click()
     refute has_element?(view, "#profile-modal")
@@ -663,6 +677,7 @@ defmodule ChatWeb.RoomLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "invalid_profile", "secret123")
     render_hook(view, "open_profile", %{"nickname" => "invalid_profile"})
+    view |> element("#edit-profile") |> render_click()
 
     html =
       view
@@ -679,6 +694,7 @@ defmodule ChatWeb.RoomLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "photo_profile", "secret123")
     render_hook(view, "open_profile", %{"nickname" => "photo_profile"})
+    view |> element("#edit-profile") |> render_click()
 
     upload =
       file_input(view, "#profile-form", :profile_photo, [
@@ -692,7 +708,7 @@ defmodule ChatWeb.RoomLiveTest do
     render_upload(upload, "photo.webp")
     view |> form("#profile-form", profile: %{name: "С фото"}) |> render_submit()
 
-    assert has_element?(view, "#profile-form img[src^='data:image/webp;base64,']")
+    assert has_element?(view, "#profile-avatar-image[src^='data:image/webp;base64,']")
   end
 
   test "delivers a private message only to sender and recipient", %{

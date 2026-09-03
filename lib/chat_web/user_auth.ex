@@ -1,14 +1,16 @@
-# Назначение файла: подписывает и проверяет короткоживущую авторизацию пользователя между вкладками.
+# Назначение файла: подписывает и проверяет авторизацию, ограниченную текущей вкладкой браузера.
 defmodule ChatWeb.UserAuth do
   alias Chat.Accounts
   alias Chat.Accounts.User
 
   @salt "user-auth"
   @chat_session_salt "chat-session"
-  @session_max_age :timer.minutes(5) |> div(1_000)
+  # Tokens are stored only in sessionStorage, so closing the tab ends the session.
+  # An idle or background tab must remain restorable indefinitely.
+  @session_max_age :infinity
 
   def sign(%User{id: user_id}) do
-    Phoenix.Token.sign(ChatWeb.Endpoint, @salt, user_id)
+    Phoenix.Token.sign(ChatWeb.Endpoint, @salt, user_id, max_age: @session_max_age)
   end
 
   def verify(token) when is_binary(token) do
@@ -25,10 +27,15 @@ defmodule ChatWeb.UserAuth do
 
   def sign_chat_session(nickname, session_id \\ Ecto.UUID.generate())
       when is_binary(nickname) and is_binary(session_id) do
-    Phoenix.Token.sign(ChatWeb.Endpoint, @chat_session_salt, %{
-      "id" => session_id,
-      "nickname" => nickname
-    })
+    Phoenix.Token.sign(
+      ChatWeb.Endpoint,
+      @chat_session_salt,
+      %{
+        "id" => session_id,
+        "nickname" => nickname
+      },
+      max_age: @session_max_age
+    )
   end
 
   def verify_chat_session(token, nickname) when is_binary(token) and is_binary(nickname) do
