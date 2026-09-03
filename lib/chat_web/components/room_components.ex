@@ -23,6 +23,7 @@ defmodule ChatWeb.RoomComponents do
         phx-hook="ChatMessages"
         phx-update="stream"
         class="min-h-0 flex-1 overflow-y-auto p-3"
+        style="padding-bottom: var(--chat-composer-height, 5rem)"
       >
         <div
           :for={{dom_id, message} <- @messages}
@@ -843,7 +844,7 @@ defmodule ChatWeb.RoomComponents do
       id="message-form"
       phx-submit="send_message"
       phx-hook="PrivateMessageComposer"
-      class="relative z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition"
+      class="absolute inset-x-0 bottom-0 z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition"
     >
       <p
         :if={@message_error}

@@ -953,7 +953,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "привет из теста"
     refute html =~ "  привет из теста  "
     assert has_element?(view, "#send-message[phx-disable-with='Отправляем…']")
-    assert has_element?(view, "#message-form.relative.z-20")
+    assert has_element?(view, "#message-form.absolute.inset-x-0.bottom-0.z-20")
+    assert has_element?(view, "#messages[style*='--chat-composer-height']")
   end
 
   test "keeps a registered user in chat after the first message", %{conn: conn} do
@@ -1481,7 +1482,7 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(observer, "#messages [data-message-kind='system'] .chat-message-author")
   end
 
-  test "does not announce a departure when a LiveView process terminates", %{conn: conn} do
+  test "announces a departure when a LiveView process terminates", %{conn: conn} do
     nickname = "reload_#{System.unique_integer([:positive])}"
     :ok = Messages.subscribe("lobby")
 
@@ -1491,7 +1492,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     :ok = GenServer.stop(participant.pid, :normal)
 
-    refute_receive {:message_created, %{body: "из чата выходит " <> ^nickname}}, 100
+    assert_receive {:message_created, %{body: "из чата выходит " <> ^nickname}}
   end
 
   test "records entrance and exit timestamps", %{conn: conn} do

@@ -461,12 +461,12 @@ html[data-chat-session-restoring] #chat-session-restoring {
 @keyframes chat-message-enter {
   0% {
     opacity: 0;
-    transform: translate3d(0, 2.5rem, 0);
+    transform: translate3d(0, 3.5rem, 0);
   }
 
-  55% {
-    opacity: 0.78;
-    transform: translate3d(0, 0.6rem, 0);
+  62% {
+    opacity: 0.82;
+    transform: translate3d(0, 0.75rem, 0);
   }
 
   100% {
@@ -476,7 +476,7 @@ html[data-chat-session-restoring] #chat-session-restoring {
 }
 
 .chat-message-entry {
-  animation: chat-message-enter 680ms cubic-bezier(0.16, 0.78, 0.3, 1) both;
+  animation: chat-message-enter 900ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -487,6 +487,10 @@ html[data-chat-session-restoring] #chat-session-restoring {
 
 #messages > .chat-message-entry + .chat-message-entry {
   margin-block-start: 0.75rem;
+}
+
+#messages {
+  scroll-behavior: auto;
 }
 
 #messages > .chat-message-entry + .chat-message-entry[data-message-kind="system"],
@@ -734,6 +738,11 @@ a:hover .vertigo-mark {
 .chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] > :not([role="dialog"]) {
   position: relative;
   z-index: 1;
+}
+
+.chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] > #message-form {
+  position: absolute;
+  z-index: 20;
 }
 
 /* Выпадающее меню должно быть над полупрозрачным основным слоем, иначе тот размывает его. */

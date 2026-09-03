@@ -1004,6 +1004,8 @@ defmodule ChatWeb.RoomLive do
   def terminate(_reason, socket) do
     if socket.assigns.joined? do
       :ok = broadcast_stopped_typing(socket)
+      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
+      Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
     end
 
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
@@ -1577,11 +1579,17 @@ defmodule ChatWeb.RoomLive do
     socket = assign(socket, :all_message_items, all_messages)
 
     if visible_message?(message, socket.assigns.ignored_nicknames) do
-      messages = replace_message(socket.assigns.message_items, message)
+      case Enum.find(socket.assigns.message_items, &(to_string(&1.id) == to_string(message.id))) do
+        ^message ->
+          socket
 
-      socket
-      |> assign(:message_items, messages)
-      |> stream_insert(:messages, message)
+        _existing_message ->
+          messages = replace_message(socket.assigns.message_items, message)
+
+          socket
+          |> assign(:message_items, messages)
+          |> stream_insert(:messages, message)
+      end
     else
       socket
     end

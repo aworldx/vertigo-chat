@@ -129,6 +129,12 @@ const chatHooks = {
     mounted() {
       this.input = this.el.querySelector("#message-body")
       this.isTyping = false
+      this.syncComposerHeight = () => {
+        document.documentElement.style.setProperty(
+          "--chat-composer-height",
+          `${this.el.offsetHeight}px`,
+        )
+      }
 
       this.stopTyping = () => {
         window.clearTimeout(this.typingTimer)
@@ -171,34 +177,61 @@ const chatHooks = {
 
       this.input?.addEventListener("input", this.onInput)
       this.el.addEventListener("keydown", this.onKeydown)
+      this.composerResizeObserver = new ResizeObserver(this.syncComposerHeight)
+      this.composerResizeObserver.observe(this.el)
+      this.syncComposerHeight()
     },
     destroyed() {
       window.clearTimeout(this.typingTimer)
       this.input?.removeEventListener("input", this.onInput)
       this.el.removeEventListener("keydown", this.onKeydown)
+      this.composerResizeObserver?.disconnect()
+      document.documentElement.style.removeProperty("--chat-composer-height")
     },
   },
   ChatMessages: {
     mounted() {
       this.shouldStickToBottom = true
-      this.scrollToBottom(false)
+      this.scrollToBottom()
     },
     beforeUpdate() {
       this.shouldStickToBottom =
         this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 80
+      this.previousScrollHeight = this.el.scrollHeight
     },
     updated() {
-      if (this.shouldStickToBottom) {
-        this.scrollToBottom(true)
-      }
+      if (!this.shouldStickToBottom) return
+
+      const addedHeight = this.el.scrollHeight - this.previousScrollHeight
+      if (addedHeight > 0) this.revealLatestMessage(addedHeight)
     },
-    scrollToBottom(smooth) {
-      requestAnimationFrame(() => {
-        this.el.scrollTo({
-          top: this.el.scrollHeight,
-          behavior: smooth ? "smooth" : "auto",
-        })
-      })
+    destroyed() {
+      cancelAnimationFrame(this.scrollAnimationFrame)
+    },
+    scrollToBottom() {
+      this.el.scrollTop = this.el.scrollHeight
+    },
+    revealLatestMessage(addedHeight) {
+      cancelAnimationFrame(this.scrollAnimationFrame)
+
+      const startTop = this.el.scrollTop
+      const maxTop = this.el.scrollHeight - this.el.clientHeight
+      const targetTop = Math.min(startTop + addedHeight, maxTop)
+      const distance = targetTop - startTop
+
+      if (distance <= 0) return
+
+      const startedAt = performance.now()
+      const duration = 720
+      const tick = now => {
+        const progress = Math.min((now - startedAt) / duration, 1)
+        const eased = 1 - Math.pow(1 - progress, 3)
+        this.el.scrollTop = startTop + distance * eased
+
+        if (progress < 1) this.scrollAnimationFrame = requestAnimationFrame(tick)
+      }
+
+      this.scrollAnimationFrame = requestAnimationFrame(tick)
     },
   },
   ChatPreferences: {
