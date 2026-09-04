@@ -733,11 +733,6 @@ a:hover .vertigo-mark {
   z-index: 1;
 }
 
-.chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] > #message-form {
-  position: absolute;
-  z-index: 20;
-}
-
 /* Выпадающее меню должно быть над полупрозрачным основным слоем, иначе тот размывает его. */
 .chat-shell[data-chat-theme="vertigo"][data-chat-mode="dark"] > header:not([role="dialog"]) {
   z-index: 50;
@@ -906,11 +901,6 @@ a:hover .vertigo-mark {
 .chat-shell[data-chat-theme="night_sky"] > div:not([role="dialog"]) {
   position: relative;
   z-index: 1;
-}
-
-.chat-shell[data-chat-theme="night_sky"] > #message-form {
-  position: absolute;
-  z-index: 20;
 }
 
 .chat-shell[data-chat-theme="night_sky"]::before {
@@ -1116,50 +1106,33 @@ a:hover .vertigo-mark {
   --tw-ring-color: rgba(24, 23, 21, 0.32);
 }
 
-/* User typography preferences override theme-specific display faces. */
-.chat-shell[data-chat-font="sans"] {
-  --chat-user-font: "Vertigo Text", "Avenir Next", sans-serif;
+/* A typeface belongs to the message author, never to the recipient's chat UI. */
+.chat-message-entry[data-message-font="sans"] {
+  font-family: "Vertigo Text", "Avenir Next", sans-serif;
 }
 
-.chat-shell[data-chat-font="display"] {
-  --chat-user-font: "Vertigo Display", "Arial Narrow", sans-serif;
+.chat-message-entry[data-message-font="display"] {
+  font-family: "Vertigo Display", "Arial Narrow", sans-serif;
 }
 
-.chat-shell[data-chat-font="serif"] {
-  --chat-user-font: Georgia, "Times New Roman", serif;
+.chat-message-entry[data-message-font="serif"] {
+  font-family: Georgia, "Times New Roman", serif;
 }
 
-.chat-shell[data-chat-font-style="normal"] {
-  font-style: normal;
-}
-
-.chat-shell[data-chat-font-style="italic"] {
+.chat-message-entry[data-message-font-style="italic"] {
   font-style: italic;
 }
 
-.chat-shell:is([data-chat-font="sans"], [data-chat-font="display"], [data-chat-font="serif"]) {
-  font-family: var(--chat-user-font);
-}
-
-.chat-shell:is([data-chat-font="sans"], [data-chat-font="display"], [data-chat-font="serif"]) :is(
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  button,
-  input,
-  select,
-  textarea,
-  .cinema-menu,
-  .vertigo-wordmark,
+.chat-message-entry[data-message-font]:is(
+  [data-message-font="sans"],
+  [data-message-font="display"],
+  [data-message-font="serif"]
+) :is(
   .chat-message-author,
-  .chat-user-nickname,
-  .chat-current-nickname,
-  .chat-preview-nickname,
   .chat-message-body,
+  .chat-message-recipient,
+  .chat-preview-nickname,
   .chat-preview-text
 ) {
-  font-family: var(--chat-user-font);
+  font-family: inherit;
 }

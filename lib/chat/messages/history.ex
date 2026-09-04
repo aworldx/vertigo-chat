@@ -5,6 +5,7 @@ defmodule Chat.Messages.History do
   alias Chat.Appearance
   alias Chat.Messages.StoredMessage
   alias Chat.Repo
+  alias Chat.Typography
 
   @history_limit 30
 
@@ -29,6 +30,8 @@ defmodule Chat.Messages.History do
       recipient: Map.get(message, :recipient),
       theme_id: Map.fetch!(message, :theme_id),
       appearance: Map.fetch!(message, :appearance),
+      font_id: Typography.normalize_font_id(Map.get(message, :font_id)),
+      font_style: Typography.normalize_font_style(Map.get(message, :font_style)),
       rank: Map.get(message, :rank),
       reactions: encode_reactions(Map.get(message, :reactions, %{})),
       sent_at: sent_at(message)
@@ -89,6 +92,8 @@ defmodule Chat.Messages.History do
       recipient: message.recipient,
       theme_id: message.theme_id,
       appearance: Appearance.normalize(message.appearance),
+      font_id: Typography.normalize_font_id(message.font_id),
+      font_style: Typography.normalize_font_style(message.font_style),
       reactions: decode_reactions(message.reactions),
       sent_at: DateTime.to_iso8601(message.sent_at),
       at: Calendar.strftime(message.sent_at, "%H:%M:%S")

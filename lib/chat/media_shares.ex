@@ -11,6 +11,7 @@ defmodule Chat.MediaShares do
   alias Chat.Security
   alias Chat.Security.Subject
   alias Chat.Themes
+  alias Chat.Typography
 
   @max_image_size 5_000_000
   @max_audio_size 50_000_000
@@ -54,7 +55,9 @@ defmodule Chat.MediaShares do
             content_type: metadata.content_type,
             size: metadata.size,
             theme_id: Themes.normalize_theme_id(attrs["theme_id"]),
-            appearance: Appearance.normalize(attrs["appearance"] || %{})
+            appearance: Appearance.normalize(attrs["appearance"] || %{}),
+            font_id: Typography.normalize_font_id(attrs["font_id"]),
+            font_style: Typography.normalize_font_style(attrs["font_style"])
           },
           timestamp()
         )

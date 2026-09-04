@@ -6,6 +6,7 @@ defmodule ChatWeb.RoomComponents do
   alias Chat.Gifs
   alias Chat.Music
   alias Chat.Ranks
+  alias Chat.Typography
   alias ChatWeb.Media
 
   attr(:messages, :any, required: true)
@@ -23,13 +24,14 @@ defmodule ChatWeb.RoomComponents do
         phx-hook="ChatMessages"
         phx-update="stream"
         class="min-h-0 flex-1 overflow-y-auto p-3"
-        style="padding-bottom: var(--chat-composer-height, 5rem)"
       >
         <div
           :for={{dom_id, message} <- @messages}
           id={dom_id}
           data-message-kind={Map.get(message, :kind, :text)}
           data-private={to_string(Map.get(message, :kind) == :private)}
+          data-message-font={Typography.normalize_font_id(Map.get(message, :font_id))}
+          data-message-font-style={Typography.normalize_font_style(Map.get(message, :font_style))}
           data-addressed-to-me={
             if(Map.get(message, :recipient) == @nickname, do: "true", else: "false")
           }
@@ -847,7 +849,7 @@ defmodule ChatWeb.RoomComponents do
       id="message-form"
       phx-submit="send_message"
       phx-hook="PrivateMessageComposer"
-      class="absolute inset-x-0 bottom-0 z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition"
+      class="relative z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition"
     >
       <p
         :if={@message_error}
@@ -1147,23 +1149,19 @@ defmodule ChatWeb.RoomComponents do
         class="absolute inset-0"
         aria-label="Закрыть анкету"
       ></button>
-      <section class="relative z-10 max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] border border-white/10 bg-zinc-900 shadow-2xl shadow-black/40">
-        <div class="relative overflow-hidden border-b border-white/10 px-5 py-5 sm:px-8 sm:py-7">
-          <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-br from-amber-300/20 via-amber-200/5 to-transparent">
-          </div>
-          <div class="relative flex justify-end">
-            <button
-              id="close-profile"
-              type="button"
-              phx-click="close_profile"
-              class="flex size-10 items-center justify-center rounded-full border border-white/10 bg-zinc-950/45 text-zinc-300 backdrop-blur transition hover:border-amber-200/60 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-              aria-label="Закрыть анкету"
-            >
-              <.icon name="hero-x-mark" class="size-5" />
-            </button>
-          </div>
+      <section class="relative z-10 max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-white/10 bg-zinc-900 shadow-2xl shadow-black/40">
+        <button
+          id="close-profile"
+          type="button"
+          phx-click="close_profile"
+          class="absolute right-4 top-4 z-20 flex size-10 items-center justify-center rounded-full border border-white/10 bg-zinc-950/70 text-zinc-300 shadow-lg backdrop-blur transition hover:border-amber-200/60 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:right-6 sm:top-6"
+          aria-label="Закрыть анкету"
+        >
+          <.icon name="hero-x-mark" class="size-5" />
+        </button>
 
-          <div class="relative -mt-2 flex items-center gap-4 sm:-mt-5 sm:gap-6">
+        <div class="grid min-h-[32rem] lg:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.35fr)]">
+          <aside class="border-b border-white/10 bg-zinc-950/45 lg:border-b-0 lg:border-r">
             <%= if @photo_url && not (@uploads.profile_photo.entries != [] and @editing) do %>
               <button
                 id="open-room-profile-photo"
@@ -1171,177 +1169,181 @@ defmodule ChatWeb.RoomComponents do
                 data-room-profile-lightbox-open
                 aria-label={"Увеличить фото #{@profile.user.nickname}"}
                 aria-haspopup="dialog"
-                class="group/photo relative grid size-24 shrink-0 cursor-zoom-in place-items-center overflow-hidden rounded-2xl border border-amber-200/40 bg-zinc-950 text-3xl font-black text-amber-200 shadow-xl shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:size-32"
+                class="group/photo relative flex min-h-[24rem] w-full cursor-zoom-in items-center justify-center overflow-hidden bg-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300 lg:h-full lg:min-h-0"
               >
                 <img
                   id="profile-avatar-image"
                   src={@photo_url}
                   alt={"Фото #{@profile.user.nickname}"}
-                  class="h-full w-full object-cover transition duration-300 group-hover/photo:scale-105"
+                  class="h-full w-full object-contain transition duration-300 group-hover/photo:scale-[1.02]"
                 />
-                <span class="absolute bottom-2 right-2 flex size-8 items-center justify-center rounded-full bg-zinc-950/75 text-zinc-100 opacity-0 shadow-lg backdrop-blur transition group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100">
-                  <.icon name="hero-arrows-pointing-out" class="size-4" />
+                <span class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950/90 via-zinc-950/20 to-transparent px-5 pb-5 pt-12 text-left text-xs font-semibold uppercase tracking-[0.16em] text-amber-100">
+                  <.icon name="hero-arrows-pointing-out" class="mr-2 inline size-4 align-text-bottom" />
+                  Смотреть фото
                 </span>
               </button>
             <% else %>
-              <div class="grid size-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-amber-200/40 bg-zinc-950 text-3xl font-black text-amber-200 shadow-xl shadow-black/30 sm:size-32">
+              <div class="grid min-h-[24rem] place-items-center bg-gradient-to-br from-amber-300/15 via-zinc-950 to-zinc-950 text-6xl font-black text-amber-200 lg:h-full lg:min-h-0">
                 <%= cond do %>
                   <% @uploads.profile_photo.entries != [] and @editing -> %>
                     <.live_img_preview
                       entry={List.first(@uploads.profile_photo.entries)}
-                      class="h-full w-full object-cover"
+                      class="h-full w-full object-contain"
                     />
                   <% true -> %>
                     {profile_initial(@profile.user.nickname)}
                 <% end %>
               </div>
             <% end %>
-            <div class="min-w-0 flex-1">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Анкета</p>
+          </aside>
+
+          <div class="min-w-0">
+            <header class="border-b border-white/10 bg-gradient-to-br from-amber-300/15 via-zinc-900 to-zinc-900 px-6 pb-6 pt-7 sm:px-8 sm:pb-7 sm:pt-9">
+              <p class="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">Анкета</p>
               <h2
                 id="profile-title"
-                class="mt-1 truncate text-3xl font-bold tracking-tight text-white sm:text-4xl"
+                class="mt-2 truncate pr-12 text-4xl font-bold tracking-tight text-white sm:text-5xl"
               >
                 {@profile.user.nickname}
               </h2>
               <p
                 :if={present?(@profile.name)}
                 id="profile-display-name"
-                class="mt-1 truncate text-sm font-medium text-zinc-300"
+                class="mt-2 truncate text-base font-medium text-zinc-300"
               >
                 {@profile.name}
               </p>
-              <div class="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1.5 text-xs font-semibold text-amber-100">
-                <.rank_icon rank={@rank} class="size-4" />
+              <div class="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-amber-300/30 bg-zinc-950/40 px-3 py-1.5 text-xs font-semibold text-amber-100">
+                <.rank_icon rank={@rank} class="size-4 text-amber-300" />
                 <span class="truncate">{@rank.title}</span>
               </div>
+            </header>
+
+            <div id="profile-view" class="space-y-5 p-6 sm:p-8">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-2xl border border-white/10 bg-zinc-950/45 p-4">
+                  <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                    <.icon name="hero-chat-bubble-left-right" class="size-4 text-amber-300" /> Фразы
+                  </div>
+                  <p class="mt-2 text-3xl font-bold tabular-nums text-zinc-100">
+                    {@profile.user.public_message_count}
+                  </p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-zinc-950/45 p-4">
+                  <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                    <.icon name="hero-clock" class="size-4 text-amber-300" /> В чате
+                  </div>
+                  <p class="mt-2 text-3xl font-bold tabular-nums text-zinc-100">
+                    {div(@profile.user.chat_seconds, 3600)}
+                  </p>
+                </div>
+              </div>
+
+              <div :if={@profile.birth_date || @profile.gender} class="flex flex-wrap gap-2">
+                <span
+                  :if={@profile.birth_date}
+                  class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-300"
+                >
+                  <.icon name="hero-cake" class="size-4 text-amber-300" />
+                  {Calendar.strftime(@profile.birth_date, "%d.%m.%Y")}
+                </span>
+                <span
+                  :if={@profile.gender}
+                  class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-300"
+                >
+                  <.icon name="hero-user" class="size-4 text-amber-300" />
+                  {profile_gender(@profile.gender)}
+                </span>
+              </div>
+
+              <section class="min-h-36 rounded-2xl border border-white/10 bg-zinc-950/35 p-5">
+                <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+                  <.icon name="hero-sparkles" class="size-4 text-amber-300" /> О себе
+                </div>
+                <p class={[
+                  "mt-4 whitespace-pre-wrap text-sm leading-7",
+                  present?(@profile.about) && "text-zinc-200",
+                  !present?(@profile.about) && "italic text-zinc-500"
+                ]}>
+                  {if present?(@profile.about),
+                    do: @profile.about,
+                    else: "Пока ничего не рассказал о себе."}
+                </p>
+              </section>
+
+              <button
+                :if={@editable and not @editing}
+                id="edit-profile"
+                type="button"
+                phx-click="edit_profile"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-200 hover:bg-amber-300/15"
+              >
+                <.icon name="hero-pencil-square" class="size-5" /> Редактировать анкету
+              </button>
             </div>
+
+            <.form
+              :if={@editable and @editing}
+              for={@form}
+              id="profile-form"
+              phx-change="validate_profile"
+              phx-submit="save_profile"
+              class="space-y-5 border-t border-zinc-800 bg-zinc-950/40 p-5 sm:p-7"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+                    Твоя анкета
+                  </p>
+                  <h3 class="mt-1 text-xl font-bold text-white">Редактирование</h3>
+                </div>
+                <button
+                  id="cancel-profile-edit"
+                  type="button"
+                  phx-click="cancel_profile_edit"
+                  class="rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                >Отмена</button>
+              </div>
+
+              <div id="profile-photo-compressor" phx-hook=".ProfilePhotoCompressor">
+                <label for="profile-photo-input" class="text-sm font-semibold text-zinc-200">Фотография</label>
+                <.live_file_input
+                  id="profile-photo-input"
+                  upload={@uploads.profile_photo}
+                  class="mt-2 block w-full text-xs text-zinc-400 file:mr-2 file:rounded-lg file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:font-semibold file:text-zinc-950"
+                />
+                <p class="mt-2 text-xs leading-4 text-zinc-500">
+                  JPG, PNG или WebP. Фото будет уменьшено до 1280×1280.
+                </p>
+                <p
+                  :if={upload_errors(@uploads.profile_photo) != []}
+                  id="profile-photo-error"
+                  class="mt-2 text-xs text-red-300"
+                >
+                  Фото должно быть подходящего формата и не больше 1,5 МБ.
+                </p>
+              </div>
+
+              <.input field={@form[:name]} label="Имя" maxlength="80" />
+              <div class="grid gap-4 sm:grid-cols-2">
+                <.input field={@form[:birth_date]} type="date" label="Дата рождения" />
+                <.input
+                  field={@form[:gender]}
+                  type="select"
+                  label="Пол"
+                  prompt="Не указан"
+                  options={[{"Мужской", "male"}, {"Женский", "female"}, {"Другой", "other"}]}
+                />
+              </div>
+              <.input field={@form[:about]} type="textarea" label="О себе" maxlength="1000" />
+              <button
+                id="save-profile"
+                type="submit"
+                class="w-full rounded-xl bg-amber-300 px-4 py-3.5 font-semibold text-zinc-950 shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-50"
+              >Сохранить изменения</button>
+            </.form>
           </div>
         </div>
-
-        <div id="profile-view" class="space-y-6 p-5 sm:p-8">
-          <div class="grid grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/40">
-            <div class="p-4 sm:px-5 sm:py-4">
-              <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
-                <.icon name="hero-chat-bubble-left-right" class="size-4 text-amber-300" /> Фразы
-              </div>
-              <p class="mt-2 text-2xl font-bold tabular-nums text-zinc-100 sm:text-3xl">
-                {@profile.user.public_message_count}
-              </p>
-            </div>
-            <div class="p-4 sm:px-5 sm:py-4">
-              <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
-                <.icon name="hero-clock" class="size-4 text-amber-300" /> В чате
-              </div>
-              <p class="mt-2 text-2xl font-bold tabular-nums text-zinc-100 sm:text-3xl">
-                {div(@profile.user.chat_seconds, 3600)}
-              </p>
-            </div>
-          </div>
-
-          <div :if={@profile.birth_date || @profile.gender} class="flex flex-wrap gap-2.5">
-            <span
-              :if={@profile.birth_date}
-              class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-300"
-            >
-              <.icon name="hero-cake" class="size-4 text-amber-300" />
-              {Calendar.strftime(@profile.birth_date, "%d.%m.%Y")}
-            </span>
-            <span
-              :if={@profile.gender}
-              class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-300"
-            >
-              <.icon name="hero-user" class="size-4 text-amber-300" />
-              {profile_gender(@profile.gender)}
-            </span>
-          </div>
-
-          <section class="rounded-2xl border border-white/10 bg-zinc-950/35 p-5 sm:p-6">
-            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
-              <.icon name="hero-sparkles" class="size-4 text-amber-300" /> О себе
-            </div>
-            <p class={[
-              "mt-4 whitespace-pre-wrap text-sm leading-7",
-              present?(@profile.about) && "text-zinc-200",
-              !present?(@profile.about) && "italic text-zinc-500"
-            ]}>
-              {if present?(@profile.about),
-                do: @profile.about,
-                else: "Пока ничего не рассказал о себе."}
-            </p>
-          </section>
-
-          <button
-            :if={@editable and not @editing}
-            id="edit-profile"
-            type="button"
-            phx-click="edit_profile"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-200 hover:bg-amber-300/15"
-          >
-            <.icon name="hero-pencil-square" class="size-5" /> Редактировать анкету
-          </button>
-        </div>
-
-        <.form
-          :if={@editable and @editing}
-          for={@form}
-          id="profile-form"
-          phx-change="validate_profile"
-          phx-submit="save_profile"
-          class="space-y-5 border-t border-zinc-800 bg-zinc-950/40 p-5 sm:p-7"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
-                Твоя анкета
-              </p>
-              <h3 class="mt-1 text-xl font-bold text-white">Редактирование</h3>
-            </div>
-            <button
-              id="cancel-profile-edit"
-              type="button"
-              phx-click="cancel_profile_edit"
-              class="rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white"
-            >Отмена</button>
-          </div>
-
-          <div id="profile-photo-compressor" phx-hook=".ProfilePhotoCompressor">
-            <label for="profile-photo-input" class="text-sm font-semibold text-zinc-200">Фотография</label>
-            <.live_file_input
-              id="profile-photo-input"
-              upload={@uploads.profile_photo}
-              class="mt-2 block w-full text-xs text-zinc-400 file:mr-2 file:rounded-lg file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:font-semibold file:text-zinc-950"
-            />
-            <p class="mt-2 text-xs leading-4 text-zinc-500">
-              JPG, PNG или WebP. Фото будет уменьшено до 1280×1280.
-            </p>
-            <p
-              :if={upload_errors(@uploads.profile_photo) != []}
-              id="profile-photo-error"
-              class="mt-2 text-xs text-red-300"
-            >
-              Фото должно быть подходящего формата и не больше 1,5 МБ.
-            </p>
-          </div>
-
-          <.input field={@form[:name]} label="Имя" maxlength="80" />
-          <div class="grid gap-4 sm:grid-cols-2">
-            <.input field={@form[:birth_date]} type="date" label="Дата рождения" />
-            <.input
-              field={@form[:gender]}
-              type="select"
-              label="Пол"
-              prompt="Не указан"
-              options={[{"Мужской", "male"}, {"Женский", "female"}, {"Другой", "other"}]}
-            />
-          </div>
-          <.input field={@form[:about]} type="textarea" label="О себе" maxlength="1000" />
-          <button
-            id="save-profile"
-            type="submit"
-            class="w-full rounded-xl bg-amber-300 px-4 py-3.5 font-semibold text-zinc-950 shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-50"
-          >Сохранить изменения</button>
-        </.form>
 
         <script :type={Phoenix.LiveView.ColocatedHook} name=".ProfilePhotoCompressor">
           export default {
@@ -1755,11 +1757,15 @@ defmodule ChatWeb.RoomComponents do
           </div>
         <% end %>
 
-        <div class={[
-          "p-2 text-sm",
-          Appearance.message_frame?(@appearance) &&
-            "rounded border border-zinc-800 bg-zinc-900"
-        ]}>
+        <div
+          class={[
+            "chat-message-entry p-2 text-sm",
+            Appearance.message_frame?(@appearance) &&
+              "rounded border border-zinc-800 bg-zinc-900"
+          ]}
+          data-message-font={@font_id}
+          data-message-font-style={@font_style}
+        >
           <span class="chat-preview-nickname font-semibold" style={appearance_style(@appearance)}>
             {@nickname}{if Appearance.message_frame?(@appearance), do: "", else: ":"}
           </span>

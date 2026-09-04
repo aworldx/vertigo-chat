@@ -1826,6 +1826,8 @@ defmodule ChatWeb.RoomLive do
       "body" => body,
       "theme_id" => socket.assigns.theme_id,
       "appearance" => socket.assigns.appearance,
+      "font_id" => socket.assigns.font_id,
+      "font_style" => socket.assigns.font_style,
       "recipient_nicknames" => Enum.map(socket.assigns.online, & &1.nickname)
     }
   end

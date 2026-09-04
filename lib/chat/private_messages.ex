@@ -12,6 +12,7 @@ defmodule Chat.PrivateMessages do
   alias Chat.Security
   alias Chat.Security.Subject
   alias Chat.Themes
+  alias Chat.Typography
 
   def subscribe(peer_id) when is_binary(peer_id) do
     Phoenix.PubSub.subscribe(Chat.PubSub, peer_topic(peer_id))
@@ -85,7 +86,9 @@ defmodule Chat.PrivateMessages do
         sender_peer: sender_peer,
         recipient_peer: recipient_peer,
         theme_id: Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
-        appearance: Appearance.normalize(Map.get(attrs, "appearance", Appearance.default()))
+        appearance: Appearance.normalize(Map.get(attrs, "appearance", Appearance.default())),
+        font_id: Typography.normalize_font_id(Map.get(attrs, "font_id")),
+        font_style: Typography.normalize_font_style(Map.get(attrs, "font_style"))
       },
       timestamp()
     )

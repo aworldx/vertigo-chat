@@ -163,12 +163,6 @@ const chatHooks = {
     mounted() {
       this.input = this.el.querySelector("#message-body")
       this.isTyping = false
-      this.syncComposerHeight = () => {
-        document.documentElement.style.setProperty(
-          "--chat-composer-height",
-          `${this.el.offsetHeight}px`,
-        )
-      }
 
       this.stopTyping = () => {
         window.clearTimeout(this.typingTimer)
@@ -211,26 +205,23 @@ const chatHooks = {
 
       this.input?.addEventListener("input", this.onInput)
       this.el.addEventListener("keydown", this.onKeydown)
-      this.composerResizeObserver = new ResizeObserver(this.syncComposerHeight)
-      this.composerResizeObserver.observe(this.el)
-      this.syncComposerHeight()
     },
     destroyed() {
       window.clearTimeout(this.typingTimer)
       this.input?.removeEventListener("input", this.onInput)
       this.el.removeEventListener("keydown", this.onKeydown)
-      this.composerResizeObserver?.disconnect()
-      document.documentElement.style.removeProperty("--chat-composer-height")
     },
   },
   ChatMessages: {
     mounted() {
       this.shouldStickToBottom = true
+      this.autoScrolling = false
       this.scrollToBottom()
     },
     beforeUpdate() {
       this.shouldStickToBottom =
-        this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 80
+        this.autoScrolling ||
+          this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 80
       this.previousScrollHeight = this.el.scrollHeight
     },
     updated() {
@@ -243,7 +234,9 @@ const chatHooks = {
       cancelAnimationFrame(this.scrollAnimationFrame)
     },
     scrollToBottom() {
+      cancelAnimationFrame(this.scrollAnimationFrame)
       this.el.scrollTop = this.el.scrollHeight
+      this.autoScrolling = false
     },
     revealLatestMessage(addedHeight) {
       cancelAnimationFrame(this.scrollAnimationFrame)
@@ -253,10 +246,14 @@ const chatHooks = {
       const targetTop = Math.min(startTop + addedHeight, maxTop)
       const distance = targetTop - startTop
 
-      if (distance <= 0) return
+      if (distance <= 0) {
+        this.autoScrolling = false
+        return
+      }
 
       const startedAt = performance.now()
       const duration = 900
+      this.autoScrolling = true
       const tick = now => {
         const progress = Math.min((now - startedAt) / duration, 1)
         const eased =
@@ -265,7 +262,11 @@ const chatHooks = {
             : 1 - Math.pow(-2 * progress + 2, 3) / 2
         this.el.scrollTop = startTop + distance * eased
 
-        if (progress < 1) this.scrollAnimationFrame = requestAnimationFrame(tick)
+        if (progress < 1) {
+          this.scrollAnimationFrame = requestAnimationFrame(tick)
+        } else {
+          this.autoScrolling = false
+        }
       }
 
       this.scrollAnimationFrame = requestAnimationFrame(tick)

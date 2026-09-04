@@ -16,6 +16,8 @@ defmodule Chat.Messages.StoredMessage do
     field :recipient, :string
     field :theme_id, :string
     field :appearance, :map, default: %{}
+    field :font_id, :string, default: "theme"
+    field :font_style, :string, default: "normal"
     field :rank, :map
     field :reactions, :map, default: %{}
     field :sent_at, :utc_datetime
@@ -37,6 +39,8 @@ defmodule Chat.Messages.StoredMessage do
       :recipient,
       :theme_id,
       :appearance,
+      :font_id,
+      :font_style,
       :rank,
       :reactions,
       :sent_at
@@ -48,6 +52,8 @@ defmodule Chat.Messages.StoredMessage do
       :body,
       :theme_id,
       :appearance,
+      :font_id,
+      :font_style,
       :reactions,
       :sent_at
     ])

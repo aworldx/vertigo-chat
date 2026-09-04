@@ -17,6 +17,7 @@ defmodule Chat.Messages do
   alias Chat.Security
   alias Chat.Security.Subject
   alias Chat.Themes
+  alias Chat.Typography
 
   @default_room_id "lobby"
   @max_body_length 1_000
@@ -39,6 +40,8 @@ defmodule Chat.Messages do
           body,
           Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
           Appearance.normalize(Map.get(attrs, "appearance")),
+          Typography.normalize_font_id(Map.get(attrs, "font_id")),
+          Typography.normalize_font_style(Map.get(attrs, "font_style")),
           Map.get(attrs, "recipient_nicknames", []),
           subject
         )
@@ -67,6 +70,8 @@ defmodule Chat.Messages do
       body,
       Themes.normalize_theme_id(theme_id),
       Appearance.normalize(appearance),
+      Typography.normalize_font_id(Map.get(attrs, "font_id")),
+      Typography.normalize_font_style(Map.get(attrs, "font_style")),
       Map.get(attrs, "recipient_nicknames", []),
       Map.get(attrs, "rank"),
       subject
@@ -81,6 +86,8 @@ defmodule Chat.Messages do
       body,
       Themes.default_theme_id(),
       Appearance.default(),
+      Typography.default_font_id(),
+      Typography.default_font_style(),
       Map.get(attrs, "recipient_nicknames", []),
       Map.get(attrs, "rank"),
       subject
@@ -240,6 +247,8 @@ defmodule Chat.Messages do
          body,
          theme_id,
          appearance,
+         font_id,
+         font_style,
          recipient_nicknames,
          rank,
          subject
@@ -262,6 +271,8 @@ defmodule Chat.Messages do
               body,
               theme_id,
               appearance,
+              font_id,
+              font_style,
               recipient_nicknames,
               rank
             )
@@ -272,8 +283,29 @@ defmodule Chat.Messages do
     end
   end
 
-  defp broadcast_message(author, room_id, body, theme_id, appearance, recipient_nicknames, rank) do
-    message = build_message(author, body, theme_id, appearance, recipient_nicknames, rank)
+  defp broadcast_message(
+         author,
+         room_id,
+         body,
+         theme_id,
+         appearance,
+         font_id,
+         font_style,
+         recipient_nicknames,
+         rank
+       ) do
+    message =
+      build_message(
+        author,
+        body,
+        theme_id,
+        appearance,
+        font_id,
+        font_style,
+        recipient_nicknames,
+        rank
+      )
+
     persist_and_broadcast(room_id, message)
   end
 
@@ -284,6 +316,8 @@ defmodule Chat.Messages do
         gif,
         Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
         Appearance.normalize(Map.get(attrs, "appearance") || %{}),
+        Typography.normalize_font_id(Map.get(attrs, "font_id")),
+        Typography.normalize_font_style(Map.get(attrs, "font_style")),
         rank
       )
 
@@ -297,6 +331,8 @@ defmodule Chat.Messages do
         track,
         Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
         Appearance.normalize(Map.get(attrs, "appearance") || %{}),
+        Typography.normalize_font_id(Map.get(attrs, "font_id")),
+        Typography.normalize_font_style(Map.get(attrs, "font_style")),
         rank
       )
 
@@ -314,7 +350,17 @@ defmodule Chat.Messages do
     end
   end
 
-  defp deliver_registered_message(user, room_id, body, theme_id, appearance, recipients, subject) do
+  defp deliver_registered_message(
+         user,
+         room_id,
+         body,
+         theme_id,
+         appearance,
+         font_id,
+         font_style,
+         recipients,
+         subject
+       ) do
     body = String.trim(body)
 
     cond do
@@ -335,6 +381,8 @@ defmodule Chat.Messages do
                      body,
                      theme_id,
                      appearance,
+                     font_id,
+                     font_style,
                      recipients,
                      Ranks.for_user(updated_user)
                    ) do
@@ -347,7 +395,16 @@ defmodule Chat.Messages do
     end
   end
 
-  defp build_message(author, body, theme_id, appearance, recipient_nicknames, rank) do
+  defp build_message(
+         author,
+         body,
+         theme_id,
+         appearance,
+         font_id,
+         font_style,
+         recipient_nicknames,
+         rank
+       ) do
     Map.merge(
       %{
         id: System.unique_integer([:positive]),
@@ -357,14 +414,16 @@ defmodule Chat.Messages do
         recipient: recipient_from_body(body, recipient_nicknames),
         reactions: %{},
         theme_id: theme_id,
-        appearance: appearance
+        appearance: appearance,
+        font_id: font_id,
+        font_style: font_style
       }
       |> maybe_put_rank(rank),
       timestamp()
     )
   end
 
-  defp build_gif_message(author, gif, theme_id, appearance, rank) do
+  defp build_gif_message(author, gif, theme_id, appearance, font_id, font_style, rank) do
     Map.merge(
       %{
         id: System.unique_integer([:positive]),
@@ -375,14 +434,16 @@ defmodule Chat.Messages do
         recipient: nil,
         reactions: %{},
         theme_id: theme_id,
-        appearance: appearance
+        appearance: appearance,
+        font_id: font_id,
+        font_style: font_style
       }
       |> maybe_put_rank(rank),
       timestamp()
     )
   end
 
-  defp build_music_message(author, track, theme_id, appearance, rank) do
+  defp build_music_message(author, track, theme_id, appearance, font_id, font_style, rank) do
     Map.merge(
       %{
         id: System.unique_integer([:positive]),
@@ -396,7 +457,9 @@ defmodule Chat.Messages do
         recipient: nil,
         reactions: %{},
         theme_id: theme_id,
-        appearance: appearance
+        appearance: appearance,
+        font_id: font_id,
+        font_style: font_style
       }
       |> maybe_put_rank(rank),
       timestamp()

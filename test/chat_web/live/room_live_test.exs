@@ -750,6 +750,32 @@ defmodule ChatWeb.RoomLiveTest do
     assert_push_event(bob_view, "play-message-notification", %{})
   end
 
+  test "renders the author's selected typography only on their messages", %{conn: conn} do
+    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+
+    enter_chat(alice_view, "type_alice")
+    enter_chat(bob_view, "type_bob")
+
+    alice_view |> element("#toggle-settings") |> render_click()
+
+    alice_view
+    |> form("#preferences-form", preferences: %{font_id: "serif", font_style: "italic"})
+    |> render_submit()
+
+    alice_view
+    |> form("#message-form", message: %{body: "сообщение с личным шрифтом"})
+    |> render_submit()
+
+    assert has_element?(
+             bob_view,
+             "#messages .chat-message-entry[data-message-font='serif'][data-message-font-style='italic'] .chat-message-body",
+             "сообщение с личным шрифтом"
+           )
+
+    refute has_element?(bob_view, "#chat-room[data-chat-font]")
+  end
+
   test "a single nickname click prepares a public addressed message", %{conn: conn} do
     {:ok, alice_view, _html} = live(conn, ~p"/")
     {:ok, bob_view, _html} = live(build_conn(), ~p"/")
@@ -943,8 +969,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "привет из теста"
     refute html =~ "  привет из теста  "
     assert has_element?(view, "#send-message[phx-disable-with='Отправляем…']")
-    assert has_element?(view, "#message-form.absolute.inset-x-0.bottom-0.z-20")
-    assert has_element?(view, "#messages[style*='--chat-composer-height']")
+    assert has_element?(view, "#message-form.relative.z-20")
+    refute has_element?(view, "#messages[style*='--chat-composer-height']")
   end
 
   test "keeps a registered user in chat after the first message", %{conn: conn} do
@@ -1303,11 +1329,7 @@ defmodule ChatWeb.RoomLiveTest do
     enter_chat(restored_view, "persistent_style", "secret123")
 
     assert has_element?(restored_view, "#chat-room[data-chat-theme='night_sky']")
-
-    assert has_element?(
-             restored_view,
-             "#chat-room[data-chat-font='serif'][data-chat-font-style='italic']"
-           )
+    refute has_element?(restored_view, "#chat-room[data-chat-font]")
 
     assert render(restored_view) =~ "--nick-dark: #aa44cc"
 
