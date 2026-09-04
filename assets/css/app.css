@@ -8,7 +8,7 @@
 @source "../css";
 @source "../js";
 @source "../../lib/chat_web";
-@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film");
+@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film hero-swatch hero-paint-brush hero-chevron-down hero-chat-bubble-left-right hero-lock-closed hero-shield-exclamation");
 
 @font-face {
   font-family: "Vertigo Display";
@@ -1032,7 +1032,8 @@ a:hover .vertigo-mark {
 
 .chat-shell[data-chat-theme="newspaper"] header,
 .chat-shell[data-chat-theme="newspaper"] .bg-zinc-900,
-.chat-shell[data-chat-theme="newspaper"] .bg-zinc-900\/80 {
+.chat-shell[data-chat-theme="newspaper"] .bg-zinc-900\/80,
+.chat-shell[data-chat-theme="newspaper"] .bg-zinc-900\/95 {
   background-color: #eeefeb;
   background-image: var(--newsprint-texture);
 }

@@ -51,6 +51,9 @@ defmodule Chat.Accounts do
   def get_user(id) when is_integer(id), do: Repo.get(User, id)
   def get_user(_id), do: nil
 
+  def admin?(%User{is_admin: true}), do: true
+  def admin?(_user), do: false
+
   def authenticate(nickname, password) do
     nickname = Chatlans.normalize_nickname(nickname, nil)
     password = normalize_password(password)
@@ -104,6 +107,11 @@ defmodule Chat.Accounts do
 
   defp register_valid_user(changeset, subject) do
     Repo.transaction(fn ->
+      changeset =
+        if Repo.exists?(User),
+          do: changeset,
+          else: Ecto.Changeset.put_change(changeset, :is_admin, true)
+
       with {:ok, user} <- Repo.insert(changeset),
            {:ok, _profile} <- Profiles.create_for_user(user),
            :ok <- Security.claim_registration(subject) do

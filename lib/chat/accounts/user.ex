@@ -18,6 +18,7 @@ defmodule Chat.Accounts.User do
     field(:font_id, :string, default: "theme")
     field(:font_style, :string, default: "normal")
     field(:message_sound_enabled, :boolean, default: false)
+    field(:is_admin, :boolean, default: false)
     field(:public_message_count, :integer, default: 0)
     field(:chat_seconds, :integer, default: 0)
     has_one(:profile, Profile)

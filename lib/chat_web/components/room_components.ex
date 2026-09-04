@@ -710,7 +710,7 @@ defmodule ChatWeb.RoomComponents do
     <aside class="hidden min-h-0 overflow-y-auto bg-zinc-900/80 p-4 md:block">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold">Сейчас в чате</h2>
+          <h2 class="text-sm font-semibold leading-5">Сейчас в чате</h2>
         </div>
         <div class="flex items-center gap-2">
           <span class="rounded bg-emerald-500/15 px-2 py-1 text-sm text-emerald-300">
@@ -1536,15 +1536,16 @@ defmodule ChatWeb.RoomComponents do
         class="absolute inset-0 cursor-default"
         aria-label="Закрыть настройки"
       ></button>
-      <section class="relative z-10 max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl sm:p-6">
-        <div class="mb-5 flex items-start justify-between gap-4">
+      <section class="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-zinc-700 bg-zinc-900 shadow-2xl">
+        <div class="flex items-start justify-between gap-4 border-b border-zinc-800 px-5 py-5 sm:px-6">
           <div>
             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
               Личный стиль
             </p>
-            <h2 id="settings-modal-title" class="mt-1 text-2xl font-semibold text-white">
+            <h2 id="settings-modal-title" class="mt-1 text-2xl font-semibold text-zinc-100">
               Настройки
             </h2>
+            <p class="mt-1 text-sm text-zinc-400">Настрой чат под себя.</p>
           </div>
           <button
             id="close-settings"
@@ -1556,19 +1557,21 @@ defmodule ChatWeb.RoomComponents do
             <.icon name="hero-x-mark" class="size-5" />
           </button>
         </div>
-        <.settings_panel
-          settings_form={@settings_form}
-          themes={@themes}
-          theme_id={@theme_id}
-          theme_modes={@theme_modes}
-          appearance={@appearance}
-          fonts={@fonts}
-          font_id={@font_id}
-          font_styles={@font_styles}
-          font_style={@font_style}
-          message_sound_enabled={@message_sound_enabled}
-          nickname={@nickname}
-        />
+        <div class="p-5 sm:p-6">
+          <.settings_panel
+            settings_form={@settings_form}
+            themes={@themes}
+            theme_id={@theme_id}
+            theme_modes={@theme_modes}
+            appearance={@appearance}
+            fonts={@fonts}
+            font_id={@font_id}
+            font_styles={@font_styles}
+            font_style={@font_style}
+            message_sound_enabled={@message_sound_enabled}
+            nickname={@nickname}
+          />
+        </div>
       </section>
     </div>
     """
@@ -1672,47 +1675,62 @@ defmodule ChatWeb.RoomComponents do
       id="preferences-form"
       phx-change="preview_preferences"
       phx-submit="save_preferences"
-      class="rounded border border-zinc-800 bg-zinc-950/70 p-3"
+      class="space-y-4"
     >
-      <div class="space-y-3">
-        <label class="block text-sm">
-          <span class="mb-1 block text-zinc-400">Тема</span>
-          <select
-            id="theme-id"
-            name={@settings_form[:theme_id].name}
-            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
-          >
-            <%= for theme <- @themes do %>
-              <option value={theme.id} selected={theme.id == @theme_id}>
-                {theme.name} · {if theme.mode == "light", do: "Светлая", else: "Тёмная"}
+      <section class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <.icon name="hero-swatch" class="size-4 text-amber-300" />
+          <h3 class="text-sm font-semibold text-zinc-100">Интерфейс</h3>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-sm sm:col-span-2">
+            <span class="mb-1 block text-zinc-400">Тема</span>
+            <select
+              id="theme-id"
+              name={@settings_form[:theme_id].name}
+              class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+            >
+              <%= for theme <- @themes do %>
+                <option value={theme.id} selected={theme.id == @theme_id}>
+                  {theme.name} · {if theme.mode == "light", do: "Светлая", else: "Тёмная"}
+                </option>
+              <% end %>
+            </select>
+          </label>
+
+          <label class="block text-sm sm:col-span-2">
+            <span class="mb-1 block text-zinc-400">Вид сообщений</span>
+            <select
+              id="message-frame"
+              name="preferences[appearance][message_frame]"
+              class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+            >
+              <option value="true" selected={Appearance.message_frame?(@appearance)}>
+                В рамке · с реакциями
               </option>
-            <% end %>
-          </select>
-        </label>
+              <option value="false" selected={not Appearance.message_frame?(@appearance)}>
+                Строкой · без реакций
+              </option>
+            </select>
+          </label>
+        </div>
+      </section>
 
-        <label class="block text-sm">
-          <span class="mb-1 block text-zinc-400">Вид сообщения</span>
-          <select
-            id="message-frame"
-            name="preferences[appearance][message_frame]"
-            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
-          >
-            <option value="true" selected={Appearance.message_frame?(@appearance)}>
-              В рамке · с реакциями
-            </option>
-            <option value="false" selected={not Appearance.message_frame?(@appearance)}>
-              Строкой · без реакций
-            </option>
-          </select>
-        </label>
-
+      <section class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <.icon name="hero-chat-bubble-left-right" class="size-4 text-amber-300" />
+          <div>
+            <h3 class="text-sm font-semibold text-zinc-100">Мои сообщения</h3>
+            <p class="text-xs text-zinc-500">Шрифт увидят только собеседники в твоих сообщениях.</p>
+          </div>
+        </div>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label class="block text-sm">
             <span class="mb-1 block text-zinc-400">Шрифт</span>
             <select
               id="font-id"
               name={@settings_form[:font_id].name}
-              class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+              class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
             >
               <%= for font <- @fonts do %>
                 <option value={font.id} selected={font.id == @font_id}>{font.name}</option>
@@ -1725,7 +1743,7 @@ defmodule ChatWeb.RoomComponents do
             <select
               id="font-style"
               name={@settings_form[:font_style].name}
-              class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+              class="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
             >
               <%= for style <- @font_styles do %>
                 <option value={style.id} selected={style.id == @font_style}>{style.name}</option>
@@ -1733,76 +1751,91 @@ defmodule ChatWeb.RoomComponents do
             </select>
           </label>
         </div>
+      </section>
 
-        <label class="block text-sm">
-          <span class="mb-1 block text-zinc-400">Уведомления</span>
-          <select
+      <section class="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+        <label class="flex cursor-pointer items-center gap-3">
+          <input type="hidden" name={@settings_form[:message_sound_enabled].name} value="false" />
+          <input
             id="message-sound-enabled"
+            type="checkbox"
             name={@settings_form[:message_sound_enabled].name}
-            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
-          >
-            <option value="true" selected={@message_sound_enabled}>
-              Звуковой сигнал для личных сообщений и обращений
-            </option>
-            <option value="false" selected={not @message_sound_enabled}>Без звука</option>
-          </select>
-        </label>
-
-        <%= for mode <- @theme_modes do %>
-          <div class="rounded border border-zinc-800 bg-zinc-900 p-2">
-            <p class="mb-2 text-xs font-semibold text-zinc-400">
-              Цвета для режима «{mode.name}»
-            </p>
-
-            <div class="grid grid-cols-2 gap-2">
-              <label class="block text-sm">
-                <span class="mb-1 block text-zinc-400">Ник</span>
-                <input
-                  id={"#{mode.id}-nickname-color"}
-                  type="color"
-                  name={"preferences[appearance][#{mode.id}][nickname_color]"}
-                  value={mode_colors(@appearance, mode.id)["nickname_color"]}
-                  class="h-9 w-full cursor-pointer rounded border border-zinc-700 bg-zinc-950"
-                />
-              </label>
-
-              <label class="block text-sm">
-                <span class="mb-1 block text-zinc-400">Текст</span>
-                <input
-                  id={"#{mode.id}-text-color"}
-                  type="color"
-                  name={"preferences[appearance][#{mode.id}][text_color]"}
-                  value={mode_colors(@appearance, mode.id)["text_color"]}
-                  class="h-9 w-full cursor-pointer rounded border border-zinc-700 bg-zinc-950"
-                />
-              </label>
-            </div>
-          </div>
-        <% end %>
-
-        <div
-          class={[
-            "chat-message-entry p-2 text-sm",
-            Appearance.message_frame?(@appearance) &&
-              "rounded border border-zinc-800 bg-zinc-900"
-          ]}
-          data-message-font={@font_id}
-          data-message-font-style={@font_style}
-        >
-          <span class="chat-preview-nickname font-semibold" style={appearance_style(@appearance)}>
-            {@nickname}{if Appearance.message_frame?(@appearance), do: "", else: ":"}
+            value="true"
+            checked={@message_sound_enabled}
+            class="peer sr-only"
+          />
+          <span class="relative flex h-6 w-11 shrink-0 rounded-full bg-zinc-700 transition peer-checked:bg-amber-300 after:absolute after:left-1 after:top-1 after:size-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5"></span>
+          <span class="min-w-0">
+            <span class="block text-sm font-semibold text-zinc-100">Звуковые уведомления</span>
+            <span class="mt-0.5 block text-xs leading-4 text-zinc-500">Личные сообщения и обращения по нику.</span>
           </span>
-          <span class="chat-preview-text" style={appearance_style(@appearance)}>пример текста</span>
-        </div>
+        </label>
+      </section>
 
-        <button
-          id="save-preferences"
-          type="submit"
-          class="w-full rounded bg-amber-300 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200"
-        >
-          Сохранить
-        </button>
-      </div>
+      <details id="appearance-colors" class="group rounded-2xl border border-zinc-800 bg-zinc-950/70">
+        <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-zinc-100 marker:content-none">
+          <.icon name="hero-paint-brush" class="size-4 text-amber-300" /> Цвета моих сообщений
+          <span class="ml-auto text-xs font-normal text-zinc-500">Дополнительно</span>
+          <.icon
+            name="hero-chevron-down"
+            class="size-4 text-zinc-500 transition group-open:rotate-180"
+          />
+        </summary>
+        <div class="space-y-3 border-t border-zinc-800 p-4">
+          <p class="text-xs leading-4 text-zinc-500">Отдельные цвета для светлых и тёмных тем.</p>
+          <%= for mode <- @theme_modes do %>
+            <div class="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+              <p class="mb-2 text-xs font-semibold text-zinc-400">{mode.name}</p>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-sm">
+                  <span class="mb-1 block text-zinc-400">Ник</span>
+                  <input
+                    id={"#{mode.id}-nickname-color"}
+                    type="color"
+                    name={"preferences[appearance][#{mode.id}][nickname_color]"}
+                    value={mode_colors(@appearance, mode.id)["nickname_color"]}
+                    class="h-9 w-full cursor-pointer rounded-lg border border-zinc-700 bg-zinc-950"
+                  />
+                </label>
+
+                <label class="block text-sm">
+                  <span class="mb-1 block text-zinc-400">Текст</span>
+                  <input
+                    id={"#{mode.id}-text-color"}
+                    type="color"
+                    name={"preferences[appearance][#{mode.id}][text_color]"}
+                    value={mode_colors(@appearance, mode.id)["text_color"]}
+                    class="h-9 w-full cursor-pointer rounded-lg border border-zinc-700 bg-zinc-950"
+                  />
+                </label>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </details>
+
+      <section
+        class={[
+          "chat-message-entry rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm",
+          !Appearance.message_frame?(@appearance) && "border-transparent bg-transparent px-0"
+        ]}
+        data-message-font={@font_id}
+        data-message-font-style={@font_style}
+      >
+        <p class="mb-1 text-xs font-medium text-zinc-500">Предпросмотр</p>
+        <span class="chat-preview-nickname font-semibold" style={appearance_style(@appearance)}>
+          {@nickname}{if Appearance.message_frame?(@appearance), do: "", else: ":"}
+        </span>
+        <span class="chat-preview-text" style={appearance_style(@appearance)}> пример текста</span>
+      </section>
+
+      <button
+        id="save-preferences"
+        type="submit"
+        class="w-full rounded-xl bg-amber-300 px-3 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200"
+      >
+        Сохранить изменения
+      </button>
     </.form>
     """
   end

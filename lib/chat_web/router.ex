@@ -30,6 +30,7 @@ defmodule ChatWeb.Router do
     pipe_through :browser
 
     live "/", RoomLive, :show
+    live "/admin", AdminLive, :index
     live "/profiles", ProfilesLive, :index
     live "/gallery", GalleryLive, :index
     live "/visits", VisitsLive, :index

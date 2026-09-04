@@ -1,0 +1,50 @@
+defmodule ChatWeb.AdminLiveTest do
+  use ChatWeb.ConnCase
+
+  alias Chat.Accounts
+  alias Chat.Feedback
+  alias Chat.Security.Subject
+  alias ChatWeb.UserAuth
+
+  test "keeps feedback hidden until an administrator authenticates", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/admin")
+
+    render_hook(view, "authenticate_admin", %{})
+
+    assert has_element?(view, "#admin-login-required")
+    refute has_element?(view, "#admin-feedback-list")
+  end
+
+  test "renders feedback for an authenticated administrator", %{conn: conn} do
+    assert {:ok, admin} =
+             Accounts.register_user(%{"nickname" => "admin_reader", "password" => "secret123"})
+
+    assert {:ok, _entry} =
+             Feedback.submit(
+               nil,
+               %{"name" => "Гость", "body" => "Добавьте поиск по истории"},
+               Subject.internal(:admin_live_feedback)
+             )
+
+    {:ok, view, _html} = live(conn, ~p"/admin")
+    render_hook(view, "authenticate_admin", %{"token" => UserAuth.sign(admin)})
+
+    assert has_element?(view, "#admin-feedback-section")
+    assert has_element?(view, "#admin-feedback-list article", "Добавьте поиск по истории")
+    assert has_element?(view, "#admin-feedback-count", "1")
+  end
+
+  test "denies a registered non-administrator", %{conn: conn} do
+    assert {:ok, _admin} =
+             Accounts.register_user(%{"nickname" => "primary_admin", "password" => "secret123"})
+
+    assert {:ok, member} =
+             Accounts.register_user(%{"nickname" => "regular_member", "password" => "secret123"})
+
+    {:ok, view, _html} = live(conn, ~p"/admin")
+    render_hook(view, "authenticate_admin", %{"token" => UserAuth.sign(member)})
+
+    assert has_element?(view, "#admin-forbidden", "regular_member")
+    refute has_element?(view, "#admin-feedback-list")
+  end
+end

@@ -1,11 +1,17 @@
 defmodule Chat.Feedback do
   @moduledoc "Stores private product feedback from registered chatlans and guests."
 
+  import Ecto.Query
+
   alias Chat.Accounts.User
   alias Chat.Feedback.Entry
   alias Chat.Repo
   alias Chat.Security
   alias Chat.Security.Subject
+
+  def list_entries do
+    Repo.all(from entry in Entry, order_by: [desc: entry.inserted_at], preload: [:user])
+  end
 
   def change_entry(user, attrs \\ %{}) when is_map(attrs) do
     attrs = feedback_attrs(user, attrs)

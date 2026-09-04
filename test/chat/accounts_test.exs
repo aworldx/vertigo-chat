@@ -15,6 +15,17 @@ defmodule Chat.AccountsTest do
     assert user.password_hash =~ "pbkdf2_sha256$"
   end
 
+  test "assigns the first registered user as an administrator" do
+    assert {:ok, first_user} =
+             Accounts.register_user(%{"nickname" => "first_admin", "password" => "secret123"})
+
+    assert {:ok, second_user} =
+             Accounts.register_user(%{"nickname" => "second_user", "password" => "secret123"})
+
+    assert Accounts.admin?(first_user)
+    refute Accounts.admin?(second_user)
+  end
+
   test "does not register the same nickname twice" do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "tester", "password" => "secret123"})

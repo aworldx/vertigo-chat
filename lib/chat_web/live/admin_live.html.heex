@@ -1,0 +1,111 @@
+<Layouts.app flash={@flash}>
+  <main
+    id="admin-page"
+    phx-hook=".AdminAuthentication"
+    class="min-h-dvh bg-zinc-950 px-4 py-8 text-zinc-100 sm:px-6 lg:px-8"
+  >
+    <div class="mx-auto max-w-5xl">
+      <header class="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-800 pb-6">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+            Служебный раздел
+          </p>
+          <h1 class="mt-2 text-3xl font-semibold tracking-tight text-zinc-100">Админка</h1>
+        </div>
+        <a
+          href={~p"/"}
+          class="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
+        >
+          Вернуться в чат
+        </a>
+      </header>
+
+      <section
+        :if={@access == :checking}
+        id="admin-checking"
+        class="py-16 text-center text-sm text-zinc-400"
+      >
+        Проверяем доступ…
+      </section>
+
+      <section
+        :if={@access == :unauthenticated}
+        id="admin-login-required"
+        class="mx-auto max-w-lg py-16 text-center"
+      >
+        <.icon name="hero-lock-closed" class="mx-auto size-8 text-amber-300" />
+        <h2 class="mt-4 text-xl font-semibold text-zinc-100">Нужен вход в чат</h2>
+        <p class="mt-2 text-sm leading-6 text-zinc-400">
+          Войди в чат под учётной записью администратора в этой вкладке, затем снова открой <code>/admin</code>.
+        </p>
+      </section>
+
+      <section
+        :if={@access == :forbidden}
+        id="admin-forbidden"
+        class="mx-auto max-w-lg py-16 text-center"
+      >
+        <.icon name="hero-shield-exclamation" class="mx-auto size-8 text-red-300" />
+        <h2 class="mt-4 text-xl font-semibold text-zinc-100">Доступ закрыт</h2>
+        <p class="mt-2 text-sm leading-6 text-zinc-400">
+          Учётная запись {@current_user.nickname} не имеет прав администратора.
+        </p>
+      </section>
+
+      <section :if={@access == :granted} id="admin-feedback-section" class="py-8">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+              Обратная связь
+            </p>
+            <h2 class="mt-1 text-2xl font-semibold text-zinc-100">Пожелания пользователей</h2>
+          </div>
+          <span
+            id="admin-feedback-count"
+            class="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-sm font-semibold text-amber-100"
+          >
+            {@feedback_count}
+          </span>
+        </div>
+
+        <p
+          :if={@feedback_count == 0}
+          id="admin-feedback-empty"
+          class="mt-8 rounded-2xl border border-dashed border-zinc-700 p-6 text-center text-sm text-zinc-400"
+        >
+          Обратной связи пока нет.
+        </p>
+
+        <div id="admin-feedback-list" phx-update="stream" class="mt-6 space-y-3">
+          <article
+            :for={{dom_id, entry} <- @streams.feedback_entries}
+            id={dom_id}
+            class="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-zinc-100">{entry.name}</span>
+                <span class="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+                  {if entry.user, do: "Зарегистрирован", else: "Гость"}
+                </span>
+              </div>
+              <time datetime={entry.inserted_at} class="text-xs text-zinc-500">
+                {feedback_timestamp(entry)}
+              </time>
+            </div>
+            <p class="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-300">{entry.body}</p>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script :type={Phoenix.LiveView.ColocatedHook} name=".AdminAuthentication">
+    export default {
+      mounted() {
+        const token = sessionStorage.getItem("chat:user-auth")
+        this.pushEvent("authenticate_admin", token ? {token} : {})
+      }
+    }
+  </script>
+</Layouts.app>

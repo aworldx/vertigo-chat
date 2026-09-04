@@ -1107,7 +1107,7 @@ defmodule ChatWeb.RoomLiveTest do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "tester")
 
-    assert view |> element("#toggle-settings") |> render_click() =~ "Цвета для режима"
+    assert view |> element("#toggle-settings") |> render_click() =~ "Цвета моих сообщений"
 
     view
     |> form("#preferences-form",
@@ -1123,7 +1123,7 @@ defmodule ChatWeb.RoomLiveTest do
     html = render(view)
 
     assert html =~ "--nick-dark: #00ff88"
-    refute html =~ "Цвета для режима"
+    refute html =~ "Цвета моих сообщений"
 
     view
     |> form("#message-form", message: %{body: "цветное сообщение"})
@@ -1245,7 +1245,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "пример текста"
     assert html =~ "--nick-dark: #cc2255"
     assert html =~ "--text-dark: #33aa77"
-    assert html =~ "Цвета для режима"
+    assert html =~ "Цвета моих сообщений"
     assert has_element?(view, "#chat-room[data-chat-theme='vertigo']")
   end
 
@@ -1354,7 +1354,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(restored_view, "#message-frame option[value='false'][selected]")
     assert has_element?(restored_view, "#font-id option[value='serif'][selected]")
     assert has_element?(restored_view, "#font-style option[value='italic'][selected]")
-    assert has_element?(restored_view, "#message-sound-enabled option[value='true'][selected]")
+    assert has_element?(restored_view, "#message-sound-enabled[checked]")
   end
 
   test "loads saved guest preferences in the context of the saved nickname", %{conn: conn} do
