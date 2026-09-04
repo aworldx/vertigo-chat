@@ -647,7 +647,7 @@ defmodule ChatWeb.RoomComponents do
             this.strokeId = null
             this.started = false
             this.lastSentAt = 0
-            this.pendingPoint = null
+            this.pendingPoints = []
 
             this.handleEvent("drawing-segment", segment => this.renderSegment(segment))
             this.onModeChanged = event => this.setActive(Boolean(event.detail?.active))
@@ -694,49 +694,49 @@ defmodule ChatWeb.RoomComponents do
             this.strokeId = crypto.randomUUID?.().replaceAll("-", "") || `${Date.now()}_${Math.random().toString(36).slice(2)}`
             this.started = false
             this.lastSentAt = 0
-            this.pendingPoint = null
+            this.pendingPoints = []
             this.el.setPointerCapture(event.pointerId)
           },
           move(event) {
             if (!this.drawing) return
 
             const point = this.point(event)
-            if (!point || this.distance(this.lastPoint, point) < 0.002) return
+            const previousPoint = this.pendingPoints.at(-1) || this.lastPoint
+            if (!point || this.distance(previousPoint, point) < 0.0008) return
 
             event.preventDefault()
+            this.pendingPoints.push(point)
             const now = performance.now()
-            if (now - this.lastSentAt >= 70) {
-              this.sendSegment(point)
-            } else {
-              this.pendingPoint = point
-            }
+            if (now - this.lastSentAt >= 45 || this.pendingPoints.length >= 11) this.sendPendingSegment()
           },
           stop(event) {
             if (!this.drawing) return
 
             const point = this.point(event)
-            if (point && this.distance(this.lastPoint, point) >= 0.002) this.pendingPoint = point
-            if (this.pendingPoint) this.sendSegment(this.pendingPoint)
+            const previousPoint = this.pendingPoints.at(-1) || this.lastPoint
+            if (point && this.distance(previousPoint, point) >= 0.0008) this.pendingPoints.push(point)
+            this.sendPendingSegment()
             this.resetStroke()
           },
-          sendSegment(point) {
-            if (!this.lastPoint || !point) return
+          sendPendingSegment() {
+            const points = [this.lastPoint, ...this.pendingPoints]
+            if (points.length < 2) return
 
             this.pushEvent("draw_segment", {
               stroke_id: this.strokeId,
               started: !this.started,
-              points: [this.lastPoint, point]
+              points
             })
-            this.lastPoint = point
+            this.lastPoint = points.at(-1)
             this.started = true
-            this.pendingPoint = null
+            this.pendingPoints = []
             this.lastSentAt = performance.now()
           },
           resetStroke() {
             this.drawing = false
             this.lastPoint = null
             this.strokeId = null
-            this.pendingPoint = null
+            this.pendingPoints = []
           },
           distance(first, second) {
             if (!first || !second) return 0
@@ -747,7 +747,7 @@ defmodule ChatWeb.RoomComponents do
             if (points.length < 2) return
 
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
-            path.setAttribute("d", `M ${points.map(point => `${point.x} ${point.y}`).join(" L ")}`)
+            path.setAttribute("d", this.smoothPath(points))
             path.setAttribute("vector-effect", "non-scaling-stroke")
             path.classList.add("chat-drawing-segment")
             this.lines.appendChild(path)
@@ -763,6 +763,23 @@ defmodule ChatWeb.RoomComponents do
             label.style.top = `${point.y * 100}%`
             this.labels.appendChild(label)
             window.setTimeout(() => label.remove(), 4200)
+          },
+          smoothPath(points) {
+            if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`
+
+            let path = `M ${points[0].x} ${points[0].y}`
+            for (let index = 1; index < points.length - 1; index++) {
+              const point = points[index]
+              const nextPoint = points[index + 1]
+              const midpoint = {
+                x: (point.x + nextPoint.x) / 2,
+                y: (point.y + nextPoint.y) / 2
+              }
+              path += ` Q ${point.x} ${point.y} ${midpoint.x} ${midpoint.y}`
+            }
+
+            const lastPoint = points.at(-1)
+            return `${path} L ${lastPoint.x} ${lastPoint.y}`
           }
         }
       </script>
