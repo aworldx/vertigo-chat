@@ -8,7 +8,7 @@
 @source "../css";
 @source "../js";
 @source "../../lib/chat_web";
-@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film hero-swatch hero-paint-brush hero-chevron-down hero-chat-bubble-left-right hero-lock-closed hero-shield-exclamation");
+@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film hero-swatch hero-paint-brush hero-chevron-down hero-chat-bubble-left-right hero-lock-closed hero-shield-exclamation");
 
 @font-face {
   font-family: "Vertigo Display";
@@ -60,6 +60,56 @@
   position: fixed;
   inset: 0;
   z-index: 50;
+}
+
+/* Ephemeral shared drawing stays above the messages and becomes interactive only on demand. */
+#message-drawing-layer[data-drawing-active="true"] {
+  pointer-events: auto;
+  cursor: url("/images/pencil-cursor.svg") 3 29, crosshair;
+  touch-action: none;
+}
+
+.chat-drawing-segment {
+  fill: none;
+  stroke: #fbbf24;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3px;
+  animation: chat-drawing-fade 4.2s ease-out forwards;
+}
+
+.chat-drawing-author {
+  position: absolute;
+  padding: 0.15rem 0.38rem;
+  border: 1px solid rgb(251 191 36 / 0.55);
+  border-radius: 999px;
+  background: rgb(9 9 11 / 0.82);
+  color: #fde68a;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.1;
+  pointer-events: none;
+  transform: translate(0.35rem, calc(-100% - 0.35rem));
+  animation: chat-drawing-fade 4.2s ease-out forwards;
+  white-space: nowrap;
+}
+
+@keyframes chat-drawing-fade {
+  0%,
+  72% {
+    opacity: 0.96;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-drawing-segment,
+  .chat-drawing-author {
+    animation: none;
+  }
 }
 
 /* Игровые столы: небольшие материальные детали вместо тяжёлых иллюстраций. */
@@ -1075,6 +1125,16 @@ a:hover .vertigo-mark {
 .chat-shell[data-chat-theme="newspaper"] .chat-presence-dot {
   background-color: #587566;
   box-shadow: none;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .chat-drawing-segment {
+  stroke: #9a402d;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .chat-drawing-author {
+  border-color: #a98643;
+  background: #f3eee2;
+  color: #5f2c20;
 }
 
 .chat-shell[data-chat-theme="newspaper"] #online-list .chat-rank-icon {

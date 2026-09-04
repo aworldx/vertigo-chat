@@ -115,6 +115,26 @@ defmodule ChatWeb.RoomLiveTest do
     assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
     refute has_element?(view, "#media-file-input")
+    assert has_element?(view, "#toggle-message-drawing[aria-pressed='false']")
+
+    assert has_element?(view, "#message-drawing-layer")
+  end
+
+  test "broadcasts a drawing segment with the active chatlan nickname", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "drawing_tester")
+
+    render_hook(view, "draw_segment", %{
+      "stroke_id" => "test_stroke",
+      "started" => true,
+      "points" => [%{"x" => 0.1, "y" => 0.2}, %{"x" => 0.3, "y" => 0.4}]
+    })
+
+    assert_push_event(view, "drawing-segment", %{
+      "author" => "drawing_tester",
+      "stroke_id" => "test_stroke",
+      "started" => true
+    })
   end
 
   test "restores a registered chatlan from connection parameters", %{conn: conn} do

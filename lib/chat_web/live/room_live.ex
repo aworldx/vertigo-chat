@@ -7,6 +7,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Bot
   alias Chat.Chatlans
   alias Chat.Commands
+  alias Chat.Drawings
   alias Chat.Feedback
   alias Chat.Gifs
   alias Chat.MediaShares
@@ -94,6 +95,7 @@ defmodule ChatWeb.RoomLive do
     socket =
       if connected?(socket) do
         Messages.subscribe(@room_id)
+        Drawings.subscribe(@room_id)
         PrivateMessages.subscribe(presence_key)
         MediaShares.subscribe_peer(@room_id, presence_key)
 
@@ -282,6 +284,13 @@ defmodule ChatWeb.RoomLive do
         end
     end
   end
+
+  def handle_event("draw_segment", params, %{assigns: %{joined?: true}} = socket) do
+    _result = Drawings.broadcast_segment(@room_id, socket.assigns.nickname, params)
+    {:noreply, socket}
+  end
+
+  def handle_event("draw_segment", _params, socket), do: {:noreply, socket}
 
   def handle_event("send_private_message", %{"body" => body}, socket) do
     send_private_message(body, socket)
@@ -922,6 +931,12 @@ defmodule ChatWeb.RoomLive do
   def handle_info({:message_reacted, message}, socket) do
     {:noreply, insert_message(socket, message)}
   end
+
+  def handle_info({:drawing_segment, segment}, %{assigns: %{joined?: true}} = socket) do
+    {:noreply, push_event(socket, "drawing-segment", segment)}
+  end
+
+  def handle_info({:drawing_segment, _segment}, socket), do: {:noreply, socket}
 
   def handle_info({:bot_status_changed, _status}, socket) do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}

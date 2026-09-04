@@ -18,7 +18,10 @@ defmodule ChatWeb.RoomComponents do
 
   def dialogue_frame(assigns) do
     ~H"""
-    <main class="flex min-h-0 flex-col border-b border-zinc-800 bg-zinc-950 md:border-b-0 md:border-r">
+    <main
+      id="dialogue-frame"
+      class="relative flex min-h-0 flex-col border-b border-zinc-800 bg-zinc-950 md:border-b-0 md:border-r"
+    >
       <div
         id="messages"
         phx-hook="ChatMessages"
@@ -551,6 +554,23 @@ defmodule ChatWeb.RoomComponents do
           </div>
         </div>
       </div>
+      <div
+        id="message-drawing-layer"
+        phx-hook=".MessageDrawing"
+        phx-update="ignore"
+        class="pointer-events-none absolute inset-x-0 bottom-6 top-0 z-10"
+        aria-label="Временные рисунки чатлан"
+      >
+        <svg
+          data-drawing-lines
+          class="absolute inset-0 size-full overflow-visible"
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        ></svg>
+        <div data-drawing-labels class="pointer-events-none absolute inset-0" aria-live="polite">
+        </div>
+      </div>
       <p
         id="typing-indicator"
         class="h-6 shrink-0 px-4 text-xs italic leading-6 text-zinc-500"
@@ -611,6 +631,136 @@ defmodule ChatWeb.RoomComponents do
             particle.style.setProperty("--reaction-drift", `${(index - 1) * 1.1 + (Math.random() - 0.5) * 1.4}rem`)
             particle.addEventListener("animationend", () => particle.remove(), {once: true})
             layer.appendChild(particle)
+          }
+        }
+      </script>
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".MessageDrawing">
+        export default {
+          mounted() {
+            this.lines = this.el.querySelector("[data-drawing-lines]")
+            this.labels = this.el.querySelector("[data-drawing-labels]")
+            this.active = false
+            this.drawing = false
+            this.lastPoint = null
+            this.strokeId = null
+            this.started = false
+            this.lastSentAt = 0
+            this.pendingPoint = null
+
+            this.handleEvent("drawing-segment", segment => this.renderSegment(segment))
+            this.onModeChanged = event => this.setActive(Boolean(event.detail?.active))
+            this.onPointerDown = event => this.start(event)
+            this.onPointerMove = event => this.move(event)
+            this.onPointerUp = event => this.stop(event)
+
+            window.addEventListener("chat:drawing-mode", this.onModeChanged)
+            this.el.addEventListener("pointerdown", this.onPointerDown)
+            this.el.addEventListener("pointermove", this.onPointerMove)
+            this.el.addEventListener("pointerup", this.onPointerUp)
+            this.el.addEventListener("pointercancel", this.onPointerUp)
+          },
+          destroyed() {
+            window.removeEventListener("chat:drawing-mode", this.onModeChanged)
+            this.el.removeEventListener("pointerdown", this.onPointerDown)
+            this.el.removeEventListener("pointermove", this.onPointerMove)
+            this.el.removeEventListener("pointerup", this.onPointerUp)
+            this.el.removeEventListener("pointercancel", this.onPointerUp)
+          },
+          setActive(active) {
+            this.active = active
+            this.el.dataset.drawingActive = active.toString()
+            if (!active) this.resetStroke()
+          },
+          point(event) {
+            const rect = this.el.getBoundingClientRect()
+            if (!rect.width || !rect.height) return null
+
+            return {
+              x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
+              y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+            }
+          },
+          start(event) {
+            if (!this.active || event.button !== 0) return
+
+            const point = this.point(event)
+            if (!point) return
+
+            event.preventDefault()
+            this.drawing = true
+            this.lastPoint = point
+            this.strokeId = crypto.randomUUID?.().replaceAll("-", "") || `${Date.now()}_${Math.random().toString(36).slice(2)}`
+            this.started = false
+            this.lastSentAt = 0
+            this.pendingPoint = null
+            this.el.setPointerCapture(event.pointerId)
+          },
+          move(event) {
+            if (!this.drawing) return
+
+            const point = this.point(event)
+            if (!point || this.distance(this.lastPoint, point) < 0.002) return
+
+            event.preventDefault()
+            const now = performance.now()
+            if (now - this.lastSentAt >= 70) {
+              this.sendSegment(point)
+            } else {
+              this.pendingPoint = point
+            }
+          },
+          stop(event) {
+            if (!this.drawing) return
+
+            const point = this.point(event)
+            if (point && this.distance(this.lastPoint, point) >= 0.002) this.pendingPoint = point
+            if (this.pendingPoint) this.sendSegment(this.pendingPoint)
+            this.resetStroke()
+          },
+          sendSegment(point) {
+            if (!this.lastPoint || !point) return
+
+            this.pushEvent("draw_segment", {
+              stroke_id: this.strokeId,
+              started: !this.started,
+              points: [this.lastPoint, point]
+            })
+            this.lastPoint = point
+            this.started = true
+            this.pendingPoint = null
+            this.lastSentAt = performance.now()
+          },
+          resetStroke() {
+            this.drawing = false
+            this.lastPoint = null
+            this.strokeId = null
+            this.pendingPoint = null
+          },
+          distance(first, second) {
+            if (!first || !second) return 0
+            return Math.hypot(first.x - second.x, first.y - second.y)
+          },
+          renderSegment(segment) {
+            const points = segment.points || []
+            if (points.length < 2) return
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+            path.setAttribute("d", `M ${points.map(point => `${point.x} ${point.y}`).join(" L ")}`)
+            path.setAttribute("vector-effect", "non-scaling-stroke")
+            path.classList.add("chat-drawing-segment")
+            this.lines.appendChild(path)
+
+            if (segment.started) this.addLabel(segment.author, points[0])
+            window.setTimeout(() => path.remove(), 4200)
+          },
+          addLabel(author, point) {
+            const label = document.createElement("span")
+            label.className = "chat-drawing-author"
+            label.textContent = `${author} рисует`
+            label.style.left = `${point.x * 100}%`
+            label.style.top = `${point.y * 100}%`
+            this.labels.appendChild(label)
+            window.setTimeout(() => label.remove(), 4200)
           }
         }
       </script>
@@ -1016,6 +1166,19 @@ defmodule ChatWeb.RoomComponents do
           </div>
         </div>
         <button
+          id="toggle-message-drawing"
+          type="button"
+          phx-hook=".DrawingToggle"
+          phx-update="ignore"
+          aria-label="Рисовать поверх сообщений"
+          aria-pressed="false"
+          title="Рисовать поверх сообщений"
+          class="flex h-full min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
+        >
+          <.icon name="hero-pencil" class="size-5" />
+          <span class="sr-only">Рисовать</span>
+        </button>
+        <button
           id="send-message"
           type="submit"
           phx-disable-with="Отправляем…"
@@ -1135,6 +1298,33 @@ defmodule ChatWeb.RoomComponents do
             this.input.removeEventListener("input", this.onInput)
             this.input.removeEventListener("keydown", this.onKeydown)
             this.menu.removeEventListener("click", this.onClick)
+          }
+        }
+      </script>
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".DrawingToggle">
+        export default {
+          mounted() {
+            this.active = false
+            this.onClick = () => this.setActive(!this.active)
+            this.onKeydown = event => {
+              if (event.key === "Escape" && this.active) this.setActive(false)
+            }
+
+            this.el.addEventListener("click", this.onClick)
+            window.addEventListener("keydown", this.onKeydown)
+          },
+          destroyed() {
+            this.el.removeEventListener("click", this.onClick)
+            window.removeEventListener("keydown", this.onKeydown)
+          },
+          setActive(active) {
+            this.active = active
+            this.el.setAttribute("aria-pressed", active.toString())
+            this.el.classList.toggle("border-amber-300", active)
+            this.el.classList.toggle("bg-amber-300/15", active)
+            this.el.classList.toggle("text-amber-200", active)
+            this.el.classList.toggle("text-zinc-400", !active)
+            window.dispatchEvent(new CustomEvent("chat:drawing-mode", {detail: {active}}))
           }
         }
       </script>
