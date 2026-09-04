@@ -30,13 +30,46 @@
       <section
         :if={@access == :unauthenticated}
         id="admin-login-required"
-        class="mx-auto max-w-lg py-16 text-center"
+        class="mx-auto max-w-md py-12"
       >
-        <.icon name="hero-lock-closed" class="mx-auto size-8 text-amber-300" />
-        <h2 class="mt-4 text-xl font-semibold text-zinc-100">Нужен вход в чат</h2>
-        <p class="mt-2 text-sm leading-6 text-zinc-400">
-          Войди в чат под учётной записью администратора в этой вкладке, затем снова открой <code>/admin</code>.
-        </p>
+        <div class="text-center">
+          <.icon name="hero-lock-closed" class="mx-auto size-8 text-amber-300" />
+          <h2 class="mt-4 text-xl font-semibold text-zinc-100">Вход администратора</h2>
+          <p class="mt-2 text-sm leading-6 text-zinc-400">
+            Введите данные учётной записи с правами администратора.
+          </p>
+        </div>
+
+        <.form
+          for={@login_form}
+          id="admin-login-form"
+          phx-submit="admin_login"
+          class="mt-6 space-y-4"
+        >
+          <.input
+            field={@login_form[:nickname]}
+            label="Ник"
+            autocomplete="username"
+            required
+          />
+          <.input
+            field={@login_form[:password]}
+            type="password"
+            label="Пароль"
+            autocomplete="current-password"
+            required
+          />
+          <p :if={@login_error} id="admin-login-error" class="text-sm text-red-300" role="alert">
+            {@login_error}
+          </p>
+          <button
+            id="admin-login-submit"
+            type="submit"
+            class="w-full rounded-lg bg-amber-300 px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200"
+          >
+            Войти в админку
+          </button>
+        </.form>
       </section>
 
       <section
