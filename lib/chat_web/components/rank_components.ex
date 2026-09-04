@@ -12,7 +12,7 @@ defmodule ChatWeb.RankComponents do
       src={"/images/ranks/#{@rank.icon}.svg"}
       alt=""
       aria-hidden="true"
-      class={@class}
+      class={["chat-rank-icon", @class]}
     />
     """
   end

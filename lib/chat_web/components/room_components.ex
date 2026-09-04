@@ -168,12 +168,35 @@ defmodule ChatWeb.RoomComponents do
                 <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
                   <.icon name="hero-command-line" class="size-4" />
                   <span>{message.title}</span>
+                  <button
+                    :if={message.command == :gif}
+                    id={"dismiss-gif-search-#{dom_id}"}
+                    type="button"
+                    phx-click="dismiss_gif_search"
+                    class="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium normal-case tracking-normal text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                    aria-label="Закрыть поиск GIF"
+                  >
+                    <.icon name="hero-x-mark" class="size-3.5" /> Закрыть
+                  </button>
+                  <button
+                    :if={message.command == :music}
+                    id={"dismiss-music-search-#{dom_id}"}
+                    type="button"
+                    phx-click="dismiss_music_search"
+                    class="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium normal-case tracking-normal text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                    aria-label="Закрыть поиск музыки"
+                  >
+                    <.icon name="hero-x-mark" class="size-3.5" /> Закрыть
+                  </button>
                   <time
                     id={"message-time-#{dom_id}"}
                     datetime={message.sent_at}
                     phx-hook=".LocalMessageTime"
                     phx-update="ignore"
-                    class="ml-auto text-[10px] font-normal normal-case tracking-normal text-zinc-500"
+                    class={[
+                      "text-[10px] font-normal normal-case tracking-normal text-zinc-500",
+                      message.command not in [:gif, :music] && "ml-auto"
+                    ]}
                   >
                     {message.at}
                   </time>
@@ -763,22 +786,22 @@ defmodule ChatWeb.RoomComponents do
               <span
                 :if={not Map.get(user, :busy?, false)}
                 id={if(user.peer_id == @peer_id, do: "current-chatlan-online")}
-                class="inline-flex items-center gap-1 text-emerald-300"
+                class="chat-presence inline-flex items-center gap-1 text-emerald-300"
               >
-                <span class="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_currentColor]"></span>
+                <span class="chat-presence-dot size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_currentColor]"></span>
                 В сети
               </span>
               <span
                 :if={Map.get(user, :bot?, false) && Map.get(user, :busy?, false)}
                 id="bot-chatlan-busy"
-                class="inline-flex items-center gap-1 text-amber-300"
+                class="chat-presence inline-flex items-center gap-1 text-amber-300"
                 aria-label="Хичкок занят"
               >
-                <span class="size-1.5 rounded-full bg-amber-300"></span> Занят
+                <span class="chat-presence-dot size-1.5 rounded-full bg-amber-300"></span> Занят
               </span>
               <span
                 id={if(user.peer_id == @peer_id, do: "current-chatlan-reconnecting")}
-                class="inline-flex items-center gap-1 text-amber-300"
+                class="chat-presence inline-flex items-center gap-1 text-amber-300"
                 hidden
               >
                 <.icon name="hero-arrow-path" class="size-3 motion-safe:animate-spin" /> Связь…

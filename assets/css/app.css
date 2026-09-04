@@ -1066,6 +1066,21 @@ a:hover .vertigo-mark {
   color: #505551;
 }
 
+/* Newspaper status ink: legible like a printed notice, without neon UI accents. */
+.chat-shell[data-chat-theme="newspaper"] .chat-presence {
+  color: #3f5e50;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .chat-presence-dot {
+  background-color: #587566;
+  box-shadow: none;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #online-list .chat-rank-icon {
+  filter: grayscale(1) brightness(0.48) sepia(0.12);
+  opacity: 0.9;
+}
+
 .chat-shell[data-chat-theme="newspaper"] input,
 .chat-shell[data-chat-theme="newspaper"] select,
 .chat-shell[data-chat-theme="newspaper"] textarea {

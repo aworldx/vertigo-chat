@@ -255,7 +255,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     on_exit(fn -> Application.put_env(:chat, Chat.Music, previous_config) end)
 
-    Req.Test.expect(__MODULE__, fn request ->
+    music_response = fn request ->
       Req.Test.html(request, """
       <ul class="playlist">
         <li>
@@ -267,7 +267,9 @@ defmodule ChatWeb.RoomLiveTest do
         </li>
       </ul>
       """)
-    end)
+    end
+
+    Req.Test.expect(__MODULE__, music_response)
 
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "music_picker")
@@ -279,6 +281,21 @@ defmodule ChatWeb.RoomLiveTest do
     render_async(view)
 
     assert has_element?(view, "[id^='send-music-']", "В чат")
+    assert has_element?(view, "[id^='dismiss-music-search-']", "Закрыть")
+
+    view
+    |> element("[id^='dismiss-music-search-']")
+    |> render_click()
+
+    refute has_element?(view, "[data-command-result='music']")
+
+    Req.Test.expect(__MODULE__, music_response)
+
+    view
+    |> form("#message-form", message: %{body: "/музыка Bakr Привет"})
+    |> render_submit()
+
+    render_async(view)
 
     view
     |> element("[id^='send-music-']")

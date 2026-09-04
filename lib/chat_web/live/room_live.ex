@@ -317,6 +317,25 @@ defmodule ChatWeb.RoomLive do
 
   def handle_event("send_music", _params, socket), do: {:noreply, socket}
 
+  def handle_event("dismiss_gif_search", _params, socket) do
+    {:noreply,
+     socket
+     |> cancel_async(:gif_search)
+     |> assign(:gif_pending?, false)
+     |> assign(:gif_results, [])
+     |> remove_gif_search_result()}
+  end
+
+  def handle_event("dismiss_music_search", _params, socket) do
+    {:noreply,
+     socket
+     |> cancel_async(:music_search)
+     |> assign(:music_pending?, false)
+     |> assign(:music_results, [])
+     |> assign(:music_page, 1)
+     |> remove_music_search_result()}
+  end
+
   def handle_event("change_music_page", %{"page" => page}, %{assigns: %{joined?: true}} = socket) do
     case music_page(page, socket.assigns.music_results) do
       nil ->
@@ -806,6 +825,10 @@ defmodule ChatWeb.RoomLive do
      |> assign(:message_error, "Хичкок сейчас не расположен к беседе. Попробуй немного позже.")}
   end
 
+  def handle_async(:music_search, _result, %{assigns: %{music_search_message_id: nil}} = socket) do
+    {:noreply, assign(socket, :music_pending?, false)}
+  end
+
   def handle_async(:music_search, {:ok, {:ok, tracks}}, %{assigns: %{joined?: true}} = socket) do
     entries = music_entries(tracks)
 
@@ -846,6 +869,10 @@ defmodule ChatWeb.RoomLive do
      socket
      |> assign(:music_pending?, false)
      |> replace_music_search_result("Поиск музыки", "Не удалось найти музыку. Попробуй ещё раз.")}
+  end
+
+  def handle_async(:gif_search, _result, %{assigns: %{gif_search_message_id: nil}} = socket) do
+    {:noreply, assign(socket, :gif_pending?, false)}
   end
 
   def handle_async(:gif_search, {:ok, {:ok, gifs}}, %{assigns: %{joined?: true}} = socket) do
