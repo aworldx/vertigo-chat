@@ -1099,6 +1099,35 @@ a:hover .vertigo-mark {
   background-color: #dfe2dc;
 }
 
+/* Music is a small printed record notice, not a dark app panel. */
+.chat-shell[data-chat-theme="newspaper"] .chat-message-entry[data-message-kind="music"] {
+  color: #25231f;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .chat-message-entry[data-message-kind="music"][data-message-frame="true"] {
+  border-color: #a89d8d;
+  background: var(--newsprint-texture), #f1ede4;
+  box-shadow: 0 1px 0 rgb(24 23 21 / 0.12);
+}
+
+.chat-shell[data-chat-theme="newspaper"] .chat-message-entry[data-message-kind="music"] .bg-amber-300\/10 {
+  background-color: #eee0bd;
+  color: #8d392b;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .chat-message-entry[data-message-kind="music"] .text-emerald-200 {
+  color: #70452b;
+}
+
+.chat-shell[data-chat-theme="newspaper"] .chat-message-entry[data-message-kind="music"] audio {
+  display: block;
+  border: 1px solid #b8ae9f;
+  border-radius: 0.6rem;
+  background: #e3dcd0;
+  color-scheme: light;
+  accent-color: #8d392b;
+}
+
 /* Search result controls use the same ink-and-paper states as the newspaper UI. */
 .chat-shell[data-chat-theme="newspaper"] [data-command-result="gif"],
 .chat-shell[data-chat-theme="newspaper"] [data-command-result="music"] {
