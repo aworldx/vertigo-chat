@@ -1099,6 +1099,22 @@ a:hover .vertigo-mark {
   background-color: #dfe2dc;
 }
 
+/* Search result controls use the same ink-and-paper states as the newspaper UI. */
+.chat-shell[data-chat-theme="newspaper"] [data-command-result="gif"],
+.chat-shell[data-chat-theme="newspaper"] [data-command-result="music"] {
+  border-color: #737774;
+}
+
+.chat-shell[data-chat-theme="newspaper"] [data-command-result] .border-amber-300\/50,
+.chat-shell[data-chat-theme="newspaper"] [data-command-result] .hover\:border-amber-200:hover,
+.chat-shell[data-chat-theme="newspaper"] [data-command-result] .hover\:border-amber-200\/60:hover {
+  border-color: #505551;
+}
+
+.chat-shell[data-chat-theme="newspaper"] [data-command-result] .hover\:bg-zinc-800:hover {
+  background-color: #dfe2dc;
+}
+
 .chat-shell[data-chat-theme="newspaper"] #message-form {
   box-shadow: 0 -1px 0 #8d918d, 0 -5px 12px rgb(35 40 36 / 0.06);
 }

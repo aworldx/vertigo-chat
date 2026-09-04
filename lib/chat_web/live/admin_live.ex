@@ -6,42 +6,39 @@ defmodule ChatWeb.AdminLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:page_title, "Админка")
-     |> assign(:current_user, nil)
-     |> assign(:access, :checking)
-     |> assign(:feedback_count, 0)
-     |> stream(:feedback_entries, [])}
-  end
+    socket =
+      socket
+      |> assign(:page_title, "Админка")
+      |> assign(:current_user, nil)
+      |> assign(:access, :checking)
+      |> assign(:feedback_count, 0)
+      |> stream(:feedback_entries, [])
 
-  @impl true
-  def handle_event("authenticate_admin", %{"token" => token}, socket) do
-    case UserAuth.verify(token) do
-      {:ok, user} -> authorize_admin(socket, user)
-      {:error, :invalid_token} -> {:noreply, assign(socket, :access, :unauthenticated)}
-    end
-  end
-
-  def handle_event("authenticate_admin", _params, socket) do
-    {:noreply, assign(socket, :access, :unauthenticated)}
+    {:ok, if(connected?(socket), do: authenticate(socket), else: socket)}
   end
 
   defp authorize_admin(socket, user) do
     case Admin.list_feedback(user) do
       {:ok, entries} ->
-        {:noreply,
-         socket
-         |> assign(:current_user, user)
-         |> assign(:access, :granted)
-         |> assign(:feedback_count, length(entries))
-         |> stream(:feedback_entries, entries, reset: true)}
+        socket
+        |> assign(:current_user, user)
+        |> assign(:access, :granted)
+        |> assign(:feedback_count, length(entries))
+        |> stream(:feedback_entries, entries, reset: true)
 
       {:error, :forbidden} ->
-        {:noreply,
-         socket
-         |> assign(:current_user, user)
-         |> assign(:access, :forbidden)}
+        socket
+        |> assign(:current_user, user)
+        |> assign(:access, :forbidden)
+    end
+  end
+
+  defp authenticate(socket) do
+    with %{"user_auth_token" => token} <- get_connect_params(socket),
+         {:ok, user} <- UserAuth.verify(token) do
+      authorize_admin(socket, user)
+    else
+      _invalid -> assign(socket, :access, :unauthenticated)
     end
   end
 

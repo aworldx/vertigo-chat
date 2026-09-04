@@ -1,7 +1,6 @@
 <Layouts.app flash={@flash}>
   <main
     id="admin-page"
-    phx-hook=".AdminAuthentication"
     class="min-h-dvh bg-zinc-950 px-4 py-8 text-zinc-100 sm:px-6 lg:px-8"
   >
     <div class="mx-auto max-w-5xl">
@@ -99,13 +98,4 @@
       </section>
     </div>
   </main>
-
-  <script :type={Phoenix.LiveView.ColocatedHook} name=".AdminAuthentication">
-    export default {
-      mounted() {
-        const token = sessionStorage.getItem("chat:user-auth")
-        this.pushEvent("authenticate_admin", token ? {token} : {})
-      }
-    }
-  </script>
 </Layouts.app>

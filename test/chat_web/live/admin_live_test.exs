@@ -9,8 +9,6 @@ defmodule ChatWeb.AdminLiveTest do
   test "keeps feedback hidden until an administrator authenticates", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/admin")
 
-    render_hook(view, "authenticate_admin", %{})
-
     assert has_element?(view, "#admin-login-required")
     refute has_element?(view, "#admin-feedback-list")
   end
@@ -26,8 +24,10 @@ defmodule ChatWeb.AdminLiveTest do
                Subject.internal(:admin_live_feedback)
              )
 
-    {:ok, view, _html} = live(conn, ~p"/admin")
-    render_hook(view, "authenticate_admin", %{"token" => UserAuth.sign(admin)})
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{"user_auth_token" => UserAuth.sign(admin)})
+      |> live(~p"/admin")
 
     assert has_element?(view, "#admin-feedback-section")
     assert has_element?(view, "#admin-feedback-list article", "Добавьте поиск по истории")
@@ -41,8 +41,10 @@ defmodule ChatWeb.AdminLiveTest do
     assert {:ok, member} =
              Accounts.register_user(%{"nickname" => "regular_member", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/admin")
-    render_hook(view, "authenticate_admin", %{"token" => UserAuth.sign(member)})
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{"user_auth_token" => UserAuth.sign(member)})
+      |> live(~p"/admin")
 
     assert has_element?(view, "#admin-forbidden", "regular_member")
     refute has_element?(view, "#admin-feedback-list")
