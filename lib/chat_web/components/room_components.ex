@@ -704,9 +704,12 @@ defmodule ChatWeb.RoomComponents do
         </div>
       </div>
 
-      <div id="online-list" class="mt-4 space-y-0">
+      <div id="online-list" class="mt-4">
         <%= for user <- @online do %>
-          <div class="flex items-center gap-2 rounded bg-zinc-950/70 px-3 py-1">
+          <div
+            id={"online-row-#{user.id}"}
+            class="chat-online-row flex items-center gap-2 rounded px-2 py-0.5"
+          >
             <button
               :if={user.registered?}
               id={"profile-link-#{user.id}"}
@@ -1132,7 +1135,11 @@ defmodule ChatWeb.RoomComponents do
     ~H"""
     <div
       id="profile-modal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm"
+      phx-hook=".RoomProfilePhotoLightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="profile-title"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm sm:p-6"
     >
       <button
         type="button"
@@ -1140,46 +1147,61 @@ defmodule ChatWeb.RoomComponents do
         class="absolute inset-0"
         aria-label="Закрыть анкету"
       ></button>
-      <section class="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-zinc-700 bg-zinc-900 shadow-2xl">
-        <div class="relative overflow-hidden border-b border-zinc-800 px-5 pb-6 pt-5 sm:px-7 sm:pb-7 sm:pt-6">
-          <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-br from-amber-300/20 via-orange-400/10 to-transparent">
+      <section class="relative z-10 max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] border border-white/10 bg-zinc-900 shadow-2xl shadow-black/40">
+        <div class="relative overflow-hidden border-b border-white/10 px-5 py-5 sm:px-8 sm:py-7">
+          <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-br from-amber-300/20 via-amber-200/5 to-transparent">
           </div>
-          <div class="relative flex items-start justify-between gap-4">
-            <p class="pt-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
-              Анкета чатланина
-            </p>
+          <div class="relative flex justify-end">
             <button
               id="close-profile"
               type="button"
               phx-click="close_profile"
-              class="rounded-full border border-zinc-700 bg-zinc-900/80 p-2 text-zinc-400 transition hover:border-zinc-500 hover:text-white"
+              class="flex size-10 items-center justify-center rounded-full border border-white/10 bg-zinc-950/45 text-zinc-300 backdrop-blur transition hover:border-amber-200/60 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
               aria-label="Закрыть анкету"
             >
               <.icon name="hero-x-mark" class="size-5" />
             </button>
           </div>
 
-          <div class="relative mt-6 flex items-end gap-4 sm:gap-5">
-            <div class="grid size-24 shrink-0 place-items-center overflow-hidden rounded-3xl border-2 border-amber-200/40 bg-zinc-950 text-3xl font-black text-amber-200 shadow-xl shadow-black/30 sm:size-28">
-              <%= cond do %>
-                <% @uploads.profile_photo.entries != [] and @editing -> %>
-                  <.live_img_preview
-                    entry={List.first(@uploads.profile_photo.entries)}
-                    class="h-full w-full object-cover"
-                  />
-                <% @photo_url -> %>
-                  <img
-                    id="profile-avatar-image"
-                    src={@photo_url}
-                    alt={"Фото #{@profile.user.nickname}"}
-                    class="h-full w-full object-cover"
-                  />
-                <% true -> %>
-                  {profile_initial(@profile.user.nickname)}
-              <% end %>
-            </div>
-            <div class="min-w-0 flex-1 pb-1">
-              <h2 id="profile-title" class="truncate text-3xl font-black tracking-tight text-white">
+          <div class="relative -mt-2 flex items-center gap-4 sm:-mt-5 sm:gap-6">
+            <%= if @photo_url && not (@uploads.profile_photo.entries != [] and @editing) do %>
+              <button
+                id="open-room-profile-photo"
+                type="button"
+                data-room-profile-lightbox-open
+                aria-label={"Увеличить фото #{@profile.user.nickname}"}
+                aria-haspopup="dialog"
+                class="group/photo relative grid size-24 shrink-0 cursor-zoom-in place-items-center overflow-hidden rounded-2xl border border-amber-200/40 bg-zinc-950 text-3xl font-black text-amber-200 shadow-xl shadow-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:size-32"
+              >
+                <img
+                  id="profile-avatar-image"
+                  src={@photo_url}
+                  alt={"Фото #{@profile.user.nickname}"}
+                  class="h-full w-full object-cover transition duration-300 group-hover/photo:scale-105"
+                />
+                <span class="absolute bottom-2 right-2 flex size-8 items-center justify-center rounded-full bg-zinc-950/75 text-zinc-100 opacity-0 shadow-lg backdrop-blur transition group-hover/photo:opacity-100 group-focus-visible/photo:opacity-100">
+                  <.icon name="hero-arrows-pointing-out" class="size-4" />
+                </span>
+              </button>
+            <% else %>
+              <div class="grid size-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-amber-200/40 bg-zinc-950 text-3xl font-black text-amber-200 shadow-xl shadow-black/30 sm:size-32">
+                <%= cond do %>
+                  <% @uploads.profile_photo.entries != [] and @editing -> %>
+                    <.live_img_preview
+                      entry={List.first(@uploads.profile_photo.entries)}
+                      class="h-full w-full object-cover"
+                    />
+                  <% true -> %>
+                    {profile_initial(@profile.user.nickname)}
+                <% end %>
+              </div>
+            <% end %>
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Анкета</p>
+              <h2
+                id="profile-title"
+                class="mt-1 truncate text-3xl font-bold tracking-tight text-white sm:text-4xl"
+              >
                 {@profile.user.nickname}
               </h2>
               <p
@@ -1189,55 +1211,57 @@ defmodule ChatWeb.RoomComponents do
               >
                 {@profile.name}
               </p>
-              <div class="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-100">
+              <div class="mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1.5 text-xs font-semibold text-amber-100">
                 <.rank_icon rank={@rank} class="size-4" />
-                {@rank.title}
+                <span class="truncate">{@rank.title}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div id="profile-view" class="space-y-5 p-5 sm:p-7">
-          <div class="grid grid-cols-2 gap-3">
-            <div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <.icon name="hero-chat-bubble-left-right" class="size-5 text-amber-300" />
-              <p class="mt-3 text-2xl font-bold text-zinc-100">
+        <div id="profile-view" class="space-y-6 p-5 sm:p-8">
+          <div class="grid grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/40">
+            <div class="p-4 sm:px-5 sm:py-4">
+              <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                <.icon name="hero-chat-bubble-left-right" class="size-4 text-amber-300" /> Фразы
+              </div>
+              <p class="mt-2 text-2xl font-bold tabular-nums text-zinc-100 sm:text-3xl">
                 {@profile.user.public_message_count}
               </p>
-              <p class="mt-1 text-xs text-zinc-500">публичных фраз</p>
             </div>
-            <div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <.icon name="hero-clock" class="size-5 text-amber-300" />
-              <p class="mt-3 text-2xl font-bold text-zinc-100">
+            <div class="p-4 sm:px-5 sm:py-4">
+              <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                <.icon name="hero-clock" class="size-4 text-amber-300" /> В чате
+              </div>
+              <p class="mt-2 text-2xl font-bold tabular-nums text-zinc-100 sm:text-3xl">
                 {div(@profile.user.chat_seconds, 3600)}
               </p>
-              <p class="mt-1 text-xs text-zinc-500">часов в чате</p>
             </div>
           </div>
 
-          <div :if={@profile.birth_date || @profile.gender} class="flex flex-wrap gap-2">
+          <div :if={@profile.birth_date || @profile.gender} class="flex flex-wrap gap-2.5">
             <span
               :if={@profile.birth_date}
-              class="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300"
+              class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-300"
             >
               <.icon name="hero-cake" class="size-4 text-amber-300" />
               {Calendar.strftime(@profile.birth_date, "%d.%m.%Y")}
             </span>
             <span
               :if={@profile.gender}
-              class="inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-300"
+              class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-300"
             >
               <.icon name="hero-user" class="size-4 text-amber-300" />
               {profile_gender(@profile.gender)}
             </span>
           </div>
 
-          <section class="rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-950 to-zinc-900 p-5">
-            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+          <section class="rounded-2xl border border-white/10 bg-zinc-950/35 p-5 sm:p-6">
+            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
               <.icon name="hero-sparkles" class="size-4 text-amber-300" /> О себе
             </div>
             <p class={[
-              "mt-3 whitespace-pre-wrap text-sm leading-6",
+              "mt-4 whitespace-pre-wrap text-sm leading-7",
               present?(@profile.about) && "text-zinc-200",
               !present?(@profile.about) && "italic text-zinc-500"
             ]}>
@@ -1347,6 +1371,98 @@ defmodule ChatWeb.RoomComponents do
           }
         </script>
       </section>
+
+      <div
+        id="room-profile-photo-lightbox"
+        phx-update="ignore"
+        role="dialog"
+        aria-modal="true"
+        aria-hidden="true"
+        aria-labelledby="room-profile-photo-lightbox-title"
+        inert
+        class="pointer-events-none invisible absolute inset-0 z-20 flex items-center justify-center p-4 opacity-0 transition duration-200 sm:p-8"
+      >
+        <button
+          type="button"
+          data-room-profile-lightbox-close
+          aria-label="Закрыть увеличенное фото"
+          class="absolute inset-0 cursor-zoom-out bg-zinc-950/90 backdrop-blur-md"
+        ></button>
+        <figure class="relative z-10 flex max-h-full max-w-full flex-col items-center gap-4">
+          <img
+            id="room-profile-photo-lightbox-image"
+            src=""
+            alt=""
+            class="max-h-[calc(100vh-8rem)] max-w-[min(92vw,90rem)] scale-95 rounded-2xl object-contain shadow-2xl ring-1 ring-white/10 transition duration-200"
+          />
+          <figcaption id="room-profile-photo-lightbox-title" class="text-center text-sm text-zinc-300">
+            Просмотр фотографии
+          </figcaption>
+        </figure>
+        <button
+          id="close-room-profile-photo-lightbox"
+          type="button"
+          data-room-profile-lightbox-close
+          aria-label="Закрыть"
+          class="absolute right-4 top-4 z-20 flex size-11 items-center justify-center rounded-full border border-white/15 bg-zinc-900/80 text-zinc-100 shadow-xl backdrop-blur-sm transition hover:border-amber-300 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:right-7 sm:top-7"
+        >
+          <.icon name="hero-x-mark" class="size-6" />
+        </button>
+      </div>
+
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".RoomProfilePhotoLightbox">
+        export default {
+          mounted() {
+            this.lightbox = this.el.querySelector("#room-profile-photo-lightbox")
+            this.image = this.el.querySelector("#room-profile-photo-lightbox-image")
+            this.title = this.el.querySelector("#room-profile-photo-lightbox-title")
+            this.closeButton = this.el.querySelector("#close-room-profile-photo-lightbox")
+
+            this.open = button => {
+              const sourceImage = button.querySelector("img")
+              if (!sourceImage) return
+
+              this.previousFocus = button
+              this.image.src = sourceImage.currentSrc || sourceImage.src
+              this.image.alt = sourceImage.alt
+              this.title.textContent = sourceImage.alt
+              this.lightbox.inert = false
+              this.lightbox.setAttribute("aria-hidden", "false")
+              this.lightbox.classList.remove("pointer-events-none", "invisible", "opacity-0")
+              this.lightbox.classList.add("opacity-100")
+              this.image.classList.replace("scale-95", "scale-100")
+              this.closeButton.focus()
+            }
+
+            this.close = () => {
+              if (this.lightbox.getAttribute("aria-hidden") === "true") return
+
+              this.lightbox.setAttribute("aria-hidden", "true")
+              this.lightbox.classList.add("pointer-events-none", "invisible", "opacity-0")
+              this.lightbox.classList.remove("opacity-100")
+              this.image.classList.replace("scale-100", "scale-95")
+              this.image.removeAttribute("src")
+              this.previousFocus?.focus()
+            }
+
+            this.onClick = event => {
+              const openButton = event.target.closest("[data-room-profile-lightbox-open]")
+              if (openButton) this.open(openButton)
+
+              const closeButton = event.target.closest("[data-room-profile-lightbox-close]")
+              if (closeButton && this.lightbox.contains(closeButton)) this.close()
+            }
+            this.onKeydown = event => {
+              if (event.key === "Escape") this.close()
+            }
+            this.el.addEventListener("click", this.onClick)
+            document.addEventListener("keydown", this.onKeydown)
+          },
+          destroyed() {
+            document.removeEventListener("keydown", this.onKeydown)
+          }
+        }
+      </script>
     </div>
     """
   end
@@ -1372,6 +1488,11 @@ defmodule ChatWeb.RoomComponents do
   attr(:theme_id, :string, required: true)
   attr(:theme_modes, :list, required: true)
   attr(:appearance, :map, required: true)
+  attr(:fonts, :list, required: true)
+  attr(:font_id, :string, required: true)
+  attr(:font_styles, :list, required: true)
+  attr(:font_style, :string, required: true)
+  attr(:message_sound_enabled, :boolean, required: true)
   attr(:nickname, :string, required: true)
 
   def settings_modal(assigns) do
@@ -1416,6 +1537,11 @@ defmodule ChatWeb.RoomComponents do
           theme_id={@theme_id}
           theme_modes={@theme_modes}
           appearance={@appearance}
+          fonts={@fonts}
+          font_id={@font_id}
+          font_styles={@font_styles}
+          font_style={@font_style}
+          message_sound_enabled={@message_sound_enabled}
           nickname={@nickname}
         />
       </section>
@@ -1552,6 +1678,48 @@ defmodule ChatWeb.RoomComponents do
             <option value="false" selected={not Appearance.message_frame?(@appearance)}>
               Строкой · без реакций
             </option>
+          </select>
+        </label>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="block text-sm">
+            <span class="mb-1 block text-zinc-400">Шрифт</span>
+            <select
+              id="font-id"
+              name={@settings_form[:font_id].name}
+              class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+            >
+              <%= for font <- @fonts do %>
+                <option value={font.id} selected={font.id == @font_id}>{font.name}</option>
+              <% end %>
+            </select>
+          </label>
+
+          <label class="block text-sm">
+            <span class="mb-1 block text-zinc-400">Начертание</span>
+            <select
+              id="font-style"
+              name={@settings_form[:font_style].name}
+              class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+            >
+              <%= for style <- @font_styles do %>
+                <option value={style.id} selected={style.id == @font_style}>{style.name}</option>
+              <% end %>
+            </select>
+          </label>
+        </div>
+
+        <label class="block text-sm">
+          <span class="mb-1 block text-zinc-400">Уведомления</span>
+          <select
+            id="message-sound-enabled"
+            name={@settings_form[:message_sound_enabled].name}
+            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+          >
+            <option value="true" selected={@message_sound_enabled}>
+              Звуковой сигнал для личных сообщений и обращений
+            </option>
+            <option value="false" selected={not @message_sound_enabled}>Без звука</option>
           </select>
         </label>
 

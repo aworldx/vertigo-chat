@@ -15,6 +15,9 @@ defmodule Chat.Accounts.User do
     field(:password, :string, virtual: true)
     field(:theme_id, :string, default: "vertigo")
     field(:appearance, :map, default: %{})
+    field(:font_id, :string, default: "theme")
+    field(:font_style, :string, default: "normal")
+    field(:message_sound_enabled, :boolean, default: false)
     field(:public_message_count, :integer, default: 0)
     field(:chat_seconds, :integer, default: 0)
     has_one(:profile, Profile)
@@ -37,8 +40,8 @@ defmodule Chat.Accounts.User do
 
   def preferences_changeset(user, attrs) do
     user
-    |> cast(attrs, [:theme_id, :appearance])
-    |> validate_required([:theme_id, :appearance])
+    |> cast(attrs, [:theme_id, :appearance, :font_id, :font_style, :message_sound_enabled])
+    |> validate_required([:theme_id, :appearance, :font_id, :font_style, :message_sound_enabled])
   end
 
   defp put_password_hash(changeset) do

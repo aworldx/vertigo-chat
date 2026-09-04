@@ -8,6 +8,7 @@ defmodule Chat.Chatlans do
   alias Chat.Accounts
   alias Chat.Bot
   alias Chat.Messages
+  alias Chat.Chatlans.DepartureNotifier
   alias Chat.Presence
   alias Chat.Themes
 
@@ -59,6 +60,27 @@ defmodule Chat.Chatlans do
 
   def untrack(pid, room_id, presence_key) do
     Presence.untrack(pid, Messages.room_topic(room_id), presence_key)
+  end
+
+  def session_online?(room_id, session_id) when is_binary(room_id) and is_binary(session_id) do
+    Enum.any?(list_online(room_id), &(Map.get(&1, :session_id) == session_id))
+  end
+
+  def session_online?(_room_id, _session_id), do: false
+
+  def schedule_departure(room_id, nickname, session_id)
+      when is_binary(room_id) and is_binary(nickname) and is_binary(session_id) do
+    DepartureNotifier.schedule(room_id, nickname, session_id)
+  end
+
+  def cancel_scheduled_departure(room_id, session_id)
+      when is_binary(room_id) and is_binary(session_id) do
+    DepartureNotifier.cancel(room_id, session_id)
+  end
+
+  def announce_departure(room_id, nickname, session_id)
+      when is_binary(room_id) and is_binary(nickname) and is_binary(session_id) do
+    DepartureNotifier.announce_now(room_id, nickname, session_id)
   end
 
   def resolve_peer(room_id, nickname) when is_binary(nickname) do

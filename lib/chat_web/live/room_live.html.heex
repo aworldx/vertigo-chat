@@ -14,6 +14,8 @@
     }
     data-chat-theme={@theme_id}
     data-chat-mode={@theme_mode}
+    data-chat-font={@font_id}
+    data-chat-font-style={@font_style}
     data-chat-joined={@joined?}
     class="chat-shell relative isolate flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100"
   >
@@ -98,6 +100,11 @@
         theme_id={@settings_theme_id}
         theme_modes={@theme_modes}
         appearance={@settings_appearance}
+        fonts={@fonts}
+        font_id={@settings_font_id}
+        font_styles={@font_styles}
+        font_style={@settings_font_style}
+        message_sound_enabled={@settings_message_sound_enabled}
         nickname={@nickname}
       />
     <% end %>

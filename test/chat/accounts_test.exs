@@ -42,6 +42,9 @@ defmodule Chat.AccountsTest do
     assert {:ok, user} =
              Accounts.update_preferences(user, %{
                "theme_id" => "night_sky",
+               "font_id" => "serif",
+               "font_style" => "italic",
+               "message_sound_enabled" => "true",
                "appearance" => %{
                  "message_frame" => "false",
                  "dark" => %{"nickname_color" => "#AA44CC", "text_color" => "#22AA88"}
@@ -51,9 +54,27 @@ defmodule Chat.AccountsTest do
     preferences = Accounts.user_preferences(Accounts.get_user(user.id))
 
     assert preferences["theme_id"] == "night_sky"
+    assert preferences["font_id"] == "serif"
+    assert preferences["font_style"] == "italic"
+    assert preferences["message_sound_enabled"]
     assert preferences["appearance"]["dark"]["nickname_color"] == "#aa44cc"
     assert preferences["appearance"]["dark"]["text_color"] == "#22aa88"
     refute preferences["appearance"]["message_frame"]
+  end
+
+  test "falls back to existing typography preferences for unknown values" do
+    assert {:ok, user} =
+             Accounts.register_user(%{"nickname" => "type_safe", "password" => "secret123"})
+
+    assert {:ok, updated_user} =
+             Accounts.update_preferences(user, %{
+               "font_id" => "<script>",
+               "font_style" => "ultra_bold"
+             })
+
+    assert updated_user.font_id == "theme"
+    assert updated_user.font_style == "normal"
+    refute updated_user.message_sound_enabled
   end
 
   test "detects registered nicknames" do

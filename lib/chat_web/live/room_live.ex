@@ -15,6 +15,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Profiles
   alias Chat.PrivateMessages
   alias Chat.Themes
+  alias Chat.Typography
   alias Chat.Ranks
   alias Chat.Visits
   alias ChatWeb.AuthComponents
@@ -43,6 +44,11 @@ defmodule ChatWeb.RoomLive do
       |> assign(:theme_id, Themes.default_theme_id())
       |> assign(:themes, Themes.list())
       |> assign(:theme_modes, Themes.list_modes())
+      |> assign(:font_id, Typography.default_font_id())
+      |> assign(:fonts, Typography.list())
+      |> assign(:font_style, Typography.default_font_style())
+      |> assign(:font_styles, Typography.list_styles())
+      |> assign(:message_sound_enabled, false)
       |> assign(:appearance, Appearance.default())
       |> assign_active_colors()
       |> assign(:joined?, false)
@@ -152,24 +158,6 @@ defmodule ChatWeb.RoomLive do
          |> assign_nickname_form()}
     end
   end
-
-  def handle_event("restore_user_session", _params, %{assigns: %{joined?: true}} = socket),
-    do: {:noreply, socket}
-
-  def handle_event("restore_user_session", %{"token" => token} = params, socket) do
-    restore_user_session(token, params["session_token"], 0, socket)
-  end
-
-  def handle_event("restore_user_session", _params, socket), do: {:noreply, socket}
-
-  def handle_event("restore_guest_session", _params, %{assigns: %{joined?: true}} = socket),
-    do: {:noreply, socket}
-
-  def handle_event("restore_guest_session", %{} = params, socket) do
-    restore_guest_session(params, 0, socket)
-  end
-
-  def handle_event("restore_guest_session", _params, socket), do: {:noreply, socket}
 
   def handle_event("touch_chat_session", _params, %{assigns: %{joined?: true}} = socket) do
     {:noreply, renew_chat_session(socket)}
@@ -641,15 +629,10 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  defp restore_user_session(
-         _token,
-         _presence_key,
-         _attempt,
-         %{assigns: %{joined?: true}} = socket
-       ),
-       do: {:noreply, socket}
+  defp restore_user_session(_token, _session_token, %{assigns: %{joined?: true}} = socket),
+    do: socket
 
-  defp restore_user_session(token, session_token, attempt, socket) do
+  defp restore_user_session(token, session_token, socket) do
     with {:ok, user} <- UserAuth.verify(token),
          {:ok, session_id} <- UserAuth.verify_chat_session(session_token, user.nickname),
          {:ok, restored} <-
@@ -678,30 +661,18 @@ defmodule ChatWeb.RoomLive do
 
       track_presence(socket)
 
-      {:noreply,
-       socket
-       |> assign(:online, Chatlans.list_online(@room_id))
-       |> sync_user_auth(user)
-       |> push_event("focus-message-input", %{})}
+      socket
+      |> assign(:online, Chatlans.list_online(@room_id))
+      |> sync_user_auth(user)
+      |> push_event("focus-message-input", %{})
     else
-      {:error, :nickname_online} when attempt < 4 ->
-        Process.send_after(
-          self(),
-          {:restore_user_session, token, session_token, attempt + 1},
-          200
-        )
-
-        {:noreply, socket}
-
-      _reason ->
-        {:noreply, socket}
+      _reason -> socket
     end
   end
 
-  defp restore_guest_session(_params, _attempt, %{assigns: %{joined?: true}} = socket),
-    do: {:noreply, socket}
+  defp restore_guest_session(_params, %{assigns: %{joined?: true}} = socket), do: socket
 
-  defp restore_guest_session(params, attempt, socket) do
+  defp restore_guest_session(params, socket) do
     nickname = Chatlans.normalize_nickname(params["nickname"], nil)
 
     with nickname when not is_nil(nickname) <- nickname,
@@ -733,18 +704,12 @@ defmodule ChatWeb.RoomLive do
 
       track_presence(socket)
 
-      {:noreply,
-       socket
-       |> assign(:online, Chatlans.list_online(@room_id))
-       |> maybe_save_guest_preferences(nil)
-       |> push_event("focus-message-input", %{})}
+      socket
+      |> assign(:online, Chatlans.list_online(@room_id))
+      |> maybe_save_guest_preferences(nil)
+      |> push_event("focus-message-input", %{})
     else
-      {:error, :nickname_online} when attempt < 4 ->
-        Process.send_after(self(), {:restore_guest_session, params, attempt + 1}, 200)
-        {:noreply, socket}
-
-      _reason ->
-        {:noreply, socket}
+      _reason -> socket
     end
   end
 
@@ -752,29 +717,27 @@ defmodule ChatWeb.RoomLive do
     case get_connect_params(socket) || %{} do
       %{"user_auth_token" => token, "chat_session_token" => session_token}
       when is_binary(token) and is_binary(session_token) ->
-        {:noreply, socket} = restore_user_session(token, session_token, 0, socket)
-        socket
+        restore_user_session(token, session_token, socket)
 
       %{
         "guest_nickname" => nickname,
         "guest_session_token" => session_token,
         "theme_id" => theme_id,
         "appearance" => appearance
-      }
+      } = params
       when is_binary(nickname) and is_binary(session_token) ->
-        {:noreply, socket} =
-          restore_guest_session(
-            %{
-              "nickname" => nickname,
-              "session_token" => session_token,
-              "theme_id" => theme_id,
-              "appearance" => appearance
-            },
-            0,
-            socket
-          )
-
-        socket
+        restore_guest_session(
+          %{
+            "nickname" => nickname,
+            "session_token" => session_token,
+            "theme_id" => theme_id,
+            "appearance" => appearance,
+            "font_id" => Map.get(params, "font_id"),
+            "font_style" => Map.get(params, "font_style"),
+            "message_sound_enabled" => Map.get(params, "message_sound_enabled")
+          },
+          socket
+        )
 
       _ ->
         socket
@@ -784,7 +747,14 @@ defmodule ChatWeb.RoomLive do
   defp leave_chat(socket) do
     if socket.assigns.joined? do
       :ok = broadcast_stopped_typing(socket)
-      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
+
+      {:ok, _message} =
+        Chatlans.announce_departure(
+          @room_id,
+          socket.assigns.nickname,
+          socket.assigns.chat_session_id
+        )
+
       Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
     end
 
@@ -919,7 +889,7 @@ defmodule ChatWeb.RoomLive do
 
   @impl true
   def handle_info({:message_created, message}, socket) do
-    {:noreply, insert_message(socket, message)}
+    {:noreply, socket |> insert_message(message) |> maybe_notify_about_message(message)}
   end
 
   def handle_info({:message_reacted, message}, socket) do
@@ -928,14 +898,6 @@ defmodule ChatWeb.RoomLive do
 
   def handle_info({:bot_status_changed, _status}, socket) do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
-  end
-
-  def handle_info({:restore_user_session, token, presence_key, attempt}, socket) do
-    restore_user_session(token, presence_key, attempt, socket)
-  end
-
-  def handle_info({:restore_guest_session, params, attempt}, socket) do
-    restore_guest_session(params, attempt, socket)
   end
 
   def handle_info({:start_bot_answer, request}, %{assigns: %{bot_pending?: true}} = socket) do
@@ -968,7 +930,7 @@ defmodule ChatWeb.RoomLive do
     do: {:noreply, socket}
 
   def handle_info({:private_message_received, message}, %{assigns: %{joined?: true}} = socket) do
-    {:noreply, insert_message(socket, message)}
+    {:noreply, socket |> insert_message(message) |> maybe_notify_about_message(message)}
   end
 
   def handle_info({:private_message_received, _message}, socket), do: {:noreply, socket}
@@ -1004,8 +966,14 @@ defmodule ChatWeb.RoomLive do
   def terminate(_reason, socket) do
     if socket.assigns.joined? do
       :ok = broadcast_stopped_typing(socket)
-      {:ok, _message} = Messages.announce_presence(socket.assigns.nickname, @room_id, :left)
       Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
+
+      :ok =
+        Chatlans.schedule_departure(
+          @room_id,
+          socket.assigns.nickname,
+          socket.assigns.chat_session_id
+        )
     end
 
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
@@ -1390,6 +1358,14 @@ defmodule ChatWeb.RoomLive do
   defp assign_preferences(socket, params, opts \\ []) do
     theme_id = Themes.normalize_theme_id(params["theme_id"], socket.assigns.theme_id)
     appearance = Appearance.from_params(params, socket.assigns.appearance)
+    font_id = Typography.normalize_font_id(params["font_id"], socket.assigns.font_id)
+    font_style = Typography.normalize_font_style(params["font_style"], socket.assigns.font_style)
+
+    message_sound_enabled =
+      normalize_message_sound_enabled(
+        params["message_sound_enabled"],
+        socket.assigns.message_sound_enabled
+      )
 
     socket =
       if Keyword.get(opts, :allow_nickname?, false) do
@@ -1405,6 +1381,9 @@ defmodule ChatWeb.RoomLive do
     socket
     |> assign(:theme_id, theme_id)
     |> assign(:appearance, appearance)
+    |> assign(:font_id, font_id)
+    |> assign(:font_style, font_style)
+    |> assign(:message_sound_enabled, message_sound_enabled)
     |> assign_active_colors()
   end
 
@@ -1412,22 +1391,39 @@ defmodule ChatWeb.RoomLive do
     socket
     |> assign(:settings_theme_id, socket.assigns.theme_id)
     |> assign(:settings_appearance, socket.assigns.appearance)
+    |> assign(:settings_font_id, socket.assigns.font_id)
+    |> assign(:settings_font_style, socket.assigns.font_style)
+    |> assign(:settings_message_sound_enabled, socket.assigns.message_sound_enabled)
     |> assign(:settings_form, to_form(public_preferences(socket), as: :preferences))
   end
 
   defp assign_settings_draft(socket, params) do
     theme_id = Themes.normalize_theme_id(params["theme_id"], socket.assigns.theme_id)
     appearance = Appearance.from_params(params, socket.assigns.appearance)
+    font_id = Typography.normalize_font_id(params["font_id"], socket.assigns.font_id)
+    font_style = Typography.normalize_font_style(params["font_style"], socket.assigns.font_style)
+
+    message_sound_enabled =
+      normalize_message_sound_enabled(
+        params["message_sound_enabled"],
+        socket.assigns.message_sound_enabled
+      )
 
     preferences = %{
       "nickname" => socket.assigns.nickname,
       "theme_id" => theme_id,
-      "appearance" => appearance
+      "appearance" => appearance,
+      "font_id" => font_id,
+      "font_style" => font_style,
+      "message_sound_enabled" => message_sound_enabled
     }
 
     socket
     |> assign(:settings_theme_id, theme_id)
     |> assign(:settings_appearance, appearance)
+    |> assign(:settings_font_id, font_id)
+    |> assign(:settings_font_style, font_style)
+    |> assign(:settings_message_sound_enabled, message_sound_enabled)
     |> assign(:settings_form, to_form(preferences, as: :preferences))
   end
 
@@ -1460,17 +1456,27 @@ defmodule ChatWeb.RoomLive do
       "nickname" => socket.assigns.nickname,
       "theme_id" => socket.assigns.theme_id,
       "appearance" => socket.assigns.appearance,
+      "font_id" => socket.assigns.font_id,
+      "font_style" => socket.assigns.font_style,
+      "message_sound_enabled" => socket.assigns.message_sound_enabled,
       "session_token" => socket.assigns.chat_session_token
     }
   end
 
   defp track_presence(socket) do
-    Chatlans.track(
-      self(),
-      @room_id,
-      socket.assigns.presence_key,
-      public_appearance(socket)
-    )
+    result =
+      Chatlans.track(
+        self(),
+        @room_id,
+        socket.assigns.presence_key,
+        public_appearance(socket)
+      )
+
+    if match?({:ok, _}, result) do
+      :ok = Chatlans.cancel_scheduled_departure(@room_id, socket.assigns.chat_session_id)
+    end
+
+    result
   end
 
   defp update_presence(socket, old_nickname \\ nil) do
@@ -1498,6 +1504,9 @@ defmodule ChatWeb.RoomLive do
       socket
       |> assign(:appearance, Appearance.default())
       |> assign(:theme_id, Themes.default_theme_id())
+      |> assign(:font_id, Typography.default_font_id())
+      |> assign(:font_style, Typography.default_font_style())
+      |> assign(:message_sound_enabled, false)
       |> assign_active_colors()
       |> assign(:preference_nickname, nil)
     end
@@ -1594,6 +1603,18 @@ defmodule ChatWeb.RoomLive do
       socket
     end
   end
+
+  defp maybe_notify_about_message(socket, message) do
+    if socket.assigns.message_sound_enabled and message.author != socket.assigns.nickname and
+         Map.get(message, :recipient) == socket.assigns.nickname do
+      push_event(socket, "play-message-notification", %{})
+    else
+      socket
+    end
+  end
+
+  defp normalize_message_sound_enabled(nil, current) when is_boolean(current), do: current
+  defp normalize_message_sound_enabled(value, _current), do: value in [true, "true", "1", "on"]
 
   defp open_profile(socket, nickname) do
     case Profiles.get_by_nickname(nickname) do

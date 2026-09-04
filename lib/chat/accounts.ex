@@ -15,6 +15,7 @@ defmodule Chat.Accounts do
   alias Chat.Security
   alias Chat.Security.Subject
   alias Chat.Themes
+  alias Chat.Typography
 
   def register_user(attrs), do: register_user(attrs, nil)
 
@@ -84,7 +85,10 @@ defmodule Chat.Accounts do
   def user_preferences(%User{} = user) do
     %{
       "theme_id" => Themes.normalize_theme_id(user.theme_id),
-      "appearance" => Appearance.normalize(user.appearance)
+      "appearance" => Appearance.normalize(user.appearance),
+      "font_id" => Typography.normalize_font_id(user.font_id),
+      "font_style" => Typography.normalize_font_style(user.font_style),
+      "message_sound_enabled" => user.message_sound_enabled
     }
   end
 
@@ -119,9 +123,19 @@ defmodule Chat.Accounts do
 
     %{
       "theme_id" => Themes.normalize_theme_id(attrs["theme_id"], current["theme_id"]),
-      "appearance" => Appearance.from_params(attrs, current["appearance"])
+      "appearance" => Appearance.from_params(attrs, current["appearance"]),
+      "font_id" => Typography.normalize_font_id(attrs["font_id"], current["font_id"]),
+      "font_style" => Typography.normalize_font_style(attrs["font_style"], current["font_style"]),
+      "message_sound_enabled" =>
+        normalize_message_sound_enabled(
+          attrs["message_sound_enabled"],
+          current["message_sound_enabled"]
+        )
     }
   end
+
+  defp normalize_message_sound_enabled(nil, current) when is_boolean(current), do: current
+  defp normalize_message_sound_enabled(value, _current), do: value in [true, "true", "1", "on"]
 
   defp stringify_keys(attrs) do
     Map.new(attrs, fn

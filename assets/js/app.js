@@ -67,6 +67,37 @@ const appearanceFrom = preferences => {
   return preferences.appearance || {}
 }
 
+const playMessageNotification = () => {
+  const AudioContext = window.AudioContext || window.webkitAudioContext
+
+  if (!AudioContext) return
+
+  const context = new AudioContext()
+  const startedAt = context.currentTime
+
+  if (context.state === "suspended") context.resume()
+
+  const notes = [880, 1_320]
+
+  notes.forEach((frequency, index) => {
+    const oscillator = context.createOscillator()
+    const gain = context.createGain()
+    const noteAt = startedAt + index * 0.12
+
+    oscillator.type = "sine"
+    oscillator.frequency.setValueAtTime(frequency, noteAt)
+    gain.gain.setValueAtTime(0.0001, noteAt)
+    gain.gain.exponentialRampToValueAtTime(0.045, noteAt + 0.015)
+    gain.gain.exponentialRampToValueAtTime(0.0001, noteAt + 0.11)
+    oscillator.connect(gain)
+    gain.connect(context.destination)
+    oscillator.start(noteAt)
+    oscillator.stop(noteAt + 0.12)
+  })
+
+  window.setTimeout(() => context.close(), 350)
+}
+
 const chatSessionParams = () => {
   const userAuthToken = sessionStorage.getItem(USER_AUTH_KEY)
 
@@ -87,6 +118,9 @@ const chatSessionParams = () => {
       guest_session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
       theme_id: currentPreferences.theme_id,
       appearance: appearanceFrom(currentPreferences),
+      font_id: currentPreferences.font_id,
+      font_style: currentPreferences.font_style,
+      message_sound_enabled: currentPreferences.message_sound_enabled,
     }
   }
 
@@ -242,32 +276,16 @@ const chatHooks = {
       window.name = "vertigo-chat"
       this.onVisibilityChange = () => {
         if (document.visibilityState === "visible") {
-          this.restoreSession()
           this.touchChatSession()
         }
       }
       document.addEventListener("visibilitychange", this.onVisibilityChange)
-      const store = readChatPreferenceStore()
-      const currentNickname = store.current_nickname
-      const currentPreferences = currentNickname && store.by_nickname[currentNickname]
-
-      this.restoreSession()
 
       if (this.el.dataset.chatJoined === "true") {
         this.finishSessionRestoration()
         this.startSessionHeartbeat()
       } else {
         this.restorationTimer = window.setTimeout(() => this.finishSessionRestoration(), 1500)
-      }
-
-      if (currentNickname && currentPreferences) {
-        const appearance = appearanceFrom(currentPreferences)
-
-        this.pushEvent("load_preferences", {
-          nickname: currentNickname,
-          theme_id: currentPreferences.theme_id,
-          appearance: appearance,
-        })
       }
 
       this.handleEvent("save-chat-preferences", preferences => {
@@ -282,11 +300,16 @@ const chatHooks = {
         nextStore.by_nickname[nickname] = {
           theme_id: preferences.theme_id,
           appearance: appearanceFrom(preferences),
+          font_id: preferences.font_id,
+          font_style: preferences.font_style,
+          message_sound_enabled: preferences.message_sound_enabled,
         }
         writeChatPreferenceStore(nextStore)
         sessionStorage.setItem(GUEST_SESSION_KEY, "true")
         sessionStorage.setItem(GUEST_SESSION_TOKEN_KEY, preferences.session_token)
       })
+
+      this.handleEvent("play-message-notification", () => playMessageNotification())
 
       this.handleEvent("clear-guest-session", () => {
         sessionStorage.removeItem(GUEST_SESSION_KEY)
@@ -294,7 +317,6 @@ const chatHooks = {
       })
     },
     reconnected() {
-      this.restoreSession()
       this.startSessionHeartbeat()
     },
     updated() {
@@ -313,26 +335,6 @@ const chatHooks = {
     finishSessionRestoration() {
       window.clearTimeout(this.restorationTimer)
       delete document.documentElement.dataset.chatSessionRestoring
-    },
-    restoreSession() {
-      const userAuthToken = sessionStorage.getItem(USER_AUTH_KEY)
-      const store = readChatPreferenceStore()
-      const currentNickname = store.current_nickname
-      const currentPreferences = currentNickname && store.by_nickname[currentNickname]
-
-      if (userAuthToken) {
-        this.pushEvent("restore_user_session", {
-          token: userAuthToken,
-          session_token: sessionStorage.getItem(USER_SESSION_KEY),
-        })
-      } else if (sessionStorage.getItem(GUEST_SESSION_KEY) && currentNickname && currentPreferences) {
-        this.pushEvent("restore_guest_session", {
-          nickname: currentNickname,
-          theme_id: currentPreferences.theme_id,
-          appearance: appearanceFrom(currentPreferences),
-          session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
-        })
-      }
     },
     startSessionHeartbeat() {
       if (this.sessionHeartbeat || this.el.dataset.chatJoined !== "true") {

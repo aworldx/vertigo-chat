@@ -14,11 +14,12 @@ defmodule Chat.Application do
       {DNSCluster, query: Application.get_env(:chat, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Chat.PubSub},
       Chat.Presence,
+      Chat.Messages.Registry,
+      Chat.Chatlans.DepartureNotifier,
       Chat.Visits.Janitor,
       Chat.Security.RateLimiter,
       Chat.Music.ProxyPool,
       Chat.Bot.Status,
-      Chat.Messages.Registry,
       Chat.MediaShares.Registry,
       # Start a worker by calling: Chat.Worker.start_link(arg)
       # {Chat.Worker, arg},
