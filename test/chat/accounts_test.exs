@@ -88,6 +88,18 @@ defmodule Chat.AccountsTest do
     refute updated_user.message_sound_enabled
   end
 
+  test "maps the retired light theme to newspaper" do
+    assert {:ok, user} =
+             Accounts.register_user(%{
+               "nickname" => "light_theme_user",
+               "password" => "secret123"
+             })
+
+    assert {:ok, updated_user} = Accounts.update_preferences(user, %{"theme_id" => "light"})
+
+    assert updated_user.theme_id == "newspaper"
+  end
+
   test "detects registered nicknames" do
     refute Accounts.registered_nickname?("tester")
 

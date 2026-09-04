@@ -16,9 +16,10 @@ defmodule Chat.Themes do
     %{id: "vertigo", name: "Vertigo", mode: "dark"},
     %{id: "dark", name: "Тёмная", mode: "dark"},
     %{id: "night_sky", name: "Ночное небо", mode: "dark"},
-    %{id: "light", name: "Светлая", mode: "light"},
     %{id: "newspaper", name: "Газета", mode: "light"}
   ]
+
+  @retired_theme_ids %{"light" => "newspaper"}
 
   def default_theme_id, do: @default_theme_id
 
@@ -35,7 +36,12 @@ defmodule Chat.Themes do
   end
 
   def normalize_theme_id(theme_id, fallback \\ @default_theme_id) do
-    if theme_id in ids(), do: theme_id, else: fallback
+    cond do
+      theme_id in ids() -> theme_id
+      Map.has_key?(@retired_theme_ids, theme_id) -> Map.fetch!(@retired_theme_ids, theme_id)
+      fallback in ids() -> fallback
+      true -> @default_theme_id
+    end
   end
 
   def normalize_mode_id(mode_id, fallback \\ @default_mode_id) do
