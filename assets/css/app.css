@@ -532,6 +532,13 @@ html[data-chat-session-restoring] #chat-session-restoring {
   margin-block-start: 0.75rem;
 }
 
+/* A GIF frame must shrink to the media before its auto margin can align it to the right. */
+#messages > .chat-message-entry[data-message-kind="gif"] {
+  display: table;
+  max-width: 100%;
+  margin-left: auto;
+}
+
 #messages {
   scroll-behavior: auto;
 }
