@@ -322,6 +322,7 @@ defmodule ChatWeb.RoomLiveTest do
     |> render_click()
 
     assert has_element?(view, "[data-message-kind='music'] [id^='music-message-player-']")
+    assert has_element?(view, "[data-message-kind='music'].ml-auto.max-w-xl")
     refute has_element?(view, "[data-command-result='music']")
   end
 

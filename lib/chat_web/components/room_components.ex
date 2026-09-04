@@ -59,6 +59,8 @@ defmodule ChatWeb.RoomComponents do
             Map.get(message, :kind) == :music &&
               framed_message?(message, @appearance) &&
               "w-full max-w-xl border-zinc-700 bg-zinc-950/90 px-3 py-2.5",
+            Map.get(message, :kind) == :music && "ml-auto w-full max-w-xl",
+            Map.get(message, :kind) == :gif && "ml-auto w-fit max-w-full",
             Map.get(message, :kind) not in [:system, :command] &&
               not framed_message?(message, @appearance) && "px-1",
             Map.get(message, :kind) != :system && not framed_message?(message, @appearance) &&
