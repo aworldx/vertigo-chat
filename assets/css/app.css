@@ -1138,6 +1138,88 @@ a:hover .vertigo-mark {
   --tw-ring-color: rgba(24, 23, 21, 0.32);
 }
 
+/* Profile cards are printed inserts: warm paper and ink, never translucent charcoal over paper. */
+.chat-shell[data-chat-theme="newspaper"] #profile-modal {
+  background-color: rgb(30 28 24 / 0.72);
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-modal > section {
+  border-color: #9a9081;
+  background: var(--newsprint-texture), #f5f1e8;
+  box-shadow: 0 1.5rem 4rem rgb(24 23 21 / 0.32);
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-modal aside {
+  border-color: #b7ad9e;
+  background: #33342d;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-modal aside > div {
+  background: radial-gradient(circle at 35% 25%, #5a5848, #252720 68%);
+  color: #e5d2a0;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-modal header {
+  border-color: #b7ad9e;
+  background: var(--newsprint-texture), #f5f1e8;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-title {
+  color: #28251f;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-modal .text-amber-300 {
+  color: #9a402d;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-modal .text-amber-100,
+.chat-shell[data-chat-theme="newspaper"] #profile-modal .text-amber-200 {
+  color: #4f3b16;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-modal header > div {
+  border-color: #b19049;
+  background: #eee0bd;
+  color: #4f3b16;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-view > .grid > div,
+.chat-shell[data-chat-theme="newspaper"] #profile-view > section {
+  border-color: #c1b7a8;
+  background: #e9e2d5;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-view > section {
+  background: #f0eadf;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #profile-view .text-zinc-400,
+.chat-shell[data-chat-theme="newspaper"] #profile-view .text-zinc-500 {
+  color: #6b6256;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #edit-profile {
+  border-color: #b19049;
+  background: #eee0bd;
+  color: #3e2d17;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #edit-profile:hover {
+  border-color: #8d6e31;
+  background: #e6d2a5;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #close-profile {
+  border-color: #b7ad9e;
+  background: #f8f5ed;
+  color: #302d27;
+}
+
+.chat-shell[data-chat-theme="newspaper"] #close-profile:hover {
+  border-color: #9a402d;
+  color: #7c3324;
+}
+
 /* A typeface belongs to the message author, never to the recipient's chat UI. */
 .chat-message-entry[data-message-font="sans"] {
   font-family: "Vertigo Text", "Avenir Next", sans-serif;
