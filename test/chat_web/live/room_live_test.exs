@@ -53,6 +53,12 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#message-form")
   end
 
+  test "shows progress while the entrance request is being processed", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    assert has_element?(view, "#enter-chat[phx-disable-with='Входим…']")
+  end
+
   test "collects feedback from a guest and requires their name", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 

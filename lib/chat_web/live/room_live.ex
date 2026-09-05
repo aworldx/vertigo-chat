@@ -116,6 +116,7 @@ defmodule ChatWeb.RoomLive do
   @impl true
   def handle_event("enter_chat", %{"entrance" => params}, socket) do
     nickname = Chatlans.normalize_nickname(params["nickname"], nil)
+    log_entrance_attempt(nickname, params["password"])
 
     with {:ok, user} <- Accounts.authorize_entrance(nickname, params["password"]),
          {identity_key, guest_identity_token} <- identity_for_entrance(user, nickname),
@@ -158,6 +159,8 @@ defmodule ChatWeb.RoomLive do
        |> push_event("focus-message-input", %{})}
     else
       {:error, %Ecto.Changeset{}} ->
+        log_entrance_failure(nickname, :visit_persist_failed)
+
         {:noreply,
          socket
          |> assign(:nickname, nickname)
@@ -165,6 +168,8 @@ defmodule ChatWeb.RoomLive do
          |> assign_nickname_form()}
 
       {:error, reason} ->
+        log_entrance_failure(nickname, reason)
+
         {:noreply,
          socket
          |> assign(:nickname, nickname)
@@ -2109,6 +2114,21 @@ defmodule ChatWeb.RoomLive do
       "session_#{event} nickname=#{socket.assigns.nickname} visit_id=#{visit_id || "none"} kind=#{kind}"
     )
   end
+
+  defp log_entrance_attempt(nickname, password) do
+    Logger.info(
+      "session_login_attempt nickname=#{nickname || "invalid"} password_present=#{password_present?(password)}"
+    )
+  end
+
+  defp log_entrance_failure(nickname, reason) do
+    Logger.warning(
+      "session_login_failed nickname=#{nickname || "invalid"} reason=#{session_failure_reason(reason)}"
+    )
+  end
+
+  defp password_present?(password) when is_binary(password), do: String.trim(password) != ""
+  defp password_present?(_password), do: false
 
   defp session_failure_reason({:error, reason}) when is_atom(reason), do: Atom.to_string(reason)
   defp session_failure_reason(reason) when is_atom(reason), do: Atom.to_string(reason)
