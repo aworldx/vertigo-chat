@@ -112,10 +112,15 @@ const chatSessionParams = () => {
   const currentNickname = store.current_nickname
   const currentPreferences = currentNickname && store.by_nickname[currentNickname]
 
-  if (sessionStorage.getItem(GUEST_SESSION_KEY) && currentNickname && currentPreferences) {
+  if (
+    currentNickname &&
+    currentPreferences &&
+    (currentPreferences.identity_token || sessionStorage.getItem(GUEST_SESSION_KEY))
+  ) {
     return {
       guest_nickname: currentNickname,
       guest_session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
+      guest_identity_token: currentPreferences.identity_token,
       theme_id: currentPreferences.theme_id,
       appearance: appearanceFrom(currentPreferences),
       font_id: currentPreferences.font_id,
@@ -304,6 +309,7 @@ const chatHooks = {
           font_id: preferences.font_id,
           font_style: preferences.font_style,
           message_sound_enabled: preferences.message_sound_enabled,
+          identity_token: preferences.identity_token,
         }
         writeChatPreferenceStore(nextStore)
         sessionStorage.setItem(GUEST_SESSION_KEY, "true")
@@ -313,6 +319,14 @@ const chatHooks = {
       this.handleEvent("play-message-notification", () => playMessageNotification())
 
       this.handleEvent("clear-guest-session", () => {
+        const nextStore = readChatPreferenceStore()
+        const nickname = nextStore.current_nickname
+
+        if (nickname && nextStore.by_nickname[nickname]) {
+          delete nextStore.by_nickname[nickname].identity_token
+          writeChatPreferenceStore(nextStore)
+        }
+
         sessionStorage.removeItem(GUEST_SESSION_KEY)
         sessionStorage.removeItem(GUEST_SESSION_TOKEN_KEY)
       })

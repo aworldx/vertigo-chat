@@ -3,9 +3,11 @@ defmodule Chat.Chatlans.DepartureNotifier do
   @moduledoc false
 
   use GenServer
+  require Logger
 
   alias Chat.Chatlans
   alias Chat.Messages
+  alias Chat.Visits
 
   @default_delay :timer.seconds(30)
 
@@ -16,16 +18,16 @@ defmodule Chat.Chatlans.DepartureNotifier do
     end
   end
 
-  def schedule(room_id, nickname, session_id, opts \\ []) do
-    GenServer.call(server(opts), {:schedule, room_id, nickname, session_id})
+  def schedule(room_id, nickname, identity_key, opts \\ []) do
+    GenServer.call(server(opts), {:schedule, room_id, nickname, identity_key})
   end
 
-  def cancel(room_id, session_id, opts \\ []) do
-    GenServer.call(server(opts), {:cancel, room_id, session_id})
+  def cancel(room_id, identity_key, opts \\ []) do
+    GenServer.call(server(opts), {:cancel, room_id, identity_key})
   end
 
-  def announce_now(room_id, nickname, session_id, opts \\ []) do
-    GenServer.call(server(opts), {:announce_now, room_id, nickname, session_id})
+  def announce_now(room_id, nickname, identity_key, opts \\ []) do
+    GenServer.call(server(opts), {:announce_now, room_id, nickname, identity_key})
   end
 
   @impl true
@@ -34,30 +36,31 @@ defmodule Chat.Chatlans.DepartureNotifier do
   end
 
   @impl true
-  def handle_call({:schedule, room_id, nickname, session_id}, _from, state) do
-    key = {room_id, session_id}
+  def handle_call({:schedule, room_id, nickname, identity_key}, _from, state) do
+    key = {room_id, identity_key}
     state = cancel_departure(state, key)
     timer = Process.send_after(self(), {:announce_departure, key}, state.delay)
+    Logger.info("session_departure_scheduled nickname=#{nickname} grace_ms=#{state.delay}")
 
     {:reply, :ok, put_in(state.departures[key], %{nickname: nickname, timer: timer})}
   end
 
-  def handle_call({:cancel, room_id, session_id}, _from, state) do
-    {:reply, :ok, cancel_departure(state, {room_id, session_id})}
+  def handle_call({:cancel, room_id, identity_key}, _from, state) do
+    Logger.info("session_departure_cancelled")
+    {:reply, :ok, cancel_departure(state, {room_id, identity_key})}
   end
 
-  def handle_call({:announce_now, room_id, nickname, session_id}, _from, state) do
-    state = cancel_departure(state, {room_id, session_id})
-    {:reply, Messages.announce_presence(nickname, room_id, :left), state}
+  def handle_call({:announce_now, room_id, nickname, identity_key}, _from, state) do
+    state = cancel_departure(state, {room_id, identity_key})
+    Logger.info("session_departure_requested nickname=#{nickname}")
+    {:reply, finish_departure(room_id, nickname, identity_key), state}
   end
 
   @impl true
-  def handle_info({:announce_departure, {room_id, session_id} = key}, state) do
+  def handle_info({:announce_departure, {room_id, identity_key} = key}, state) do
     {departure, departures} = Map.pop(state.departures, key)
 
-    if departure && not Chatlans.session_online?(room_id, session_id) do
-      Messages.announce_presence(departure.nickname, room_id, :left)
-    end
+    if departure, do: finish_departure(room_id, departure.nickname, identity_key)
 
     {:noreply, %{state | departures: departures}}
   end
@@ -74,4 +77,16 @@ defmodule Chat.Chatlans.DepartureNotifier do
   end
 
   defp server(opts), do: Keyword.get(opts, :server, __MODULE__)
+
+  defp finish_departure(room_id, nickname, identity_key) do
+    if not Chatlans.identity_online?(room_id, identity_key) do
+      {:ok, _visit} = Visits.finish_active_visit(identity_key)
+      {:ok, _message} = Messages.announce_presence(nickname, room_id, :left)
+      Logger.info("session_departure_finalized nickname=#{nickname}")
+      :ok
+    else
+      Logger.info("session_departure_skipped reason=identity_online")
+      :ok
+    end
+  end
 end

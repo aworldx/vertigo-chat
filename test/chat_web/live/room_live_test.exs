@@ -2,12 +2,16 @@
 defmodule ChatWeb.RoomLiveTest do
   use ChatWeb.ConnCase
 
+  import Ecto.Query
+
   alias Chat.Accounts
   alias Chat.Bot.Status, as: BotStatus
   alias Chat.Chatlans
   alias Chat.Messages
   alias Chat.Messages.Registry, as: MessageRegistry
+  alias Chat.Repo
   alias Chat.Visits
+  alias Chat.Visits.Visit
 
   setup do
     :sys.replace_state(MessageRegistry, &Map.delete(&1, "lobby"))
@@ -229,6 +233,27 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(refreshed_view, "#message-form")
     assert 1 == Enum.count(Chatlans.list_online("lobby"), &(&1.nickname == nickname))
     assert 1 == Enum.count(Visits.list_recent_visits(), &(&1.nickname == nickname))
+  end
+
+  test "keeps one active visit when a registered chatlan opens a second tab", %{conn: conn} do
+    nickname = "two_tabs_#{System.unique_integer([:positive])}"
+
+    assert {:ok, _user} =
+             Accounts.register_user(%{"nickname" => nickname, "password" => "secret123"})
+
+    {:ok, first_tab, _html} = live(conn, ~p"/")
+    enter_chat(first_tab, nickname, "secret123")
+
+    {:ok, second_tab, _html} = live(build_conn(), ~p"/")
+    enter_chat(second_tab, nickname, "secret123")
+
+    assert has_element?(second_tab, "#message-form")
+
+    assert 1 ==
+             Repo.aggregate(
+               from(visit in Visit, where: visit.nickname == ^nickname and is_nil(visit.left_at)),
+               :count
+             )
   end
 
   test "answers a public address so that the whole room sees it", %{conn: conn} do
@@ -709,6 +734,8 @@ defmodule ChatWeb.RoomLiveTest do
     view |> form("#profile-form", profile: %{name: "С фото"}) |> render_submit()
 
     assert has_element?(view, "#profile-avatar-image[src^='data:image/webp;base64,']")
+    assert render(view) =~ "h-[min(30vh,18rem)]"
+    refute render(view) =~ "min-h-[24rem]"
   end
 
   test "delivers a private message only to sender and recipient", %{

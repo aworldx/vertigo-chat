@@ -52,6 +52,25 @@ defmodule Chat.VisitsTest do
     assert [^first] = Visits.list_recent_visits(since: DateTime.add(entered_at, -1, :second))
   end
 
+  test "reuses one active visit across multiple connections of the same identity" do
+    identity_key = Visits.guest_identity_key(Ecto.UUID.generate())
+    entered_at = ~U[2026-08-17 08:00:00Z]
+
+    assert {:ok, first} =
+             Visits.start_visit("visitor", entered_at,
+               session_id: Ecto.UUID.generate(),
+               identity_key: identity_key
+             )
+
+    assert {:ok, same_visit} =
+             Visits.start_visit("visitor", DateTime.add(entered_at, 1, :minute),
+               session_id: Ecto.UUID.generate(),
+               identity_key: identity_key
+             )
+
+    assert same_visit.id == first.id
+  end
+
   test "shows only the newest active visit for duplicate legacy nicknames" do
     entered_at = ~U[2026-08-17 08:00:00Z]
     assert {:ok, older} = Visits.start_visit("legacy_visitor", entered_at)
@@ -63,7 +82,7 @@ defmodule Chat.VisitsTest do
     assert newer.id != older.id
   end
 
-  test "charges only the reconnect grace period when cleanup runs late" do
+  test "closes an abandoned visit when its identity is offline" do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     entered_at = DateTime.add(now, -2, :day)
     session_id = Ecto.UUID.generate()
@@ -71,6 +90,7 @@ defmodule Chat.VisitsTest do
     visit =
       Repo.insert!(%Visit{
         nickname: "stale_visitor",
+        identity_key: Visits.guest_identity_key(session_id),
         session_id: session_id,
         entered_at: entered_at,
         inserted_at: entered_at,
@@ -78,7 +98,6 @@ defmodule Chat.VisitsTest do
       })
 
     assert :ok = Visits.cleanup_stale_visits(now: now)
-    left_at = DateTime.add(entered_at, 5, :minute)
-    assert %{left_at: ^left_at} = Repo.get!(Visit, visit.id)
+    assert %{left_at: ^now} = Repo.get!(Visit, visit.id)
   end
 end

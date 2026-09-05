@@ -27,4 +27,12 @@ defmodule ChatWeb.UserAuthTest do
     assert restored_user.id == user.id
     assert {:ok, ^session_id} = UserAuth.verify_chat_session(guest_token, "long_lived_guest")
   end
+
+  test "binds a guest identity token to its nickname" do
+    identity_id = Ecto.UUID.generate()
+    token = UserAuth.sign_guest_identity("stable_guest", identity_id)
+
+    assert {:ok, ^identity_id} = UserAuth.verify_guest_identity(token, "stable_guest")
+    assert {:error, :invalid_identity} = UserAuth.verify_guest_identity(token, "another_guest")
+  end
 end

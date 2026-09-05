@@ -3,6 +3,7 @@ defmodule Chat.Visits do
   @moduledoc "История сессий присутствия в чате."
 
   import Ecto.Query
+  require Logger
 
   alias Chat.Accounts.User
   alias Chat.Chatlans
@@ -15,7 +16,12 @@ defmodule Chat.Visits do
   def start_visit(subject, entered_at \\ DateTime.utc_now(), opts \\ [])
 
   def start_visit(%User{} = user, entered_at, opts) do
-    start_visit(user.nickname, entered_at, user.id, opts)
+    start_visit(
+      user.nickname,
+      entered_at,
+      user.id,
+      Keyword.put_new(opts, :identity_key, user_identity_key(user))
+    )
   end
 
   def start_visit(nickname, entered_at, opts) do
@@ -25,20 +31,50 @@ defmodule Chat.Visits do
   defp start_visit(nickname, entered_at, user_id, opts) do
     nickname = Chatlans.normalize_nickname(nickname, nil)
     session_id = Keyword.get(opts, :session_id)
+    identity_key = Keyword.get(opts, :identity_key, legacy_identity_key(nickname, session_id))
 
-    case active_visit(session_id) do
+    case active_visit(identity_key) do
       %Visit{} = visit ->
+        Logger.info("session_visit_reused nickname=#{nickname} visit_id=#{visit.id}")
         {:ok, visit}
 
       nil ->
-        %Visit{}
-        |> Visit.entrance_changeset(%{
-          nickname: nickname,
-          session_id: session_id,
-          entered_at: normalize_datetime(entered_at),
-          user_id: user_id
-        })
-        |> Repo.insert()
+        changeset =
+          Visit.entrance_changeset(%Visit{}, %{
+            nickname: nickname,
+            identity_key: identity_key,
+            session_id: session_id,
+            entered_at: normalize_datetime(entered_at),
+            user_id: user_id
+          })
+
+        case Repo.insert(changeset) do
+          {:error, _changeset} ->
+            case active_visit(identity_key) || active_visit_for_session(session_id) do
+              %Visit{} = visit ->
+                Logger.info(
+                  "session_visit_reused_after_conflict nickname=#{nickname} visit_id=#{visit.id}"
+                )
+
+                {:ok, visit}
+
+              nil ->
+                if changeset.valid? do
+                  Logger.warning(
+                    "session_visit_start_failed nickname=#{nickname} reason=database_constraint"
+                  )
+                end
+
+                {:error, changeset}
+            end
+
+          {:ok, visit} = result ->
+            Logger.info("session_visit_started nickname=#{nickname} visit_id=#{visit.id}")
+            result
+
+          result ->
+            result
+        end
     end
   end
 
@@ -47,20 +83,27 @@ defmodule Chat.Visits do
   def finish_visit(%Visit{left_at: nil} = visit, left_at) do
     left_at = normalize_datetime(left_at)
 
-    Repo.transaction(fn ->
-      query =
-        from current_visit in Visit,
-          where: current_visit.id == ^visit.id and is_nil(current_visit.left_at)
+    result =
+      Repo.transaction(fn ->
+        query =
+          from current_visit in Visit,
+            where: current_visit.id == ^visit.id and is_nil(current_visit.left_at)
 
-      case Repo.update_all(query, set: [left_at: left_at, updated_at: left_at]) do
-        {1, _} ->
-          increment_chat_time(visit, left_at)
-          Repo.get!(Visit, visit.id)
+        case Repo.update_all(query, set: [left_at: left_at, updated_at: left_at]) do
+          {1, _} ->
+            increment_chat_time(visit, left_at)
+            Repo.get!(Visit, visit.id)
 
-        {0, _} ->
-          Repo.get!(Visit, visit.id)
-      end
-    end)
+          {0, _} ->
+            Repo.get!(Visit, visit.id)
+        end
+      end)
+
+    if match?({:ok, %Visit{left_at: ^left_at}}, result) do
+      Logger.info("session_visit_finished nickname=#{visit.nickname} visit_id=#{visit.id}")
+    end
+
+    result
   end
 
   def finish_visit(%Visit{} = visit, _left_at), do: {:ok, visit}
@@ -74,19 +117,20 @@ defmodule Chat.Visits do
   def cleanup_stale_visits(opts \\ []) do
     now = opts |> Keyword.get(:now, DateTime.utc_now()) |> normalize_datetime()
     cutoff = DateTime.add(now, -@stale_after_seconds, :second)
-    {online_session_ids, online_nicknames} = online_participants()
+    online_identity_keys = online_identity_keys()
 
-    Visit
-    |> where([visit], is_nil(visit.left_at))
-    |> where([visit], visit.updated_at < ^cutoff)
-    |> Repo.all()
-    |> Enum.reject(fn visit ->
-      MapSet.member?(online_session_ids, visit.session_id) or
-        MapSet.member?(online_nicknames, visit.nickname)
-    end)
-    |> Enum.each(fn visit ->
-      finish_visit(visit, stale_left_at(visit, now))
-    end)
+    stale_visits =
+      Visit
+      |> where([visit], is_nil(visit.left_at))
+      |> where([visit], visit.updated_at < ^cutoff)
+      |> Repo.all()
+      |> Enum.reject(&MapSet.member?(online_identity_keys, &1.identity_key))
+
+    Enum.each(stale_visits, &finish_visit(&1, now))
+
+    if stale_visits != [] do
+      Logger.warning("session_stale_visits_closed count=#{length(stale_visits)}")
+    end
 
     :ok
   end
@@ -108,24 +152,50 @@ defmodule Chat.Visits do
 
   def history_hours, do: @history_hours
 
-  defp online_participants do
-    online = Chatlans.list_online("lobby")
+  def finish_active_visit(identity_key, left_at \\ DateTime.utc_now())
 
-    {
-      online |> Enum.map(&Map.get(&1, :session_id)) |> Enum.reject(&is_nil/1) |> MapSet.new(),
-      online |> Enum.map(& &1.nickname) |> MapSet.new()
-    }
+  def finish_active_visit(identity_key, left_at) when is_binary(identity_key) do
+    case active_visit(identity_key) do
+      nil -> {:ok, nil}
+      visit -> finish_visit(visit, left_at)
+    end
+  end
+
+  def finish_active_visit(_identity_key, _left_at), do: {:ok, nil}
+
+  def user_identity_key(%User{id: id}), do: "user:" <> to_string(id)
+  def guest_identity_key(identity_id) when is_binary(identity_id), do: "guest:" <> identity_id
+
+  defp online_identity_keys do
+    "lobby"
+    |> Chatlans.list_online()
+    |> Enum.map(&Map.get(&1, :identity_key))
+    |> Enum.reject(&is_nil/1)
+    |> MapSet.new()
   end
 
   defp normalize_datetime(%DateTime{} = datetime), do: DateTime.truncate(datetime, :second)
 
-  defp active_visit(session_id) when is_binary(session_id) do
+  defp active_visit(identity_key) when is_binary(identity_key) do
+    Repo.one(
+      from visit in Visit, where: visit.identity_key == ^identity_key and is_nil(visit.left_at)
+    )
+  end
+
+  defp active_visit(_identity_key), do: nil
+
+  defp active_visit_for_session(session_id) when is_binary(session_id) do
     Repo.one(
       from visit in Visit, where: visit.session_id == ^session_id and is_nil(visit.left_at)
     )
   end
 
-  defp active_visit(_session_id), do: nil
+  defp active_visit_for_session(_session_id), do: nil
+
+  defp legacy_identity_key(_nickname, session_id) when is_binary(session_id),
+    do: guest_identity_key(session_id)
+
+  defp legacy_identity_key(_nickname, _session_id), do: "legacy:" <> Ecto.UUID.generate()
 
   defp collapse_active_visits(visits) do
     {visits, _nicknames} =
@@ -142,15 +212,6 @@ defmodule Chat.Visits do
       end)
 
     Enum.reverse(visits)
-  end
-
-  # Presence tells us whether a connection is still alive. Once it disappears,
-  # account for only the reconnect grace period even if the janitor runs late.
-  defp stale_left_at(%Visit{updated_at: updated_at, entered_at: entered_at}, now) do
-    last_seen_at = updated_at || entered_at
-    grace_ended_at = DateTime.add(last_seen_at, @stale_after_seconds, :second)
-
-    if DateTime.compare(grace_ended_at, now) == :gt, do: now, else: grace_ended_at
   end
 
   defp increment_chat_time(%Visit{user_id: nil}, _left_at), do: :ok

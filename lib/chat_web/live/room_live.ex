@@ -2,6 +2,8 @@
 defmodule ChatWeb.RoomLive do
   use ChatWeb, :live_view
 
+  require Logger
+
   alias Chat.Accounts
   alias Chat.Appearance
   alias Chat.Bot
@@ -40,6 +42,8 @@ defmodule ChatWeb.RoomLive do
       |> assign(:presence_key, presence_key)
       |> assign(:chat_session_token, nil)
       |> assign(:chat_session_id, nil)
+      |> assign(:identity_key, nil)
+      |> assign(:guest_identity_token, nil)
       |> assign(:security_subject, security_subject)
       |> assign(:preference_nickname, nil)
       |> assign(:theme_id, Themes.default_theme_id())
@@ -114,17 +118,23 @@ defmodule ChatWeb.RoomLive do
     nickname = Chatlans.normalize_nickname(params["nickname"], nil)
 
     with {:ok, user} <- Accounts.authorize_entrance(nickname, params["password"]),
-         :ok <- Chatlans.ensure_nickname_available(@room_id, nickname),
+         {identity_key, guest_identity_token} <- identity_for_entrance(user, nickname),
+         :ok <- Chatlans.ensure_nickname_available(@room_id, nickname, nil, nil, identity_key),
          session_token = UserAuth.sign_chat_session(nickname),
          {:ok, session_id} <- UserAuth.verify_chat_session(session_token, nickname),
          {:ok, visit} <-
-           Visits.start_visit(user || nickname, DateTime.utc_now(), session_id: session_id) do
+           Visits.start_visit(user || nickname, DateTime.utc_now(),
+             session_id: session_id,
+             identity_key: identity_key
+           ) do
       socket =
         socket
         |> assign(:nickname, nickname)
         |> assign(:current_user, user)
         |> assign(:chat_session_token, session_token)
         |> assign(:chat_session_id, session_id)
+        |> assign(:identity_key, identity_key)
+        |> assign(:guest_identity_token, guest_identity_token)
         |> assign(:visit, visit)
         |> assign(:entrance_error, nil)
         |> reset_colors_for_new_nickname(nickname)
@@ -137,6 +147,8 @@ defmodule ChatWeb.RoomLive do
 
       track_presence(socket)
       {:ok, _message} = Messages.announce_presence(nickname, @room_id, :joined)
+
+      log_session("entered", socket)
 
       {:noreply,
        socket
@@ -669,7 +681,8 @@ defmodule ChatWeb.RoomLive do
              user.nickname,
              socket.assigns.presence_key,
              nil,
-             session_id: session_id
+             session_id: session_id,
+             identity_key: Visits.user_identity_key(user)
            ),
          {:ok, visit} <-
            Visits.start_visit(user, DateTime.utc_now(), session_id: session_id) do
@@ -679,6 +692,8 @@ defmodule ChatWeb.RoomLive do
         |> assign(:presence_key, restored.presence_key)
         |> assign(:chat_session_token, session_token)
         |> assign(:chat_session_id, session_id)
+        |> assign(:identity_key, Visits.user_identity_key(user))
+        |> assign(:guest_identity_token, nil)
         |> assign(:current_user, user)
         |> assign(:visit, visit)
         |> assign(:entrance_error, nil)
@@ -689,12 +704,19 @@ defmodule ChatWeb.RoomLive do
 
       track_presence(socket)
 
+      log_session("restored_registered", socket)
+
       socket
       |> assign(:online, Chatlans.list_online(@room_id))
       |> sync_user_auth(user)
       |> push_event("focus-message-input", %{})
     else
-      _reason -> socket
+      reason ->
+        Logger.warning(
+          "session_restore_failed kind=registered reason=#{session_failure_reason(reason)}"
+        )
+
+        socket
     end
   end
 
@@ -704,7 +726,9 @@ defmodule ChatWeb.RoomLive do
     nickname = Chatlans.normalize_nickname(params["nickname"], nil)
 
     with nickname when not is_nil(nickname) <- nickname,
-         {:ok, session_id} <- UserAuth.verify_chat_session(params["session_token"], nickname),
+         {:ok, identity_key, guest_identity_token} <- guest_identity_from_params(params, nickname),
+         session_token = session_token_for_restore(params["session_token"], nickname),
+         {:ok, session_id} <- UserAuth.verify_chat_session(session_token, nickname),
          {:ok, restored} <-
            Chatlans.restore_session(
              @room_id,
@@ -712,16 +736,22 @@ defmodule ChatWeb.RoomLive do
              socket.assigns.presence_key,
              nil,
              guest?: true,
-             session_id: session_id
+             session_id: session_id,
+             identity_key: identity_key
            ),
          {:ok, visit} <-
-           Visits.start_visit(restored.nickname, DateTime.utc_now(), session_id: session_id) do
+           Visits.start_visit(restored.nickname, DateTime.utc_now(),
+             session_id: session_id,
+             identity_key: identity_key
+           ) do
       socket =
         socket
         |> assign(:nickname, restored.nickname)
         |> assign(:presence_key, restored.presence_key)
-        |> assign(:chat_session_token, params["session_token"])
+        |> assign(:chat_session_token, session_token)
         |> assign(:chat_session_id, session_id)
+        |> assign(:identity_key, identity_key)
+        |> assign(:guest_identity_token, guest_identity_token)
         |> assign(:visit, visit)
         |> assign(:entrance_error, nil)
         |> assign_preferences(params, allow_nickname?: true)
@@ -732,12 +762,19 @@ defmodule ChatWeb.RoomLive do
 
       track_presence(socket)
 
+      log_session("restored_guest", socket)
+
       socket
       |> assign(:online, Chatlans.list_online(@room_id))
       |> maybe_save_guest_preferences(nil)
       |> push_event("focus-message-input", %{})
     else
-      _reason -> socket
+      reason ->
+        Logger.warning(
+          "session_restore_failed kind=guest reason=#{session_failure_reason(reason)}"
+        )
+
+        socket
     end
   end
 
@@ -749,15 +786,15 @@ defmodule ChatWeb.RoomLive do
 
       %{
         "guest_nickname" => nickname,
-        "guest_session_token" => session_token,
         "theme_id" => theme_id,
         "appearance" => appearance
       } = params
-      when is_binary(nickname) and is_binary(session_token) ->
+      when is_binary(nickname) ->
         restore_guest_session(
           %{
             "nickname" => nickname,
-            "session_token" => session_token,
+            "session_token" => Map.get(params, "guest_session_token"),
+            "identity_token" => Map.get(params, "guest_identity_token"),
             "theme_id" => theme_id,
             "appearance" => appearance,
             "font_id" => Map.get(params, "font_id"),
@@ -772,18 +809,49 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp identity_for_entrance(%{} = user, _nickname),
+    do: {Visits.user_identity_key(user), nil}
+
+  defp identity_for_entrance(nil, nickname) do
+    identity_id = Ecto.UUID.generate()
+    {Visits.guest_identity_key(identity_id), UserAuth.sign_guest_identity(nickname, identity_id)}
+  end
+
+  defp guest_identity_from_params(params, nickname) do
+    case UserAuth.verify_guest_identity(params["identity_token"], nickname) do
+      {:ok, identity_id} ->
+        {:ok, Visits.guest_identity_key(identity_id), params["identity_token"]}
+
+      {:error, :invalid_identity} ->
+        with {:ok, session_id} <- UserAuth.verify_chat_session(params["session_token"], nickname) do
+          {:ok, Visits.guest_identity_key(session_id),
+           UserAuth.sign_guest_identity(nickname, session_id)}
+        end
+    end
+  end
+
+  defp session_token_for_restore(session_token, nickname) do
+    case UserAuth.verify_chat_session(session_token, nickname) do
+      {:ok, _session_id} -> session_token
+      {:error, :invalid_session} -> UserAuth.sign_chat_session(nickname)
+    end
+  end
+
   defp leave_chat(socket) do
+    guest? = is_nil(socket.assigns.current_user)
+
     if socket.assigns.joined? do
+      log_session("leave_requested", socket)
       :ok = broadcast_stopped_typing(socket)
 
-      {:ok, _message} =
+      Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
+
+      :ok =
         Chatlans.announce_departure(
           @room_id,
           socket.assigns.nickname,
-          socket.assigns.chat_session_id
+          socket.assigns.identity_key
         )
-
-      Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
     end
 
     MediaShares.close_peer(@room_id, socket.assigns.presence_key)
@@ -795,6 +863,8 @@ defmodule ChatWeb.RoomLive do
     |> assign(:joined?, false)
     |> assign(:chat_session_token, nil)
     |> assign(:chat_session_id, nil)
+    |> assign(:identity_key, nil)
+    |> assign(:guest_identity_token, nil)
     |> assign(:current_user, nil)
     |> assign(:profile, nil)
     |> assign(:settings_open?, false)
@@ -814,7 +884,7 @@ defmodule ChatWeb.RoomLive do
     |> assign(:gif_results, [])
     |> assign(:gif_search_message_id, nil)
     |> push_event("clear-user-auth", %{})
-    |> push_event("clear-guest-session", %{})
+    |> maybe_clear_guest_session(guest?)
   end
 
   @impl true
@@ -1007,6 +1077,7 @@ defmodule ChatWeb.RoomLive do
   @impl true
   def terminate(_reason, socket) do
     if socket.assigns.joined? do
+      log_session("connection_terminated", socket)
       :ok = broadcast_stopped_typing(socket)
       Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
 
@@ -1014,7 +1085,7 @@ defmodule ChatWeb.RoomLive do
         Chatlans.schedule_departure(
           @room_id,
           socket.assigns.nickname,
-          socket.assigns.chat_session_id
+          socket.assigns.identity_key
         )
     end
 
@@ -1501,7 +1572,8 @@ defmodule ChatWeb.RoomLive do
       "font_id" => socket.assigns.font_id,
       "font_style" => socket.assigns.font_style,
       "message_sound_enabled" => socket.assigns.message_sound_enabled,
-      "session_token" => socket.assigns.chat_session_token
+      "session_token" => socket.assigns.chat_session_token,
+      "identity_token" => socket.assigns.guest_identity_token
     }
   end
 
@@ -1515,7 +1587,10 @@ defmodule ChatWeb.RoomLive do
       )
 
     if match?({:ok, _}, result) do
-      :ok = Chatlans.cancel_scheduled_departure(@room_id, socket.assigns.chat_session_id)
+      :ok = Chatlans.cancel_scheduled_departure(@room_id, socket.assigns.identity_key)
+      log_session("connection_tracked", socket)
+    else
+      Logger.warning("session_connection_track_failed nickname=#{socket.assigns.nickname}")
     end
 
     result
@@ -1584,6 +1659,9 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp maybe_save_guest_preferences(socket, _user), do: socket
+
+  defp maybe_clear_guest_session(socket, true), do: push_event(socket, "clear-guest-session", %{})
+  defp maybe_clear_guest_session(socket, false), do: socket
 
   defp rerender_messages(socket) do
     Enum.reduce(socket.assigns.message_items, socket, fn message, socket ->
@@ -1841,7 +1919,8 @@ defmodule ChatWeb.RoomLive do
       socket.assigns.appearance,
       registered?: not is_nil(socket.assigns.current_user),
       rank: Ranks.for_user(socket.assigns.current_user),
-      session_id: socket.assigns.chat_session_id
+      session_id: socket.assigns.chat_session_id,
+      identity_key: socket.assigns.identity_key
     )
   end
 
@@ -2014,19 +2093,24 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp close_visit(socket) do
-    socket.assigns
-    |> Map.get(:visit)
-    |> finish_visit()
+    if is_binary(socket.assigns.identity_key) and
+         not Chatlans.identity_online?(@room_id, socket.assigns.identity_key) do
+      {:ok, _visit} = Visits.finish_active_visit(socket.assigns.identity_key)
+    end
 
     assign(socket, :visit, nil)
   end
 
-  defp finish_visit(nil), do: :ok
+  defp log_session(event, socket) do
+    visit_id = socket.assigns[:visit] && socket.assigns.visit.id
+    kind = if socket.assigns.current_user, do: "registered", else: "guest"
 
-  defp finish_visit(visit) do
-    case Visits.finish_visit(visit) do
-      {:ok, _visit} -> :ok
-      {:error, _changeset} -> :error
-    end
+    Logger.info(
+      "session_#{event} nickname=#{socket.assigns.nickname} visit_id=#{visit_id || "none"} kind=#{kind}"
+    )
   end
+
+  defp session_failure_reason({:error, reason}) when is_atom(reason), do: Atom.to_string(reason)
+  defp session_failure_reason(reason) when is_atom(reason), do: Atom.to_string(reason)
+  defp session_failure_reason(_reason), do: "unexpected"
 end

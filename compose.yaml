@@ -22,11 +22,18 @@ x-app-image: &app-image
   volumes:
     - ${MUSIC_PROXY_HOST_FILE:-./.music_proxies}:/run/secrets/music_proxies:ro
 
+x-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   migrate:
     <<: *app-image
     command: ["/app/bin/migrate"]
     restart: "no"
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,6 +41,7 @@ services:
   app:
     <<: *app-image
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,6 +57,7 @@ services:
   postgres:
     image: postgres:17
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
@@ -64,6 +73,7 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    logging: *default-logging
     environment:
       CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:?CADDY_SITE_ADDRESS must be set}
     ports:

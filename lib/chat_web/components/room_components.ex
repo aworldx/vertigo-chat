@@ -1392,7 +1392,7 @@ defmodule ChatWeb.RoomComponents do
           <.icon name="hero-x-mark" class="size-5" />
         </button>
 
-        <div class="grid min-h-[32rem] lg:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.35fr)]">
+        <div class="grid lg:min-h-[32rem] lg:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.35fr)]">
           <aside class="border-b border-white/10 bg-zinc-950/45 lg:border-b-0 lg:border-r">
             <%= if @photo_url && not (@uploads.profile_photo.entries != [] and @editing) do %>
               <button
@@ -1401,7 +1401,7 @@ defmodule ChatWeb.RoomComponents do
                 data-room-profile-lightbox-open
                 aria-label={"Увеличить фото #{@profile.user.nickname}"}
                 aria-haspopup="dialog"
-                class="group/photo relative flex min-h-[24rem] w-full cursor-zoom-in items-center justify-center overflow-hidden bg-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300 lg:h-full lg:min-h-0"
+                class="group/photo relative flex h-[min(30vh,18rem)] min-h-0 w-full cursor-zoom-in items-center justify-center overflow-hidden bg-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-300 lg:h-full"
               >
                 <img
                   id="profile-avatar-image"
@@ -1415,7 +1415,7 @@ defmodule ChatWeb.RoomComponents do
                 </span>
               </button>
             <% else %>
-              <div class="grid min-h-[24rem] place-items-center bg-gradient-to-br from-amber-300/15 via-zinc-950 to-zinc-950 text-6xl font-black text-amber-200 lg:h-full lg:min-h-0">
+              <div class="grid h-[min(30vh,18rem)] place-items-center bg-gradient-to-br from-amber-300/15 via-zinc-950 to-zinc-950 text-6xl font-black text-amber-200 lg:h-full">
                 <%= cond do %>
                   <% @uploads.profile_photo.entries != [] and @editing -> %>
                     <.live_img_preview

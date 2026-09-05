@@ -5,6 +5,7 @@ defmodule ChatWeb.UserAuth do
 
   @salt "user-auth"
   @chat_session_salt "chat-session"
+  @guest_identity_salt "guest-identity"
   # Tokens are stored only in sessionStorage, so closing the tab ends the session.
   # An idle or background tab must remain restorable indefinitely.
   @session_max_age :infinity
@@ -51,6 +52,30 @@ defmodule ChatWeb.UserAuth do
   end
 
   def verify_chat_session(_token, _nickname), do: {:error, :invalid_session}
+
+  def sign_guest_identity(nickname, identity_id \\ Ecto.UUID.generate())
+      when is_binary(nickname) and is_binary(identity_id) do
+    Phoenix.Token.sign(
+      ChatWeb.Endpoint,
+      @guest_identity_salt,
+      %{"id" => identity_id, "nickname" => nickname},
+      max_age: @session_max_age
+    )
+  end
+
+  def verify_guest_identity(token, nickname) when is_binary(token) and is_binary(nickname) do
+    with {:ok, %{"id" => identity_id, "nickname" => ^nickname}} <-
+           Phoenix.Token.verify(ChatWeb.Endpoint, @guest_identity_salt, token,
+             max_age: @session_max_age
+           ),
+         {:ok, _uuid} <- Ecto.UUID.cast(identity_id) do
+      {:ok, identity_id}
+    else
+      _invalid -> {:error, :invalid_identity}
+    end
+  end
+
+  def verify_guest_identity(_token, _nickname), do: {:error, :invalid_identity}
 
   def session_max_age, do: @session_max_age
 end

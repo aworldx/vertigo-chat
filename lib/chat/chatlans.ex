@@ -37,6 +37,7 @@ defmodule Chat.Chatlans do
           id: "#{id}:#{meta.phx_ref}",
           peer_id: id,
           session_id: Map.get(meta, :session_id),
+          identity_key: Map.get(meta, :identity_key),
           nickname: meta.nickname,
           registered?: Map.get(meta, :registered?, false),
           rank: Map.get(meta, :rank),
@@ -45,7 +46,7 @@ defmodule Chat.Chatlans do
         }
       end
     end)
-    |> Enum.uniq_by(&(&1.session_id || &1.peer_id))
+    |> Enum.uniq_by(&(&1.identity_key || &1.session_id || &1.peer_id))
     |> Kernel.++([Bot.chatlan()])
     |> Enum.sort_by(& &1.nickname)
   end
@@ -68,19 +69,26 @@ defmodule Chat.Chatlans do
 
   def session_online?(_room_id, _session_id), do: false
 
-  def schedule_departure(room_id, nickname, session_id)
-      when is_binary(room_id) and is_binary(nickname) and is_binary(session_id) do
-    DepartureNotifier.schedule(room_id, nickname, session_id)
+  def identity_online?(room_id, identity_key)
+      when is_binary(room_id) and is_binary(identity_key) do
+    Enum.any?(list_online(room_id), &(Map.get(&1, :identity_key) == identity_key))
   end
 
-  def cancel_scheduled_departure(room_id, session_id)
-      when is_binary(room_id) and is_binary(session_id) do
-    DepartureNotifier.cancel(room_id, session_id)
+  def identity_online?(_room_id, _identity_key), do: false
+
+  def schedule_departure(room_id, nickname, identity_key)
+      when is_binary(room_id) and is_binary(nickname) and is_binary(identity_key) do
+    DepartureNotifier.schedule(room_id, nickname, identity_key)
   end
 
-  def announce_departure(room_id, nickname, session_id)
-      when is_binary(room_id) and is_binary(nickname) and is_binary(session_id) do
-    DepartureNotifier.announce_now(room_id, nickname, session_id)
+  def cancel_scheduled_departure(room_id, identity_key)
+      when is_binary(room_id) and is_binary(identity_key) do
+    DepartureNotifier.cancel(room_id, identity_key)
+  end
+
+  def announce_departure(room_id, nickname, identity_key)
+      when is_binary(room_id) and is_binary(nickname) and is_binary(identity_key) do
+    DepartureNotifier.announce_now(room_id, nickname, identity_key)
   end
 
   def resolve_peer(room_id, nickname) when is_binary(nickname) do
@@ -96,13 +104,20 @@ defmodule Chat.Chatlans do
     end
   end
 
-  def ensure_nickname_available(room_id, nickname, current_peer_id \\ nil, session_id \\ nil)
+  def ensure_nickname_available(
+        room_id,
+        nickname,
+        current_peer_id \\ nil,
+        session_id \\ nil,
+        identity_key \\ nil
+      )
 
-  def ensure_nickname_available(room_id, nickname, current_peer_id, session_id)
+  def ensure_nickname_available(room_id, nickname, current_peer_id, session_id, identity_key)
       when is_binary(room_id) and is_binary(nickname) do
     if Enum.any?(list_online(room_id), fn chatlan ->
          chatlan.nickname == nickname and chatlan.peer_id != current_peer_id and
-           (is_nil(session_id) or chatlan.session_id != session_id)
+           (is_nil(session_id) or chatlan.session_id != session_id) and
+           (is_nil(identity_key) or chatlan.identity_key != identity_key)
        end) do
       {:error, :nickname_online}
     else
@@ -110,8 +125,14 @@ defmodule Chat.Chatlans do
     end
   end
 
-  def ensure_nickname_available(_room_id, _nickname, _current_peer_id, _session_id),
-    do: {:error, :invalid_nickname}
+  def ensure_nickname_available(
+        _room_id,
+        _nickname,
+        _current_peer_id,
+        _session_id,
+        _identity_key
+      ),
+      do: {:error, :invalid_nickname}
 
   def restore_session(room_id, nickname, current_presence_key, stored_presence_key, opts \\ []) do
     nickname = normalize_nickname(nickname, nil)
@@ -119,7 +140,14 @@ defmodule Chat.Chatlans do
 
     with nickname when not is_nil(nickname) <- nickname,
          false <- Keyword.get(opts, :guest?, false) and Accounts.registered_nickname?(nickname),
-         :ok <- ensure_nickname_available(room_id, nickname, presence_key, opts[:session_id]) do
+         :ok <-
+           ensure_nickname_available(
+             room_id,
+             nickname,
+             presence_key,
+             opts[:session_id],
+             opts[:identity_key]
+           ) do
       {:ok, %{nickname: nickname, presence_key: presence_key}}
     else
       true -> {:error, :registered_nickname}
@@ -147,6 +175,7 @@ defmodule Chat.Chatlans do
       registered?: Keyword.get(opts, :registered?, false),
       rank: Keyword.get(opts, :rank),
       session_id: Keyword.get(opts, :session_id),
+      identity_key: Keyword.get(opts, :identity_key),
       theme_id: theme_id,
       appearance: appearance
     }
@@ -161,6 +190,7 @@ defmodule Chat.Chatlans do
       registered?: Map.get(attrs, :registered?, false),
       rank: Map.get(attrs, :rank),
       session_id: Map.get(attrs, :session_id),
+      identity_key: Map.get(attrs, :identity_key),
       theme_id: theme_id,
       appearance: appearance
     }

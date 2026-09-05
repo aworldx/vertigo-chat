@@ -53,6 +53,10 @@ the application healthcheck, and `OPENAI_API_KEY` is required by Compose so the 
 start without its provider credentials. Keep values containing `$` in single quotes in `.env` so
 Compose does not interpret part of the secret as another variable. The PostgreSQL password is also
 embedded into `DATABASE_URL`, so use URL-safe characters or percent-encode reserved characters.
+
+All Compose services write logs to Docker's `local` driver. Docker keeps five files of at most 10 MiB
+per container (about 50 MiB before compression), replacing the oldest file automatically. Follow the
+application logs with `docker compose logs -f app`; session lifecycle records start with `session_`.
 For deployment without a domain, set `PHX_SCHEME=http`, `PHX_URL_PORT=80`, and
 `CADDY_SITE_ADDRESS=http://SERVER_IP`.
 
