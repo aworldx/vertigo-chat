@@ -86,6 +86,8 @@ defmodule ChatWeb.ProfilesLiveTest do
              "#open-profile-photo[data-profile-lightbox-open][aria-haspopup='dialog'] img"
            )
 
+    assert has_element?(view, "#open-profile-photo img[src='/profiles/profile_viewer/photo']")
+
     assert has_element?(view, "#profile-photo-lightbox[phx-update='ignore'][aria-hidden='true']")
 
     view |> element("#close-profile-viewer") |> render_click()

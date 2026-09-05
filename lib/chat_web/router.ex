@@ -24,6 +24,7 @@ defmodule ChatWeb.Router do
 
     get "/gif-proxy", GifProxyController, :show
     get "/music-proxy", MusicProxyController, :show
+    get "/profiles/:nickname/photo", ProfilePhotoController, :show
   end
 
   scope "/", ChatWeb do

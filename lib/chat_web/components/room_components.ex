@@ -7,7 +7,6 @@ defmodule ChatWeb.RoomComponents do
   alias Chat.Music
   alias Chat.Ranks
   alias Chat.Typography
-  alias ChatWeb.Media
 
   attr(:messages, :any, required: true)
   attr(:nickname, :string, required: true)
@@ -1362,7 +1361,7 @@ defmodule ChatWeb.RoomComponents do
       assigns
       |> assign(
         :photo_url,
-        Media.data_url(assigns.profile.photo, assigns.profile.photo_content_type)
+        profile_photo_url(assigns.profile)
       )
       |> assign(:rank, Ranks.for_user(assigns.profile.user))
 
@@ -1700,6 +1699,9 @@ defmodule ChatWeb.RoomComponents do
     </div>
     """
   end
+
+  defp profile_photo_url(%{photo: nil}), do: nil
+  defp profile_photo_url(%{user: %{nickname: nickname}}), do: ~p"/profiles/#{nickname}/photo"
 
   defp present?(value) when is_binary(value), do: String.trim(value) != ""
   defp present?(_value), do: false

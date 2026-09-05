@@ -4,7 +4,6 @@ defmodule ChatWeb.ProfilesLive do
 
   alias Chat.Profiles
   alias Chat.Ranks
-  alias ChatWeb.Media
 
   @impl true
   def mount(_params, _session, socket) do
@@ -54,7 +53,8 @@ defmodule ChatWeb.ProfilesLive do
     {:noreply, assign(socket, :selected_profile, nil)}
   end
 
-  def photo_url(profile), do: Media.data_url(profile.photo, profile.photo_content_type)
+  def photo_url(%{photo: nil}), do: nil
+  def photo_url(%{user: %{nickname: nickname}}), do: ~p"/profiles/#{nickname}/photo"
 
   def gender_label("male"), do: "Мужской"
   def gender_label("female"), do: "Женский"

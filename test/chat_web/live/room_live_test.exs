@@ -739,7 +739,7 @@ defmodule ChatWeb.RoomLiveTest do
     render_upload(upload, "photo.webp")
     view |> form("#profile-form", profile: %{name: "С фото"}) |> render_submit()
 
-    assert has_element?(view, "#profile-avatar-image[src^='data:image/webp;base64,']")
+    assert has_element?(view, "#profile-avatar-image[src='/profiles/photo_profile/photo']")
     assert render(view) =~ "h-[min(30vh,18rem)]"
     refute render(view) =~ "min-h-[24rem]"
   end
