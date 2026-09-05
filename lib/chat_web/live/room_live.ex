@@ -1087,7 +1087,7 @@ defmodule ChatWeb.RoomLive do
       Chatlans.untrack(self(), @room_id, socket.assigns.presence_key)
 
       :ok =
-        Chatlans.schedule_departure(
+        Chatlans.schedule_disconnect(
           @room_id,
           socket.assigns.nickname,
           socket.assigns.identity_key

@@ -76,9 +76,9 @@ defmodule Chat.Chatlans do
 
   def identity_online?(_room_id, _identity_key), do: false
 
-  def schedule_departure(room_id, nickname, identity_key)
+  def schedule_disconnect(room_id, nickname, identity_key)
       when is_binary(room_id) and is_binary(nickname) and is_binary(identity_key) do
-    DepartureNotifier.schedule(room_id, nickname, identity_key)
+    DepartureNotifier.schedule(room_id, nickname, identity_key, announce?: false)
   end
 
   def cancel_scheduled_departure(room_id, identity_key)

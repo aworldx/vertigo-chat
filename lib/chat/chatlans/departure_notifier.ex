@@ -19,7 +19,8 @@ defmodule Chat.Chatlans.DepartureNotifier do
   end
 
   def schedule(room_id, nickname, identity_key, opts \\ []) do
-    GenServer.call(server(opts), {:schedule, room_id, nickname, identity_key})
+    announce? = Keyword.get(opts, :announce?, true)
+    GenServer.call(server(opts), {:schedule, room_id, nickname, identity_key, announce?})
   end
 
   def cancel(room_id, identity_key, opts \\ []) do
@@ -36,13 +37,17 @@ defmodule Chat.Chatlans.DepartureNotifier do
   end
 
   @impl true
-  def handle_call({:schedule, room_id, nickname, identity_key}, _from, state) do
+  def handle_call({:schedule, room_id, nickname, identity_key, announce?}, _from, state) do
     key = {room_id, identity_key}
     state = cancel_departure(state, key)
     timer = Process.send_after(self(), {:announce_departure, key}, state.delay)
-    Logger.info("session_departure_scheduled nickname=#{nickname} grace_ms=#{state.delay}")
 
-    {:reply, :ok, put_in(state.departures[key], %{nickname: nickname, timer: timer})}
+    Logger.info(
+      "session_departure_scheduled nickname=#{nickname} grace_ms=#{state.delay} announce=#{announce?}"
+    )
+
+    {:reply, :ok,
+     put_in(state.departures[key], %{nickname: nickname, timer: timer, announce?: announce?})}
   end
 
   def handle_call({:cancel, room_id, identity_key}, _from, state) do
@@ -60,7 +65,8 @@ defmodule Chat.Chatlans.DepartureNotifier do
   def handle_info({:announce_departure, {room_id, identity_key} = key}, state) do
     {departure, departures} = Map.pop(state.departures, key)
 
-    if departure, do: finish_departure(room_id, departure.nickname, identity_key)
+    if departure,
+      do: finish_departure(room_id, departure.nickname, identity_key, departure.announce?)
 
     {:noreply, %{state | departures: departures}}
   end
@@ -78,11 +84,13 @@ defmodule Chat.Chatlans.DepartureNotifier do
 
   defp server(opts), do: Keyword.get(opts, :server, __MODULE__)
 
-  defp finish_departure(room_id, nickname, identity_key) do
+  defp finish_departure(room_id, nickname, identity_key, announce? \\ true) do
     if not Chatlans.identity_online?(room_id, identity_key) do
       {:ok, _visit} = Visits.finish_active_visit(identity_key)
-      {:ok, _message} = Messages.announce_presence(nickname, room_id, :left)
-      Logger.info("session_departure_finalized nickname=#{nickname}")
+
+      if announce?, do: {:ok, _message} = Messages.announce_presence(nickname, room_id, :left)
+
+      Logger.info("session_departure_finalized nickname=#{nickname} announced=#{announce?}")
       :ok
     else
       Logger.info("session_departure_skipped reason=identity_online")

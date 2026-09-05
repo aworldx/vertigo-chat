@@ -26,4 +26,19 @@ defmodule Chat.Chatlans.DepartureNotifierTest do
     assert :ok = DepartureNotifier.schedule(room_id, "offline", session_id, server: notifier)
     assert_receive {:message_created, %{body: "из чата выходит offline"}}
   end
+
+  test "does not announce a passive connection loss" do
+    notifier = start_supervised!({DepartureNotifier, name: nil, delay: 0})
+    room_id = "passive-disconnect-room"
+    identity_key = "guest:" <> Ecto.UUID.generate()
+    :ok = Messages.subscribe(room_id)
+
+    assert :ok =
+             DepartureNotifier.schedule(room_id, "temporarily_offline", identity_key,
+               announce?: false,
+               server: notifier
+             )
+
+    refute_receive {:message_created, %{body: "из чата выходит temporarily_offline"}}, 30
+  end
 end
