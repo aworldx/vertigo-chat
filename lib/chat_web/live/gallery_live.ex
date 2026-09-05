@@ -4,7 +4,6 @@ defmodule ChatWeb.GalleryLive do
 
   alias Chat.Gallery
   alias Chat.Ranks
-  alias ChatWeb.Media
   alias ChatWeb.UserAuth
 
   @impl true
@@ -115,14 +114,12 @@ defmodule ChatWeb.GalleryLive do
     end
   end
 
-  def image_url(photo), do: Media.data_url(photo.image, photo.content_type)
+  def image_url(photo), do: ~p"/gallery/photos/#{photo.id}"
 
-  def thumbnail_url(photo) do
-    Media.data_url(
-      photo.thumbnail || photo.image,
-      photo.thumbnail_content_type || photo.content_type
-    )
-  end
+  def thumbnail_url(%{thumbnail: thumbnail} = photo) when is_binary(thumbnail),
+    do: ~p"/gallery/photos/#{photo.id}/thumbnail"
+
+  def thumbnail_url(photo), do: image_url(photo)
 
   def upload_error_message(:too_large),
     do: "Фотография слишком большая: после сжатия файл должен быть не больше 2 МБ."

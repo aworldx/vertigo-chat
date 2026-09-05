@@ -17,7 +17,7 @@ defmodule ChatWeb.GalleryLiveTest do
 
     user = promote_to_statist(user)
 
-    {:ok, _photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
+    {:ok, photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
 
     {:ok, view, _html} = live(conn, ~p"/gallery")
 
@@ -25,6 +25,17 @@ defmodule ChatWeb.GalleryLiveTest do
     assert has_element?(view, "[data-photo-author='gallery_author']")
     assert has_element?(view, "[data-photo-author='gallery_author'] [data-gallery-lightbox-open]")
     assert has_element?(view, "[data-photo-author='gallery_author'] img[data-gallery-full-image]")
+
+    assert has_element?(
+             view,
+             "[data-photo-author='gallery_author'] img[src='/gallery/photos/#{photo.id}']"
+           )
+
+    assert has_element?(
+             view,
+             "[data-photo-author='gallery_author'] img[data-gallery-full-image='/gallery/photos/#{photo.id}']"
+           )
+
     assert has_element?(view, "#gallery-lightbox[role='dialog'][phx-update='ignore']")
     assert has_element?(view, "#close-gallery-lightbox[data-gallery-lightbox-close]")
 

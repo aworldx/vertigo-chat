@@ -23,6 +23,9 @@ defmodule Chat.Gallery do
     |> Repo.all()
   end
 
+  def get_photo(id) when is_integer(id) and id > 0, do: Repo.get(Photo, id)
+  def get_photo(_id), do: nil
+
   def upload_photo(%User{} = user, image, content_type) when is_binary(image) do
     upload_photo(user, image, content_type, nil)
   end
