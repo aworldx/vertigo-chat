@@ -14,12 +14,14 @@ defmodule Chat.Games do
   }
   @ranks ~w(6 7 8 9 10 J Q K A)
   @suits ~w(♠ ♥ ♦ ♣)
+  @fleet_lengths [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
 
   def subscribe, do: Phoenix.PubSub.subscribe(Chat.PubSub, @topic)
   def kinds, do: @kinds
   def kind?(kind), do: Map.has_key?(@kinds, kind)
   def title(kind), do: get_in(@kinds, [kind, :title])
   def max_players(kind), do: get_in(@kinds, [kind, :max])
+  def fleet_lengths, do: @fleet_lengths
 
   def create(%User{} = user, kind) when is_binary(kind) do
     with true <- kind?(kind) do
@@ -81,31 +83,75 @@ defmodule Chat.Games do
     |> visible_result(user_id)
   end
 
-  def place_fleet(%User{id: user_id}, game_id) do
-    update_locked(game_id, fn %{kind: "battleship", status: "waiting"} = game ->
-      if player?(game, user_id) do
-        boards = Map.put(game.state["boards"], user_key(user_id), fleet())
-        ready = Map.put(game.state["ready"], user_key(user_id), true)
-        active? = Enum.all?(game.players, &ready[user_key(&1.user_id)])
+  @doc "Places a valid automatic fleet for players who do not want to arrange it manually."
+  def place_fleet(%User{} = user, game_id), do: place_fleet(user, game_id, automatic_fleet())
 
-        state =
-          Map.merge(game.state, %{
-            "boards" => boards,
-            "ready" => ready,
-            "turn_id" => game.creator_id
-          })
+  @doc "Confirms a manually arranged fleet after validating the full classic composition."
+  def place_fleet(%User{id: user_id}, game_id, layout) do
+    with {:ok, ships} <- normalize_fleet(layout) do
+      update_locked(game_id, fn %{kind: "battleship", status: "waiting"} = game ->
+        cond do
+          not player?(game, user_id) ->
+            {:error, :forbidden}
 
-        game
-        |> Game.changeset(%{state: state, status: if(active?, do: "active", else: "waiting")})
-        |> Repo.update()
-      else
-        {:error, :forbidden}
-      end
-    end)
-    |> visible_result(user_id)
+          length(game.players) != max_players(game.kind) or game.state["started"] != true ->
+            {:error, :unavailable}
+
+          true ->
+            key = user_key(user_id)
+            boards = Map.put(game.state["boards"] || %{}, key, board_for(ships))
+            fleets = Map.put(game.state["fleets"] || %{}, key, ships)
+            ready = Map.put(game.state["ready"] || %{}, key, true)
+            active? = Enum.all?(game.players, &ready[user_key(&1.user_id)])
+
+            state =
+              Map.merge(game.state, %{
+                "boards" => boards,
+                "fleets" => fleets,
+                "ready" => ready,
+                "turn_id" => game.creator_id
+              })
+
+            game
+            |> Game.changeset(%{state: state, status: if(active?, do: "active", else: "waiting")})
+            |> Repo.update()
+        end
+      end)
+      |> visible_result(user_id)
+    end
   end
 
-  def place_fleet(_user, _game_id), do: {:error, :unavailable}
+  def place_fleet(_user, _game_id, _layout), do: {:error, :unavailable}
+
+  @doc "Adds one ship to an in-progress fleet layout without persisting it yet."
+  def add_fleet_ship(layout, square, size, orientation) when is_list(layout) do
+    with {:ok, {row, col}} <- parse_square(square, 10),
+         {size, ""} <- Integer.parse(to_string(size)),
+         true <- size in @fleet_lengths,
+         true <- orientation in ["horizontal", "vertical"],
+         true <-
+           Enum.count(layout, &(ship_size(&1) == size)) <
+             Enum.count(@fleet_lengths, &(&1 == size)),
+         cells <- ship_cells({row, col}, size, orientation),
+         true <- Enum.all?(cells, &match?({:ok, _}, parse_square(&1, 10))),
+         :ok <- ensure_ship_does_not_touch(layout, cells) do
+      {:ok, layout ++ [%{"cells" => cells}]}
+    else
+      _ -> {:error, :invalid_fleet}
+    end
+  end
+
+  def add_fleet_ship(_layout, _square, _size, _orientation), do: {:error, :invalid_fleet}
+
+  @doc "Removes a ship selected by one of its cells from an in-progress fleet layout."
+  def remove_fleet_ship(layout, square) when is_list(layout) and is_binary(square) do
+    case Enum.find_index(layout, &(square in ship_cells_from(&1))) do
+      nil -> {:error, :ship_not_found}
+      index -> {:ok, List.delete_at(layout, index)}
+    end
+  end
+
+  def remove_fleet_ship(_layout, _square), do: {:error, :ship_not_found}
 
   def shoot(%User{id: user_id}, game_id, square) do
     update_locked(game_id, fn %{kind: "battleship", status: "active"} = game ->
@@ -378,11 +424,39 @@ defmodule Chat.Games do
 
   defp present_game(%Game{kind: "battleship"} = game, user_id) do
     boards = game.state["boards"] || %{}
+    fleets = game.state["fleets"] || %{}
+    shots = game.state["shots"] || %{}
+    own_key = user_key(user_id)
+    opponent_id = other_player_id(game, user_id)
+    opponent_key = opponent_id && user_key(opponent_id)
 
     visible_boards =
-      if player?(game, user_id), do: Map.take(boards, [user_key(user_id)]), else: %{}
+      if player?(game, user_id), do: Map.take(boards, [own_key]), else: %{}
 
-    %{game | state: Map.put(game.state, "boards", visible_boards)}
+    visible_fleets = if player?(game, user_id), do: Map.take(fleets, [own_key]), else: %{}
+
+    sunk_cells =
+      if player?(game, user_id) do
+        %{
+          "own" => sunk_cells(fleets[own_key], shots[opponent_key]),
+          "target" => sunk_cells(fleets[opponent_key], shots[own_key])
+        }
+      else
+        %{"own" => [], "target" => []}
+      end
+
+    %{
+      game
+      | state:
+          game.state
+          |> Map.put("boards", visible_boards)
+          |> Map.put("fleets", visible_fleets)
+          |> Map.put(
+            "received_shots",
+            if(player?(game, user_id), do: shots[opponent_key] || %{}, else: %{})
+          )
+          |> Map.put("sunk_cells", sunk_cells)
+    }
   end
 
   defp present_game(%Game{kind: "durak"} = game, user_id) do
@@ -428,12 +502,19 @@ defmodule Chat.Games do
   end
 
   defp initial_state("battleship", _id),
-    do: %{"boards" => %{}, "ready" => %{}, "shots" => %{}, "turn_id" => nil}
+    do: %{
+      "boards" => %{},
+      "fleets" => %{},
+      "ready" => %{},
+      "shots" => %{},
+      "started" => false,
+      "turn_id" => nil
+    }
 
   defp initial_state("durak", _id), do: %{}
   defp initial_state("balda", _id), do: %{}
 
-  defp start_state("battleship", _players, state), do: state
+  defp start_state("battleship", _players, state), do: Map.put(state, "started", true)
 
   defp start_state("durak", players, _state) do
     deck = Enum.shuffle(for rank <- @ranks, suit <- @suits, do: "#{rank}-#{suit}")
@@ -463,33 +544,161 @@ defmodule Chat.Games do
     %{"board" => board, "words" => %{}, "turn_id" => first.user_id, "skips" => 0}
   end
 
-  defp fleet do
-    cells =
-      for {row, col, size} <- [
-            {0, 0, 4},
-            {2, 0, 3},
-            {4, 0, 3},
-            {6, 0, 2},
-            {6, 3, 2},
-            {8, 0, 2},
-            {8, 3, 1},
-            {8, 5, 1},
-            {8, 7, 1},
-            {5, 6, 1}
-          ],
-          offset <- 0..(size - 1) do
-        {row, col + offset}
-      end
+  defp automatic_fleet do
+    ships =
+      Enum.map(
+        [
+          {0, 0, 4},
+          {2, 0, 3},
+          {4, 0, 3},
+          {6, 0, 2},
+          {6, 3, 2},
+          {8, 0, 2},
+          {8, 3, 1},
+          {8, 5, 1},
+          {8, 7, 1},
+          {5, 6, 1}
+        ],
+        fn {row, col, size} ->
+          %{"cells" => for(offset <- 0..(size - 1), do: "#{row},#{col + offset}")}
+        end
+      )
 
     transform =
       if :rand.uniform(2) == 1,
-        do: fn point -> point end,
-        else: fn {row, col} -> {9 - row, 9 - col} end
+        do: fn square -> square end,
+        else: fn square ->
+          {:ok, {row, col}} = parse_square(square, 10)
+          "#{9 - row},#{9 - col}"
+        end
 
-    Map.new(cells, fn point -> {point |> transform.() |> square_key(), "ship"} end)
+    Enum.map(ships, fn %{"cells" => cells} -> %{"cells" => Enum.map(cells, transform)} end)
   end
 
-  defp square_key({row, col}), do: "#{row},#{col}"
+  defp normalize_fleet(layout) when is_list(layout) do
+    with ships when length(ships) == length(@fleet_lengths) <- Enum.map(layout, &normalize_ship/1),
+         true <- Enum.all?(ships, &match?({:ok, _}, &1)) do
+      ships = Enum.map(ships, fn {:ok, ship} -> ship end)
+
+      if Enum.sort(Enum.map(ships, &length(&1["cells"]))) == Enum.sort(@fleet_lengths) and
+           valid_ship_shapes?(ships) and no_ships_touch?(ships) do
+        {:ok, ships}
+      else
+        {:error, :invalid_fleet}
+      end
+    else
+      _ -> {:error, :invalid_fleet}
+    end
+  end
+
+  defp normalize_fleet(_layout), do: {:error, :invalid_fleet}
+
+  defp normalize_ship(%{"cells" => cells}) when is_list(cells) do
+    with true <- Enum.all?(cells, &is_binary/1),
+         true <- length(cells) in @fleet_lengths,
+         true <- length(cells) == length(Enum.uniq(cells)),
+         true <- Enum.all?(cells, &match?({:ok, _}, parse_square(&1, 10))) do
+      {:ok, %{"cells" => cells}}
+    else
+      _ -> {:error, :invalid_ship}
+    end
+  end
+
+  defp normalize_ship(_ship), do: {:error, :invalid_ship}
+
+  defp valid_ship_shapes?(ships), do: Enum.all?(ships, &valid_ship_shape?/1)
+
+  defp valid_ship_shape?(%{"cells" => [cell]}) do
+    match?({:ok, _}, parse_square(cell, 10))
+  end
+
+  defp valid_ship_shape?(%{"cells" => cells}) do
+    points =
+      Enum.map(cells, fn cell ->
+        {:ok, point} = parse_square(cell, 10)
+        point
+      end)
+
+    rows = points |> Enum.map(&elem(&1, 0)) |> Enum.uniq()
+    cols = points |> Enum.map(&elem(&1, 1)) |> Enum.uniq()
+
+    cond do
+      length(rows) == 1 -> contiguous?(Enum.map(points, &elem(&1, 1)))
+      length(cols) == 1 -> contiguous?(Enum.map(points, &elem(&1, 0)))
+      true -> false
+    end
+  end
+
+  defp valid_ship_shape?(_ship), do: false
+
+  defp contiguous?(coordinates) do
+    coordinates = Enum.sort(coordinates)
+    coordinates == Enum.to_list(hd(coordinates)..List.last(coordinates))
+  end
+
+  defp no_ships_touch?(ships) do
+    ships
+    |> Enum.with_index()
+    |> Enum.all?(fn {ship, index} ->
+      ships
+      |> Enum.drop(index + 1)
+      |> Enum.all?(fn other ->
+        ships_do_not_touch?(ship_cells_from(ship), ship_cells_from(other))
+      end)
+    end)
+  end
+
+  defp ensure_ship_does_not_touch(layout, cells) do
+    if Enum.all?(layout, fn ship -> ships_do_not_touch?(ship_cells_from(ship), cells) end),
+      do: :ok,
+      else: {:error, :ships_touch}
+  end
+
+  defp ships_do_not_touch?(left, right) do
+    left_points =
+      Enum.map(left, fn square ->
+        {:ok, point} = parse_square(square, 10)
+        point
+      end)
+
+    right_points =
+      Enum.map(right, fn square ->
+        {:ok, point} = parse_square(square, 10)
+        point
+      end)
+
+    Enum.all?(left_points, fn {left_row, left_col} ->
+      Enum.all?(right_points, fn {right_row, right_col} ->
+        abs(left_row - right_row) > 1 or abs(left_col - right_col) > 1
+      end)
+    end)
+  end
+
+  defp ship_cells({row, col}, size, "horizontal"),
+    do: for(offset <- 0..(size - 1), do: "#{row},#{col + offset}")
+
+  defp ship_cells({row, col}, size, "vertical"),
+    do: for(offset <- 0..(size - 1), do: "#{row + offset},#{col}")
+
+  defp ship_cells_from(%{"cells" => cells}) when is_list(cells), do: cells
+  defp ship_cells_from(_ship), do: []
+  defp ship_size(ship), do: length(ship_cells_from(ship))
+
+  defp board_for(ships) do
+    ships
+    |> Enum.flat_map(&ship_cells_from/1)
+    |> Map.new(&{&1, "ship"})
+  end
+
+  defp sunk_cells(ships, shots) when is_list(ships) and is_map(shots) do
+    ships
+    |> Enum.flat_map(fn ship ->
+      cells = ship_cells_from(ship)
+      if cells != [] and Enum.all?(cells, &(shots[&1] == "hit")), do: cells, else: []
+    end)
+  end
+
+  defp sunk_cells(_ships, _shots), do: []
 
   defp parse_square(square, size) do
     case String.split(to_string(square), ",") |> Enum.map(&Integer.parse/1) do

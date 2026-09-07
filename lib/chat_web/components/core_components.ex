@@ -60,17 +60,17 @@ defmodule ChatWeb.CoreComponents do
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class="fixed right-4 top-4 z-[100] w-full max-w-[calc(100vw-2rem)] cursor-pointer sm:right-6 sm:top-6 sm:max-w-sm"
       {@rest}
     >
       <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
-        @kind == :info && "alert-info",
-        @kind == :error && "alert-error"
+        "flex w-full items-start gap-3 rounded-xl border p-4 text-sm shadow-2xl backdrop-blur-sm",
+        @kind == :info && "border-sky-400/50 bg-sky-950/95 text-sky-100",
+        @kind == :error && "border-red-400/50 bg-red-950/95 text-red-100"
       ]}>
         <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
         <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />
-        <div>
+        <div class="min-w-0 flex-1">
           <p :if={@title} class="font-semibold">{@title}</p>
           <p>{msg}</p>
         </div>

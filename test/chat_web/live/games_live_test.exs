@@ -47,6 +47,12 @@ defmodule ChatWeb.GamesLiveTest do
 
     view |> element("#start-game-#{game.id}") |> render_click()
     assert has_element?(view, "#fleet-setup")
+    assert has_element?(view, "#fleet-controls")
+    assert has_element?(view, "#fleet-cell-0-0")
+
+    view |> element("#fleet-cell-0-0") |> render_click()
+    assert has_element?(view, "#fleet-cell-0-0 .ship-token--battleship")
+
     view |> element("#place-fleet") |> render_click()
     assert render(view) =~ "Твой флот готов"
   end
@@ -68,6 +74,28 @@ defmodule ChatWeb.GamesLiveTest do
     view |> element("#watch-game-#{game.id}") |> render_click()
     assert has_element?(view, "#active-game", "Режим зрителя")
     assert has_element?(view, "#balda-0-0.balda-tile[data-game-sound='tile'][disabled]")
+  end
+
+  test "shows the current turn and sunk-ship legend at an active battleship table", %{conn: conn} do
+    {:ok, host} =
+      Accounts.register_user(%{nickname: "battleship_live_host", password: "secret123"})
+
+    {:ok, opponent} =
+      Accounts.register_user(%{nickname: "battleship_live_guest", password: "secret123"})
+
+    {:ok, game} = Games.create(host, "battleship")
+    assert {:ok, game} = Games.join(opponent, game.id)
+    assert {:ok, game} = Games.start(host, game.id)
+    assert {:ok, game} = Games.place_fleet(host, game.id)
+    assert {:ok, _game} = Games.place_fleet(opponent, game.id)
+
+    {:ok, view, _html} = live(conn, ~p"/games/battleship")
+    render_hook(view, "authenticate_games", %{"token" => ChatWeb.UserAuth.sign(host)})
+
+    view |> element("#open-game-#{game.id}") |> render_click()
+
+    assert has_element?(view, "#battleship-turn", "Твой ход")
+    assert has_element?(view, "#battleship-sunk-status", "Полностью потопленные корабли")
   end
 
   test "shows a waiting table and joins it from the lobby", %{conn: conn} do

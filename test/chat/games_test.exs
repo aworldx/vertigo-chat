@@ -41,6 +41,50 @@ defmodule Chat.GamesTest do
     assert spectator_view.state["boards"] == %{}
   end
 
+  test "battleship fleet setup opens only after both players join and the creator starts", %{
+    users: [host, opponent | _]
+  } do
+    assert {:ok, game} = Games.create(host, "battleship")
+    assert {:error, :unavailable} = Games.place_fleet(host, game.id)
+
+    assert {:ok, game} = Games.join(opponent, game.id)
+    assert {:error, :unavailable} = Games.place_fleet(host, game.id)
+
+    assert {:ok, game} = Games.start(host, game.id)
+    assert {:ok, game} = Games.place_fleet(host, game.id)
+    assert game.status == "waiting"
+  end
+
+  test "accepts a manually arranged fleet and reports a fully sunk ship", %{
+    users: [host, opponent | _]
+  } do
+    fleet = manual_fleet()
+
+    assert {:error, :invalid_fleet} =
+             Games.place_fleet(host, 0, [%{"cells" => ["0,0", "0,1", "0,2", "0,3"]}])
+
+    assert {:ok, game} = Games.create(host, "battleship")
+    assert {:ok, game} = Games.join(opponent, game.id)
+    assert {:ok, game} = Games.start(host, game.id)
+    assert {:ok, game} = Games.place_fleet(host, game.id, fleet)
+    assert {:ok, game} = Games.place_fleet(opponent, game.id, fleet)
+    assert game.status == "active"
+    assert game.state["turn_id"] == host.id
+
+    Enum.reduce(["0,0", "0,1", "0,2", "0,3"], game, fn square, current_game ->
+      assert {:ok, next_game} = Games.shoot(host, current_game.id, square)
+      next_game
+    end)
+
+    assert {:ok, host_view} = Games.get_game(host, game.id)
+    assert host_view.state["sunk_cells"]["target"] == ["0,0", "0,1", "0,2", "0,3"]
+    assert host_view.state["turn_id"] == host.id
+
+    assert {:ok, opponent_view} = Games.get_game(opponent, game.id)
+    assert opponent_view.state["sunk_cells"]["own"] == ["0,0", "0,1", "0,2", "0,3"]
+    assert opponent_view.state["received_shots"]["0,0"] == "hit"
+  end
+
   test "durak supports four players and keeps cards private", %{
     users: [first, second, third, fourth, spectator]
   } do
@@ -109,5 +153,27 @@ defmodule Chat.GamesTest do
     assert Games.cleanup_stale_games() == 1
     assert {:error, :not_found} = Games.get_game(host, waiting_game.id)
     assert Repo.get(Game, finished_game.id)
+  end
+
+  defp manual_fleet do
+    Enum.reduce(
+      [
+        {"0,0", 4},
+        {"2,0", 3},
+        {"4,0", 3},
+        {"6,0", 2},
+        {"6,3", 2},
+        {"8,0", 2},
+        {"8,3", 1},
+        {"8,5", 1},
+        {"8,7", 1},
+        {"5,6", 1}
+      ],
+      [],
+      fn {square, size}, fleet ->
+        assert {:ok, fleet} = Games.add_fleet_ship(fleet, square, size, "horizontal")
+        fleet
+      end
+    )
   end
 end

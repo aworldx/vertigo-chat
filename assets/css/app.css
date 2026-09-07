@@ -269,7 +269,7 @@
 
 .battleship-cell {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   background:
     radial-gradient(circle at 74% 20%, rgb(224 242 254 / 0.5) 0 0.07rem, transparent 0.09rem),
     linear-gradient(145deg, #155e75, #0e7490 60%, #164e63);
@@ -287,36 +287,103 @@
 }
 
 .ship-token {
-  position: relative;
+  position: absolute;
+  z-index: 2;
+  top: 23%;
+  left: 8%;
   display: block;
-  width: 67%;
-  height: 29%;
-  border: 1px solid rgb(255 255 255 / 0.65);
-  border-radius: 28% 55% 70% 35%;
-  background: linear-gradient(#f8fafc 0 44%, #94a3b8 45% 100%);
-  box-shadow: 0 0.18rem 0 rgb(15 23 42 / 0.68);
+  width: var(--ship-span);
+  height: 54%;
+  border: 1px solid rgb(255 255 255 / 0.58);
+  box-shadow: 0 0.18rem 0 rgb(15 23 42 / 0.72), 0 0 0.3rem rgb(224 242 254 / 0.38);
+  pointer-events: none;
 }
 
 .ship-token::before {
   position: absolute;
-  bottom: 88%;
-  left: 38%;
-  width: 24%;
-  height: 105%;
+  top: 19%;
+  left: 37%;
+  width: 20%;
+  height: 62%;
   content: "";
-  border-radius: 0.08rem 0.08rem 0 0;
+  border: 1px solid rgb(255 255 255 / 0.55);
+  border-radius: 0.12rem;
   background: #e2e8f0;
 }
 
 .ship-token::after {
   position: absolute;
-  right: -16%;
-  bottom: -0.2rem;
-  left: -16%;
-  height: 0.22rem;
+  top: 42%;
+  right: 14%;
+  left: 14%;
+  height: 14%;
   content: "";
   border-radius: 999px;
-  background: rgb(186 230 253 / 0.8);
+  background: rgb(224 242 254 / 0.68);
+}
+
+.ship-token--length-1 { --ship-span: 84%; }
+.ship-token--length-2 { --ship-span: calc(200% - 0.12rem); }
+.ship-token--length-3 { --ship-span: calc(300% - 0.18rem); }
+.ship-token--length-4 { --ship-span: calc(400% - 0.24rem); }
+
+.ship-token--horizontal {
+  clip-path: polygon(0 27%, 17% 0, 84% 0, 100% 50%, 84% 100%, 17% 100%, 0 73%);
+}
+
+.ship-token--vertical {
+  width: 54%;
+  height: var(--ship-span);
+  clip-path: polygon(27% 0, 0 17%, 0 84%, 50% 100%, 100% 84%, 100% 17%, 73% 0);
+}
+
+.ship-token--boat {
+  background: linear-gradient(145deg, #ecfeff 0 38%, #38bdf8 39% 100%);
+}
+
+.ship-token--boat::before {
+  top: -28%;
+  left: 42%;
+  width: 12%;
+  height: 92%;
+  border: 0;
+  border-radius: 0;
+  background: #fef3c7;
+}
+
+.ship-token--cutter {
+  background: linear-gradient(145deg, #e0f2fe 0 37%, #0284c7 38% 100%);
+}
+
+.ship-token--cutter::before {
+  width: 25%;
+  background: #cbd5e1;
+}
+
+.ship-token--cruiser {
+  background: linear-gradient(145deg, #e2e8f0 0 34%, #475569 35% 100%);
+}
+
+.ship-token--cruiser::after {
+  right: 8%;
+  left: 8%;
+  box-shadow: -0.45rem 0 0 #f8fafc, 0.45rem 0 0 #f8fafc;
+}
+
+.ship-token--battleship {
+  background: linear-gradient(145deg, #f8fafc 0 32%, #334155 33% 100%);
+}
+
+.ship-token--battleship::before {
+  left: 42%;
+  width: 16%;
+  box-shadow: -0.48rem 0 0 #cbd5e1, 0.48rem 0 0 #cbd5e1;
+}
+
+.ship-token--battleship::after {
+  right: 8%;
+  left: 8%;
+  box-shadow: -0.7rem 0 0 #f8fafc, 0.7rem 0 0 #f8fafc;
 }
 
 .battleship-cell--hit {
@@ -330,6 +397,23 @@
   content: "";
   border: 1px solid rgb(255 255 255 / 0.75);
   border-radius: 999px;
+}
+
+.battleship-cell--sunk {
+  box-shadow: inset 0 0 0 2px #fef08a, inset 0 0 1rem rgb(127 29 29 / 0.9);
+}
+
+.battleship-cell--sunk::before {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  color: #fef08a;
+  content: "×";
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+  transform: translate(-50%, -50%);
 }
 
 .battleship-cell--miss {
