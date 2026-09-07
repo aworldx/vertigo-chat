@@ -424,9 +424,11 @@
 #durak-table {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.8rem;
-  min-height: 8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem 2.5rem;
+  min-height: 18rem;
+  padding: 2.25rem;
   border-color: #365314;
   background:
     radial-gradient(circle at 50% 0, rgb(190 242 100 / 0.14), transparent 45%),
@@ -437,8 +439,9 @@
 .playing-card {
   position: relative;
   display: inline-block;
-  width: 5.1rem;
-  height: 7.15rem;
+  width: clamp(6rem, 12vw, 7.5rem);
+  aspect-ratio: 169 / 245;
+  height: auto;
   padding: 0;
   overflow: hidden;
   border: 0;
@@ -461,25 +464,29 @@
   transform: translateY(-0.55rem) rotate(-1deg);
 }
 
+#durak-hand {
+  gap: 1rem;
+}
+
 .playing-card:disabled {
   filter: saturate(0.55) brightness(0.72);
 }
 
 .playing-card--table {
-  width: 3.15rem;
-  height: 4.4rem;
-  box-shadow: 0 0.28rem 0.7rem rgb(0 0 0 / 0.28);
+  width: clamp(5.7rem, 11vw, 7.1rem);
+  height: auto;
+  box-shadow: 0 0.45rem 1rem rgb(0 0 0 / 0.3);
 }
 
 .durak-table-pair {
   position: relative;
   display: inline-block;
-  width: 3.5rem;
-  height: 5.1rem;
+  width: clamp(6.2rem, 12vw, 7.6rem);
+  height: clamp(9rem, 17vw, 11.1rem);
 }
 
 .durak-table-pair--defended {
-  width: 4.7rem;
+  width: clamp(8.8rem, 17vw, 10.7rem);
 }
 
 .durak-table-pair .playing-card--table {
@@ -489,14 +496,44 @@
 }
 
 .durak-table-pair .playing-card--attack {
-  transform: rotate(-4deg);
+  transform: rotate(-3deg);
 }
 
 .durak-table-pair .playing-card--defense {
   z-index: 1;
-  top: 0.5rem;
-  left: 1.35rem;
-  transform: rotate(8deg);
+  top: 0.9rem;
+  left: clamp(2.45rem, 4.8vw, 3.15rem);
+  transform: rotate(6deg);
+}
+
+@media (max-width: 40rem) {
+  #durak-table {
+    gap: 1.25rem;
+    min-height: 15rem;
+    padding: 1.5rem;
+  }
+
+  .playing-card {
+    width: clamp(5.25rem, 25vw, 6.2rem);
+  }
+
+  .playing-card--table {
+    width: clamp(4.6rem, 21vw, 5.6rem);
+  }
+
+  .durak-table-pair {
+    width: 5.2rem;
+    height: 7.7rem;
+  }
+
+  .durak-table-pair--defended {
+    width: 7.6rem;
+  }
+
+  .durak-table-pair .playing-card--defense {
+    top: 0.7rem;
+    left: 2rem;
+  }
 }
 
 #balda-board {
