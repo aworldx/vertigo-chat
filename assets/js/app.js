@@ -251,6 +251,13 @@ const chatHooks = {
         this.pushEvent("typing", {typing: false})
       }
 
+      this.handleEvent("clear-message-draft", () => {
+        sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
+        if (this.input) this.input.value = ""
+        if (this.clientIdInput) this.clientIdInput.value = ""
+        this.stopTyping()
+      })
+
       this.onInput = () => {
         const hasText = this.input?.value.trim().length > 0
         window.clearTimeout(this.typingTimer)

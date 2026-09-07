@@ -1174,6 +1174,17 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#leave-chat[aria-label='Выйти из чата'] .sm\\:hidden")
   end
 
+  test "clears the browser message draft after a successful public send", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "draft_clearing_sender")
+
+    view
+    |> form("#message-form", message: %{body: "первое сообщение"})
+    |> render_submit()
+
+    assert_push_event(view, "clear-message-draft", %{})
+  end
+
   test "does not render an empty public message", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "tester")
