@@ -35,6 +35,10 @@ const GUEST_SESSION_KEY = "chat:guest-session"
 const GUEST_SESSION_TOKEN_KEY = "chat:guest-session-token"
 const MESSAGE_DRAFT_KEY = "chat:message-draft"
 const MESSAGE_CURSOR_KEY = "chat:message-cursor"
+const MESSAGE_HYDRATED_AT_KEY = "chat:message-hydrated-at"
+const LONG_POLL_FALLBACK_KEY = "phx:fallback:LongPoll"
+const LONG_POLL_FALLBACK_MS = 8_000
+const MESSAGE_REHYDRATION_COOLDOWN_MS = 15_000
 
 // Auth is deliberately limited to the current browser tab. Older versions
 // stored this token in localStorage, so discard that persistent copy once.
@@ -87,6 +91,23 @@ const clearChatSession = () => {
   sessionStorage.removeItem(USER_AUTH_KEY)
   sessionStorage.removeItem(USER_SESSION_KEY)
 }
+
+// A short outage (for example, waking a laptop) must not permanently force this
+// tab into long-poll. Phoenix otherwise remembers its first fallback in session
+// storage, even after WebSocket becomes available again.
+const liveSocketSessionStorage = {
+  getItem(key) {
+    return key === LONG_POLL_FALLBACK_KEY ? null : sessionStorage.getItem(key)
+  },
+  setItem(key, value) {
+    if (key !== LONG_POLL_FALLBACK_KEY) sessionStorage.setItem(key, value)
+  },
+  removeItem(key) {
+    sessionStorage.removeItem(key)
+  },
+}
+
+sessionStorage.removeItem(LONG_POLL_FALLBACK_KEY)
 
 const playMessageNotification = () => {
   const AudioContext = window.AudioContext || window.webkitAudioContext
@@ -307,7 +328,13 @@ const chatHooks = {
     mounted() {
       this.shouldStickToBottom = true
       this.autoScrolling = false
-      this.initializing = true
+      this.previousScrollHeight = this.el.scrollHeight
+      const lastHydratedAt = Number(sessionStorage.getItem(MESSAGE_HYDRATED_AT_KEY))
+      const recentlyHydrated =
+        Number.isSafeInteger(lastHydratedAt) &&
+        Date.now() - lastHydratedAt < MESSAGE_REHYDRATION_COOLDOWN_MS
+      this.initializing = !recentlyHydrated
+      sessionStorage.setItem(MESSAGE_HYDRATED_AT_KEY, String(Date.now()))
       this.scheduleInitialScroll = () => {
         cancelAnimationFrame(this.initialScrollFrame)
 
@@ -316,10 +343,12 @@ const chatHooks = {
         })
       }
 
-      this.scheduleInitialScroll()
-      this.initialScrollTimer = window.setTimeout(() => {
-        this.initializing = false
-      }, 1_000)
+      if (this.initializing) {
+        this.scheduleInitialScroll()
+        this.initialScrollTimer = window.setTimeout(() => {
+          this.initializing = false
+        }, 1_000)
+      }
 
       this.resizeObserver = new ResizeObserver(() => {
         if (this.initializing) this.scheduleInitialScroll()
@@ -490,7 +519,8 @@ const chatHooks = {
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
-  longPollFallbackMs: 2500,
+  longPollFallbackMs: LONG_POLL_FALLBACK_MS,
+  sessionStorage: liveSocketSessionStorage,
   params: () => ({_csrf_token: csrfToken, ...chatSessionParams()}),
   hooks: {...colocatedHooks, ...chatHooks, MediaSharing},
 })
