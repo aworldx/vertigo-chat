@@ -958,7 +958,13 @@ a:hover .vertigo-mark {
   content: "";
 }
 
-.chat-shell[data-chat-theme="night_sky"] > header,
+.chat-shell[data-chat-theme="night_sky"] > header {
+  position: relative;
+  /* The grid below creates a sibling stacking context. Keep dropdowns in the
+     top navigation above it instead of clipping them behind the chat sidebar. */
+  z-index: 2;
+}
+
 .chat-shell[data-chat-theme="night_sky"] > div:not([role="dialog"]) {
   position: relative;
   z-index: 1;
