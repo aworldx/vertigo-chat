@@ -41,4 +41,23 @@ defmodule Chat.Chatlans.DepartureNotifierTest do
 
     refute_receive {:message_created, %{body: "из чата выходит temporarily_offline"}}, 30
   end
+
+  test "does not mark an explicitly exited chatlan as reconnecting" do
+    notifier = start_supervised!({DepartureNotifier, name: nil, delay: 100})
+    room_id = "explicit-exit-room"
+    identity_key = "guest:" <> Ecto.UUID.generate()
+
+    assert :ok =
+             DepartureNotifier.announce_now(room_id, "left_on_purpose", identity_key,
+               server: notifier
+             )
+
+    assert :ok =
+             DepartureNotifier.schedule(room_id, "left_on_purpose", identity_key,
+               announce?: false,
+               server: notifier
+             )
+
+    assert [] = DepartureNotifier.pending(room_id, server: notifier)
+  end
 end

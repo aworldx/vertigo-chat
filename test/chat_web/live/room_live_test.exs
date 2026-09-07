@@ -19,7 +19,12 @@ defmodule ChatWeb.RoomLiveTest do
 
     :sys.replace_state(DepartureNotifier, fn state ->
       Enum.each(state.departures, fn {_key, %{timer: timer}} -> Process.cancel_timer(timer) end)
-      %{state | departures: %{}}
+
+      Enum.each(state.explicit_leaves, fn {_key, %{timer: timer}} ->
+        Process.cancel_timer(timer)
+      end)
+
+      %{state | departures: %{}, explicit_leaves: %{}}
     end)
 
     :ok

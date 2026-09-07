@@ -37,32 +37,51 @@ defmodule Chat.Chatlans.DepartureNotifier do
 
   @impl true
   def init(opts) do
-    {:ok, %{delay: Keyword.get(opts, :delay, @default_delay), departures: %{}}}
+    {:ok,
+     %{
+       delay: Keyword.get(opts, :delay, @default_delay),
+       departures: %{},
+       explicit_leaves: %{}
+     }}
   end
 
   @impl true
   def handle_call({:schedule, room_id, nickname, identity_key, announce?}, _from, state) do
     key = {room_id, identity_key}
-    state = cancel_departure(state, key)
-    timer = Process.send_after(self(), {:announce_departure, key}, state.delay)
 
-    Logger.info(
-      "session_departure_scheduled nickname=#{nickname} grace_ms=#{state.delay} announce=#{announce?}"
-    )
+    if Map.has_key?(explicit_leaves(state), key) do
+      Logger.info("session_departure_ignored reason=explicit_leave nickname=#{nickname}")
+      {:reply, :ok, state}
+    else
+      state = cancel_departure(state, key)
+      timer = Process.send_after(self(), {:announce_departure, key}, state.delay)
 
-    {:reply, :ok,
-     put_in(state.departures[key], %{nickname: nickname, timer: timer, announce?: announce?})}
+      Logger.info(
+        "session_departure_scheduled nickname=#{nickname} grace_ms=#{state.delay} announce=#{announce?}"
+      )
+
+      {:reply, :ok,
+       put_in(state.departures[key], %{nickname: nickname, timer: timer, announce?: announce?})}
+    end
   end
 
   def handle_call({:cancel, room_id, identity_key}, _from, state) do
     Logger.info("session_departure_cancelled")
-    {:reply, :ok, cancel_departure(state, {room_id, identity_key})}
+    key = {room_id, identity_key}
+    {:reply, :ok, state |> cancel_departure(key) |> clear_explicit_leave(key)}
   end
 
   def handle_call({:announce_now, room_id, nickname, identity_key}, _from, state) do
-    state = cancel_departure(state, {room_id, identity_key})
-    Logger.info("session_departure_requested nickname=#{nickname}")
-    {:reply, finish_departure(room_id, nickname, identity_key), state}
+    key = {room_id, identity_key}
+
+    if Map.has_key?(explicit_leaves(state), key) do
+      Logger.info("session_departure_ignored reason=already_left nickname=#{nickname}")
+      {:reply, :ok, state}
+    else
+      state = state |> cancel_departure(key) |> mark_explicit_leave(key)
+      Logger.info("session_departure_requested nickname=#{nickname}")
+      {:reply, finish_departure(room_id, nickname, identity_key), state}
+    end
   end
 
   def handle_call({:pending, room_id}, _from, state) do
@@ -86,6 +105,16 @@ defmodule Chat.Chatlans.DepartureNotifier do
     {:noreply, %{state | departures: departures}}
   end
 
+  def handle_info({:forget_explicit_leave, key, marker}, state) do
+    state =
+      case Map.get(explicit_leaves(state), key) do
+        %{marker: ^marker} -> put_explicit_leaves(state, Map.delete(explicit_leaves(state), key))
+        _other -> state
+      end
+
+    {:noreply, state}
+  end
+
   defp cancel_departure(state, key) do
     case Map.pop(state.departures, key) do
       {nil, departures} ->
@@ -96,6 +125,33 @@ defmodule Chat.Chatlans.DepartureNotifier do
         %{state | departures: departures}
     end
   end
+
+  defp mark_explicit_leave(state, key) do
+    state = clear_explicit_leave(state, key)
+    marker = make_ref()
+    timer = Process.send_after(self(), {:forget_explicit_leave, key, marker}, state.delay)
+
+    put_explicit_leaves(
+      state,
+      Map.put(explicit_leaves(state), key, %{marker: marker, timer: timer})
+    )
+  end
+
+  defp clear_explicit_leave(state, key) do
+    case Map.pop(explicit_leaves(state), key) do
+      {nil, explicit_leaves} ->
+        put_explicit_leaves(state, explicit_leaves)
+
+      {%{timer: timer}, explicit_leaves} ->
+        Process.cancel_timer(timer)
+        put_explicit_leaves(state, explicit_leaves)
+    end
+  end
+
+  defp explicit_leaves(state), do: Map.get(state, :explicit_leaves, %{})
+
+  defp put_explicit_leaves(state, explicit_leaves),
+    do: Map.put(state, :explicit_leaves, explicit_leaves)
 
   defp server(opts), do: Keyword.get(opts, :server, __MODULE__)
 

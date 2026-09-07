@@ -204,6 +204,15 @@ LiveView можно использовать активно, потому что
 
 Realtime-события должны быть предсказуемыми.
 
+Жизненный цикл identity, чат-сессии, connection, graceful reconnect и cursor
+ленты описан отдельно в [Session lifecycle](session_lifecycle.md). Новые
+сценарии входа, выхода и восстановления должны следовать этой модели, а не
+добавлять правила непосредственно в LiveView.
+
+Повторяющиеся ошибки и профилактические правила собраны в
+[Realtime chat anti-patterns](chat_antipatterns.md). Его нужно просматривать
+перед изменением lifecycle, streams, browser storage или Presence.
+
 Рекомендуемые topic names:
 
 ```text

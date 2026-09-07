@@ -15,6 +15,7 @@ defmodule Chat.Application do
       {Phoenix.PubSub, name: Chat.PubSub},
       Chat.Presence,
       Chat.Messages.Registry,
+      Chat.Sessions.ConnectionRegistry,
       Chat.Chatlans.DepartureNotifier,
       Chat.Visits.Janitor,
       Chat.Games.Janitor,

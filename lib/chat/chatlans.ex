@@ -39,6 +39,7 @@ defmodule Chat.Chatlans do
             peer_id: id,
             session_id: Map.get(meta, :session_id),
             identity_key: Map.get(meta, :identity_key),
+            connection_epoch: Map.get(meta, :connection_epoch),
             nickname: meta.nickname,
             registered?: Map.get(meta, :registered?, false),
             rank: Map.get(meta, :rank),
@@ -211,6 +212,7 @@ defmodule Chat.Chatlans do
       rank: Keyword.get(opts, :rank),
       session_id: Keyword.get(opts, :session_id),
       identity_key: Keyword.get(opts, :identity_key),
+      connection_epoch: Keyword.get(opts, :connection_epoch),
       theme_id: theme_id,
       appearance: appearance
     }
@@ -226,6 +228,7 @@ defmodule Chat.Chatlans do
       rank: Map.get(attrs, :rank),
       session_id: Map.get(attrs, :session_id),
       identity_key: Map.get(attrs, :identity_key),
+      connection_epoch: Map.get(attrs, :connection_epoch),
       theme_id: theme_id,
       appearance: appearance
     }
