@@ -529,6 +529,7 @@ defmodule Chat.Games do
       "table" => [],
       "attacker_id" => attacker.user_id,
       "defender_id" => defender_id,
+      "defender_hand_size" => length(hands[user_key(defender_id)]),
       "turn_id" => attacker.user_id,
       "phase" => "attack"
     }
@@ -719,14 +720,14 @@ defmodule Chat.Games do
 
   defp allowed_card?(state, user_id, card) do
     cond do
-      state["phase"] == "attack" and state["attacker_id"] == user_id ->
-        state["table"] == [] or card_rank_in_table?(state["table"], card)
-
       state["phase"] == "defend" and state["defender_id"] == user_id ->
         case Enum.find(state["table"], &is_nil(&1["defense"])) do
           nil -> false
           row -> beats?(card, row["attack"], state["trump"])
         end
+
+      attacker_can_add?(state, user_id) ->
+        state["table"] == [] or card_rank_in_table?(state["table"], card)
 
       true ->
         false
@@ -737,7 +738,7 @@ defmodule Chat.Games do
     hands = Map.update!(state["hands"], user_key(user_id), &List.delete(&1, card))
     state = Map.put(state, "hands", hands)
 
-    if state["phase"] == "attack" do
+    if user_id != state["defender_id"] do
       {state
        |> Map.update!("table", &(&1 ++ [%{"attack" => card, "defense" => nil}]))
        |> Map.put("phase", "defend")
@@ -750,11 +751,23 @@ defmodule Chat.Games do
           &Map.put(&1, "defense", card)
         )
 
-      {Map.put(state, "table", table)
-       |> Map.put("phase", "attack")
-       |> Map.put("turn_id", state["attacker_id"]), true}
+      phase = if Enum.all?(table, & &1["defense"]), do: "attack", else: "defend"
+      turn_id = if phase == "attack", do: state["attacker_id"], else: state["defender_id"]
+
+      {Map.put(state, "table", table) |> Map.put("phase", phase) |> Map.put("turn_id", turn_id),
+       true}
     end
   end
+
+  defp attacker_can_add?(state, user_id) do
+    table = state["table"] || []
+
+    user_id != state["defender_id"] and
+      ((table == [] and state["phase"] == "attack" and state["attacker_id"] == user_id) or
+         (table != [] and length(table) < attack_limit(state)))
+  end
+
+  defp attack_limit(state), do: min(6, state["defender_hand_size"] || 6)
 
   defp card_rank_in_table?(table, card),
     do:
@@ -778,13 +791,16 @@ defmodule Chat.Games do
     defender =
       Enum.at(players, rem(Enum.find_index(players, &(&1 == attacker)) + 1, length(players)))
 
-    state
-    |> Map.put("table", [])
-    |> Map.put("attacker_id", attacker)
-    |> Map.put("defender_id", defender)
-    |> Map.put("turn_id", attacker)
-    |> Map.put("phase", "attack")
-    |> draw_cards()
+    state =
+      state
+      |> Map.put("table", [])
+      |> Map.put("attacker_id", attacker)
+      |> Map.put("defender_id", defender)
+      |> Map.put("turn_id", attacker)
+      |> Map.put("phase", "attack")
+      |> draw_cards()
+
+    Map.put(state, "defender_hand_size", length(state["hands"][user_key(defender)]))
   end
 
   defp draw_cards(state) do

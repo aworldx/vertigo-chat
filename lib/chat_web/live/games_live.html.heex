@@ -380,9 +380,7 @@
                   </div>
                   <div :if={@game.kind == "durak"}>
                     <p id="durak-turn" class="mb-3 text-sm text-zinc-400">
-                      {if @game.status == "active",
-                        do: "Ходит " <> player_name(@game, @game.state["turn_id"]),
-                        else: "Партия завершена"} · козырь {card_suit(
+                      {durak_turn_message(@game, @current_user)} · козырь {card_suit(
                         @game.state["trump"] || "6-♠"
                       )}
                     </p><div
@@ -391,17 +389,21 @@
                     >
                       <span
                         :for={row <- @game.state["table"] || []}
-                        class="durak-table-pair mr-3 inline-flex items-center gap-2"
-                      ><span class={[
-                        "playing-card playing-card--table",
-                        card_suit(row["attack"]) in ["♥", "♦"] && "playing-card--red"
-                      ]}>{card_rank(row["attack"])}<span>{card_suit(row["attack"])}</span></span><span
+                        class={"durak-table-pair #{if(row["defense"], do: "durak-table-pair--defended", else: "")}"}
+                      ><span
+                        class={[
+                          "playing-card playing-card--table playing-card--attack",
+                          card_suit(row["attack"]) in ["♥", "♦"] && "playing-card--red"
+                        ]}
+                        aria-label={"Атака: #{card_rank(row["attack"])}#{card_suit(row["attack"])}"}
+                      ><.durak_card card={row["attack"]} /></span><span
                         :if={row["defense"]}
                         class={[
-                          "playing-card playing-card--table",
+                          "playing-card playing-card--table playing-card--defense",
                           card_suit(row["defense"]) in ["♥", "♦"] && "playing-card--red"
                         ]}
-                      >{card_rank(row["defense"])}<span>{card_suit(row["defense"])}</span></span></span>
+                        aria-label={"Бьёт: #{card_rank(row["defense"])}#{card_suit(row["defense"])}"}
+                      ><.durak_card card={row["defense"]} /></span></span>
                     </div><div
                       :if={player?(@game, @current_user)}
                       id="durak-hand"
@@ -413,22 +415,22 @@
                         phx-click="card"
                         phx-value-card={card}
                         data-game-sound="card"
-                        disabled={
-                          !current_turn?(@game, @current_user) or @game.status != "active"
-                        }
+                        disabled={!can_play_durak_card?(@game, @current_user)}
                         class={[
                           "playing-card",
                           card_suit(card) in ["♥", "♦"] && "playing-card--red"
                         ]}
-                      >{card_rank(card)}<span>{card_suit(card)}</span></button>
+                      ><.durak_card card={card} /></button>
                     </div><div :if={player?(@game, @current_user)} class="mt-4 flex gap-2">
                       <button
                         id="take-cards"
                         phx-click="take"
+                        disabled={!can_take_durak?(@game, @current_user)}
                         class="rounded-lg border border-zinc-600 px-3 py-2"
                       >Взять</button><button
                         id="pass-cards"
                         phx-click="pass"
+                        disabled={!can_pass_durak?(@game, @current_user)}
                         class="rounded-lg border border-zinc-600 px-3 py-2"
                       >Бито</button>
                     </div>

@@ -96,6 +96,11 @@ defmodule Chat.GamesTest do
     assert {:ok, game} = Games.start(first, game.id)
     assert game.status == "active"
 
+    full_game = Repo.get!(Game, game.id)
+    dealt_cards = full_game.state["hands"] |> Map.values() |> List.flatten()
+    assert length(dealt_cards ++ full_game.state["deck"]) == 36
+    assert length(Enum.uniq(dealt_cards ++ full_game.state["deck"])) == 36
+
     assert {:ok, first_view} = Games.get_game(first, game.id)
     assert length(first_view.state["hands"][Integer.to_string(first.id)]) == 6
     assert Map.has_key?(first_view.state["hand_counts"], Integer.to_string(second.id))
@@ -105,6 +110,40 @@ defmodule Chat.GamesTest do
     assert {:ok, _game} = Games.play_card(first, game.id, card)
     assert {:ok, spectator_view} = Games.get_game(spectator, game.id)
     assert spectator_view.state["hands"] == %{}
+  end
+
+  test "durak lets attackers throw in matching ranks up to the defender's opening hand", %{
+    users: [first, defender, third | _]
+  } do
+    assert {:ok, game} = Games.create(first, "durak")
+    assert {:ok, game} = Games.join(defender, game.id)
+    assert {:ok, game} = Games.join(third, game.id)
+    assert {:ok, game} = Games.start(first, game.id)
+
+    state = %{
+      "deck" => ["A-♣"],
+      "hands" => %{
+        Integer.to_string(first.id) => ["6-♠", "6-♥", "6-♣"],
+        Integer.to_string(defender.id) => ["7-♠", "8-♠", "9-♠"],
+        Integer.to_string(third.id) => ["6-♦"]
+      },
+      "trump" => "A-♣",
+      "table" => [],
+      "attacker_id" => first.id,
+      "defender_id" => defender.id,
+      "defender_hand_size" => 3,
+      "turn_id" => first.id,
+      "phase" => "attack"
+    }
+
+    game |> Game.changeset(%{state: state}) |> Repo.update!()
+
+    assert {:ok, game} = Games.play_card(first, game.id, "6-♠")
+    assert game.state["phase"] == "defend"
+    assert {:ok, game} = Games.play_card(first, game.id, "6-♥")
+    assert {:ok, game} = Games.play_card(third, game.id, "6-♦")
+    assert Enum.map(game.state["table"], & &1["attack"]) == ["6-♠", "6-♥", "6-♦"]
+    assert {:error, :invalid_card} = Games.play_card(first, game.id, "6-♣")
   end
 
   test "balda validates the board path, awards points and rotates turns", %{

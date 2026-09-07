@@ -270,6 +270,52 @@ defmodule ChatWeb.GamesLive do
   end
 
   def current_turn?(game, user), do: user && game.state["turn_id"] == user.id
+
+  def can_play_durak_card?(game, user) do
+    user && game.status == "active" &&
+      cond do
+        game.state["defender_id"] == user.id ->
+          game.state["phase"] == "defend" and
+            Enum.any?(game.state["table"] || [], &is_nil(&1["defense"]))
+
+        (game.state["table"] || []) == [] ->
+          game.state["phase"] == "attack" and game.state["attacker_id"] == user.id
+
+        true ->
+          length(game.state["table"] || []) < min(6, game.state["defender_hand_size"] || 6)
+      end
+  end
+
+  def can_take_durak?(game, user),
+    do:
+      user && game.status == "active" && game.state["phase"] == "defend" &&
+        game.state["defender_id"] == user.id
+
+  def can_pass_durak?(game, user),
+    do:
+      user && game.status == "active" && game.state["phase"] == "attack" &&
+        game.state["attacker_id"] == user.id && game.state["table"] != [] &&
+        Enum.all?(game.state["table"], & &1["defense"])
+
+  def durak_turn_message(game, user) do
+    cond do
+      game.status != "active" ->
+        "Партия завершена"
+
+      game.state["defender_id"] == user and game.state["phase"] == "defend" ->
+        "Ты отбиваешься — побей карту или возьми."
+
+      game.state["phase"] == "defend" ->
+        "#{player_name(game, game.state["defender_id"])} отбивается — можно подкинуть карту того же ранга."
+
+      game.state["attacker_id"] == user ->
+        "Твоя атака — положи карту или объяви «Бито»."
+
+      true ->
+        "Атакует #{player_name(game, game.state["attacker_id"])}."
+    end
+  end
+
   def user_key(user), do: Integer.to_string(user.id)
 
   def player_name(game, id),
@@ -284,6 +330,39 @@ defmodule ChatWeb.GamesLive do
   def hand(game, user), do: get_in(game.state, ["hands", user_key(user)]) || []
   def card_rank(card), do: card |> String.split("-", parts: 2) |> hd()
   def card_suit(card), do: card |> String.split("-", parts: 2) |> List.last()
+
+  attr :card, :string, required: true
+
+  def durak_card(assigns) do
+    assigns =
+      assigns
+      |> assign(:rank, card_rank(assigns.card))
+      |> assign(:suit, card_suit(assigns.card))
+      |> assign(:face_label, face_label(card_rank(assigns.card)))
+
+    ~H"""
+    <span class="playing-card__corner playing-card__corner--top" aria-hidden="true">
+      <b>{@rank}</b><small>{@suit}</small>
+    </span>
+    <span class="playing-card__center" aria-hidden="true">
+      <span :if={is_nil(@face_label)} class="playing-card__pip">{@suit}</span>
+      <span :if={@face_label} class={"playing-card__portrait playing-card__portrait--#{@rank}"}>
+        <span class="playing-card__portrait-mark">{@rank}</span>
+        <span class="playing-card__portrait-suit">{@suit}</span>
+      </span>
+    </span>
+    <span class="playing-card__corner playing-card__corner--bottom" aria-hidden="true">
+      <b>{@rank}</b><small>{@suit}</small>
+    </span>
+    <span class="sr-only">{@rank}{@suit}{if @face_label, do: ", #{@face_label}", else: ""}</span>
+    """
+  end
+
+  defp face_label("J"), do: "валет"
+  defp face_label("Q"), do: "дама"
+  defp face_label("K"), do: "король"
+  defp face_label(_rank), do: nil
+
   def balda_board(game), do: game.state["board"] || %{}
   def score(game, id), do: game.players |> Enum.find(&(&1.user_id == id)) |> then(& &1.score)
 
