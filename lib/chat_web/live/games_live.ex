@@ -336,32 +336,22 @@ defmodule ChatWeb.GamesLive do
   def durak_card(assigns) do
     assigns =
       assigns
-      |> assign(:rank, card_rank(assigns.card))
-      |> assign(:suit, card_suit(assigns.card))
-      |> assign(:face_label, face_label(card_rank(assigns.card)))
+      |> assign(:asset_name, card_asset_name(assigns.card))
+      |> assign(:label, "#{card_rank(assigns.card)}#{card_suit(assigns.card)}")
 
     ~H"""
-    <span class="playing-card__corner playing-card__corner--top" aria-hidden="true">
-      <b>{@rank}</b><small>{@suit}</small>
-    </span>
-    <span class="playing-card__center" aria-hidden="true">
-      <span :if={is_nil(@face_label)} class="playing-card__pip">{@suit}</span>
-      <span :if={@face_label} class={"playing-card__portrait playing-card__portrait--#{@rank}"}>
-        <span class="playing-card__portrait-mark">{@rank}</span>
-        <span class="playing-card__portrait-suit">{@suit}</span>
-      </span>
-    </span>
-    <span class="playing-card__corner playing-card__corner--bottom" aria-hidden="true">
-      <b>{@rank}</b><small>{@suit}</small>
-    </span>
-    <span class="sr-only">{@rank}{@suit}{if @face_label, do: ", #{@face_label}", else: ""}</span>
+    <img class="playing-card__image" src={"/images/cards/#{@asset_name}.png"} alt={@label} />
     """
   end
 
-  defp face_label("J"), do: "валет"
-  defp face_label("Q"), do: "дама"
-  defp face_label("K"), do: "король"
-  defp face_label(_rank), do: nil
+  defp card_asset_name(card) do
+    rank =
+      %{"J" => "jack", "Q" => "queen", "K" => "king", "A" => "1"}[card_rank(card)] ||
+        card_rank(card)
+
+    suit = %{"♣" => "club", "♦" => "diamond", "♥" => "heart", "♠" => "spade"}[card_suit(card)]
+    "#{suit}_#{rank}"
+  end
 
   def balda_board(game), do: game.state["board"] || %{}
   def score(game, id), do: game.players |> Enum.find(&(&1.user_id == id)) |> then(& &1.score)
