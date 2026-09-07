@@ -1227,7 +1227,7 @@ defmodule ChatWeb.RoomComponents do
         <button
           id="leave-chat"
           type="button"
-          phx-click="leave_chat"
+          phx-click={JS.dispatch("phx:clear-chat-session", to: "#chat-room") |> JS.push("leave_chat")}
           aria-label="Выйти из чата"
           class="flex shrink-0 items-center justify-center rounded border border-zinc-700 px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-300 hover:text-red-200 sm:px-4"
         >

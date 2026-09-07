@@ -69,6 +69,25 @@ const appearanceFrom = preferences => {
   return preferences.appearance || {}
 }
 
+const clearGuestSession = () => {
+  const nextStore = readChatPreferenceStore()
+  const nickname = nextStore.current_nickname
+
+  if (nickname && nextStore.by_nickname[nickname]) {
+    delete nextStore.by_nickname[nickname].identity_token
+    writeChatPreferenceStore(nextStore)
+  }
+
+  sessionStorage.removeItem(GUEST_SESSION_KEY)
+  sessionStorage.removeItem(GUEST_SESSION_TOKEN_KEY)
+}
+
+const clearChatSession = () => {
+  clearGuestSession()
+  sessionStorage.removeItem(USER_AUTH_KEY)
+  sessionStorage.removeItem(USER_SESSION_KEY)
+}
+
 const playMessageNotification = () => {
   const AudioContext = window.AudioContext || window.webkitAudioContext
 
@@ -418,16 +437,7 @@ const chatHooks = {
       this.handleEvent("play-message-notification", () => playMessageNotification())
 
       this.handleEvent("clear-guest-session", () => {
-        const nextStore = readChatPreferenceStore()
-        const nickname = nextStore.current_nickname
-
-        if (nickname && nextStore.by_nickname[nickname]) {
-          delete nextStore.by_nickname[nickname].identity_token
-          writeChatPreferenceStore(nextStore)
-        }
-
-        sessionStorage.removeItem(GUEST_SESSION_KEY)
-        sessionStorage.removeItem(GUEST_SESSION_TOKEN_KEY)
+        clearGuestSession()
       })
     },
     reconnected() {
@@ -563,6 +573,11 @@ window.addEventListener("phx:clear-user-auth", _event => {
   sessionStorage.removeItem(USER_AUTH_KEY)
   sessionStorage.removeItem(USER_SESSION_KEY)
 })
+
+// This event is dispatched before the LiveView `leave_chat` push. A navigation
+// or network loss immediately after the click therefore cannot restore a
+// session that the person explicitly chose to leave.
+window.addEventListener("phx:clear-chat-session", _event => clearChatSession())
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()

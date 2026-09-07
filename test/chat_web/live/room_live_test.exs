@@ -1523,6 +1523,13 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "Настройки"
   end
 
+  test "clears browser session data before sending an explicit exit", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "logout_session")
+
+    assert render(view) =~ "phx:clear-chat-session"
+  end
+
   test "renders a local framed command result and lets a chatlan be addressed", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "command_user")
