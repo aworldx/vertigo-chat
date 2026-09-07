@@ -2,6 +2,7 @@
 defmodule Chat.Checkers do
   import Ecto.Query
 
+  alias Chat.Accounts
   alias Chat.Accounts.User
   alias Chat.Checkers.Game
   alias Chat.Repo
@@ -10,9 +11,11 @@ defmodule Chat.Checkers do
   @open_statuses ~w(pending active)
 
   def subscribe, do: Phoenix.PubSub.subscribe(Chat.PubSub, @topic)
+  def notify_lobby, do: Phoenix.PubSub.broadcast(Chat.PubSub, @topic, :checkers_lobby_updated)
 
   def list_opponents(%User{id: user_id}) do
-    Repo.all(from user in User, where: user.id != ^user_id, order_by: [asc: user.nickname])
+    Repo.all(from user in User, where: user.id != ^user_id)
+    |> Enum.sort_by(&String.downcase(Accounts.game_nickname(&1)))
   end
 
   def list_games(%User{id: user_id}) do
@@ -109,9 +112,22 @@ defmodule Chat.Checkers do
 
     ids = Map.keys(played)
 
-    Repo.all(from user in User, where: user.id in ^ids)
+    Repo.all(from user in User, where: user.id in ^ids and not user.is_game_guest)
     |> Enum.map(&%{user: &1, wins: Map.get(wins, &1.id, 0), played: played[&1.id]})
     |> Enum.sort_by(fn row -> {-row.wins, row.played, String.downcase(row.user.nickname)} end)
+  end
+
+  @doc "Deletes abandoned checkers boards while retaining completed games for the leaderboard."
+  def cleanup_stale_games(opts \\ []) do
+    now = Keyword.get(opts, :now, DateTime.utc_now())
+    pending = delete_stale_games(["pending"], DateTime.add(now, -24 * 60 * 60, :second))
+    active = delete_stale_games(["active"], DateTime.add(now, -7 * 24 * 60 * 60, :second))
+
+    Enum.each(pending ++ active, fn id ->
+      Phoenix.PubSub.broadcast(Chat.PubSub, @topic, {:game_deleted, id})
+    end)
+
+    length(pending) + length(active)
   end
 
   def initial_board do
@@ -237,6 +253,21 @@ defmodule Chat.Checkers do
   end
 
   defp broadcast_result(error), do: error
+
+  defp delete_stale_games(statuses, cutoff) do
+    ids =
+      Repo.all(
+        from game in Game,
+          where: game.status in ^statuses and game.updated_at < ^cutoff,
+          select: game.id
+      )
+
+    if ids != [] do
+      Repo.delete_all(from game in Game, where: game.id in ^ids)
+    end
+
+    ids
+  end
 
   defp open_game?(a, b) do
     Repo.exists?(

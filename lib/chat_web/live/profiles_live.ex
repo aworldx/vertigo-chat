@@ -10,6 +10,8 @@ defmodule ChatWeb.ProfilesLive do
     {:ok,
      socket
      |> assign(:page_title, "Анкеты")
+     |> assign(:meta_description, "Анкеты участников Vertigo.")
+     |> assign(:robots, "noindex, follow")
      |> assign(:search, "")
      |> assign(:search_form, to_form(%{"query" => ""}, as: :search))
      |> assign(:page, 1)

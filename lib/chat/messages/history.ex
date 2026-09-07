@@ -17,12 +17,24 @@ defmodule Chat.Messages.History do
     |> Enum.map(&to_message/1)
   end
 
+  def list_after(room_id, message_id) when is_binary(room_id) and is_integer(message_id) do
+    from(message in StoredMessage,
+      where: message.room_id == ^room_id and message.id > ^message_id,
+      order_by: [asc: message.id]
+    )
+    |> Repo.all()
+    |> Enum.map(&to_message/1)
+  end
+
+  def list_after(_room_id, _message_id), do: []
+
   def save(room_id, message) when is_binary(room_id) and is_map(message) do
     attrs = %{
       room_id: room_id,
       kind: Map.fetch!(message, :kind),
       author: Map.fetch!(message, :author),
       body: Map.fetch!(message, :body),
+      client_id: Map.get(message, :client_id),
       media_url: Map.get(message, :media_url),
       media_artist: Map.get(message, :media_artist),
       media_duration: Map.get(message, :media_duration),
@@ -37,14 +49,30 @@ defmodule Chat.Messages.History do
       sent_at: sent_at(message)
     }
 
-    with {:ok, stored_message} <-
-           %StoredMessage{} |> StoredMessage.changeset(attrs) |> Repo.insert() do
-      trim(room_id)
-      {:ok, to_message(stored_message)}
+    case persist(attrs) do
+      {:ok, stored_message, :inserted} ->
+        trim(room_id)
+        {:ok, to_message(stored_message), :inserted}
+
+      {:ok, stored_message, :existing} ->
+        {:ok, to_message(stored_message), :existing}
+
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 
   def save(_room_id, _message), do: {:error, :invalid_message}
+
+  def find_by_client_id(room_id, client_id)
+      when is_binary(room_id) and is_binary(client_id) and client_id != "" do
+    case Repo.get_by(StoredMessage, room_id: room_id, client_id: client_id) do
+      nil -> :not_found
+      message -> {:ok, to_message(message)}
+    end
+  end
+
+  def find_by_client_id(_room_id, _client_id), do: :not_found
 
   def update_reactions(room_id, message_id, reactions)
       when is_binary(room_id) and is_integer(message_id) and is_map(reactions) do
@@ -79,12 +107,39 @@ defmodule Chat.Messages.History do
     :ok
   end
 
+  defp persist(%{client_id: client_id} = attrs) when is_binary(client_id) and client_id != "" do
+    changeset = StoredMessage.changeset(%StoredMessage{}, attrs)
+
+    case Repo.insert(changeset,
+           on_conflict: :nothing,
+           conflict_target: [:room_id, :client_id]
+         ) do
+      {:ok, %StoredMessage{id: nil}} ->
+        {:ok, Repo.get_by!(StoredMessage, room_id: attrs.room_id, client_id: client_id),
+         :existing}
+
+      {:ok, stored_message} ->
+        {:ok, stored_message, :inserted}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  defp persist(attrs) do
+    case %StoredMessage{} |> StoredMessage.changeset(attrs) |> Repo.insert() do
+      {:ok, stored_message} -> {:ok, stored_message, :inserted}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
   defp to_message(message) do
     %{
       id: message.id,
       kind: message.kind,
       author: message.author,
       body: message.body,
+      client_id: message.client_id,
       media_url: message.media_url,
       media_artist: message.media_artist,
       media_duration: message.media_duration,

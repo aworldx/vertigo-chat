@@ -10,6 +10,7 @@ defmodule ChatWeb.AdminLive do
     socket =
       socket
       |> assign(:page_title, "Админка")
+      |> assign(:robots, "noindex, nofollow")
       |> assign(:current_user, nil)
       |> assign(:access, :checking)
       |> assign(:feedback_count, 0)

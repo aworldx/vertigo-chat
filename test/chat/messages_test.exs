@@ -21,6 +21,39 @@ defmodule Chat.MessagesTest do
       assert_receive {:message_created, ^message}
     end
 
+    test "returns an existing message without broadcasting it again when retried" do
+      room_id = "idempotent-room"
+      client_id = Ecto.UUID.generate()
+      :ok = Messages.subscribe(room_id)
+
+      assert {:ok, message} =
+               Messages.send_public_message("alice", room_id, %{
+                 "body" => "сообщение после обрыва",
+                 "client_id" => client_id
+               })
+
+      assert_receive {:message_created, ^message}
+
+      assert {:ok, repeated_message} =
+               Messages.send_public_message("alice", room_id, %{
+                 "body" => "сообщение после обрыва",
+                 "client_id" => client_id
+               })
+
+      assert repeated_message.id == message.id
+      refute_receive {:message_created, _message}
+    end
+
+    test "lists only messages newer than a cursor" do
+      room_id = "cursor-room"
+
+      assert {:ok, first} = Messages.send_public_message("alice", room_id, %{"body" => "первое"})
+      assert {:ok, second} = Messages.send_public_message("alice", room_id, %{"body" => "второе"})
+      assert {:ok, third} = Messages.send_public_message("alice", room_id, %{"body" => "третье"})
+
+      assert [^second, ^third] = Messages.list_messages_after(room_id, first.id)
+    end
+
     test "extracts only a known addressed nickname from anywhere in a message" do
       assert {:ok, message} =
                Messages.send_public_message("alice", "private-room", %{

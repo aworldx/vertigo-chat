@@ -16,6 +16,20 @@ defmodule ChatWeb.GamesLiveTest do
     assert has_element?(view, "#game-card-battleship.game-catalog-card--battleship")
   end
 
+  test "authenticates a guest chatlan for the game lobby", %{conn: conn} do
+    nickname = "guest_player"
+    token = ChatWeb.UserAuth.sign_guest_identity(nickname)
+
+    {:ok, view, _html} = live(conn, ~p"/games/balda")
+
+    render_hook(view, "authenticate_games", %{
+      "guest_nickname" => nickname,
+      "guest_identity_token" => token
+    })
+
+    assert has_element?(view, "#games-lobby", "Ты вошёл как guest_player")
+  end
+
   test "creates a battleship table and lets its owner prepare a fleet", %{conn: conn} do
     {:ok, host} = Accounts.register_user(%{nickname: "live_games_host", password: "secret123"})
 

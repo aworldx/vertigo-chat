@@ -9,6 +9,7 @@ defmodule ChatWeb.VisitsLive do
     {:ok,
      socket
      |> assign(:page_title, "Кто был")
+     |> assign(:robots, "noindex, nofollow")
      |> assign(:history_hours, Visits.history_hours())
      |> stream(:visits, Visits.list_recent_visits())}
   end

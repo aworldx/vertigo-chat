@@ -89,4 +89,25 @@ defmodule Chat.GamesTest do
     assert [%{user: user, wins: 1, played: 1}, %{wins: 0, played: 1}] = Games.leaderboard("balda")
     assert user.id == winner.id
   end
+
+  test "removes abandoned waiting games but keeps finished games", %{users: [host, opponent | _]} do
+    assert {:ok, waiting_game} = Games.create(host, "balda")
+    assert {:ok, finished_game} = Games.create(opponent, "balda")
+
+    finished_game
+    |> Game.changeset(%{status: "finished", winner_id: opponent.id})
+    |> Repo.update!()
+
+    stale_at = DateTime.add(DateTime.utc_now(), -25 * 60 * 60, :second)
+
+    game_ids = [waiting_game.id, finished_game.id]
+
+    Repo.update_all(from(game in Game, where: game.id in ^game_ids),
+      set: [updated_at: stale_at]
+    )
+
+    assert Games.cleanup_stale_games() == 1
+    assert {:error, :not_found} = Games.get_game(host, waiting_game.id)
+    assert Repo.get(Game, finished_game.id)
+  end
 end

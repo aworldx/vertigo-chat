@@ -30,6 +30,7 @@ defmodule ChatWeb.RoomComponents do
         <div
           :for={{dom_id, message} <- @messages}
           id={dom_id}
+          data-message-id={message.id}
           data-message-kind={Map.get(message, :kind, :text)}
           data-private={to_string(Map.get(message, :kind) == :private)}
           data-message-font={Typography.normalize_font_id(Map.get(message, :font_id))}
@@ -936,6 +937,7 @@ defmodule ChatWeb.RoomComponents do
               >?</span>
             </span>
             <button
+              :if={not Map.get(user, :reconnecting?, false)}
               id={"private-message-#{user.id}"}
               type="button"
               phx-hook="PrivateNickname"
@@ -945,6 +947,13 @@ defmodule ChatWeb.RoomComponents do
             >
               {user.nickname}
             </button>
+            <span
+              :if={Map.get(user, :reconnecting?, false)}
+              class="min-w-0 flex-1 truncate text-sm font-medium"
+              style={appearance_style(user)}
+            >
+              {user.nickname}
+            </span>
             <.rank_badge rank={Map.get(user, :rank)} />
             <span
               class="shrink-0 text-[10px] font-medium"
@@ -952,12 +961,20 @@ defmodule ChatWeb.RoomComponents do
               aria-live={if(user.peer_id == @peer_id, do: "polite")}
             >
               <span
-                :if={not Map.get(user, :busy?, false)}
+                :if={not Map.get(user, :busy?, false) and not Map.get(user, :reconnecting?, false)}
                 id={if(user.peer_id == @peer_id, do: "current-chatlan-online")}
                 class="chat-presence inline-flex items-center gap-1 text-emerald-300"
               >
                 <span class="chat-presence-dot size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_currentColor]"></span>
                 В сети
+              </span>
+              <span
+                :if={Map.get(user, :reconnecting?, false)}
+                class="chat-presence inline-flex items-center gap-1 text-amber-300"
+                aria-label={"#{user.nickname} переподключается"}
+              >
+                <.icon name="hero-arrow-path" class="size-3 motion-safe:animate-spin" />
+                Переподключается
               </span>
               <span
                 :if={Map.get(user, :bot?, false) && Map.get(user, :busy?, false)}
@@ -1104,6 +1121,7 @@ defmodule ChatWeb.RoomComponents do
             placeholder="Напиши сообщение..."
             class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
           />
+          <input id="message-client-id" type="hidden" name="message[client_id]" value="" />
           <div
             id="command-autocomplete-menu"
             role="listbox"

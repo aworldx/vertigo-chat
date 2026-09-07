@@ -7,6 +7,7 @@ defmodule ChatWeb.RoomLiveTest do
   alias Chat.Accounts
   alias Chat.Bot.Status, as: BotStatus
   alias Chat.Chatlans
+  alias Chat.Chatlans.DepartureNotifier
   alias Chat.Messages
   alias Chat.Messages.Registry, as: MessageRegistry
   alias Chat.Repo
@@ -15,6 +16,12 @@ defmodule ChatWeb.RoomLiveTest do
 
   setup do
     :sys.replace_state(MessageRegistry, &Map.delete(&1, "lobby"))
+
+    :sys.replace_state(DepartureNotifier, fn state ->
+      Enum.each(state.departures, fn {_key, %{timer: timer}} -> Process.cancel_timer(timer) end)
+      %{state | departures: %{}}
+    end)
+
     :ok
   end
 
@@ -35,10 +42,18 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "a[href='/profiles'][target='vertigo-profiles']")
     assert has_element?(view, "a[href='/gallery'][target='vertigo-gallery']")
     assert has_element?(view, "a[href='/visits'][target='vertigo-visits']")
-    assert has_element?(view, "a[href='/help'][target='vertigo-help']", "Помощь")
+    assert has_element?(view, "#about-main-menu summary", "О чате")
+    assert has_element?(view, "#about-main-menu a[href='/help'][target='vertigo-help']", "Помощь")
+
+    assert has_element?(
+             view,
+             "#about-main-menu a[href='/articles'][target='vertigo-articles']",
+             "Статьи"
+           )
+
     assert has_element?(view, "a[href='/library'][target='vertigo-library']")
     assert has_element?(view, "#games-main-menu a[href='/games'][target='vertigo-games']")
-    assert has_element?(view, "#show-feedback", "Обратная связь")
+    assert has_element?(view, "#about-main-menu #show-feedback", "Обратная связь")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
     assert has_element?(view, "#chat-room.h-dvh.max-h-dvh.min-h-0.overflow-hidden")
   end
@@ -183,6 +198,25 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#online-list", "returning_guest")
     assert_push_event(view, "save-chat-preferences", %{"nickname" => "returning_guest"})
     refute has_element?(view, "[data-system-notice='features']")
+  end
+
+  test "does not restore a guest from a long-lived identity without its tab session", %{
+    conn: conn
+  } do
+    nickname = "guest_without_session"
+
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{
+        "guest_nickname" => nickname,
+        "guest_identity_token" => ChatWeb.UserAuth.sign_guest_identity(nickname),
+        "theme_id" => "vertigo",
+        "appearance" => %{}
+      })
+      |> live(~p"/")
+
+    refute has_element?(view, "#message-form")
+    assert has_element?(view, "#entrance-form")
   end
 
   test "renews a guest session without creating a new visit", %{conn: conn} do

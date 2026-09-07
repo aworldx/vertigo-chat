@@ -17,6 +17,7 @@ defmodule Chat.Application do
       Chat.Messages.Registry,
       Chat.Chatlans.DepartureNotifier,
       Chat.Visits.Janitor,
+      Chat.Games.Janitor,
       Chat.Security.RateLimiter,
       Chat.Music.ProxyPool,
       Chat.Bot.Status,

@@ -1,0 +1,677 @@
+<Layouts.app flash={@flash}>
+  <main id="articles-page" class="min-h-dvh bg-zinc-950 text-zinc-100">
+    <header class="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+      <a href={~p"/about"} class="flex items-center gap-3" aria-label="Vertigo — о чате">
+        <span class="vertigo-mark" aria-hidden="true"></span>
+        <span class="vertigo-wordmark uppercase">Vertigo</span>
+      </a>
+      <nav
+        class="flex items-center gap-5 text-sm font-semibold"
+        aria-label="Основная навигация"
+      >
+        <a href={~p"/articles"} class="text-amber-200 transition hover:text-amber-100">Статьи</a>
+        <a
+          id="articles-enter-chat"
+          href={~p"/"}
+          class="rounded-lg border border-amber-300/70 px-4 py-2 text-amber-100 transition hover:bg-amber-300 hover:text-zinc-950"
+        >
+          Войти в чат
+        </a>
+      </nav>
+    </header>
+
+    <%= case @live_action do %>
+      <% :index -> %>
+        <section class="mx-auto max-w-6xl px-5 pb-20 pt-14 sm:px-8 sm:pt-20">
+          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+            Vertigo пишет
+          </p>
+          <h1 class="mt-4 max-w-3xl text-4xl font-black tracking-tight text-balance sm:text-6xl">
+            Не инструкции. Разговоры о том, как мы общаемся.
+          </h1>
+          <p class="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
+            Здесь собираем наблюдения о чатах, дружбе в сети, неловких первых сообщениях
+            и хороших причинах задержаться в общем разговоре.
+          </p>
+
+          <section class="mt-12 max-w-4xl" aria-labelledby="latest-articles-title">
+            <h2 id="latest-articles-title" class="sr-only">Последние статьи</h2>
+            <a
+              id="article-card-chats-vs-messengers"
+              href={~p"/articles/chats-vs-messengers"}
+              class="group grid overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 transition hover:border-amber-300 lg:grid-cols-[0.9fr_1.1fr]"
+            >
+              <img
+                src={~p"/images/article-chat-window.png"}
+                alt="Скриншот переписки в Telegram Desktop"
+                class="h-full min-h-64 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              />
+              <div class="p-7 sm:p-9">
+                <p class="text-sm font-semibold text-amber-300">Общение</p>
+                <h2 class="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                  Зачем нужны чаты, когда есть Telegram и соцсети
+                </h2>
+                <p class="mt-4 leading-7 text-zinc-300">
+                  У ленты, личных сообщений и общего чата разные характеры. Разбираемся без
+                  войны платформ — и без обещаний, что один формат спасёт всё.
+                </p>
+                <span class="mt-6 inline-flex items-center gap-2 font-semibold text-amber-200">
+                  Читать статью <.icon name="hero-arrow-right" class="size-4" />
+                </span>
+              </div>
+            </a>
+            <a
+              id="article-card-chat-platforms-russia"
+              href={~p"/articles/chat-platforms-russia"}
+              class="group mt-5 grid overflow-hidden rounded-3xl border border-zinc-700 bg-zinc-900 transition hover:border-amber-300 lg:grid-cols-[0.9fr_1.1fr]"
+            >
+              <img
+                src={~p"/images/article-krovatka-history.png"}
+                alt="Архивный скриншот чата «Кроватка»"
+                class="h-full min-h-64 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              />
+              <div class="p-7 sm:p-9">
+                <p class="text-sm font-semibold text-amber-300">История Рунета</p>
+                <h2 class="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                  От «Кроватки» до Telegram: как менялись чаты в России
+                </h2>
+                <p class="mt-4 leading-7 text-zinc-300">
+                  IRC и дозвон, общие комнаты, «аська», чатовые движки, соцсети и мессенджеры:
+                  вспоминаем без глянцевой ностальгии.
+                </p>
+                <span class="mt-6 inline-flex items-center gap-2 font-semibold text-amber-200">
+                  Читать статью <.icon name="hero-arrow-right" class="size-4" />
+                </span>
+              </div>
+            </a>
+            <a
+              id="article-card-how-vertigo-chat-works"
+              href={~p"/articles/how-vertigo-chat-works"}
+              class="group mt-5 block rounded-3xl border border-zinc-700 bg-zinc-900 p-7 transition hover:border-amber-300 hover:bg-zinc-900/80 sm:p-9"
+            >
+              <p class="text-sm font-semibold text-amber-300">Как это устроено</p>
+              <h2 class="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                Как устроен Vertigo: сообщения, приват и пароли
+              </h2>
+              <p class="mt-4 max-w-2xl leading-7 text-zinc-300">
+                Честно и без технического тумана: что попадает в историю, что проходит только
+                между двумя открытыми окнами и почему в базе нет паролей в открытом виде.
+              </p>
+              <span class="mt-6 inline-flex items-center gap-2 font-semibold text-amber-200">
+                Читать статью <.icon name="hero-arrow-right" class="size-4" />
+              </span>
+            </a>
+          </section>
+        </section>
+      <% :show -> %>
+        <article id="article-chats-vs-messengers" class="pb-20">
+          <header class="mx-auto max-w-4xl px-5 pb-10 pt-12 sm:px-8 sm:pb-14 sm:pt-20">
+            <a
+              href={~p"/articles"}
+              class="text-sm font-semibold text-amber-200 transition hover:text-amber-100"
+            >
+              ← Все статьи
+            </a>
+            <p class="mt-9 text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+              Общение
+            </p>
+            <h1 class="mt-4 text-4xl font-black tracking-tight text-balance sm:text-6xl">
+              Зачем нужны чаты, когда есть Telegram и соцсети
+            </h1>
+            <p class="mt-6 max-w-3xl text-xl leading-8 text-zinc-300 sm:text-2xl">
+              Потому что сообщение «кто тоже не спит?» иногда ценнее ещё одного аккуратно
+              отредактированного поста.
+            </p>
+            <p class="mt-7 text-sm text-zinc-500">6 сентября 2026 · 6 минут чтения</p>
+          </header>
+
+          <figure class="mx-auto max-w-6xl px-5 sm:px-8">
+            <img
+              src={~p"/images/article-chat-window.png"}
+              alt="Скриншот переписки в Telegram Desktop"
+              class="w-full rounded-3xl border border-zinc-700 shadow-2xl shadow-black/30"
+            />
+            <figcaption class="mt-3 text-sm text-zinc-500">
+              Telegram Desktop, 2017. Скриншот: Huezohuezo1990, <a
+                href="https://commons.wikimedia.org/wiki/File:Telegram_Desktop_Tema.png"
+                class="underline decoration-zinc-600 underline-offset-2 transition hover:text-amber-200"
+              >
+                CC BY-SA 4.0
+              </a>.
+            </figcaption>
+          </figure>
+
+          <div class="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6">
+              <p class="font-bold text-zinc-100">О чём речь</p>
+              <ol class="mt-3 space-y-2 text-zinc-300 marker:text-amber-300">
+                <li>
+                  <a href="#different-jobs" class="transition hover:text-amber-200">У каждого формата — своя работа</a>
+                </li>
+                <li>
+                  <a href="#chat-strengths" class="transition hover:text-amber-200">Что у общего чата получается лучше</a>
+                </li>
+                <li>
+                  <a href="#chat-weaknesses" class="transition hover:text-amber-200">Где чат честно проигрывает</a>
+                </li>
+              </ol>
+            </div>
+
+            <div class="mt-12 space-y-7 text-lg leading-8 text-zinc-300">
+              <p>
+                У большинства из нас уже есть всё: пара мессенджеров, десяток каналов, лента,
+                где кто-то успел жениться, переехать и купить кофемашину, пока мы чистили зубы.
+                Кажется, ещё один чат в этой экосистеме — как ещё одна кружка на кухне. Симпатично,
+                но куда её ставить?
+              </p>
+              <p>
+                А потом случается обычный вечер. В личке все заняты, под постом разговор давно
+                превратился в обмен реакциями, а сказать хочется не что-то великое, а просто:
+                «Кто смотрел этот сериал? Там в третьей серии вообще нормально?» И оказывается,
+                что для таких вещей нужен не алгоритм и не идеальная витрина. Нужна комната, в
+                которой кто-то сейчас есть.
+              </p>
+
+              <h2 id="different-jobs" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                У каждого формата — своя работа
+              </h2>
+              <p>
+                Telegram и другие мессенджеры хороши, когда уже понятно, <em>кому</em> писать.
+                Это быстрый коридор между знакомыми людьми: договориться о встрече, отправить
+                голосовое, не потерять адрес. Там не нужно разогреваться — вас уже знают.
+              </p>
+              <p>
+                Соцсети устроены иначе. Они похожи на площадь с подсветкой: можно показать мысль,
+                фотографию, работу, получить отклик от большого круга. Но лента всё время торопит:
+                сегодня пост наверху, завтра его уже нет. В обсуждении легко набрать десятки
+                сердечек и так ни с кем толком не поговорить.
+              </p>
+            </div>
+          </div>
+
+          <figure class="mx-auto mt-12 max-w-6xl px-5 sm:px-8">
+            <img
+              src={~p"/images/article-social-feed.png"}
+              alt="Скриншот страницы входа в социальную сеть VK"
+              class="w-full rounded-3xl border border-zinc-700 shadow-2xl shadow-black/30"
+            />
+            <figcaption class="mt-3 text-sm text-zinc-500">
+              VK, 2026. Скриншот: Doofenshrburg, <a
+                href="https://commons.wikimedia.org/wiki/File:VK%27s_home_page_(February_2026).png"
+                class="underline decoration-zinc-600 underline-offset-2 transition hover:text-amber-200"
+              >
+                CC BY-SA 4.0
+              </a>.
+            </figcaption>
+          </figure>
+
+          <div class="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
+            <div class="space-y-7 text-lg leading-8 text-zinc-300">
+              <p>
+                Общий чат — третий жанр. Здесь не надо быть автором, экспертом или близким другом.
+                Можно войти с короткого вопроса, подхватить чужую тему, исчезнуть на неделю и
+                вернуться без отчёта. Это не замена ни мессенджеру, ни соцсети. Скорее цифровая
+                гостиная: иногда там шумно, иногда пусто, но разговор принадлежит не одному
+                человеку и не ленте рекомендаций.
+              </p>
+
+              <h2 id="chat-strengths" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Что у общего чата получается лучше
+              </h2>
+              <p>
+                <strong class="text-zinc-100">Снижать порог входа.</strong> В личной переписке
+                первое сообщение почти всегда звучит как маленькое собеседование. В общем чате
+                можно обратиться сразу к теме, а не к человеку: попросить совет, поспорить о
+                фильме, показать смешную находку. Знакомство случается потом — если случается.
+              </p>
+              <p>
+                <strong class="text-zinc-100">Давать случайности шанс.</strong> Алгоритмы учатся
+                предсказывать наши привычки. Чат, наоборот, иногда сталкивает с тем, что вы бы
+                сами не выбрали: чужой профессией, книгой из детства, точкой зрения, от которой
+                хочется закатить глаза — а через пять минут уже интересно слушать.
+              </p>
+              <p>
+                <strong class="text-zinc-100">Держать общий ритм.</strong> У хорошего чата есть
+                память не только в истории сообщений. Она в повторяющихся шутках, в людях, которые
+                появляются по вечерам, в вопросе «как там твоя собака?» через месяц после случайного
+                рассказа. Так и возникает сообщество — не из подписок, а из маленькой привычки быть
+                рядом.
+              </p>
+
+              <h2
+                id="chat-weaknesses"
+                class="pt-5 text-3xl font-bold tracking-tight text-zinc-100"
+              >
+                Где чат честно проигрывает
+              </h2>
+              <p>
+                Чат не обязан быть удобным для всего. В нём быстро тонут длинные инструкции,
+                важные ссылки и сообщения, к которым нужно вернуться через полгода. Для этого
+                лучше подходят заметки, каналы, почта и нормально устроенные базы знаний.
+              </p>
+              <p>
+                Ещё чат требует ухода. Без модерации живой разговор легко превращается в шумный
+                перекрёсток, где громче всех не обязательно интереснее всех. А открытость — это
+                не только возможность встретить «своих», но и шанс наткнуться на грубость или
+                странность. Хорошие правила здесь не портят атмосферу; они делают её возможной.
+              </p>
+              <p>
+                И, конечно, не каждый вечер должен быть социальным. Иногда лучший формат —
+                выключить уведомления, отправить другу одно точное сообщение и уйти гулять. Чат
+                не должен побеждать остальные способы общения. Ему достаточно быть местом, куда
+                можно прийти, когда хочется разговора без повестки и без роли.
+              </p>
+              <p class="border-l-2 border-amber-300 pl-5 text-xl font-medium text-zinc-100">
+                Мессенджер отвечает на вопрос «кому написать». Соцсеть — «что показать». А чат
+                оставляет место для вопроса «кто сейчас хочет поговорить?»
+              </p>
+            </div>
+
+            <aside class="mt-14 rounded-3xl border border-amber-300/35 bg-amber-300/10 p-7 sm:p-9">
+              <h2 class="text-2xl font-bold text-zinc-100">Хочется проверить на практике?</h2>
+              <p class="mt-3 max-w-xl leading-7 text-zinc-300">
+                В Vertigo можно зайти в общий разговор, поиграть в компании или просто посмотреть,
+                о чём сегодня говорят люди.
+              </p>
+              <a
+                id="article-enter-chat"
+                href={~p"/"}
+                class="mt-6 inline-flex rounded-lg bg-amber-300 px-5 py-3 font-bold text-zinc-950 transition hover:bg-amber-200"
+              >
+                Перейти в чат
+              </a>
+            </aside>
+          </div>
+        </article>
+      <% :history -> %>
+        <article id="article-chat-platforms-russia" class="pb-20">
+          <header class="mx-auto max-w-4xl px-5 pb-10 pt-12 sm:px-8 sm:pb-14 sm:pt-20">
+            <a
+              href={~p"/articles"}
+              class="text-sm font-semibold text-amber-200 transition hover:text-amber-100"
+            >
+              ← Все статьи
+            </a>
+            <p class="mt-9 text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+              История Рунета
+            </p>
+            <h1 class="mt-4 text-4xl font-black tracking-tight text-balance sm:text-6xl">
+              От «Кроватки» до Telegram: как менялись чаты в России
+            </h1>
+            <p class="mt-6 max-w-3xl text-xl leading-8 text-zinc-300 sm:text-2xl">
+              Когда-то знакомились в комнате с названием «Основная», берегли короткий UIN и
+              ругались из-за флуда. Формы изменились — привычка искать живой разговор осталась.
+            </p>
+            <p class="mt-7 text-sm text-zinc-500">6 сентября 2026 · 8 минут чтения</p>
+          </header>
+
+          <figure class="mx-auto max-w-6xl px-5 sm:px-8">
+            <img
+              src={~p"/images/article-krovatka-history.png"}
+              alt="Архивный скриншот общей комнаты чата «Кроватка»"
+              class="w-full rounded-3xl border border-zinc-700 bg-zinc-900 object-contain shadow-2xl shadow-black/30"
+            />
+            <figcaption class="mt-3 text-sm text-zinc-500">
+              «Кроватка — Основная», архивный скриншот из материала <a
+                href="https://pikabu.ru/story/webchatyi_2000kh_kakimi_zapomnili_ikh_myi_5963715"
+                class="underline decoration-zinc-600 underline-offset-2 transition hover:text-amber-200"
+              >
+                «Веб-чаты 2000-х»
+              </a>.
+            </figcaption>
+          </figure>
+
+          <div class="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6">
+              <p class="font-bold text-zinc-100">Маршрут статьи</p>
+              <ol class="mt-3 space-y-2 text-zinc-300 marker:text-amber-300">
+                <li>
+                  <a href="#first-rooms" class="transition hover:text-amber-200">Когда чат был местом, а не кнопкой</a>
+                </li>
+                <li>
+                  <a href="#engines" class="transition hover:text-amber-200">«Кроватка», Бородин и Август</a>
+                </li>
+                <li>
+                  <a href="#messengers" class="transition hover:text-amber-200">«Аська» и личный список контактов</a>
+                </li>
+                <li>
+                  <a href="#today" class="transition hover:text-amber-200">Что осталось в современных платформах</a>
+                </li>
+              </ol>
+            </div>
+
+            <div class="mt-12 space-y-7 text-lg leading-8 text-zinc-300">
+              <p>
+                У старого Рунета был очень конкретный звук: модем долго и сердито договаривался
+                с телефонной линией, а потом появлялась возможность зайти туда, где тебя никто
+                не ждал — и всё-таки мог ответить. До лент, подписок и рекомендаций оставались
+                годы. Чат не был вкладкой в большой экосистеме. Он и был местом встречи.
+              </p>
+              <p>
+                Первыми для многих стали IRC-каналы и локальные сети: текст, ник, решётка перед
+                названием комнаты. В них было мало интерфейса и много неписаных правил. Когда
+                веб стал массовее, тот же азарт пересел в браузерные комнаты — туда можно было
+                зайти без особой технической подготовки и почти сразу услышать: «привет, ты откуда?»
+              </p>
+
+              <h2 id="first-rooms" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Когда чат был местом, а не кнопкой
+              </h2>
+              <p>
+                В середине и конце девяностых чат часто выглядел как отдельный городок. У него
+                были главная комната, каналы по интересам, местные звёзды, модераторы и даже
+                собственный словарь. Неудивительно, что люди помнят названия, а не только
+                технологию: «Кроватка», «Диван Махаона», городские чаты провайдеров.
+              </p>
+              <p>
+                «Кроватка» выросла из этой логики. Проект возник в 1996 году, а его запуск обычно
+                датируют 1997-м. Позже там появились тематические каналы, анкеты, личные сообщения,
+                игнор и правила — то есть почти весь набор привычной нам платформы, только в
+                прямоугольниках раннего веба. Сервис закрылся в 2020 году, но скриншоты легко
+                объясняют, почему о нём до сих пор говорят как о живом месте, а не просто о сайте.
+              </p>
+
+              <h2 id="engines" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                «Кроватка», Бородин и Август — это не одно и то же
+              </h2>
+              <p>
+                Здесь легко запутаться. «Кроватка» была большой публичной площадкой со своим
+                именем и культурой. А чат Бородина — скорее название популярного в нулевые
+                движка: его ставили на разные сайты, и у каждого такого чата была собственная
+                аудитория. Поэтому «чат Бородина» многие помнят как тип интерфейса — с общей
+                комнатой, приватами и отдельным серверным демоном, — а не как один адрес в сети.
+              </p>
+              <p>
+                «Чат Августа» — ещё одна отдельная история: в Рунете так называли комнаты на
+                платном сервисе August4u. На сайте «Женские Тайны» до сих пор можно увидеть
+                несколько исторических оформлений: от раннего «звёздного» до дизайнов, восстановленных
+                после падения серверов в 2006 году. Это хороший след эпохи, когда внешний вид
+                чата можно было поменять буквально как обои в комнате.
+              </p>
+            </div>
+          </div>
+
+          <figure class="mx-auto mt-12 max-w-6xl px-5 sm:px-8">
+            <img
+              src={~p"/images/article-chat-window.png"}
+              alt="Скриншот переписки в Telegram Desktop"
+              class="w-full rounded-3xl border border-zinc-700 shadow-2xl shadow-black/30"
+            />
+            <figcaption class="mt-3 text-sm text-zinc-500">
+              Telegram Desktop, 2017. Скриншот: Huezohuezo1990, <a
+                href="https://commons.wikimedia.org/wiki/File:Telegram_Desktop_Tema.png"
+                class="underline decoration-zinc-600 underline-offset-2 transition hover:text-amber-200"
+              >
+                CC BY-SA 4.0
+              </a>.
+            </figcaption>
+          </figure>
+
+          <div class="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
+            <div class="space-y-7 text-lg leading-8 text-zinc-300">
+              <h2 id="messengers" class="text-3xl font-bold tracking-tight text-zinc-100">
+                «Аська» и личный список контактов
+              </h2>
+              <p>
+                В конце девяностых ICQ изменила привычку общения: вместо того чтобы прийти в
+                комнату к незнакомым людям, можно было увидеть, кто из своих сейчас онлайн. UIN
+                знали наизусть, короткие номера считались удачей, а характерное «о-оу» работало
+                лучше любого пуша. В России ICQ стала настолько массовой, что слово «аська»
+                оказалось понятнее, чем «мгновенные сообщения».
+              </p>
+              <p>
+                Нулевые развели два сценария. Общие веб-чаты оставались местом случайного
+                знакомства и ночных разговоров; ICQ, QIP и Mail.ru Агент сделали нормой личный
+                список контактов. Затем соцсети добавили профиль, фотографию и ленту. Разговор
+                перестал начинаться в пустой комнате: сначала тебя можно было рассмотреть.
+              </p>
+
+              <h2 id="today" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Что осталось в современных платформах
+              </h2>
+              <p>
+                В Telegram, VK и других сегодняшних сервисах живут почти все старые формы:
+                публичные каналы напоминают медиа, групповые чаты — комнаты, личка — ICQ, а
+                реакции и стикеры заменяют часть старого чатового языка. Изменился масштаб и
+                скорость, но не базовый вопрос: где найти разговор, в котором можно быть не
+                автором поста, а просто человеком среди людей.
+              </p>
+              <p>
+                Поэтому старые чаты не стоит описывать как нелепый пролог к «настоящему» интернету.
+                Они придумали многое из того, что мы сейчас считаем обычным: ники, статусы,
+                каналы, модерацию, приват, чёрные списки и странное, но важное право просто
+                зайти, поздороваться и посмотреть, кто сегодня не спит.
+              </p>
+            </div>
+
+            <figure class="mt-12">
+              <img
+                src={~p"/images/article-social-feed.png"}
+                alt="Скриншот страницы входа в социальную сеть VK"
+                class="w-full rounded-3xl border border-zinc-700 shadow-2xl shadow-black/30"
+              />
+              <figcaption class="mt-3 text-sm text-zinc-500">
+                VK, 2026. Скриншот: Doofenshrburg, <a
+                  href="https://commons.wikimedia.org/wiki/File:VK%27s_home_page_(February_2026).png"
+                  class="underline decoration-zinc-600 underline-offset-2 transition hover:text-amber-200"
+                >
+                  CC BY-SA 4.0
+                </a>.
+              </figcaption>
+            </figure>
+
+            <aside class="mt-14 rounded-3xl border border-amber-300/35 bg-amber-300/10 p-7 sm:p-9">
+              <h2 class="text-2xl font-bold text-zinc-100">Чат — не музейный экспонат</h2>
+              <p class="mt-3 max-w-xl leading-7 text-zinc-300">
+                Технологии сменились, а общая комната всё ещё нужна тем, кто хочет поговорить,
+                а не только оставить реакцию.
+              </p>
+              <a
+                id="history-enter-chat"
+                href={~p"/"}
+                class="mt-6 inline-flex rounded-lg bg-amber-300 px-5 py-3 font-bold text-zinc-950 transition hover:bg-amber-200"
+              >
+                Перейти в чат
+              </a>
+            </aside>
+          </div>
+        </article>
+      <% :technology -> %>
+        <article id="article-how-vertigo-chat-works" class="pb-20">
+          <header class="mx-auto max-w-4xl px-5 pb-10 pt-12 sm:px-8 sm:pb-14 sm:pt-20">
+            <a
+              href={~p"/articles"}
+              class="text-sm font-semibold text-amber-200 transition hover:text-amber-100"
+            >
+              ← Все статьи
+            </a>
+            <p class="mt-9 text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+              Как это устроено
+            </p>
+            <h1 class="mt-4 text-4xl font-black tracking-tight text-balance sm:text-6xl">
+              Как устроен Vertigo: сообщения, приват и пароли
+            </h1>
+            <p class="mt-6 max-w-3xl text-xl leading-8 text-zinc-300 sm:text-2xl">
+              Без магии и расплывчатых обещаний: что происходит с сообщением после кнопки
+              «отправить» и какие данные мы сознательно не сохраняем.
+            </p>
+            <p class="mt-7 text-sm text-zinc-500">6 сентября 2026 · 7 минут чтения</p>
+          </header>
+
+          <div class="mx-auto max-w-4xl px-5 sm:px-8">
+            <section
+              aria-labelledby="message-route-title"
+              class="rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl shadow-black/20 sm:p-8"
+            >
+              <p class="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">
+                Короткая схема
+              </p>
+              <h2 id="message-route-title" class="mt-3 text-2xl font-bold text-zinc-100">
+                Путь сообщения зависит от его типа
+              </h2>
+              <div class="mt-6 grid gap-4 md:grid-cols-2">
+                <div class="rounded-2xl border border-emerald-400/30 bg-emerald-400/5 p-5">
+                  <p class="font-bold text-emerald-200">Общее сообщение</p>
+                  <p class="mt-2 leading-7 text-zinc-300">
+                    Браузер → Phoenix → PostgreSQL → открытые окна чата.
+                  </p>
+                  <p class="mt-3 text-sm leading-6 text-zinc-400">
+                    В истории остаются последние 30 сообщений комнаты.
+                  </p>
+                </div>
+                <div class="rounded-2xl border border-sky-400/30 bg-sky-400/5 p-5">
+                  <p class="font-bold text-sky-200">Личное сообщение человеку</p>
+                  <p class="mt-2 leading-7 text-zinc-300">
+                    Браузер → Phoenix PubSub → два открытых окна.
+                  </p>
+                  <p class="mt-3 text-sm leading-6 text-zinc-400">
+                    В базу и в историю комнаты оно не записывается.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6">
+              <p class="font-bold text-zinc-100">О чём статья</p>
+              <ol class="mt-3 space-y-2 text-zinc-300 marker:text-amber-300">
+                <li>
+                  <a href="#realtime" class="transition hover:text-amber-200">Почему сообщения приходят сразу</a>
+                </li>
+                <li>
+                  <a href="#public-history" class="transition hover:text-amber-200">Что хранится в общей истории</a>
+                </li>
+                <li>
+                  <a href="#private" class="transition hover:text-amber-200">Как устроен приват между чатланами</a>
+                </li>
+                <li>
+                  <a href="#passwords" class="transition hover:text-amber-200">Как хранятся пароли</a>
+                </li>
+                <li>
+                  <a href="#limits" class="transition hover:text-amber-200">Границы этой модели</a>
+                </li>
+              </ol>
+            </div>
+
+            <div class="mt-12 space-y-7 text-lg leading-8 text-zinc-300">
+              <p>
+                У слова «чат» есть немного обманчивая простота. Нажал Enter — фраза появилась у
+                собеседника. Но между этими двумя событиями есть транспорт, проверка, доставка,
+                иногда сохранение, а иногда принципиальное решение <em>ничего не записывать</em>.
+                У Vertigo эти маршруты различаются, и это важнее любого красивого слова про
+                «приватность».
+              </p>
+
+              <h2 id="realtime" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Почему сообщения приходят сразу
+              </h2>
+              <p>
+                Интерфейс Vertigo работает на Phoenix LiveView: страница держит живое соединение
+                с сервером. Серверная часть написана на Elixir, а события между открытыми окнами
+                разносит Phoenix PubSub. Поэтому новое публичное сообщение не требует обновлять
+                страницу и опрашивать сервер раз в несколько секунд — оно приходит в подключённые
+                окна как событие.
+              </p>
+              <p>
+                Отдельно работает Presence: он помогает понять, кто сейчас действительно в
+                комнате. Это не «список всех когда-либо зарегистрированных», а состояние текущих
+                подключений. Когда вкладка закрывается или связь пропадает, присутствие меняется.
+              </p>
+
+              <h2 id="public-history" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Что хранится в общей истории
+              </h2>
+              <p>
+                Публичные сообщения общей комнаты сохраняются в PostgreSQL. Вместе с текстом в
+                истории могут оказаться ник автора, время, тип сообщения, выбранное оформление,
+                реакции и данные прикреплённого GIF или трека. Это нужно, чтобы история не исчезла
+                при перезапуске приложения и новый человек в комнате видел контекст.
+              </p>
+              <p>
+                История намеренно ограничена: для каждой комнаты сохраняются только последние
+                30 сообщений. Когда приходит следующее, более старые записи этой комнаты удаляются.
+                Это не бесконечный архив и не поиск по всей переписке за годы.
+              </p>
+
+              <h2 id="private" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Как устроен приват между чатланами
+              </h2>
+              <p>
+                Личное сообщение человеку — то, которое отправляется из общего чата конкретному
+                нику, — живёт иначе. Сервер проверяет получателя и ограничения на частоту, затем
+                отправляет событие только в два активных LiveView: отправителю и адресату. Такое
+                сообщение не публикуется в общий канал и не записывается в таблицу истории.
+              </p>
+              <p>
+                Практический смысл простой: после перезагрузки страницы или ухода из чата эту
+                переписку нельзя «достать из архива» Vertigo, потому что сервер его не создаёт.
+                Если адресат офлайн, сообщение не превращается в отложенное письмо и не ждёт его
+                в базе данных.
+              </p>
+              <p>
+                Важно не смешивать это с разговором с ботом: обращения к Хичкоку — отдельная
+                функция, которой может понадобиться контекст диалога для ответа. Правило «не
+                хранить» относится к приватам <strong class="text-zinc-100">между двумя
+                чатланами</strong>, а не ко всем сообщениям с любым адресатом.
+              </p>
+
+              <h2 id="passwords" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Как хранятся пароли
+              </h2>
+              <p>
+                Пароль зарегистрированного пользователя не сохраняется в базе как обычный текст.
+                При регистрации сервер создаёт случайную соль длиной 16 байт и получает ключ с
+                помощью PBKDF2-HMAC-SHA-256: 210&nbsp;000 итераций, ключ длиной 32 байта. В базе
+                остаётся только строка с параметрами алгоритма, солью и результатом вычисления.
+              </p>
+              <p>
+                При входе система заново вычисляет результат для введённого пароля и сравнивает
+                его с сохранённым значением в постоянное время. Это снижает риск утечки пароля
+                через сравнение и означает, что сотрудник с доступом к базе не может просто
+                прочитать пароль пользователя из столбца.
+              </p>
+              <p>
+                В журналах запроса фильтруются поля вроде пароля и токена. Соединение с сайтом
+                работает по HTTPS, поэтому пароль не должен передаваться по сети открытым текстом.
+                Но лучший дополнительный уровень защиты всё равно на стороне человека: уникальный
+                пароль и менеджер паролей, а не любимая комбинация, которую уже знают три сайта.
+              </p>
+
+              <h2 id="limits" class="pt-5 text-3xl font-bold tracking-tight text-zinc-100">
+                Границы этой модели
+              </h2>
+              <p>
+                «Не сохраняется» не равно сквозному шифрованию. Чтобы доставить приват, сервер
+                на мгновение получает его содержимое и пересылает в нужные подключённые окна.
+                Vertigo не заявляет end-to-end encryption и не стоит использовать его для
+                банковских реквизитов, документов, кодов восстановления или другой информации,
+                которой опасно оказаться у третьего лица.
+              </p>
+              <p>
+                Это честная граница: публичный разговор — короткая сохраняемая история; приват
+                между двумя людьми — доставка без серверного архива; пароль — необратимый хэш,
+                а не секрет в читаемом виде. Понимать разницу полезнее, чем верить одной иконке
+                замочка.
+              </p>
+            </div>
+
+            <aside class="mt-14 rounded-3xl border border-amber-300/35 bg-amber-300/10 p-7 sm:p-9">
+              <h2 class="text-2xl font-bold text-zinc-100">Остались вопросы по работе чата?</h2>
+              <p class="mt-3 max-w-xl leading-7 text-zinc-300">
+                Напиши через обратную связь в разделе «О чате» — технические детали лучше
+                обсуждать без догадок.
+              </p>
+              <a
+                id="technology-enter-chat"
+                href={~p"/"}
+                class="mt-6 inline-flex rounded-lg bg-amber-300 px-5 py-3 font-bold text-zinc-950 transition hover:bg-amber-200"
+              >
+                Перейти в чат
+              </a>
+            </aside>
+          </div>
+        </article>
+    <% end %>
+  </main>
+</Layouts.app>

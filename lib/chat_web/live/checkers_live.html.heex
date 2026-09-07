@@ -34,7 +34,7 @@
           >
             <h2 class="text-2xl font-bold">Сначала войди в чат</h2>
             <p class="mt-2 text-zinc-400">
-              Играть и приглашать соперников могут зарегистрированные чатлане.
+              Войди в чат и выбери ник — регистрироваться для игры не нужно.
             </p>
           </div>
         <% true -> %>
@@ -48,7 +48,8 @@
                   <div>
                     <h2 class="text-xl font-bold">Игровая</h2>
                     <p class="text-sm text-zinc-400">
-                      Ты вошёл как <span class="text-amber-300">{@current_user.nickname}</span>
+                      Ты вошёл как
+                      <span class="text-amber-300">{display_name(@current_user)}</span>
                     </p>
                   </div>
                   <.form
@@ -61,7 +62,7 @@
                       field={@invite_form[:opponent_id]}
                       type="select"
                       prompt="Выбрать чатланина"
-                      options={Enum.map(@opponents, &{&1.nickname, &1.id})}
+                      options={Enum.map(@opponents, &{display_name(&1), &1.id})}
                     />
                     <button
                       id="send-checkers-invite"
@@ -134,7 +135,7 @@
                       id={"spectator-game-#{game.id}"}
                       class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
                     >
-                      <strong>{game.inviter.nickname} — {game.opponent.nickname}</strong>
+                      <strong>{display_name(game.inviter)} — {display_name(game.opponent)}</strong>
                       <button
                         id={"watch-game-#{game.id}"}
                         phx-click="open_game"
@@ -154,7 +155,7 @@
                 <div class="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <h2 class="text-xl font-bold">
-                      {@game.inviter.nickname} — {@game.opponent.nickname}
+                      {display_name(@game.inviter)} — {display_name(@game.opponent)}
                     </h2><p id="checkers-turn" class="text-sm text-zinc-400">
                       Ходят {if @game.turn == "white", do: "белые", else: "чёрные"}{if @game.forced_from,
                         do: " · продолжи взятие",
@@ -232,7 +233,7 @@
                   class="flex items-center gap-3 rounded-xl bg-zinc-950/60 p-3"
                 >
                   <span class="grid size-8 place-items-center rounded-full bg-amber-400 font-black text-zinc-950">{index}</span>
-                  <span class="min-w-0 flex-1 truncate font-semibold">{row.user.nickname}</span>
+                  <span class="min-w-0 flex-1 truncate font-semibold">{display_name(row.user)}</span>
                   <span class="text-right text-sm"><strong class="text-amber-300">{row.wins}</strong><small class="block text-zinc-500">из {row.played}</small></span>
                 </li>
                 <li
@@ -248,7 +249,27 @@
       <% end %>
     </div>
     <script :type={Phoenix.LiveView.ColocatedHook} name=".CheckersAuth">
-      export default { mounted() { const token = sessionStorage.getItem("chat:user-auth"); this.pushEvent("authenticate_checkers", token ? {token} : {}) } }
+      export default {
+        mounted() {
+          this.authenticate()
+        },
+        reconnected() {
+          this.authenticate()
+        },
+        authenticate() {
+          const token = sessionStorage.getItem("chat:user-auth")
+          if (token) return this.pushEvent("authenticate_checkers", {token})
+
+          try {
+            const store = JSON.parse(localStorage.getItem("chat:guest-preferences") || "{}")
+            const nickname = store.current_nickname
+            const identityToken = nickname && store.by_nickname?.[nickname]?.identity_token
+            this.pushEvent("authenticate_checkers", nickname && identityToken ? {guest_nickname: nickname, guest_identity_token: identityToken} : {})
+          } catch (_error) {
+            this.pushEvent("authenticate_checkers", {})
+          }
+        }
+      }
     </script>
   </div>
 </Layouts.app>

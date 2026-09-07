@@ -163,6 +163,20 @@ defmodule Chat.Visits do
 
   def finish_active_visit(_identity_key, _left_at), do: {:ok, nil}
 
+  def touch_active_visit(identity_key, touched_at \\ DateTime.utc_now())
+
+  def touch_active_visit(identity_key, touched_at) when is_binary(identity_key) do
+    touched_at = normalize_datetime(touched_at)
+
+    Visit
+    |> where([visit], visit.identity_key == ^identity_key and is_nil(visit.left_at))
+    |> Repo.update_all(set: [updated_at: touched_at])
+
+    :ok
+  end
+
+  def touch_active_visit(_identity_key, _touched_at), do: :ok
+
   def user_identity_key(%User{id: id}), do: "user:" <> to_string(id)
   def guest_identity_key(identity_id) when is_binary(identity_id), do: "guest:" <> identity_id
 

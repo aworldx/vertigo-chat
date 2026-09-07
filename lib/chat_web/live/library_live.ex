@@ -12,6 +12,8 @@ defmodule ChatWeb.LibraryLive do
     {:ok,
      socket
      |> assign(:page_title, "Библиотека")
+     |> assign(:meta_description, "Библиотека Vertigo: книги и обсуждения для чатланов.")
+     |> assign(:canonical_path, ~p"/library")
      |> assign(:current_user, nil)
      |> assign(:can_add_library_articles?, false)
      |> assign(:auth_checked?, false)

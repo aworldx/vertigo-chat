@@ -324,11 +324,27 @@ defmodule Chat.Games do
 
     winner_counts = winners |> Enum.reject(&is_nil/1) |> Enum.frequencies()
 
-    Repo.all(from user in User, where: user.id in ^Map.keys(played))
+    Repo.all(
+      from user in User,
+        where: user.id in ^Map.keys(played) and not user.is_game_guest
+    )
     |> Enum.map(
       &%{user: &1, wins: Map.get(winner_counts, &1.id, 0), played: Map.get(played, &1.id, 0)}
     )
     |> Enum.sort_by(fn row -> {-row.wins, row.played, String.downcase(row.user.nickname)} end)
+  end
+
+  @doc "Deletes abandoned game boards while keeping completed-game results for leaderboards."
+  def cleanup_stale_games(opts \\ []) do
+    now = Keyword.get(opts, :now, DateTime.utc_now())
+    waiting = delete_stale_games(["waiting"], DateTime.add(now, -24 * 60 * 60, :second))
+    active = delete_stale_games(["active"], DateTime.add(now, -7 * 24 * 60 * 60, :second))
+
+    Enum.each(waiting ++ active, fn id ->
+      Phoenix.PubSub.broadcast(Chat.PubSub, @topic, {:game_deleted, id})
+    end)
+
+    length(waiting) + length(active)
   end
 
   defp update_locked(game_id, fun) do
@@ -383,6 +399,22 @@ defmodule Chat.Games do
   defp present_game(game, _user_id), do: game
 
   defp reload(id), do: Repo.get(Game, id) |> Repo.preload(creator: [], winner: [], players: :user)
+
+  defp delete_stale_games(statuses, cutoff) do
+    ids =
+      Repo.all(
+        from game in Game,
+          where: game.status in ^statuses and game.updated_at < ^cutoff,
+          select: game.id
+      )
+
+    if ids != [] do
+      Repo.delete_all(from game in Game, where: game.id in ^ids)
+    end
+
+    ids
+  end
+
   defp player?(game, user_id), do: Enum.any?(game.players, &(&1.user_id == user_id))
   defp user_key(id), do: Integer.to_string(id)
 

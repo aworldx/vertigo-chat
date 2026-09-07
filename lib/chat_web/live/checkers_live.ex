@@ -2,6 +2,7 @@
 defmodule ChatWeb.CheckersLive do
   use ChatWeb, :live_view
 
+  alias Chat.Accounts
   alias Chat.Checkers
   alias ChatWeb.UserAuth
 
@@ -12,6 +13,8 @@ defmodule ChatWeb.CheckersLive do
     {:ok,
      socket
      |> assign(:page_title, "Шашки")
+     |> assign(:meta_description, "Шашки в Vertigo: сыграй партию с чатланами онлайн.")
+     |> assign(:canonical_path, ~p"/checkers")
      |> assign(:current_user, nil)
      |> assign(:auth_checked?, false)
      |> assign(:opponents, [])
@@ -24,19 +27,17 @@ defmodule ChatWeb.CheckersLive do
   end
 
   @impl true
-  def handle_event("authenticate_checkers", %{"token" => token}, socket) do
-    case UserAuth.verify(token) do
+  def handle_event("authenticate_checkers", params, socket) do
+    case game_player(params) do
       {:ok, user} ->
+        Checkers.notify_lobby()
+
         {:noreply,
          socket |> assign(:current_user, user) |> assign(:auth_checked?, true) |> refresh()}
 
-      {:error, :invalid_token} ->
+      {:error, _reason} ->
         {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
     end
-  end
-
-  def handle_event("authenticate_checkers", _params, socket) do
-    {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
   end
 
   def handle_event("invite", %{"invite" => %{"opponent_id" => opponent_id}}, socket) do
@@ -124,6 +125,27 @@ defmodule ChatWeb.CheckersLive do
     {:noreply, socket}
   end
 
+  def handle_info(:checkers_lobby_updated, %{assigns: %{current_user: nil}} = socket),
+    do: {:noreply, socket}
+
+  def handle_info(:checkers_lobby_updated, socket), do: {:noreply, refresh(socket)}
+
+  def handle_info({:game_deleted, _game_id}, %{assigns: %{current_user: nil}} = socket),
+    do: {:noreply, socket}
+
+  def handle_info({:game_deleted, game_id}, socket) do
+    socket = refresh(socket)
+
+    socket =
+      if socket.assigns.game && socket.assigns.game.id == game_id do
+        assign(socket, :game, nil)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
   def squares, do: for(row <- 0..7, col <- 0..7, do: {row, col, "#{row},#{col}"})
   def dark_square?(row, col), do: rem(row + col, 2) == 1
   def piece_label("W"), do: "♔"
@@ -136,8 +158,12 @@ defmodule ChatWeb.CheckersLive do
   def player?(game, user), do: game.inviter_id == user.id or game.opponent_id == user.id
 
   def opponent_name(game, user_id) do
-    if game.inviter_id == user_id, do: game.opponent.nickname, else: game.inviter.nickname
+    if game.inviter_id == user_id,
+      do: Accounts.game_nickname(game.opponent),
+      else: Accounts.game_nickname(game.inviter)
   end
+
+  def display_name(user), do: Accounts.game_nickname(user)
 
   defp game_action(socket, action, message) do
     case action.(socket.assigns.current_user) do
@@ -164,4 +190,16 @@ defmodule ChatWeb.CheckersLive do
     |> assign(:active_games, Checkers.list_active_games(user))
     |> assign(:leaderboard, Checkers.leaderboard())
   end
+
+  defp game_player(%{"token" => token}) do
+    UserAuth.verify(token)
+  end
+
+  defp game_player(%{"guest_nickname" => nickname, "guest_identity_token" => token}) do
+    with {:ok, guest_identity_id} <- UserAuth.verify_guest_identity(token, nickname) do
+      Accounts.ensure_game_guest(nickname, guest_identity_id)
+    end
+  end
+
+  defp game_player(_params), do: {:error, :invalid_player}
 end

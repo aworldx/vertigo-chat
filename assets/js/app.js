@@ -33,6 +33,8 @@ const USER_AUTH_KEY = "chat:user-auth"
 const USER_SESSION_KEY = "chat:user-session"
 const GUEST_SESSION_KEY = "chat:guest-session"
 const GUEST_SESSION_TOKEN_KEY = "chat:guest-session-token"
+const MESSAGE_DRAFT_KEY = "chat:message-draft"
+const MESSAGE_CURSOR_KEY = "chat:message-cursor"
 
 // Auth is deliberately limited to the current browser tab. Older versions
 // stored this token in localStorage, so discard that persistent copy once.
@@ -99,13 +101,21 @@ const playMessageNotification = () => {
 }
 
 const chatSessionParams = () => {
+  const withMessageCursor = params => {
+    const cursor = sessionStorage.getItem(MESSAGE_CURSOR_KEY)
+
+    if (!document.getElementById("messages") || !/^\d+$/.test(cursor || "")) return params
+
+    return {...params, message_cursor: cursor}
+  }
+
   const userAuthToken = sessionStorage.getItem(USER_AUTH_KEY)
 
   if (userAuthToken) {
-    return {
+    return withMessageCursor({
       user_auth_token: userAuthToken,
       chat_session_token: sessionStorage.getItem(USER_SESSION_KEY),
-    }
+    })
   }
 
   const store = readChatPreferenceStore()
@@ -115,9 +125,9 @@ const chatSessionParams = () => {
   if (
     currentNickname &&
     currentPreferences &&
-    (currentPreferences.identity_token || sessionStorage.getItem(GUEST_SESSION_KEY))
+    sessionStorage.getItem(GUEST_SESSION_KEY)
   ) {
-    return {
+    return withMessageCursor({
       guest_nickname: currentNickname,
       guest_session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
       guest_identity_token: currentPreferences.identity_token,
@@ -126,7 +136,7 @@ const chatSessionParams = () => {
       font_id: currentPreferences.font_id,
       font_style: currentPreferences.font_style,
       message_sound_enabled: currentPreferences.message_sound_enabled,
-    }
+    })
   }
 
   return {}
@@ -134,6 +144,13 @@ const chatSessionParams = () => {
 
 if (Object.keys(chatSessionParams()).length > 0) {
   document.documentElement.dataset.chatSessionRestoring = "true"
+
+  window.setTimeout(() => {
+    if (!document.documentElement.dataset.chatSessionRestoring) return
+
+    delete document.documentElement.dataset.chatSessionRestoring
+    document.documentElement.dataset.chatSessionRestoreTimedOut = "true"
+  }, 12_000)
 }
 
 const chatHooks = {
@@ -167,7 +184,46 @@ const chatHooks = {
   PrivateMessageComposer: {
     mounted() {
       this.input = this.el.querySelector("#message-body")
+      this.clientIdInput = this.el.querySelector("#message-client-id")
       this.isTyping = false
+
+      this.newClientId = () => {
+        if (window.crypto?.randomUUID) return window.crypto.randomUUID()
+
+        return `message-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      }
+
+      this.restoreDraft = () => {
+        try {
+          const draft = JSON.parse(sessionStorage.getItem(MESSAGE_DRAFT_KEY) || "null")
+          if (!draft?.body || !this.input) return
+
+          this.input.value = draft.body
+          if (this.clientIdInput) this.clientIdInput.value = draft.clientId || this.newClientId()
+        } catch (_error) {
+          sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
+        }
+      }
+
+      this.saveDraft = () => {
+        const body = this.input?.value || ""
+
+        if (!body.trim()) {
+          sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
+          return
+        }
+
+        if (this.clientIdInput && !this.clientIdInput.value) {
+          this.clientIdInput.value = this.newClientId()
+        }
+
+        sessionStorage.setItem(
+          MESSAGE_DRAFT_KEY,
+          JSON.stringify({body, clientId: this.clientIdInput?.value || this.newClientId()}),
+        )
+      }
+
+      this.restoreDraft()
 
       this.stopTyping = () => {
         window.clearTimeout(this.typingTimer)
@@ -179,6 +235,7 @@ const chatHooks = {
       this.onInput = () => {
         const hasText = this.input?.value.trim().length > 0
         window.clearTimeout(this.typingTimer)
+        this.saveDraft()
 
         if (!hasText) {
           this.stopTyping()
@@ -211,6 +268,9 @@ const chatHooks = {
       this.input?.addEventListener("input", this.onInput)
       this.el.addEventListener("keydown", this.onKeydown)
     },
+    updated() {
+      this.restoreDraft()
+    },
     destroyed() {
       window.clearTimeout(this.typingTimer)
       this.input?.removeEventListener("input", this.onInput)
@@ -221,7 +281,36 @@ const chatHooks = {
     mounted() {
       this.shouldStickToBottom = true
       this.autoScrolling = false
-      this.scrollToBottom()
+      this.initializing = true
+      this.scheduleInitialScroll = () => {
+        cancelAnimationFrame(this.initialScrollFrame)
+
+        this.initialScrollFrame = requestAnimationFrame(() => {
+          this.initialScrollFrame = requestAnimationFrame(() => this.scrollToBottom())
+        })
+      }
+
+      this.scheduleInitialScroll()
+      this.initialScrollTimer = window.setTimeout(() => {
+        this.initializing = false
+      }, 1_000)
+
+      this.resizeObserver = new ResizeObserver(() => {
+        if (this.initializing) this.scheduleInitialScroll()
+      })
+      this.resizeObserver.observe(this.el)
+
+      this.storeMessageCursor = () => {
+        const messageIds = [...this.el.querySelectorAll("[data-message-id]")]
+          .map(message => Number.parseInt(message.dataset.messageId, 10))
+          .filter(Number.isSafeInteger)
+
+        if (messageIds.length > 0) {
+          sessionStorage.setItem(MESSAGE_CURSOR_KEY, String(Math.max(...messageIds)))
+        }
+      }
+
+      this.storeMessageCursor()
     },
     beforeUpdate() {
       this.shouldStickToBottom =
@@ -230,6 +319,13 @@ const chatHooks = {
       this.previousScrollHeight = this.el.scrollHeight
     },
     updated() {
+      this.storeMessageCursor()
+
+      if (this.initializing) {
+        this.scheduleInitialScroll()
+        return
+      }
+
       if (!this.shouldStickToBottom) return
 
       const addedHeight = this.el.scrollHeight - this.previousScrollHeight
@@ -237,6 +333,9 @@ const chatHooks = {
     },
     destroyed() {
       cancelAnimationFrame(this.scrollAnimationFrame)
+      cancelAnimationFrame(this.initialScrollFrame)
+      window.clearTimeout(this.initialScrollTimer)
+      this.resizeObserver?.disconnect()
     },
     scrollToBottom() {
       cancelAnimationFrame(this.scrollAnimationFrame)
@@ -350,6 +449,7 @@ const chatHooks = {
     finishSessionRestoration() {
       window.clearTimeout(this.restorationTimer)
       delete document.documentElement.dataset.chatSessionRestoring
+      delete document.documentElement.dataset.chatSessionRestoreTimedOut
     },
     startSessionHeartbeat() {
       if (this.sessionHeartbeat || this.el.dataset.chatJoined !== "true") {
@@ -430,6 +530,8 @@ document.addEventListener("click", event => {
   chatWindow.focus()
 })
 window.addEventListener("phx:clear-message-input", _info => {
+  sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
+
   const messageInput = document.getElementById("message-body")
 
   if (messageInput) {

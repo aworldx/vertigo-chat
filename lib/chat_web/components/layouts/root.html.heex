@@ -1,10 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <.live_title default="Vertigo chat" suffix=" · Vertigo chat" phx-no-format>{assigns[:page_title]}</.live_title>
+    <meta
+      name="description"
+      content={assigns[:meta_description] || "Vertigo — чат для общения, новых знакомств и игр."}
+    />
+    <meta name="robots" content={assigns[:robots] || "index, follow"} />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:site_name" content="Vertigo" />
+    <meta property="og:type" content={assigns[:og_type] || "website"} />
+    <meta
+      property="og:title"
+      content={assigns[:og_title] || assigns[:page_title] || "Vertigo chat"}
+    />
+    <meta
+      property="og:description"
+      content={assigns[:meta_description] || "Vertigo — чат для общения, новых знакомств и игр."}
+    />
+    <%= if canonical_path = assigns[:canonical_path] do %>
+      <link rel="canonical" href={ChatWeb.Endpoint.url() <> canonical_path} />
+      <meta property="og:url" content={ChatWeb.Endpoint.url() <> canonical_path} />
+    <% end %>
     <link
       rel="preload"
       href={~p"/fonts/oswald-variable.ttf"}

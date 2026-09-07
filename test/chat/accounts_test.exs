@@ -109,6 +109,19 @@ defmodule Chat.AccountsTest do
     assert Accounts.registered_nickname?("tester")
   end
 
+  test "creates a game-only guest without reserving their chat nickname" do
+    guest_identity_id = Ecto.UUID.generate()
+
+    assert {:ok, guest} = Accounts.ensure_game_guest("game_guest", guest_identity_id)
+    assert guest.is_game_guest
+    assert Accounts.game_nickname(guest) == "game_guest"
+    refute Accounts.registered_nickname?("game_guest")
+
+    assert {:ok, same_guest} = Accounts.ensure_game_guest("other_name", guest_identity_id)
+    assert same_guest.id == guest.id
+    assert Accounts.game_nickname(same_guest) == "game_guest"
+  end
+
   test "authorizes guest and registered entrances" do
     assert {:ok, nil} = Accounts.authorize_entrance("guest_user", "")
     assert {:error, :invalid_nickname} = Accounts.authorize_entrance("", "")

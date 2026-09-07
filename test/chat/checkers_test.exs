@@ -70,4 +70,29 @@ defmodule Chat.CheckersTest do
     assert [%Game{id: ^game_id}] = Checkers.list_active_games(third)
     assert [%Game{id: ^game_id}] = Checkers.list_games(first)
   end
+
+  test "removes abandoned pending games but keeps finished games", %{
+    first: first,
+    second: second,
+    third: third
+  } do
+    assert {:ok, pending_game} = Checkers.invite(first, second.id)
+    assert {:ok, finished_game} = Checkers.invite(first, third.id)
+
+    finished_game
+    |> Ecto.Changeset.change(status: "finished", winner_id: first.id)
+    |> Repo.update!()
+
+    stale_at = DateTime.add(DateTime.utc_now(), -25 * 60 * 60, :second)
+
+    game_ids = [pending_game.id, finished_game.id]
+
+    Repo.update_all(from(game in Game, where: game.id in ^game_ids),
+      set: [updated_at: stale_at]
+    )
+
+    assert Checkers.cleanup_stale_games() == 1
+    assert {:error, :not_found} = Checkers.get_game(first, pending_game.id)
+    assert Repo.get(Game, finished_game.id)
+  end
 end

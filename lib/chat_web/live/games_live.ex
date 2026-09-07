@@ -2,6 +2,7 @@
 defmodule ChatWeb.GamesLive do
   use ChatWeb, :live_view
 
+  alias Chat.Accounts
   alias Chat.Games
   alias ChatWeb.UserAuth
 
@@ -14,6 +15,8 @@ defmodule ChatWeb.GamesLive do
      socket
      |> assign(:kind, kind)
      |> assign(:page_title, if(kind, do: Games.title(kind), else: "Игры"))
+     |> assign(:meta_description, games_description(kind))
+     |> assign(:canonical_path, games_path(kind))
      |> assign(:current_user, nil)
      |> assign(:auth_checked?, false)
      |> assign(:games, [])
@@ -26,19 +29,16 @@ defmodule ChatWeb.GamesLive do
   end
 
   @impl true
-  def handle_event("authenticate_games", %{"token" => token}, socket) do
-    case UserAuth.verify(token) do
+  def handle_event("authenticate_games", params, socket) do
+    case game_player(params) do
       {:ok, user} ->
         {:noreply,
          socket |> assign(:current_user, user) |> assign(:auth_checked?, true) |> refresh()}
 
-      _ ->
-        {:noreply, socket |> assign(:auth_checked?, true)}
+      {:error, _reason} ->
+        {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
     end
   end
-
-  def handle_event("authenticate_games", _params, socket),
-    do: {:noreply, assign(socket, :auth_checked?, true)}
 
   def handle_event("create", _params, socket) do
     with %{} = user <- socket.assigns.current_user,
@@ -126,6 +126,22 @@ defmodule ChatWeb.GamesLive do
     end
   end
 
+  def handle_info({:game_deleted, _game_id}, %{assigns: %{current_user: nil}} = socket),
+    do: {:noreply, socket}
+
+  def handle_info({:game_deleted, game_id}, socket) do
+    socket = refresh(socket)
+
+    socket =
+      if socket.assigns.game && socket.assigns.game.id == game_id do
+        assign(socket, :game, nil)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
   def kinds, do: Games.kinds()
   def title(kind), do: Games.title(kind)
 
@@ -146,7 +162,9 @@ defmodule ChatWeb.GamesLive do
   def user_key(user), do: Integer.to_string(user.id)
 
   def player_name(game, id),
-    do: game.players |> Enum.find(&(&1.user_id == id)) |> then(& &1.user.nickname)
+    do: game.players |> Enum.find(&(&1.user_id == id)) |> then(&Accounts.game_nickname(&1.user))
+
+  def display_name(user), do: Accounts.game_nickname(user)
 
   def own_board(game, user), do: get_in(game.state, ["boards", user_key(user)]) || %{}
   def own_shots(game, user), do: get_in(game.state, ["shots", user_key(user)]) || %{}
@@ -165,6 +183,32 @@ defmodule ChatWeb.GamesLive do
       _ -> {:noreply, put_flash(socket, :error, "Этот ход сейчас недоступен.")}
     end
   end
+
+  defp games_path(kind) when is_binary(kind) and kind != "", do: ~p"/games/#{kind}"
+  defp games_path(_kind), do: ~p"/games"
+
+  defp games_description("battleship"),
+    do: "Морской бой в Vertigo: создавай стол и играй с чатланами."
+
+  defp games_description("durak"),
+    do: "Игра «Дурак» в Vertigo: собирайся за игровым столом с чатланами."
+
+  defp games_description("balda"),
+    do: "Игра «Балда» в Vertigo: составляй слова и соревнуйся с чатланами."
+
+  defp games_description(_kind), do: "Игры в Vertigo: собирайся с чатланами за игровыми столами."
+
+  defp game_player(%{"token" => token}) do
+    UserAuth.verify(token)
+  end
+
+  defp game_player(%{"guest_nickname" => nickname, "guest_identity_token" => token}) do
+    with {:ok, guest_identity_id} <- UserAuth.verify_guest_identity(token, nickname) do
+      Accounts.ensure_game_guest(nickname, guest_identity_id)
+    end
+  end
+
+  defp game_player(_params), do: {:error, :invalid_player}
 
   defp game_action(socket, fun, message) do
     with %{} = user <- socket.assigns.current_user,

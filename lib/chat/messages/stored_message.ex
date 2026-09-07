@@ -9,6 +9,7 @@ defmodule Chat.Messages.StoredMessage do
     field :kind, Ecto.Enum, values: [:text, :system, :gif, :music]
     field :author, :string
     field :body, :string
+    field :client_id, :string
     field :media_url, :string
     field :media_artist, :string
     field :media_duration, :string
@@ -32,6 +33,7 @@ defmodule Chat.Messages.StoredMessage do
       :kind,
       :author,
       :body,
+      :client_id,
       :media_url,
       :media_artist,
       :media_duration,
@@ -57,5 +59,7 @@ defmodule Chat.Messages.StoredMessage do
       :reactions,
       :sent_at
     ])
+    |> validate_length(:client_id, max: 64)
+    |> unique_constraint(:client_id, name: :room_messages_room_id_client_id_index)
   end
 end

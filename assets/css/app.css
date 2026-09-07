@@ -508,6 +508,10 @@ html[data-chat-session-restoring] #chat-session-restoring {
   display: flex;
 }
 
+html[data-chat-session-restore-timed-out] #chat-session-restore-timeout {
+  display: block;
+}
+
 @keyframes chat-message-enter {
   0% {
     opacity: 0.18;

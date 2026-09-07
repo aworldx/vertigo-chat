@@ -77,13 +77,31 @@ defmodule ChatWeb.ShellComponents do
         >
           Кто был
         </.link>
-        <.link
-          href={~p"/help"}
-          target="vertigo-help"
-          class="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
-        >
-          Помощь
-        </.link>
+        <details id="about-main-menu" class="relative hidden lg:block">
+          <summary class="cursor-pointer whitespace-nowrap transition hover:text-amber-300 [&::-webkit-details-marker]:hidden">
+            О чате
+          </summary>
+          <div class="absolute right-0 top-7 z-50 w-48 rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-2xl shadow-black/50">
+            <.link
+              href={~p"/articles"}
+              target="vertigo-articles"
+              class="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >Статьи</.link>
+            <.link
+              href={~p"/help"}
+              target="vertigo-help"
+              class="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >Помощь</.link>
+            <button
+              id="show-feedback"
+              type="button"
+              phx-click="show_feedback"
+              class="block w-full rounded-lg px-3 py-2 text-left font-inherit uppercase tracking-[0.09em] transition hover:bg-zinc-800 hover:text-amber-200"
+            >
+              Обратная связь
+            </button>
+          </div>
+        </details>
         <details id="mobile-main-menu" class="relative lg:hidden">
           <summary class="flex size-9 cursor-pointer list-none items-center justify-center rounded-lg border border-zinc-700 text-zinc-200 transition hover:border-amber-300 hover:text-amber-200 [&::-webkit-details-marker]:hidden">
             <.icon name="hero-bars-3" class="size-5" />
@@ -97,14 +115,29 @@ defmodule ChatWeb.ShellComponents do
             >
               {label}
             </.link>
-            <button
-              id="mobile-show-feedback"
-              type="button"
-              phx-click="show_feedback"
-              class="block w-full whitespace-nowrap rounded-lg px-3 py-2.5 text-left font-inherit uppercase tracking-[0.09em] transition hover:bg-zinc-800 hover:text-amber-200"
-            >
-              Обратная связь
-            </button>
+            <details id="mobile-about-menu" class="rounded-lg">
+              <summary class="cursor-pointer list-none rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200 [&::-webkit-details-marker]:hidden">
+                О чате
+              </summary>
+              <div class="border-l border-zinc-700 pl-2">
+                <.link
+                  href={~p"/articles"}
+                  class="block rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200"
+                >Статьи</.link>
+                <.link
+                  href={~p"/help"}
+                  class="block rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200"
+                >Помощь</.link>
+                <button
+                  id="mobile-show-feedback"
+                  type="button"
+                  phx-click="show_feedback"
+                  class="block w-full rounded-lg px-3 py-2.5 text-left font-inherit uppercase tracking-[0.09em] transition hover:bg-zinc-800 hover:text-amber-200"
+                >
+                  Обратная связь
+                </button>
+              </div>
+            </details>
             <button
               :if={!@registered}
               id="mobile-show-registration"
@@ -117,14 +150,6 @@ defmodule ChatWeb.ShellComponents do
           </div>
         </details>
         <div class="hidden items-center gap-4 lg:flex">
-          <button
-            id="show-feedback"
-            type="button"
-            phx-click="show_feedback"
-            class="whitespace-nowrap font-inherit uppercase tracking-[0.09em] transition hover:text-amber-300"
-          >
-            Обратная связь
-          </button>
           <button
             :if={!@registered}
             id="show-registration"
@@ -146,8 +171,7 @@ defmodule ChatWeb.ShellComponents do
       {"Библиотека", ~p"/library"},
       {"Фотоальбом", ~p"/gallery"},
       {"Игры", ~p"/games"},
-      {"Кто был", ~p"/visits"},
-      {"Помощь", ~p"/help"}
+      {"Кто был", ~p"/visits"}
     ]
   end
 end

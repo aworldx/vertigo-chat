@@ -25,28 +25,53 @@ defmodule Chat.Chatlans do
   def normalize_nickname(_nickname, fallback), do: fallback
 
   def list_online(room_id) do
-    room_id
-    |> Messages.room_topic()
-    |> Presence.list()
-    |> Enum.flat_map(fn {id, %{metas: metas}} ->
-      for meta <- [List.last(metas)] do
-        appearance = appearance_from(meta)
-        theme_id = Map.get(meta, :theme_id, Themes.default_theme_id())
+    online =
+      room_id
+      |> Messages.room_topic()
+      |> Presence.list()
+      |> Enum.flat_map(fn {id, %{metas: metas}} ->
+        for meta <- [List.last(metas)] do
+          appearance = appearance_from(meta)
+          theme_id = Map.get(meta, :theme_id, Themes.default_theme_id())
 
+          %{
+            id: "#{id}:#{meta.phx_ref}",
+            peer_id: id,
+            session_id: Map.get(meta, :session_id),
+            identity_key: Map.get(meta, :identity_key),
+            nickname: meta.nickname,
+            registered?: Map.get(meta, :registered?, false),
+            rank: Map.get(meta, :rank),
+            theme_id: theme_id,
+            appearance: appearance
+          }
+        end
+      end)
+      |> Enum.uniq_by(&(&1.identity_key || &1.session_id || &1.peer_id))
+
+    reconnecting =
+      room_id
+      |> DepartureNotifier.pending()
+      |> Enum.reject(fn departure ->
+        Enum.any?(online, &(&1.identity_key == departure.identity_key))
+      end)
+      |> Enum.map(fn departure ->
         %{
-          id: "#{id}:#{meta.phx_ref}",
-          peer_id: id,
-          session_id: Map.get(meta, :session_id),
-          identity_key: Map.get(meta, :identity_key),
-          nickname: meta.nickname,
-          registered?: Map.get(meta, :registered?, false),
-          rank: Map.get(meta, :rank),
-          theme_id: theme_id,
-          appearance: appearance
+          id: "reconnecting:#{departure.identity_key}",
+          peer_id: "reconnecting:#{departure.identity_key}",
+          session_id: nil,
+          identity_key: departure.identity_key,
+          nickname: departure.nickname,
+          registered?: String.starts_with?(departure.identity_key, "user:"),
+          rank: nil,
+          theme_id: Themes.default_theme_id(),
+          appearance: Appearance.default(),
+          reconnecting?: true
         }
-      end
-    end)
-    |> Enum.uniq_by(&(&1.identity_key || &1.session_id || &1.peer_id))
+      end)
+
+    online
+    |> Kernel.++(reconnecting)
     |> Kernel.++([Bot.chatlan()])
     |> Enum.sort_by(& &1.nickname)
   end
@@ -71,19 +96,28 @@ defmodule Chat.Chatlans do
 
   def identity_online?(room_id, identity_key)
       when is_binary(room_id) and is_binary(identity_key) do
-    Enum.any?(list_online(room_id), &(Map.get(&1, :identity_key) == identity_key))
+    room_id
+    |> Messages.room_topic()
+    |> Presence.list()
+    |> Enum.any?(fn {_peer_id, %{metas: metas}} ->
+      Enum.any?(metas, &(Map.get(&1, :identity_key) == identity_key))
+    end)
   end
 
   def identity_online?(_room_id, _identity_key), do: false
 
   def schedule_disconnect(room_id, nickname, identity_key)
       when is_binary(room_id) and is_binary(nickname) and is_binary(identity_key) do
-    DepartureNotifier.schedule(room_id, nickname, identity_key, announce?: false)
+    :ok = DepartureNotifier.schedule(room_id, nickname, identity_key, announce?: false)
+    broadcast_presence_grace_change(room_id)
+    :ok
   end
 
   def cancel_scheduled_departure(room_id, identity_key)
       when is_binary(room_id) and is_binary(identity_key) do
-    DepartureNotifier.cancel(room_id, identity_key)
+    :ok = DepartureNotifier.cancel(room_id, identity_key)
+    broadcast_presence_grace_change(room_id)
+    :ok
   end
 
   def announce_departure(room_id, nickname, identity_key)
@@ -95,6 +129,7 @@ defmodule Chat.Chatlans do
     peers =
       room_id
       |> list_online()
+      |> Enum.reject(&Map.get(&1, :reconnecting?, false))
       |> Enum.filter(&(&1.nickname == nickname))
 
     case peers do
@@ -200,6 +235,14 @@ defmodule Chat.Chatlans do
     attrs
     |> Map.get(:appearance, Appearance.default())
     |> Appearance.normalize()
+  end
+
+  defp broadcast_presence_grace_change(room_id) do
+    Phoenix.PubSub.broadcast(
+      Chat.PubSub,
+      Messages.room_topic(room_id),
+      {:presence_grace_changed, room_id}
+    )
   end
 
   defp restored_presence_key(current_presence_key, "presence-" <> encoded = presence_key)

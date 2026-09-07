@@ -9,6 +9,11 @@ defmodule ChatWeb.RanksLive do
     {:ok,
      socket
      |> assign(:page_title, "Помощь")
+     |> assign(
+       :meta_description,
+       "Помощь по чату Vertigo: правила, возможности и ранги чатланов."
+     )
+     |> assign(:canonical_path, ~p"/help")
      |> assign(:ranks, Ranks.rank_definitions())}
   end
 

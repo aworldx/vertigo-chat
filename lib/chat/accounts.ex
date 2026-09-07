@@ -42,7 +42,9 @@ defmodule Chat.Accounts do
     nickname = Chatlans.normalize_nickname(nickname, nil)
 
     if nickname do
-      Repo.exists?(from(user in User, where: user.nickname == ^nickname))
+      Repo.exists?(
+        from(user in User, where: user.nickname == ^nickname and not user.is_game_guest)
+      )
     else
       false
     end
@@ -50,6 +52,27 @@ defmodule Chat.Accounts do
 
   def get_user(id) when is_integer(id), do: Repo.get(User, id)
   def get_user(_id), do: nil
+
+  def game_nickname(%User{is_game_guest: true, game_nickname: nickname}) when is_binary(nickname),
+    do: nickname
+
+  def game_nickname(%User{nickname: nickname}), do: nickname
+  def game_nickname(_user), do: "Чатлан"
+
+  def ensure_game_guest(nickname, guest_identity_id) do
+    nickname = Chatlans.normalize_nickname(nickname, nil)
+
+    with nickname when is_binary(nickname) <- nickname,
+         {:ok, guest_identity_id} <- Ecto.UUID.cast(guest_identity_id) do
+      case Repo.get_by(User, guest_identity_id: guest_identity_id) do
+        %User{is_game_guest: true} = guest -> {:ok, guest}
+        nil -> create_game_guest(nickname, guest_identity_id)
+        _user -> {:error, :invalid_guest_identity}
+      end
+    else
+      _reason -> {:error, :invalid_guest_identity}
+    end
+  end
 
   def admin?(%User{is_admin: true}), do: true
   def admin?(_user), do: false
@@ -96,7 +119,8 @@ defmodule Chat.Accounts do
   end
 
   defp verify_registered_user(nickname, password) do
-    user = Repo.get_by(User, nickname: nickname)
+    user =
+      Repo.one(from user in User, where: user.nickname == ^nickname and not user.is_game_guest)
 
     cond do
       is_nil(user) -> {:error, :not_found}
@@ -108,7 +132,7 @@ defmodule Chat.Accounts do
   defp register_valid_user(changeset, subject) do
     Repo.transaction(fn ->
       changeset =
-        if Repo.exists?(User),
+        if Repo.exists?(from(user in User, where: not user.is_game_guest)),
           do: changeset,
           else: Ecto.Changeset.put_change(changeset, :is_admin, true)
 
@@ -121,6 +145,27 @@ defmodule Chat.Accounts do
         {:error, failed_changeset} -> Repo.rollback(failed_changeset)
       end
     end)
+  end
+
+  defp create_game_guest(nickname, guest_identity_id) do
+    attrs = %{
+      nickname: "game-guest-" <> guest_identity_id,
+      password_hash: Password.hash(guest_identity_id),
+      is_game_guest: true,
+      game_nickname: nickname,
+      guest_identity_id: guest_identity_id
+    }
+
+    case %User{} |> User.game_guest_changeset(attrs) |> Repo.insert() do
+      {:ok, guest} ->
+        {:ok, guest}
+
+      {:error, changeset} ->
+        case Repo.get_by(User, guest_identity_id: guest_identity_id) do
+          %User{is_game_guest: true} = guest -> {:ok, guest}
+          _user -> {:error, changeset}
+        end
+    end
   end
 
   defp normalize_password(password) when is_binary(password), do: password

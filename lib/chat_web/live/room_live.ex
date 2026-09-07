@@ -34,10 +34,13 @@ defmodule ChatWeb.RoomLive do
   def mount(_params, _session, socket) do
     presence_key = Chatlans.guest_presence_key()
     security_subject = ClientSecurity.subject_from_socket(socket, presence_key)
-    messages = Messages.list_recent_messages(@room_id)
+    messages = messages_for_mount(socket)
 
     socket =
       socket
+      |> assign(:page_title, "Вход в чат")
+      |> assign(:meta_description, "Вход в общий чат Vertigo.")
+      |> assign(:robots, "noindex, nofollow")
       |> assign(:nickname, nil)
       |> assign(:presence_key, presence_key)
       |> assign(:chat_session_token, nil)
@@ -288,7 +291,9 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  def handle_event("send_message", %{"message" => %{"body" => body}}, socket) do
+  def handle_event("send_message", %{"message" => %{"body" => body} = params}, socket) do
+    client_id = Map.get(params, "client_id")
+
     case execute_command(body, socket) do
       {:handled, result} ->
         result
@@ -297,7 +302,7 @@ defmodule ChatWeb.RoomLive do
         if PrivateMessages.private_syntax?(body) do
           send_private_message(body, socket)
         else
-          send_public_message(body, socket)
+          send_public_message(body, client_id, socket)
         end
     end
   end
@@ -732,7 +737,7 @@ defmodule ChatWeb.RoomLive do
 
     with nickname when not is_nil(nickname) <- nickname,
          {:ok, identity_key, guest_identity_token} <- guest_identity_from_params(params, nickname),
-         session_token = session_token_for_restore(params["session_token"], nickname),
+         session_token when is_binary(session_token) <- params["session_token"],
          {:ok, session_id} <- UserAuth.verify_chat_session(session_token, nickname),
          {:ok, restored} <-
            Chatlans.restore_session(
@@ -814,6 +819,39 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp messages_for_mount(socket) do
+    recent_messages = Messages.list_recent_messages(@room_id)
+
+    case message_cursor(socket) do
+      {:ok, cursor} ->
+        # A LiveView stream is rehydrated after reconnect. Keeping the recent stream
+        # entries in this response lets the client retain their DOM nodes; `after`
+        # adds every message that arrived while its socket was disconnected.
+        recent_messages
+        |> merge_messages(Messages.list_messages_after(@room_id, cursor))
+
+      :none ->
+        recent_messages
+    end
+  end
+
+  defp merge_messages(existing_messages, additional_messages) do
+    (existing_messages ++ additional_messages)
+    |> Enum.uniq_by(& &1.id)
+    |> Enum.sort_by(& &1.id)
+  end
+
+  defp message_cursor(socket) do
+    with true <- connected?(socket),
+         %{"message_cursor" => cursor} when is_binary(cursor) <- get_connect_params(socket),
+         {message_id, ""} <- Integer.parse(cursor),
+         true <- message_id >= 0 do
+      {:ok, message_id}
+    else
+      _invalid -> :none
+    end
+  end
+
   defp identity_for_entrance(%{} = user, _nickname),
     do: {Visits.user_identity_key(user), nil}
 
@@ -832,13 +870,6 @@ defmodule ChatWeb.RoomLive do
           {:ok, Visits.guest_identity_key(session_id),
            UserAuth.sign_guest_identity(nickname, session_id)}
         end
-    end
-  end
-
-  defp session_token_for_restore(session_token, nickname) do
-    case UserAuth.verify_chat_session(session_token, nickname) do
-      {:ok, _session_id} -> session_token
-      {:error, :invalid_session} -> UserAuth.sign_chat_session(nickname)
     end
   end
 
@@ -889,6 +920,7 @@ defmodule ChatWeb.RoomLive do
     |> assign(:gif_results, [])
     |> assign(:gif_search_message_id, nil)
     |> push_event("clear-user-auth", %{})
+    |> push_event("clear-message-input", %{})
     |> maybe_clear_guest_session(guest?)
   end
 
@@ -1079,6 +1111,10 @@ defmodule ChatWeb.RoomLive do
      )}
   end
 
+  def handle_info({:presence_grace_changed, @room_id}, socket) do
+    {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
+  end
+
   @impl true
   def terminate(_reason, socket) do
     if socket.assigns.joined? do
@@ -1099,10 +1135,10 @@ defmodule ChatWeb.RoomLive do
     :ok
   end
 
-  defp send_public_message(body, socket) do
+  defp send_public_message(body, client_id, socket) do
     result =
       if socket.assigns.joined? do
-        send_chatlan_public_message(body, socket)
+        send_chatlan_public_message(body, client_id, socket)
       else
         {:error, :not_joined}
       end
@@ -1399,7 +1435,7 @@ defmodule ChatWeb.RoomLive do
            user,
            @room_id,
            gif,
-           public_message_attrs("", socket),
+           public_message_attrs("", nil, socket),
            message_security_subject(socket)
          ) do
       {:ok, _message, updated_user} ->
@@ -1420,7 +1456,7 @@ defmodule ChatWeb.RoomLive do
            socket.assigns.nickname,
            @room_id,
            gif,
-           public_message_attrs("", socket),
+           public_message_attrs("", nil, socket),
            message_security_subject(socket)
          ) do
       {:ok, _message} ->
@@ -1436,7 +1472,7 @@ defmodule ChatWeb.RoomLive do
            user,
            @room_id,
            track,
-           public_message_attrs("", socket),
+           public_message_attrs("", nil, socket),
            message_security_subject(socket)
          ) do
       {:ok, _message, updated_user} ->
@@ -1458,7 +1494,7 @@ defmodule ChatWeb.RoomLive do
            socket.assigns.nickname,
            @room_id,
            track,
-           public_message_attrs("", socket),
+           public_message_attrs("", nil, socket),
            message_security_subject(socket)
          ) do
       {:ok, _message} ->
@@ -1929,31 +1965,36 @@ defmodule ChatWeb.RoomLive do
     )
   end
 
-  defp send_chatlan_public_message(body, %{assigns: %{current_user: %{} = user}} = socket) do
+  defp send_chatlan_public_message(
+         body,
+         client_id,
+         %{assigns: %{current_user: %{} = user}} = socket
+       ) do
     Messages.send_registered_public_message(
       user,
       @room_id,
-      public_message_attrs(body, socket),
+      public_message_attrs(body, client_id, socket),
       message_security_subject(socket)
     )
   end
 
-  defp send_chatlan_public_message(body, socket) do
+  defp send_chatlan_public_message(body, client_id, socket) do
     Messages.send_public_message(
       socket.assigns.nickname,
       @room_id,
-      public_message_attrs(body, socket),
+      public_message_attrs(body, client_id, socket),
       message_security_subject(socket)
     )
   end
 
-  defp public_message_attrs(body, socket) do
+  defp public_message_attrs(body, client_id, socket) do
     %{
       "body" => body,
       "theme_id" => socket.assigns.theme_id,
       "appearance" => socket.assigns.appearance,
       "font_id" => socket.assigns.font_id,
       "font_style" => socket.assigns.font_style,
+      "client_id" => client_id,
       "recipient_nicknames" => Enum.map(socket.assigns.online, & &1.nickname)
     }
   end
@@ -2085,6 +2126,8 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp renew_chat_session(socket) do
+    :ok = Visits.touch_active_visit(socket.assigns.identity_key)
+
     session_token =
       UserAuth.sign_chat_session(socket.assigns.nickname, socket.assigns.chat_session_id)
 

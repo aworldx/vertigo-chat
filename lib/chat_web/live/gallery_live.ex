@@ -11,6 +11,8 @@ defmodule ChatWeb.GalleryLive do
     {:ok,
      socket
      |> assign(:page_title, "Фотоальбом")
+     |> assign(:meta_description, "Фотоальбом сообщества Vertigo.")
+     |> assign(:robots, "noindex, follow")
      |> assign(:current_user, nil)
      |> assign(:can_add_gallery_photos?, false)
      |> assign(:auth_checked?, false)

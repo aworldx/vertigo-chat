@@ -19,6 +19,9 @@ defmodule Chat.Accounts.User do
     field(:font_style, :string, default: "normal")
     field(:message_sound_enabled, :boolean, default: false)
     field(:is_admin, :boolean, default: false)
+    field(:is_game_guest, :boolean, default: false)
+    field(:game_nickname, :string)
+    field(:guest_identity_id, :binary_id)
     field(:public_message_count, :integer, default: 0)
     field(:chat_seconds, :integer, default: 0)
     has_one(:profile, Profile)
@@ -43,6 +46,23 @@ defmodule Chat.Accounts.User do
     user
     |> cast(attrs, [:theme_id, :appearance, :font_id, :font_style, :message_sound_enabled])
     |> validate_required([:theme_id, :appearance, :font_id, :font_style, :message_sound_enabled])
+  end
+
+  def game_guest_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:nickname, :password_hash, :is_game_guest, :game_nickname, :guest_identity_id])
+    |> validate_required([
+      :nickname,
+      :password_hash,
+      :is_game_guest,
+      :game_nickname,
+      :guest_identity_id
+    ])
+    |> validate_change(:is_game_guest, fn :is_game_guest, value ->
+      if value, do: [], else: [is_game_guest: "must be enabled for a game guest"]
+    end)
+    |> unique_constraint(:guest_identity_id)
+    |> unique_constraint(:nickname)
   end
 
   defp put_password_hash(changeset) do

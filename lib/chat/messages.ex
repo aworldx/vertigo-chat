@@ -43,6 +43,7 @@ defmodule Chat.Messages do
           Typography.normalize_font_id(Map.get(attrs, "font_id")),
           Typography.normalize_font_style(Map.get(attrs, "font_style")),
           Map.get(attrs, "recipient_nicknames", []),
+          Map.get(attrs, "client_id"),
           subject
         )
 
@@ -74,6 +75,7 @@ defmodule Chat.Messages do
       Typography.normalize_font_style(Map.get(attrs, "font_style")),
       Map.get(attrs, "recipient_nicknames", []),
       Map.get(attrs, "rank"),
+      Map.get(attrs, "client_id"),
       subject
     )
   end
@@ -90,6 +92,7 @@ defmodule Chat.Messages do
       Typography.default_font_style(),
       Map.get(attrs, "recipient_nicknames", []),
       Map.get(attrs, "rank"),
+      Map.get(attrs, "client_id"),
       subject
     )
   end
@@ -174,6 +177,13 @@ defmodule Chat.Messages do
     end
   end
 
+  def list_messages_after(room_id, message_id)
+      when is_binary(room_id) and is_integer(message_id) do
+    History.list_after(room_id, message_id)
+  end
+
+  def list_messages_after(_room_id, _message_id), do: []
+
   def announce_presence(nickname, room_id, event)
       when is_binary(nickname) and is_binary(room_id) and event in [:joined, :left] do
     body =
@@ -251,6 +261,7 @@ defmodule Chat.Messages do
          font_style,
          recipient_nicknames,
          rank,
+         client_id,
          subject
        ) do
     body = String.trim(body)
@@ -263,22 +274,29 @@ defmodule Chat.Messages do
         {:error, :message_too_long}
 
       true ->
-        case Security.allow_message(subject) do
-          :ok ->
-            broadcast_message(
-              author,
-              room_id,
-              body,
-              theme_id,
-              appearance,
-              font_id,
-              font_style,
-              recipient_nicknames,
-              rank
-            )
+        case History.find_by_client_id(room_id, valid_client_id(client_id)) do
+          {:ok, message} ->
+            {:ok, message}
 
-          {:error, {:rate_limited, _retry_after_ms}} ->
-            {:error, :rate_limited}
+          :not_found ->
+            case Security.allow_message(subject) do
+              :ok ->
+                broadcast_message(
+                  author,
+                  room_id,
+                  body,
+                  theme_id,
+                  appearance,
+                  font_id,
+                  font_style,
+                  recipient_nicknames,
+                  rank,
+                  client_id
+                )
+
+              {:error, {:rate_limited, _retry_after_ms}} ->
+                {:error, :rate_limited}
+            end
         end
     end
   end
@@ -292,7 +310,8 @@ defmodule Chat.Messages do
          font_id,
          font_style,
          recipient_nicknames,
-         rank
+         rank,
+         client_id
        ) do
     message =
       build_message(
@@ -303,7 +322,8 @@ defmodule Chat.Messages do
         font_id,
         font_style,
         recipient_nicknames,
-        rank
+        rank,
+        client_id
       )
 
     persist_and_broadcast(room_id, message)
@@ -340,13 +360,16 @@ defmodule Chat.Messages do
   end
 
   defp persist_and_broadcast(room_id, message) do
-    with {:ok, message} <- History.save(room_id, message) do
+    with {:ok, message, :inserted} <- History.save(room_id, message) do
       :ok = Registry.append(room_id, message)
 
       :ok =
         Phoenix.PubSub.broadcast(Chat.PubSub, room_topic(room_id), {:message_created, message})
 
       {:ok, message}
+    else
+      {:ok, message, :existing} -> {:ok, message}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -359,6 +382,7 @@ defmodule Chat.Messages do
          font_id,
          font_style,
          recipients,
+         client_id,
          subject
        ) do
     body = String.trim(body)
@@ -371,26 +395,33 @@ defmodule Chat.Messages do
         {:error, :message_too_long}
 
       true ->
-        case Security.allow_message(subject) do
-          :ok ->
-            with {:ok, updated_user} <- Ranks.public_message_sent(user),
-                 {:ok, message} <-
-                   broadcast_message(
-                     updated_user.nickname,
-                     room_id,
-                     body,
-                     theme_id,
-                     appearance,
-                     font_id,
-                     font_style,
-                     recipients,
-                     Ranks.for_user(updated_user)
-                   ) do
-              {:ok, message, updated_user}
-            end
+        case History.find_by_client_id(room_id, valid_client_id(client_id)) do
+          {:ok, message} ->
+            {:ok, message, user}
 
-          {:error, {:rate_limited, _retry_after_ms}} ->
-            {:error, :rate_limited}
+          :not_found ->
+            case Security.allow_message(subject) do
+              :ok ->
+                with {:ok, updated_user} <- Ranks.public_message_sent(user),
+                     {:ok, message} <-
+                       broadcast_message(
+                         updated_user.nickname,
+                         room_id,
+                         body,
+                         theme_id,
+                         appearance,
+                         font_id,
+                         font_style,
+                         recipients,
+                         Ranks.for_user(updated_user),
+                         client_id
+                       ) do
+                  {:ok, message, updated_user}
+                end
+
+              {:error, {:rate_limited, _retry_after_ms}} ->
+                {:error, :rate_limited}
+            end
         end
     end
   end
@@ -403,7 +434,8 @@ defmodule Chat.Messages do
          font_id,
          font_style,
          recipient_nicknames,
-         rank
+         rank,
+         client_id
        ) do
     Map.merge(
       %{
@@ -411,6 +443,7 @@ defmodule Chat.Messages do
         kind: :text,
         author: author,
         body: body,
+        client_id: valid_client_id(client_id),
         recipient: recipient_from_body(body, recipient_nicknames),
         reactions: %{},
         theme_id: theme_id,
@@ -422,6 +455,11 @@ defmodule Chat.Messages do
       timestamp()
     )
   end
+
+  defp valid_client_id(client_id) when is_binary(client_id) and byte_size(client_id) in 1..64,
+    do: client_id
+
+  defp valid_client_id(_client_id), do: nil
 
   defp build_gif_message(author, gif, theme_id, appearance, font_id, font_style, rank) do
     Map.merge(

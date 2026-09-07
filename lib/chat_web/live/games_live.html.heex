@@ -77,7 +77,8 @@
                   <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h2 class="text-xl font-bold">Игровая</h2><p class="text-sm text-zinc-400">
-                        Ты вошёл как <span class="text-amber-300">{@current_user.nickname}</span>
+                        Ты вошёл как
+                        <span class="text-amber-300">{display_name(@current_user)}</span>
                       </p>
                     </div><button
                       id="create-game"
@@ -93,7 +94,7 @@
                       id={"game-#{game.id}"}
                       class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
                     >
-                      <strong>{Enum.map_join(game.players, " · ", & &1.user.nickname)}</strong><p class="mt-1 text-sm text-zinc-500">
+                      <strong>{Enum.map_join(game.players, " · ", &display_name(&1.user))}</strong><p class="mt-1 text-sm text-zinc-500">
                         {if game.status == "waiting", do: "Набираем игроков", else: "Идёт партия"} · {length(
                           game.players
                         )}/{Games.max_players(@kind)}
@@ -123,7 +124,7 @@
                         id={"waiting-game-#{game.id}"}
                         class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
                       >
-                        <strong>{game.creator.nickname}</strong>
+                        <strong>{display_name(game.creator)}</strong>
                         <p class="mt-1 text-sm text-zinc-500">
                           Игроков: {length(game.players)}/{Games.max_players(@kind)}
                         </p>
@@ -148,7 +149,7 @@
                       id={"spectator-game-#{game.id}"}
                       class="mt-3 rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
                     >
-                      <strong>{Enum.map_join(game.players, " — ", & &1.user.nickname)}</strong><button
+                      <strong>{Enum.map_join(game.players, " — ", &display_name(&1.user))}</strong><button
                         id={"watch-game-#{game.id}"}
                         phx-click="open"
                         phx-value-id={game.id}
@@ -166,7 +167,7 @@
                   <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h2 class="text-xl font-bold">
-                        {Enum.map_join(@game.players, " — ", & &1.user.nickname)}
+                        {Enum.map_join(@game.players, " — ", &display_name(&1.user))}
                       </h2><p id="game-status" class="text-sm text-zinc-400">
                         {if @game.status == "finished",
                           do: "Партия завершена",
@@ -180,7 +181,7 @@
                       :if={@game.winner}
                       id="game-winner"
                       class="rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-zinc-950"
-                    >Победитель: {@game.winner.nickname}</span>
+                    >Победитель: {display_name(@game.winner)}</span>
                   </div>
                   <div :if={@game.kind == "battleship"}>
                     <div
@@ -355,7 +356,7 @@
                         class="self-end rounded-xl border border-zinc-700 px-4 py-2"
                       >Пропустить</button>
                     </.form><div id="balda-scores" class="mt-4 flex flex-wrap gap-3">
-                      <span :for={player <- @game.players}>{player.user.nickname}:
+                      <span :for={player <- @game.players}>{display_name(player.user)}:
                       <strong>{score(@game, player.user_id)}</strong></span>
                     </div>
                   </div>
@@ -373,7 +374,9 @@
                     id={"leaderboard-user-#{row.user.id}"}
                     class="flex items-center gap-3 rounded-xl bg-zinc-950/60 p-3"
                   >
-                    <span class="grid size-8 place-items-center rounded-full bg-amber-400 font-black text-zinc-950">{index}</span><span class="min-w-0 flex-1 truncate font-semibold">{row.user.nickname}</span><span class="text-right text-sm"><strong class="text-amber-300">{row.wins}</strong><small class="block text-zinc-500">из {row.played}</small></span>
+                    <span class="grid size-8 place-items-center rounded-full bg-amber-400 font-black text-zinc-950">{index}</span><span class="min-w-0 flex-1 truncate font-semibold">{display_name(
+                      row.user
+                    )}</span><span class="text-right text-sm"><strong class="text-amber-300">{row.wins}</strong><small class="block text-zinc-500">из {row.played}</small></span>
                   </li><li
                     :if={@leaderboard == []}
                     id="games-leaderboard-empty"
@@ -388,7 +391,27 @@
       <% end %>
     </div>
     <script :type={Phoenix.LiveView.ColocatedHook} name=".GamesAuth">
-      export default { mounted() { const token = sessionStorage.getItem("chat:user-auth"); this.pushEvent("authenticate_games", token ? {token} : {}) } }
+      export default {
+        mounted() {
+          this.authenticate()
+        },
+        reconnected() {
+          this.authenticate()
+        },
+        authenticate() {
+          const token = sessionStorage.getItem("chat:user-auth")
+          if (token) return this.pushEvent("authenticate_games", {token})
+
+          try {
+            const store = JSON.parse(localStorage.getItem("chat:guest-preferences") || "{}")
+            const nickname = store.current_nickname
+            const identityToken = nickname && store.by_nickname?.[nickname]?.identity_token
+            this.pushEvent("authenticate_games", nickname && identityToken ? {guest_nickname: nickname, guest_identity_token: identityToken} : {})
+          } catch (_error) {
+            this.pushEvent("authenticate_games", {})
+          }
+        }
+      }
     </script>
   </div>
 </Layouts.app>

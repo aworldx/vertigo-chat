@@ -22,6 +22,8 @@ defmodule ChatWeb.Router do
   scope "/", ChatWeb do
     pipe_through :media
 
+    get "/robots.txt", RobotsController, :show
+    get "/sitemap.xml", SitemapController, :show
     get "/gif-proxy", GifProxyController, :show
     get "/music-proxy", MusicProxyController, :show
     get "/profiles/:nickname/photo", ProfilePhotoController, :show
@@ -32,6 +34,11 @@ defmodule ChatWeb.Router do
   scope "/", ChatWeb do
     pipe_through :browser
 
+    live "/about", LandingLive, :show
+    live "/articles", ArticlesLive, :index
+    live "/articles/chats-vs-messengers", ArticlesLive, :show
+    live "/articles/chat-platforms-russia", ArticlesLive, :history
+    live "/articles/how-vertigo-chat-works", ArticlesLive, :technology
     live "/", RoomLive, :show
     live "/admin", AdminLive, :index
     live "/profiles", ProfilesLive, :index

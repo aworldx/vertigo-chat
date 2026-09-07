@@ -31,6 +31,10 @@ defmodule Chat.Chatlans.DepartureNotifier do
     GenServer.call(server(opts), {:announce_now, room_id, nickname, identity_key})
   end
 
+  def pending(room_id, opts \\ []) when is_binary(room_id) do
+    GenServer.call(server(opts), {:pending, room_id})
+  end
+
   @impl true
   def init(opts) do
     {:ok, %{delay: Keyword.get(opts, :delay, @default_delay), departures: %{}}}
@@ -61,12 +65,23 @@ defmodule Chat.Chatlans.DepartureNotifier do
     {:reply, finish_departure(room_id, nickname, identity_key), state}
   end
 
+  def handle_call({:pending, room_id}, _from, state) do
+    departures =
+      for {{^room_id, identity_key}, departure} <- state.departures do
+        %{identity_key: identity_key, nickname: departure.nickname}
+      end
+
+    {:reply, departures, state}
+  end
+
   @impl true
   def handle_info({:announce_departure, {room_id, identity_key} = key}, state) do
     {departure, departures} = Map.pop(state.departures, key)
 
     if departure,
       do: finish_departure(room_id, departure.nickname, identity_key, departure.announce?)
+
+    notify_presence_change(room_id)
 
     {:noreply, %{state | departures: departures}}
   end
@@ -96,5 +111,13 @@ defmodule Chat.Chatlans.DepartureNotifier do
       Logger.info("session_departure_skipped reason=identity_online")
       :ok
     end
+  end
+
+  defp notify_presence_change(room_id) do
+    Phoenix.PubSub.broadcast(
+      Chat.PubSub,
+      Messages.room_topic(room_id),
+      {:presence_grace_changed, room_id}
+    )
   end
 end

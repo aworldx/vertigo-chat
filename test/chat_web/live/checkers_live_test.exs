@@ -34,6 +34,68 @@ defmodule ChatWeb.CheckersLiveTest do
     assert has_element?(view, "#checkers-games-empty")
   end
 
+  test "authenticates a guest chatlan with a signed guest identity", %{conn: conn} do
+    nickname = "guest_checker"
+    token = ChatWeb.UserAuth.sign_guest_identity(nickname)
+
+    {:ok, view, _html} = live(conn, ~p"/checkers")
+
+    render_hook(view, "authenticate_checkers", %{
+      "guest_nickname" => nickname,
+      "guest_identity_token" => token
+    })
+
+    assert has_element?(view, "#checkers-lobby", "Ты вошёл как guest_checker")
+  end
+
+  test "lets two guest chatlans create, accept, and play a checkers move", %{conn: conn} do
+    host_nickname = "guest_host"
+    opponent_nickname = "guest_opponent"
+    host_identity_id = Ecto.UUID.generate()
+    opponent_identity_id = Ecto.UUID.generate()
+
+    {:ok, host_view, _html} = live(conn, ~p"/checkers")
+    {:ok, opponent_view, _html} = live(build_conn(), ~p"/checkers")
+
+    render_hook(host_view, "authenticate_checkers", %{
+      "guest_nickname" => host_nickname,
+      "guest_identity_token" =>
+        ChatWeb.UserAuth.sign_guest_identity(host_nickname, host_identity_id)
+    })
+
+    render_hook(opponent_view, "authenticate_checkers", %{
+      "guest_nickname" => opponent_nickname,
+      "guest_identity_token" =>
+        ChatWeb.UserAuth.sign_guest_identity(opponent_nickname, opponent_identity_id)
+    })
+
+    [opponent] =
+      Chat.Checkers.list_opponents(
+        Accounts.ensure_game_guest(host_nickname, host_identity_id)
+        |> elem(1)
+      )
+
+    assert has_element?(
+             host_view,
+             "#checkers-invite-form option[value='#{opponent.id}']",
+             opponent_nickname
+           )
+
+    host_view
+    |> form("#checkers-invite-form", invite: %{opponent_id: opponent.id})
+    |> render_submit()
+
+    assert [game] = Chat.Checkers.list_games(opponent)
+    opponent_view |> element("#accept-game-#{game.id}") |> render_click()
+    assert has_element?(host_view, "#active-checkers-game")
+
+    host_view |> element("#square-5-0") |> render_click()
+    host_view |> element("#square-4-1") |> render_click()
+
+    assert has_element?(host_view, "#square-4-1 .checker-piece")
+    assert has_element?(host_view, "#checkers-turn", "Ходят чёрные")
+  end
+
   test "sends an invitation from the lobby", %{conn: conn} do
     {:ok, host} = Accounts.register_user(%{nickname: "invite_host", password: "secret123"})
     {:ok, opponent} = Accounts.register_user(%{nickname: "invite_guest", password: "secret123"})
