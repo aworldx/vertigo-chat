@@ -183,7 +183,24 @@
                       class="rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-zinc-950"
                     >Победитель: {display_name(@game.winner)}</span>
                   </div>
-                  <div :if={@game.kind == "battleship"}>
+                  <div
+                    :if={@game.status == "finished"}
+                    id="game-result"
+                    class={"game-result game-result--#{game_result_kind(@game, @current_user)}"}
+                  >
+                    <span class="game-result__mark" aria-hidden="true">
+                      {if game_result_kind(@game, @current_user) == "victory", do: "★", else: "♟"}
+                    </span>
+                    <h3>{game_result_title(@game, @current_user)}</h3>
+                    <p>{game_result_text(@game, @current_user)}</p>
+                    <button
+                      id="return-to-games-lobby"
+                      type="button"
+                      phx-click="return_to_games_lobby"
+                      class="game-result__action"
+                    >Вернуться в игровую</button>
+                  </div>
+                  <div :if={@game.status != "finished" and @game.kind == "battleship"}>
                     <p
                       :if={@game.status == "waiting" and !battleship_setup_open?(@game)}
                       id="battleship-awaiting-start"
@@ -378,7 +395,7 @@
                       </div>
                     </div>
                   </div>
-                  <div :if={@game.kind == "durak"}>
+                  <div :if={@game.status != "finished" and @game.kind == "durak"}>
                     <p id="durak-turn" class="mb-3 text-sm text-zinc-400">
                       {durak_turn_message(@game, @current_user)} · козырь {card_suit(
                         @game.state["trump"] || "6-♠"
@@ -435,7 +452,7 @@
                       >Бито</button>
                     </div>
                   </div>
-                  <div :if={@game.kind == "balda"}>
+                  <div :if={@game.status != "finished" and @game.kind == "balda"}>
                     <p id="balda-turn" class="mb-3 text-sm text-zinc-400">
                       {if @game.status == "active",
                         do: "Ходит " <> player_name(@game, @game.state["turn_id"]),

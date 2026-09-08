@@ -4,6 +4,8 @@ defmodule ChatWeb.GamesLiveTest do
 
   alias Chat.Accounts
   alias Chat.Games
+  alias Chat.Games.Game
+  alias Chat.Repo
 
   test "shows the game catalog including checkers", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/games")
@@ -108,5 +110,30 @@ defmodule ChatWeb.GamesLiveTest do
     assert has_element?(view, "#join-game-#{game.id}")
     view |> element("#join-game-#{game.id}") |> render_click()
     assert has_element?(view, "#game-#{game.id}", "waiting_host")
+  end
+
+  test "shows a victory screen when a finished game belongs to the winner", %{conn: conn} do
+    {:ok, winner} = Accounts.register_user(%{nickname: "result_winner", password: "secret123"})
+
+    {:ok, opponent} =
+      Accounts.register_user(%{nickname: "result_opponent", password: "secret123"})
+
+    assert {:ok, game} = Games.create(winner, "balda")
+    assert {:ok, game} = Games.join(opponent, game.id)
+    assert {:ok, game} = Games.start(winner, game.id)
+
+    {:ok, view, _html} = live(conn, ~p"/games/balda")
+    render_hook(view, "authenticate_games", %{"token" => ChatWeb.UserAuth.sign(winner)})
+    view |> element("#open-game-#{game.id}") |> render_click()
+
+    Repo.get!(Game, game.id)
+    |> Game.changeset(%{status: "finished", winner_id: winner.id})
+    |> Repo.update!()
+
+    send(view.pid, {:game_updated, game.id})
+    assert has_element?(view, "#game-result.game-result--victory", "Победа!")
+    assert has_element?(view, "#return-to-games-lobby")
+    view |> element("#return-to-games-lobby") |> render_click()
+    refute has_element?(view, "#game-result")
   end
 end

@@ -436,6 +436,72 @@
   box-shadow: inset 0 0 1.75rem rgb(0 0 0 / 0.28), 0 0.7rem 1.5rem rgb(0 0 0 / 0.16);
 }
 
+.game-result {
+  display: grid;
+  min-height: 20rem;
+  place-items: center;
+  align-content: center;
+  gap: 0.8rem;
+  padding: 2.5rem 1.5rem;
+  border: 1px solid rgb(161 161 170 / 0.55);
+  border-radius: 1.5rem;
+  background: radial-gradient(circle at 50% 20%, rgb(250 204 21 / 0.18), transparent 35%), #18181b;
+  text-align: center;
+}
+
+.game-result--victory {
+  border-color: rgb(250 204 21 / 0.8);
+}
+
+.game-result--defeat {
+  border-color: rgb(244 63 94 / 0.62);
+  background: radial-gradient(circle at 50% 20%, rgb(244 63 94 / 0.15), transparent 35%), #18181b;
+}
+
+.game-result__mark {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(250 204 21 / 0.15);
+  color: #fde047;
+  font-size: 2.25rem;
+}
+
+.game-result--defeat .game-result__mark {
+  background: rgb(244 63 94 / 0.15);
+  color: #fda4af;
+}
+
+.game-result h2,
+.game-result h3 {
+  margin: 0;
+  color: #f4f4f5;
+  font-size: clamp(1.9rem, 5vw, 2.8rem);
+  font-weight: 800;
+}
+
+.game-result p {
+  margin: 0;
+  color: #d4d4d8;
+}
+
+.game-result__action {
+  margin-top: 0.6rem;
+  padding: 0.7rem 1.05rem;
+  border: 1px solid rgb(250 204 21 / 0.7);
+  border-radius: 0.75rem;
+  color: #fde047;
+  font-weight: 700;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.game-result__action:hover {
+  background: #fde047;
+  color: #18181b;
+}
+
 .playing-card {
   position: relative;
   display: inline-block;

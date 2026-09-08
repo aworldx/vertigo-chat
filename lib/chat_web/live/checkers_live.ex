@@ -65,6 +65,10 @@ defmodule ChatWeb.CheckersLive do
     end
   end
 
+  def handle_event("return_to_checkers_lobby", _params, socket) do
+    {:noreply, socket |> assign(:game, nil) |> assign(:selected_square, nil) |> refresh()}
+  end
+
   def handle_event("accept", %{"id" => id}, socket),
     do: game_action(socket, &Checkers.accept(&1, id), "Игра началась.")
 
@@ -155,6 +159,7 @@ defmodule ChatWeb.CheckersLive do
   def piece_color(piece) when piece in ~w(w W), do: "white"
   def piece_color(_piece), do: "black"
 
+  def player?(_game, nil), do: false
   def player?(game, user), do: game.inviter_id == user.id or game.opponent_id == user.id
 
   def opponent_name(game, user_id) do
@@ -164,6 +169,30 @@ defmodule ChatWeb.CheckersLive do
   end
 
   def display_name(user), do: Accounts.game_nickname(user)
+
+  def result_kind(game, user) do
+    cond do
+      user && game.winner_id == user.id -> "victory"
+      player?(game, user) -> "defeat"
+      true -> "spectator"
+    end
+  end
+
+  def result_title(game, user) do
+    case result_kind(game, user) do
+      "victory" -> "Победа!"
+      "defeat" -> "Поражение"
+      _ -> "Партия завершена"
+    end
+  end
+
+  def result_text(game, user) do
+    cond do
+      is_nil(game.winner) -> "Игра завершилась без победителя."
+      result_kind(game, user) == "victory" -> "Ты выиграл эту партию."
+      true -> "Победил #{display_name(game.winner)}."
+    end
+  end
 
   defp game_action(socket, action, message) do
     case action.(socket.assigns.current_user) do

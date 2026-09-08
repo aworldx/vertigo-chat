@@ -4,6 +4,8 @@ defmodule ChatWeb.CheckersLiveTest do
 
   alias Chat.Accounts
   alias Chat.Checkers
+  alias Chat.Checkers.Game
+  alias Chat.Repo
 
   test "renders authentication state and stable game containers", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/checkers")
@@ -146,6 +148,31 @@ defmodule ChatWeb.CheckersLiveTest do
 
     assert has_element?(view, "#active-checkers-game", "Режим зрителя")
     assert has_element?(view, "#square-0-1[disabled]")
+  end
+
+  test "shows a victory screen when a finished checkers game belongs to the winner", %{conn: conn} do
+    {:ok, winner} =
+      Accounts.register_user(%{nickname: "checker_result_winner", password: "secret123"})
+
+    {:ok, opponent} =
+      Accounts.register_user(%{nickname: "checker_result_opponent", password: "secret123"})
+
+    assert {:ok, game} = Checkers.invite(winner, opponent.id)
+    assert {:ok, game} = Checkers.accept(opponent, game.id)
+
+    {:ok, view, _html} = live(conn, ~p"/checkers")
+    render_hook(view, "authenticate_checkers", %{"token" => ChatWeb.UserAuth.sign(winner)})
+    view |> element("#open-game-#{game.id}") |> render_click()
+
+    Repo.get!(Game, game.id)
+    |> Ecto.Changeset.change(status: "finished", winner_id: winner.id)
+    |> Repo.update!()
+
+    send(view.pid, {:game_updated, game.id})
+    assert has_element?(view, "#checkers-result.game-result--victory", "Победа!")
+    assert has_element?(view, "#return-to-checkers-lobby")
+    view |> element("#return-to-checkers-lobby") |> render_click()
+    refute has_element?(view, "#checkers-result")
   end
 
   test "rejects an invalid authentication token", %{conn: conn} do

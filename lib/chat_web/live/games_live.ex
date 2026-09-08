@@ -148,6 +148,15 @@ defmodule ChatWeb.GamesLive do
     end
   end
 
+  def handle_event("return_to_games_lobby", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:game, nil)
+     |> assign(:fleet_draft, [])
+     |> assign(:selected_square, nil)
+     |> refresh()}
+  end
+
   def handle_event("shot", %{"square" => square}, socket),
     do: current_game_action(socket, &Games.shoot(&1, socket.assigns.game.id, square))
 
@@ -313,6 +322,31 @@ defmodule ChatWeb.GamesLive do
 
       true ->
         "Атакует #{player_name(game, game.state["attacker_id"])}."
+    end
+  end
+
+  def game_result_kind(game, user) do
+    cond do
+      user && game.winner_id == user.id -> "victory"
+      player?(game, user) -> "defeat"
+      true -> "spectator"
+    end
+  end
+
+  def game_result_title(game, user) do
+    case game_result_kind(game, user) do
+      "victory" -> "Победа!"
+      "defeat" -> "Поражение"
+      _ -> "Партия завершена"
+    end
+  end
+
+  def game_result_text(game, user) do
+    cond do
+      is_nil(game.winner) -> "Игра завершилась без победителя."
+      game_result_kind(game, user) == "victory" -> "Ты выиграл эту партию."
+      game_result_kind(game, user) == "defeat" -> "Победил #{display_name(game.winner)}."
+      true -> "Победил #{display_name(game.winner)}."
     end
   end
 

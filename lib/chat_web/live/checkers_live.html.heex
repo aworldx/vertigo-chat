@@ -148,6 +148,24 @@
               </section>
 
               <section
+                :if={@game && @game.status == "finished"}
+                id="checkers-result"
+                class={"game-result game-result--#{result_kind(@game, @current_user)}"}
+              >
+                <span class="game-result__mark" aria-hidden="true">
+                  {if result_kind(@game, @current_user) == "victory", do: "★", else: "♟"}
+                </span>
+                <h2>{result_title(@game, @current_user)}</h2>
+                <p>{result_text(@game, @current_user)}</p>
+                <button
+                  id="return-to-checkers-lobby"
+                  type="button"
+                  phx-click="return_to_checkers_lobby"
+                  class="game-result__action"
+                >Вернуться в игровую</button>
+              </section>
+
+              <section
                 :if={@game && @game.status == "active"}
                 id="active-checkers-game"
                 class="rounded-3xl border border-zinc-800 bg-zinc-900 p-5"
