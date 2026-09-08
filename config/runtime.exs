@@ -34,6 +34,11 @@ config :chat, Chat.Bot.OpenAI,
   model: System.get_env("OPENAI_BOT_MODEL", "gpt-5.4-nano"),
   receive_timeout: openai_receive_timeout_ms
 
+config :chat, Chat.Karmik.OpenAI,
+  api_key: System.get_env("OPENAI_API_KEY"),
+  model: System.get_env("OPENAI_KARMIK_MODEL", "gpt-5.4-nano"),
+  receive_timeout: openai_receive_timeout_ms
+
 daily_token_limit =
   case Integer.parse(System.get_env("OPENAI_BOT_DAILY_TOKEN_LIMIT", "120000")) do
     {limit, ""} when limit > 0 -> limit

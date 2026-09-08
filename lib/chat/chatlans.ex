@@ -43,6 +43,7 @@ defmodule Chat.Chatlans do
             nickname: meta.nickname,
             registered?: Map.get(meta, :registered?, false),
             rank: Map.get(meta, :rank),
+            karma: Map.get(meta, :karma, 0),
             theme_id: theme_id,
             appearance: appearance
           }
@@ -210,6 +211,7 @@ defmodule Chat.Chatlans do
       nickname: normalize_nickname(nickname, nil),
       registered?: Keyword.get(opts, :registered?, false),
       rank: Keyword.get(opts, :rank),
+      karma: Keyword.get(opts, :karma, 0),
       session_id: Keyword.get(opts, :session_id),
       identity_key: Keyword.get(opts, :identity_key),
       connection_epoch: Keyword.get(opts, :connection_epoch),
@@ -226,6 +228,7 @@ defmodule Chat.Chatlans do
       nickname: attrs.nickname,
       registered?: Map.get(attrs, :registered?, false),
       rank: Map.get(attrs, :rank),
+      karma: Map.get(attrs, :karma, 0),
       session_id: Map.get(attrs, :session_id),
       identity_key: Map.get(attrs, :identity_key),
       connection_epoch: Map.get(attrs, :connection_epoch),

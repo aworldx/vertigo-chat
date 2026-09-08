@@ -18,6 +18,11 @@ config :chat, Chat.Bot,
   provider: Chat.Bot.OpenAI,
   reply_delay_range_ms: {5_000, 15_000}
 
+config :chat, Chat.Karmik,
+  enabled?: true,
+  provider: Chat.Karmik.OpenAI,
+  review_interval_ms: 180_000
+
 # Configure the endpoint
 config :chat, ChatWeb.Endpoint,
   url: [host: "localhost"],

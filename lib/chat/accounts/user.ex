@@ -24,6 +24,7 @@ defmodule Chat.Accounts.User do
     field(:guest_identity_id, :binary_id)
     field(:public_message_count, :integer, default: 0)
     field(:chat_seconds, :integer, default: 0)
+    field(:karma, :integer, default: 0)
     has_one(:profile, Profile)
     has_many(:library_articles, Article)
     has_many(:sent_checkers_games, Game, foreign_key: :inviter_id)

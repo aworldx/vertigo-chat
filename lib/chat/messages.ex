@@ -207,6 +207,16 @@ defmodule Chat.Messages do
     persist_and_broadcast(room_id, message)
   end
 
+  def announce_karmik_assessment(nickname, room_id, 1)
+      when is_binary(nickname) and is_binary(room_id) do
+    announce_system(room_id, "Кармик варит для #{nickname} сердечко — рейтинг повышен на 1.")
+  end
+
+  def announce_karmik_assessment(nickname, room_id, -1)
+      when is_binary(nickname) and is_binary(room_id) do
+    announce_system(room_id, "Кармик сердито машет хвостом: #{nickname}, рейтинг понижен на 1.")
+  end
+
   def toggle_reaction(reactor, reactor_key, room_id, message_id, emoji)
       when is_binary(reactor) and is_binary(reactor_key) and is_binary(room_id) and
              is_binary(message_id) and emoji in @reaction_emojis do
@@ -244,6 +254,25 @@ defmodule Chat.Messages do
       },
       timestamp()
     )
+  end
+
+  defp announce_system(room_id, body) do
+    message =
+      Map.merge(
+        %{
+          id: System.unique_integer([:positive]),
+          kind: :system,
+          author: "Кармик",
+          body: body,
+          recipient: nil,
+          reactions: %{},
+          theme_id: Themes.default_theme_id(),
+          appearance: Appearance.default()
+        },
+        timestamp()
+      )
+
+    persist_and_broadcast(room_id, message)
   end
 
   def room_topic(room_id), do: "room:#{room_id}"

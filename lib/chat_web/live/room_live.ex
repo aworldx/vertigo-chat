@@ -78,6 +78,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:media_error, nil)
       |> assign(:online, [])
       |> assign(:typing_peers, %{})
+      |> assign(:karmik_mood, :resting)
       |> assign(:bot_pending?, false)
       |> assign(:music_pending?, false)
       |> assign(:music_results, [])
@@ -184,6 +185,13 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("touch_chat_session", _params, socket), do: {:noreply, socket}
+
+  def handle_event("pet_karmik", _params, %{assigns: %{joined?: true}} = socket) do
+    Process.send_after(self(), :karmik_rest, 8_000)
+    {:noreply, assign(socket, :karmik_mood, :happy)}
+  end
+
+  def handle_event("pet_karmik", _params, socket), do: {:noreply, socket}
 
   def handle_event("show_registration", _params, socket) do
     socket =
@@ -1027,6 +1035,28 @@ defmodule ChatWeb.RoomLive do
   def handle_info({:bot_status_changed, _status}, socket) do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
   end
+
+  def handle_info({:karmik_karma_changed, user_id}, socket) do
+    socket =
+      case socket.assigns.current_user do
+        %{id: ^user_id} ->
+          socket
+          |> assign(:current_user, Accounts.get_user(user_id))
+          |> update_presence()
+
+        _user ->
+          assign(socket, :online, Chatlans.list_online(@room_id))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:karmik_activity, mood}, socket) when mood in [:happy, :angry] do
+    Process.send_after(self(), :karmik_rest, 8_000)
+    {:noreply, assign(socket, :karmik_mood, mood)}
+  end
+
+  def handle_info(:karmik_rest, socket), do: {:noreply, assign(socket, :karmik_mood, :resting)}
 
   def handle_info({:start_bot_answer, request}, %{assigns: %{bot_pending?: true}} = socket) do
     {:noreply, start_async(socket, :bot_reply, fn -> Bot.answer(request) end)}
@@ -1927,6 +1957,7 @@ defmodule ChatWeb.RoomLive do
       socket.assigns.appearance,
       registered?: not is_nil(socket.assigns.current_user),
       rank: Ranks.for_user(socket.assigns.current_user),
+      karma: if(socket.assigns.current_user, do: socket.assigns.current_user.karma, else: 0),
       session_id: socket.assigns.chat_session_id,
       identity_key: socket.assigns.identity_key
     )

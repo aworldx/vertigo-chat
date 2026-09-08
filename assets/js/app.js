@@ -194,6 +194,24 @@ if (Object.keys(chatSessionParams()).length > 0) {
 }
 
 const chatHooks = {
+  KarmikPet: {
+    mounted() {
+      this.lastPetAt = 0
+      this.pet = () => {
+        const now = Date.now()
+
+        if (now - this.lastPetAt < 10_000) return
+
+        this.lastPetAt = now
+        this.pushEvent("pet_karmik", {})
+      }
+
+      this.el.addEventListener("pointerenter", this.pet)
+    },
+    destroyed() {
+      this.el.removeEventListener("pointerenter", this.pet)
+    },
+  },
   PrivateNickname: {
     mounted() {
       this.onClick = () => {

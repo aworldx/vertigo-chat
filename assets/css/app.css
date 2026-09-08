@@ -1541,3 +1541,25 @@ a:hover .vertigo-mark {
 ) {
   font-family: inherit;
 }
+
+/* Кармик всегда прижат к нижнему краю колонки; сама иллюстрация — стикер. */
+.karmik {
+  position: relative;
+  flex-direction: column;
+  justify-content: end;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  padding: 1rem 0 0;
+  color: #d6d3d1;
+}
+
+.karmik-sprite { width: min(100%, 13.75rem); aspect-ratio: 3 / 4; align-self: center; cursor: pointer; background: url("/images/karmik-sprite.png") 0 50% / 400% 100% no-repeat; filter: drop-shadow(0 .45rem .6rem rgb(0 0 0 / .35)); image-rendering: pixelated; animation: karmik-sleep 18s steps(1, end) infinite; }
+.karmik-tooltip { pointer-events: none; position: absolute; z-index: 1; top: .5rem; left: 50%; transform: translate(-50%, -.35rem); border: 1px solid rgb(255 255 255 / .14); border-radius: .45rem; background: rgb(24 24 27 / .94); padding: .3rem .55rem; color: #fef3c7; font-size: .75rem; font-weight: 700; opacity: 0; transition: opacity .18s ease, transform .18s ease; white-space: nowrap; }
+.karmik:hover .karmik-tooltip { transform: translate(-50%, 0); opacity: 1; }
+.karmik[data-mood="happy"] .karmik-sprite { animation: karmik-wake-up 8s steps(1, end) both; }
+.karmik[data-mood="angry"] .karmik-sprite { background-position: 66.666% 50%; filter: sepia(.35) saturate(1.5) hue-rotate(-14deg) drop-shadow(0 .45rem .6rem rgb(0 0 0 / .35)); }
+@keyframes karmik-sleep { 0%, 44.99% { background-position: 0 50%; } 45%, 59.99% { background-position: 33.333% 50%; } 60%, 100% { background-position: 0 50%; } }
+@keyframes karmik-wake-up { 0%, 34.99% { background-position: 66.666% 50%; } 35%, 100% { background-position: 100% 50%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .karmik *, .karmik { animation: none !important; }
+}

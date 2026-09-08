@@ -873,10 +873,11 @@ defmodule ChatWeb.RoomComponents do
   attr(:joined, :boolean, required: true)
   attr(:online, :list, required: true)
   attr(:peer_id, :string, required: true)
+  attr(:karmik_mood, :atom, default: :resting)
 
   def chatlan_sidebar(assigns) do
     ~H"""
-    <aside class="hidden min-h-0 overflow-y-auto bg-zinc-900/80 p-4 md:block">
+    <aside class="hidden min-h-0 flex-col overflow-y-auto bg-zinc-900/80 p-4 md:block md:flex">
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-sm font-semibold leading-5">Сейчас в чате</h2>
@@ -995,6 +996,23 @@ defmodule ChatWeb.RoomComponents do
           </div>
         <% end %>
       </div>
+
+      <section
+        id="karmik"
+        data-mood={@karmik_mood}
+        class="karmik mt-auto hidden lg:flex"
+        aria-label="Кармик, хранитель кармы чатлан"
+      >
+        <div
+          id="karmik-sprite"
+          phx-hook={if(@joined, do: "KarmikPet")}
+          class="karmik-sprite"
+          aria-label="Погладить Кармика курсором"
+          aria-describedby="karmik-name"
+        >
+        </div>
+        <span id="karmik-name" class="karmik-tooltip" role="tooltip">Котик Кармик</span>
+      </section>
     </aside>
     """
   end
@@ -1469,7 +1487,7 @@ defmodule ChatWeb.RoomComponents do
             </header>
 
             <div id="profile-view" class="space-y-5 p-6 sm:p-8">
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div class="rounded-2xl border border-white/10 bg-zinc-950/45 p-4">
                   <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
                     <.icon name="hero-chat-bubble-left-right" class="size-4 text-amber-300" /> Фразы
@@ -1484,6 +1502,14 @@ defmodule ChatWeb.RoomComponents do
                   </div>
                   <p class="mt-2 text-3xl font-bold tabular-nums text-zinc-100">
                     {div(@profile.user.chat_seconds, 3600)}
+                  </p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-zinc-950/45 p-4">
+                  <div class="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                    <.icon name="hero-heart" class="size-4 text-rose-300" /> Карма
+                  </div>
+                  <p class="mt-2 text-3xl font-bold tabular-nums text-rose-100">
+                    {@profile.user.karma}
                   </p>
                 </div>
               </div>

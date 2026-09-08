@@ -53,6 +53,12 @@ defmodule Chat.Accounts do
   def get_user(id) when is_integer(id), do: Repo.get(User, id)
   def get_user(_id), do: nil
 
+  def get_registered_user_by_nickname(nickname) when is_binary(nickname) do
+    Repo.one(from(user in User, where: user.nickname == ^nickname and not user.is_game_guest))
+  end
+
+  def get_registered_user_by_nickname(_nickname), do: nil
+
   def game_nickname(%User{is_game_guest: true, game_nickname: nickname}) when is_binary(nickname),
     do: nickname
 
