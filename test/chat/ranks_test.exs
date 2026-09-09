@@ -56,7 +56,11 @@ defmodule Chat.RanksTest do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "public_star", "password" => "secret123"})
 
-    subject = Subject.internal({:rank_test, user.id})
+    subject =
+      Subject.internal({:rank_test, user.id})
+      |> Subject.with_identity("user:#{user.id}")
+
+    client_id = Ecto.UUID.generate()
 
     assert {:error, :empty_body} =
              Messages.send_registered_public_message(
@@ -70,12 +74,24 @@ defmodule Chat.RanksTest do
              Messages.send_registered_public_message(
                user,
                "rank-room",
-               %{"body" => "Мотор!"},
+               %{"body" => "Мотор!", "client_id" => client_id},
                subject
              )
 
     assert updated_user.public_message_count == 1
     assert message.rank.title == "Зритель первого ряда"
+
+    assert {:ok, repeated_message, repeated_user} =
+             Messages.send_registered_public_message(
+               updated_user,
+               "rank-room",
+               %{"body" => "Мотор!", "client_id" => client_id},
+               subject
+             )
+
+    assert repeated_message.id == message.id
+    assert repeated_user.public_message_count == 1
+    assert Accounts.get_user(user.id).public_message_count == 1
   end
 
   test "adds completed registered visit time to the user progress" do

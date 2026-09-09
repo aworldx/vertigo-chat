@@ -5,12 +5,10 @@
     phx-disconnected={
       JS.set_attribute({"hidden", ""}, to: "#current-chatlan-online")
       |> JS.remove_attribute("hidden", to: "#current-chatlan-reconnecting")
-      |> JS.set_attribute({"disabled", ""}, to: "#emoji-input-controls")
     }
     phx-connected={
       JS.set_attribute({"hidden", ""}, to: "#current-chatlan-reconnecting")
       |> JS.remove_attribute("hidden", to: "#current-chatlan-online")
-      |> JS.remove_attribute("disabled", to: "#emoji-input-controls")
     }
     data-chat-theme={@theme_id}
     data-chat-mode={@theme_mode}

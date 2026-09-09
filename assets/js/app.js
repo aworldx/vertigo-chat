@@ -36,9 +36,14 @@ const GUEST_SESSION_TOKEN_KEY = "chat:guest-session-token"
 const MESSAGE_DRAFT_KEY = "chat:message-draft"
 const MESSAGE_CURSOR_KEY = "chat:message-cursor"
 const MESSAGE_HYDRATED_AT_KEY = "chat:message-hydrated-at"
+const MESSAGE_OUTBOX_KEY = "chat:message-outbox"
+const MESSAGE_OUTBOX_CHANGED_EVENT = "chat:message-outbox-changed"
+const MESSAGE_OUTBOX_RETRY_EVENT = "chat:message-outbox-retry"
 const LONG_POLL_FALLBACK_KEY = "phx:fallback:LongPoll"
 const LONG_POLL_FALLBACK_MS = 8_000
 const MESSAGE_REHYDRATION_COOLDOWN_MS = 15_000
+const MESSAGE_ACK_TIMEOUT_MS = 10_000
+const MESSAGE_OUTBOX_LIMIT = 50
 
 // Auth is deliberately limited to the current browser tab. Older versions
 // stored this token in localStorage, so discard that persistent copy once.
@@ -69,6 +74,54 @@ const writeChatPreferenceStore = store => {
   localStorage.setItem(CHAT_PREFERENCES_KEY, JSON.stringify(store))
 }
 
+const readMessageOutbox = () => {
+  try {
+    const entries = JSON.parse(sessionStorage.getItem(MESSAGE_OUTBOX_KEY) || "[]")
+
+    if (!Array.isArray(entries)) throw new Error("invalid message outbox")
+
+    return entries.filter(entry =>
+      entry &&
+      typeof entry.clientId === "string" &&
+      entry.clientId.length > 0 &&
+      entry.clientId.length <= 64 &&
+      typeof entry.body === "string" &&
+      entry.body.trim().length > 0 &&
+      entry.body.length <= 1_000,
+    )
+  } catch (_error) {
+    sessionStorage.removeItem(MESSAGE_OUTBOX_KEY)
+    return []
+  }
+}
+
+const writeMessageOutbox = entries => {
+  const boundedEntries = entries.slice(-MESSAGE_OUTBOX_LIMIT)
+
+  if (boundedEntries.length > 0) {
+    sessionStorage.setItem(MESSAGE_OUTBOX_KEY, JSON.stringify(boundedEntries))
+  } else {
+    sessionStorage.removeItem(MESSAGE_OUTBOX_KEY)
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(MESSAGE_OUTBOX_CHANGED_EVENT, {detail: {entries: boundedEntries}}),
+  )
+}
+
+const updateMessageOutboxEntry = (clientId, changes) => {
+  writeMessageOutbox(
+    readMessageOutbox().map(entry =>
+      entry.clientId === clientId ? {...entry, ...changes} : entry,
+    ),
+  )
+}
+
+const acknowledgeOutboxMessage = clientId => {
+  if (typeof clientId !== "string" || !clientId) return
+  writeMessageOutbox(readMessageOutbox().filter(entry => entry.clientId !== clientId))
+}
+
 const appearanceFrom = preferences => {
   return preferences.appearance || {}
 }
@@ -90,6 +143,7 @@ const clearChatSession = () => {
   clearGuestSession()
   sessionStorage.removeItem(USER_AUTH_KEY)
   sessionStorage.removeItem(USER_SESSION_KEY)
+  writeMessageOutbox([])
 }
 
 // A short outage (for example, waking a laptop) must not permanently force this
@@ -291,6 +345,9 @@ const chatHooks = {
       this.input = this.el.querySelector("#message-body")
       this.clientIdInput = this.el.querySelector("#message-client-id")
       this.isTyping = false
+      this.connected = true
+      this.inFlight = new Set()
+      this.ackTimers = new Map()
 
       this.newClientId = () => {
         if (window.crypto?.randomUUID) return window.crypto.randomUUID()
@@ -344,6 +401,92 @@ const chatHooks = {
         this.stopTyping()
       })
 
+      this.clearComposerFor = clientId => {
+        if (this.clientIdInput?.value !== clientId) return
+        sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
+        if (this.input) this.input.value = ""
+        if (this.clientIdInput) this.clientIdInput.value = ""
+        this.stopTyping()
+      }
+
+      this.finishAttempt = clientId => {
+        this.inFlight.delete(clientId)
+        window.clearTimeout(this.ackTimers.get(clientId))
+        this.ackTimers.delete(clientId)
+      }
+
+      this.handleEvent("public-message-acknowledged", payload => {
+        this.finishAttempt(payload.client_id)
+        acknowledgeOutboxMessage(payload.client_id)
+        this.clearComposerFor(payload.client_id)
+      })
+
+      this.handleEvent("public-message-rejected", payload => {
+        this.finishAttempt(payload.client_id)
+        updateMessageOutboxEntry(payload.client_id, {
+          state: "failed",
+          error: payload.reason || "send_failed",
+        })
+      })
+
+      this.sendOutboxEntry = entry => {
+        if (this.inFlight.has(entry.clientId)) return
+        if (!this.connected) {
+          updateMessageOutboxEntry(entry.clientId, {state: "retrying"})
+          return
+        }
+
+        this.inFlight.add(entry.clientId)
+        updateMessageOutboxEntry(entry.clientId, {state: "sending", error: null})
+        this.pushEvent("send_message", {
+          message: {body: entry.body, client_id: entry.clientId},
+        })
+
+        this.ackTimers.set(
+          entry.clientId,
+          window.setTimeout(() => {
+            this.inFlight.delete(entry.clientId)
+            this.ackTimers.delete(entry.clientId)
+            updateMessageOutboxEntry(entry.clientId, {state: "retrying"})
+          }, MESSAGE_ACK_TIMEOUT_MS),
+        )
+      }
+
+      this.retryOutbox = () => {
+        readMessageOutbox()
+          .filter(entry => entry.state !== "failed")
+          .forEach(entry => this.sendOutboxEntry(entry))
+      }
+
+      this.onOutboxRetry = event => {
+        const entry = readMessageOutbox().find(item => item.clientId === event.detail?.clientId)
+        if (!entry) return
+        updateMessageOutboxEntry(entry.clientId, {state: "retrying", error: null})
+        this.sendOutboxEntry(entry)
+      }
+
+      this.onSubmit = event => {
+        const body = this.input?.value.trim() || ""
+        if (!body || body.startsWith("/") || body.startsWith("^")) return
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        const clientId = this.clientIdInput?.value || this.newClientId()
+        if (this.clientIdInput) this.clientIdInput.value = clientId
+        const entry = {
+          clientId,
+          body,
+          state: "sending",
+          createdAt: new Date().toISOString(),
+        }
+        const existingEntries = readMessageOutbox().filter(item => item.clientId !== clientId)
+
+        writeMessageOutbox([...existingEntries, entry])
+        this.clearComposerFor(clientId)
+        this.sendOutboxEntry(entry)
+      }
+
       this.onInput = () => {
         const hasText = this.input?.value.trim().length > 0
         window.clearTimeout(this.typingTimer)
@@ -379,14 +522,35 @@ const chatHooks = {
 
       this.input?.addEventListener("input", this.onInput)
       this.el.addEventListener("keydown", this.onKeydown)
+      this.el.addEventListener("submit", this.onSubmit)
+      window.addEventListener(MESSAGE_OUTBOX_RETRY_EVENT, this.onOutboxRetry)
+      this.retryOutbox()
     },
     updated() {
       this.restoreDraft()
     },
     destroyed() {
       window.clearTimeout(this.typingTimer)
+      this.ackTimers.forEach(timer => window.clearTimeout(timer))
       this.input?.removeEventListener("input", this.onInput)
       this.el.removeEventListener("keydown", this.onKeydown)
+      this.el.removeEventListener("submit", this.onSubmit)
+      window.removeEventListener(MESSAGE_OUTBOX_RETRY_EVENT, this.onOutboxRetry)
+    },
+    disconnected() {
+      this.connected = false
+      this.inFlight.clear()
+      this.ackTimers.forEach(timer => window.clearTimeout(timer))
+      this.ackTimers.clear()
+      writeMessageOutbox(
+        readMessageOutbox().map(entry =>
+          entry.state === "failed" ? entry : {...entry, state: "retrying"},
+        ),
+      )
+    },
+    reconnected() {
+      this.connected = true
+      this.retryOutbox()
     },
   },
   ChatMessages: {
@@ -430,6 +594,47 @@ const chatHooks = {
         }
       }
 
+      this.pendingMessages = this.el.querySelector("#pending-messages")
+
+      this.renderOutbox = () => {
+        if (!this.pendingMessages) return
+
+        this.pendingMessages.replaceChildren(
+          ...readMessageOutbox().map(entry => this.buildPendingMessage(entry)),
+        )
+      }
+
+      this.reconcileOutbox = () => {
+        const confirmedClientIds = [...this.el.querySelectorAll("[data-client-id]")]
+          .map(message => message.dataset.clientId)
+          .filter(Boolean)
+        const confirmed = new Set(confirmedClientIds)
+        const entries = readMessageOutbox()
+        const pending = entries.filter(entry => !confirmed.has(entry.clientId))
+
+        if (pending.length !== entries.length) writeMessageOutbox(pending)
+      }
+
+      this.onOutboxChanged = () => this.renderOutbox()
+      this.onPendingClick = event => {
+        const retry = event.target.closest("[data-retry-client-id]")
+        const cancel = event.target.closest("[data-cancel-client-id]")
+
+        if (retry) {
+          window.dispatchEvent(
+            new CustomEvent(MESSAGE_OUTBOX_RETRY_EVENT, {
+              detail: {clientId: retry.dataset.retryClientId},
+            }),
+          )
+        }
+
+        if (cancel) acknowledgeOutboxMessage(cancel.dataset.cancelClientId)
+      }
+      this.pendingMessages?.addEventListener("click", this.onPendingClick)
+      window.addEventListener(MESSAGE_OUTBOX_CHANGED_EVENT, this.onOutboxChanged)
+
+      this.reconcileOutbox()
+      this.renderOutbox()
       this.storeMessageCursor()
     },
     beforeUpdate() {
@@ -439,6 +644,8 @@ const chatHooks = {
       this.previousScrollHeight = this.el.scrollHeight
     },
     updated() {
+      this.reconcileOutbox()
+      this.renderOutbox()
       this.storeMessageCursor()
 
       if (this.initializing) {
@@ -456,6 +663,56 @@ const chatHooks = {
       cancelAnimationFrame(this.initialScrollFrame)
       window.clearTimeout(this.initialScrollTimer)
       this.resizeObserver?.disconnect()
+      this.pendingMessages?.removeEventListener("click", this.onPendingClick)
+      window.removeEventListener(MESSAGE_OUTBOX_CHANGED_EVENT, this.onOutboxChanged)
+    },
+    buildPendingMessage(entry) {
+      const wrapper = document.createElement("article")
+      wrapper.id = `pending-message-${entry.clientId}`
+      wrapper.dataset.pendingClientId = entry.clientId
+      wrapper.dataset.deliveryState = entry.state || "retrying"
+      wrapper.className =
+        "chat-message-entry relative mt-2 rounded border border-dashed border-zinc-700 bg-zinc-900/70 px-3 pb-2 pt-5 opacity-80"
+
+      const author = document.createElement("span")
+      author.className =
+        "chat-message-author absolute -top-2 left-2 max-w-[65%] truncate rounded-full border border-zinc-700 bg-zinc-950 px-2 py-0.5 text-[11px] font-semibold leading-4 text-amber-200"
+      author.textContent = this.pendingMessages?.dataset.nickname || "Вы"
+
+      const body = document.createElement("p")
+      body.className = "chat-message-body break-words pr-12 text-sm leading-5 text-zinc-200"
+      body.textContent = entry.body
+
+      const controls = document.createElement("div")
+      controls.className = "mt-1 flex items-center gap-2 text-[11px] text-zinc-500"
+
+      const status = document.createElement("span")
+      status.dataset.deliveryStatus = ""
+      status.textContent =
+        entry.state === "failed"
+          ? "Не отправлено"
+          : entry.state === "retrying"
+            ? "Нет связи — отправим после восстановления"
+            : "Отправляется…"
+      controls.appendChild(status)
+
+      if (entry.state === "failed") {
+        const retry = document.createElement("button")
+        retry.type = "button"
+        retry.dataset.retryClientId = entry.clientId
+        retry.className = "font-semibold text-amber-200 hover:underline"
+        retry.textContent = "Повторить"
+
+        const cancel = document.createElement("button")
+        cancel.type = "button"
+        cancel.dataset.cancelClientId = entry.clientId
+        cancel.className = "text-zinc-400 hover:text-zinc-200 hover:underline"
+        cancel.textContent = "Удалить"
+        controls.append(retry, cancel)
+      }
+
+      wrapper.append(author, body, controls)
+      return wrapper
     },
     scrollToBottom() {
       cancelAnimationFrame(this.scrollAnimationFrame)

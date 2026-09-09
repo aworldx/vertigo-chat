@@ -44,6 +44,32 @@ defmodule Chat.MessagesTest do
       refute_receive {:message_created, _message}
     end
 
+    test "scopes a client id to the author identity" do
+      room_id = "identity-scoped-idempotency-room"
+      client_id = Ecto.UUID.generate()
+      alice = Subject.internal(:alice) |> Subject.with_identity("guest:alice")
+      bob = Subject.internal(:bob) |> Subject.with_identity("guest:bob")
+
+      assert {:ok, alice_message} =
+               Messages.send_public_message(
+                 "alice",
+                 room_id,
+                 %{"body" => "от alice", "client_id" => client_id},
+                 alice
+               )
+
+      assert {:ok, bob_message} =
+               Messages.send_public_message(
+                 "bob",
+                 room_id,
+                 %{"body" => "от bob", "client_id" => client_id},
+                 bob
+               )
+
+      refute alice_message.id == bob_message.id
+      assert Enum.map(Messages.list_recent_messages(room_id), & &1.body) == ["от alice", "от bob"]
+    end
+
     test "lists only messages newer than a cursor" do
       room_id = "cursor-room"
 

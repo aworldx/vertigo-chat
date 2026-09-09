@@ -21,6 +21,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Themes
   alias Chat.Typography
   alias Chat.Ranks
+  alias Chat.Security.Subject
   alias Chat.Sessions
   alias Chat.Visits
   alias ChatWeb.AuthComponents
@@ -1159,7 +1160,7 @@ defmodule ChatWeb.RoomLive do
           |> assign(:current_user, user)
           |> insert_message(message)
           |> clear_message_input()
-          |> push_event("clear-message-draft", %{})
+          |> acknowledge_public_message(message)
           |> update_presence()
 
         if message.recipient == Bot.name() do
@@ -1173,7 +1174,7 @@ defmodule ChatWeb.RoomLive do
           socket
           |> insert_message(message)
           |> clear_message_input()
-          |> push_event("clear-message-draft", %{})
+          |> acknowledge_public_message(message)
 
         if message.recipient == Bot.name() do
           start_bot_reply(message.body, socket)
@@ -1185,7 +1186,8 @@ defmodule ChatWeb.RoomLive do
         {:noreply,
          socket
          |> assign(:message_error, message_error(reason))
-         |> assign(:message_form, to_form(%{"body" => body}, as: :message))}
+         |> assign(:message_form, to_form(%{"body" => body}, as: :message))
+         |> reject_public_message(client_id, reason)}
     end
   end
 
@@ -2041,8 +2043,29 @@ defmodule ChatWeb.RoomLive do
   end
 
   defp message_security_subject(socket) do
-    ClientSecurity.for_user(socket.assigns.security_subject, socket.assigns.current_user)
+    socket.assigns.security_subject
+    |> ClientSecurity.for_user(socket.assigns.current_user)
+    |> Subject.with_identity(socket.assigns.identity_key)
   end
+
+  defp acknowledge_public_message(socket, %{client_id: client_id, id: message_id})
+       when is_binary(client_id) do
+    push_event(socket, "public-message-acknowledged", %{
+      client_id: client_id,
+      message_id: message_id
+    })
+  end
+
+  defp acknowledge_public_message(socket, _message), do: socket
+
+  defp reject_public_message(socket, client_id, reason) when is_binary(client_id) do
+    push_event(socket, "public-message-rejected", %{
+      client_id: client_id,
+      reason: to_string(reason)
+    })
+  end
+
+  defp reject_public_message(socket, _client_id, _reason), do: socket
 
   defp reaction_actor_key(socket), do: socket.assigns.presence_key
 

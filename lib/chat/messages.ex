@@ -294,6 +294,7 @@ defmodule Chat.Messages do
          subject
        ) do
     body = String.trim(body)
+    author_identity = author_identity(subject, author)
 
     cond do
       body == "" ->
@@ -303,7 +304,7 @@ defmodule Chat.Messages do
         {:error, :message_too_long}
 
       true ->
-        case History.find_by_client_id(room_id, valid_client_id(client_id)) do
+        case History.find_by_client_id(room_id, author_identity, valid_client_id(client_id)) do
           {:ok, message} ->
             {:ok, message}
 
@@ -320,7 +321,8 @@ defmodule Chat.Messages do
                   font_style,
                   recipient_nicknames,
                   rank,
-                  client_id
+                  client_id,
+                  author_identity
                 )
 
               {:error, {:rate_limited, _retry_after_ms}} ->
@@ -340,7 +342,8 @@ defmodule Chat.Messages do
          font_style,
          recipient_nicknames,
          rank,
-         client_id
+         client_id,
+         author_identity
        ) do
     message =
       build_message(
@@ -352,7 +355,8 @@ defmodule Chat.Messages do
         font_style,
         recipient_nicknames,
         rank,
-        client_id
+        client_id,
+        author_identity
       )
 
     persist_and_broadcast(room_id, message)
@@ -415,6 +419,7 @@ defmodule Chat.Messages do
          subject
        ) do
     body = String.trim(body)
+    author_identity = author_identity(subject, user.nickname)
 
     cond do
       body == "" ->
@@ -424,7 +429,7 @@ defmodule Chat.Messages do
         {:error, :message_too_long}
 
       true ->
-        case History.find_by_client_id(room_id, valid_client_id(client_id)) do
+        case History.find_by_client_id(room_id, author_identity, valid_client_id(client_id)) do
           {:ok, message} ->
             {:ok, message, user}
 
@@ -443,7 +448,8 @@ defmodule Chat.Messages do
                          font_style,
                          recipients,
                          Ranks.for_user(updated_user),
-                         client_id
+                         client_id,
+                         author_identity
                        ) do
                   {:ok, message, updated_user}
                 end
@@ -464,7 +470,8 @@ defmodule Chat.Messages do
          font_style,
          recipient_nicknames,
          rank,
-         client_id
+         client_id,
+         author_identity
        ) do
     Map.merge(
       %{
@@ -473,6 +480,7 @@ defmodule Chat.Messages do
         author: author,
         body: body,
         client_id: valid_client_id(client_id),
+        author_identity: author_identity,
         recipient: recipient_from_body(body, recipient_nicknames),
         reactions: %{},
         theme_id: theme_id,
@@ -489,6 +497,15 @@ defmodule Chat.Messages do
     do: client_id
 
   defp valid_client_id(_client_id), do: nil
+
+  defp author_identity(%Subject{identity_key: identity_key}, _author)
+       when is_binary(identity_key),
+       do: identity_key
+
+  defp author_identity(%Subject{actor_id: actor_id}, _author) when is_integer(actor_id),
+    do: "user:#{actor_id}"
+
+  defp author_identity(%Subject{}, author), do: "author:#{author}"
 
   defp build_gif_message(author, gif, theme_id, appearance, font_id, font_style, rank) do
     Map.merge(

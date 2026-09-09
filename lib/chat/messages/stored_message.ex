@@ -10,6 +10,7 @@ defmodule Chat.Messages.StoredMessage do
     field :author, :string
     field :body, :string
     field :client_id, :string
+    field :author_identity, :string
     field :media_url, :string
     field :media_artist, :string
     field :media_duration, :string
@@ -34,6 +35,7 @@ defmodule Chat.Messages.StoredMessage do
       :author,
       :body,
       :client_id,
+      :author_identity,
       :media_url,
       :media_artist,
       :media_duration,
@@ -60,6 +62,7 @@ defmodule Chat.Messages.StoredMessage do
       :sent_at
     ])
     |> validate_length(:client_id, max: 64)
-    |> unique_constraint(:client_id, name: :room_messages_room_id_client_id_index)
+    |> validate_length(:author_identity, max: 255)
+    |> unique_constraint(:client_id, name: :room_messages_outbox_id_index)
   end
 end

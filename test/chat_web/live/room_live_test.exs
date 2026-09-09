@@ -115,6 +115,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#messages [data-message-kind='system'] time[datetime]")
 
     assert has_element?(view, "#messages[phx-hook='ChatMessages']")
+    assert has_element?(view, "#messages[phx-update='stream']")
+    assert has_element?(view, "#pending-messages[phx-update='ignore'][aria-live='polite']")
     assert has_element?(view, "#messages time[datetime]")
     assert has_element?(view, "#message-form.shrink-0")
     assert has_element?(view, "#command-autocomplete")
@@ -1186,15 +1188,42 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#leave-chat[aria-label='Выйти из чата'] .sm\\:hidden")
   end
 
-  test "clears the browser message draft after a successful public send", %{conn: conn} do
+  test "acknowledges a public message with its client and server ids", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "draft_clearing_sender")
+    client_id = Ecto.UUID.generate()
 
-    view
-    |> form("#message-form", message: %{body: "первое сообщение"})
-    |> render_submit()
+    render_hook(view, "send_message", %{
+      "message" => %{"body" => "первое сообщение", "client_id" => client_id}
+    })
 
-    assert_push_event(view, "clear-message-draft", %{})
+    assert_push_event(view, "public-message-acknowledged", %{
+      client_id: ^client_id,
+      message_id: message_id
+    })
+
+    assert is_integer(message_id)
+    assert has_element?(view, "#messages [data-client-id='#{client_id}']", "первое сообщение")
+  end
+
+  test "rejects an outbox message explicitly when server validation fails", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "rejected_outbox_sender")
+    client_id = Ecto.UUID.generate()
+
+    render_hook(view, "send_message", %{
+      "message" => %{
+        "body" => String.duplicate("я", Chat.Messages.max_body_length() + 1),
+        "client_id" => client_id
+      }
+    })
+
+    assert_push_event(view, "public-message-rejected", %{
+      client_id: ^client_id,
+      reason: "message_too_long"
+    })
+
+    assert has_element?(view, "#message-error", "Сообщение не должно превышать")
   end
 
   test "does not render an empty public message", %{conn: conn} do

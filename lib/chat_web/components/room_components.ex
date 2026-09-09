@@ -26,12 +26,13 @@ defmodule ChatWeb.RoomComponents do
         id="messages"
         phx-hook="ChatMessages"
         phx-update="stream"
-        class="min-h-0 flex-1 overflow-y-auto p-3"
+        class="flex min-h-0 flex-1 flex-col overflow-y-auto p-3"
       >
         <div
           :for={{dom_id, message} <- @messages}
           id={dom_id}
           data-message-id={message.id}
+          data-client-id={Map.get(message, :client_id)}
           data-message-kind={Map.get(message, :kind, :text)}
           data-private={to_string(Map.get(message, :kind) == :private)}
           data-message-font={Typography.normalize_font_id(Map.get(message, :font_id))}
@@ -555,6 +556,14 @@ defmodule ChatWeb.RoomComponents do
             aria-hidden="true"
           >
           </div>
+        </div>
+        <div
+          id="pending-messages"
+          phx-update="ignore"
+          data-nickname={@nickname}
+          aria-live="polite"
+          class="order-last"
+        >
         </div>
       </div>
       <div
