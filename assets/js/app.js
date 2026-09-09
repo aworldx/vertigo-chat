@@ -686,7 +686,10 @@ const chatHooks = {
       body.textContent = entry.body
 
       const controls = document.createElement("div")
-      controls.className = "mt-1 flex items-center gap-2 text-[11px] text-zinc-500"
+      controls.className =
+        entry.state === "failed"
+          ? "mt-1 flex items-center gap-2 text-[11px] text-zinc-500"
+          : "absolute right-2 top-1 text-[11px] text-zinc-500"
 
       const indicator = document.createElement("span")
       indicator.dataset.deliveryIndicator = ""
