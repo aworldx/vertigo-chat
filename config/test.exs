@@ -31,6 +31,8 @@ config :chat, Chat.Bot.Usage, daily_token_limit: 1_000_000, warning_percent: 90
 
 config :chat, Chat.Karmik, enabled?: false
 
+config :chat, Chat.Games.Dictionary, provider: Chat.Games.TestDictionary
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 

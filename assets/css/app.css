@@ -259,6 +259,136 @@
   box-shadow: 0 1.25rem 3.75rem rgb(0 0 0 / 0.2), inset 0 1px rgb(255 255 255 / 0.04);
 }
 
+.game-launch-card {
+  position: relative;
+  display: flex;
+  min-height: 12rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  overflow: hidden;
+  padding: 1.5rem;
+  border: 1px solid rgb(251 191 36 / 0.32);
+  border-radius: 1.25rem;
+  background: linear-gradient(120deg, rgb(39 27 8 / 0.95), rgb(24 24 27 / 0.8));
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.08), 0 0.85rem 2rem rgb(0 0 0 / 0.2);
+}
+
+.game-launch-card__art {
+  position: absolute;
+  top: -2rem;
+  right: -1.4rem;
+  width: 12rem;
+  height: 12rem;
+  opacity: 0.8;
+  transform: rotate(-12deg);
+}
+
+.game-launch-card--battleship .game-launch-card__art {
+  border-radius: 45% 55% 35% 50%;
+  background: repeating-linear-gradient(0deg, transparent 0 1.1rem, rgb(186 230 253 / 0.28) 1.15rem 1.3rem),
+    linear-gradient(145deg, #0e7490, #082f49 72%);
+  box-shadow: inset 0 0 2.25rem rgb(255 255 255 / 0.25);
+}
+
+.game-launch-card--durak .game-launch-card__art {
+  border: 0.35rem solid rgb(253 230 138 / 0.65);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #991b1b, #450a0a);
+  box-shadow: -1.1rem 1.3rem 0 -0.35rem #7f1d1d, inset 0 0 2rem rgb(254 242 242 / 0.15);
+}
+
+.game-launch-card--balda .game-launch-card__art {
+  border: 0.5rem solid #713f12;
+  background: conic-gradient(from 45deg, #fef3c7 0 25%, #fde68a 0 50%, #fef3c7 0 75%, #fde68a 0);
+  box-shadow: 0 0.8rem 0 #451a03, inset 0 0 0 0.25rem #d97706;
+}
+
+.game-launch-card--balda .game-launch-card__art::after {
+  position: absolute;
+  inset: 25%;
+  content: "Б А Л Д А";
+  color: #451a03;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.game-launch-card--checkers .game-launch-card__art {
+  border-radius: 1rem;
+  background:
+    conic-gradient(from 90deg, #18181b 0 25%, #fef3c7 0 50%, #18181b 0 75%, #fef3c7 0),
+    #fef3c7;
+  background-size: 3rem 3rem;
+  box-shadow: 0 0.8rem 0 #09090b, inset 0 0 0 0.3rem #713f12;
+}
+
+.game-launch-card--checkers .game-launch-card__art::after {
+  position: absolute;
+  top: 3.3rem;
+  left: 3.3rem;
+  width: 3.8rem;
+  height: 3.8rem;
+  content: "";
+  border: 0.3rem solid #fef3c7;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #a1a1aa, #18181b 65%);
+  box-shadow: 3.4rem 3.4rem 0 -0.3rem #78350f;
+}
+
+.game-launch-card__button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.85rem;
+  background: #fbbf24;
+  color: #18181b;
+  font-weight: 800;
+  box-shadow: 0 0.45rem 0 #b45309;
+  transition: transform 150ms ease, background 150ms ease;
+}
+
+.game-launch-card__button:not(:disabled):hover {
+  background: #fde68a;
+  transform: translateY(-0.12rem);
+}
+
+.game-launch-card__button:not(:disabled):active {
+  box-shadow: 0 0.18rem 0 #b45309;
+  transform: translateY(0.18rem);
+}
+
+.game-spectator-card {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(82 82 91 / 0.8);
+  border-radius: 1rem;
+  background: rgb(9 9 11 / 0.58);
+}
+
+.game-spectator-card__button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  color: #fcd34d;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.game-spectator-card__button:hover {
+  color: #fef3c7;
+  transform: translateX(0.14rem);
+}
+
 #battleship-own-board,
 #battleship-target-board {
   border-width: 0.35rem;
@@ -623,6 +753,18 @@
   z-index: 1;
   filter: brightness(1.06);
   transform: scale(1.05);
+}
+
+.balda-tile--word {
+  border-color: #0891b2;
+  background: linear-gradient(125deg, rgb(255 255 255 / 0.5), transparent 38%), #a5f3fc;
+  box-shadow: inset 0 0 0 0.22rem #06b6d4, inset 0 -0.14rem rgb(8 145 178 / 0.35);
+}
+
+.balda-tile--new {
+  border-color: #7e22ce;
+  background: linear-gradient(125deg, rgb(255 255 255 / 0.55), transparent 38%), #e9d5ff;
+  box-shadow: inset 0 0 0 0.22rem #a855f7, inset 0 -0.14rem rgb(126 34 206 / 0.35);
 }
 
 #checkers-board {
@@ -1555,10 +1697,12 @@ a:hover .vertigo-mark {
 .karmik-sprite { width: min(100%, 13.75rem); aspect-ratio: 3 / 4; align-self: center; cursor: pointer; background: url("/images/karmik-sprite.png") 0 50% / 400% 100% no-repeat; filter: drop-shadow(0 .45rem .6rem rgb(0 0 0 / .35)); image-rendering: pixelated; animation: karmik-sleep 18s steps(1, end) infinite; }
 .karmik-tooltip { pointer-events: none; position: absolute; z-index: 1; top: .5rem; left: 50%; transform: translate(-50%, -.35rem); border: 1px solid rgb(255 255 255 / .14); border-radius: .45rem; background: rgb(24 24 27 / .94); padding: .3rem .55rem; color: #fef3c7; font-size: .75rem; font-weight: 700; opacity: 0; transition: opacity .18s ease, transform .18s ease; white-space: nowrap; }
 .karmik:hover .karmik-tooltip { transform: translate(-50%, 0); opacity: 1; }
+.karmik-purr { position: absolute; z-index: 2; top: 1.5rem; left: 50%; transform: translateX(-50%) rotate(-4deg); border: 1px solid rgb(167 139 250 / .75); border-radius: 999px; background: rgb(46 16 101 / .94); padding: .3rem .65rem; color: #f5f3ff; font-size: .8rem; font-weight: 800; box-shadow: 0 .35rem .8rem rgb(0 0 0 / .28); animation: karmik-purr 800ms ease-out both; white-space: nowrap; }
 .karmik[data-mood="happy"] .karmik-sprite { animation: karmik-wake-up 8s steps(1, end) both; }
 .karmik[data-mood="angry"] .karmik-sprite { background-position: 66.666% 50%; filter: sepia(.35) saturate(1.5) hue-rotate(-14deg) drop-shadow(0 .45rem .6rem rgb(0 0 0 / .35)); }
 @keyframes karmik-sleep { 0%, 44.99% { background-position: 0 50%; } 45%, 59.99% { background-position: 33.333% 50%; } 60%, 100% { background-position: 0 50%; } }
 @keyframes karmik-wake-up { 0%, 34.99% { background-position: 66.666% 50%; } 35%, 100% { background-position: 100% 50%; } }
+@keyframes karmik-purr { from { opacity: 0; transform: translate(-50%, .6rem) rotate(-4deg) scale(.85); } 25%, 75% { opacity: 1; } to { opacity: 0; transform: translate(-50%, -1rem) rotate(-4deg) scale(1.04); } }
 
 @media (prefers-reduced-motion: reduce) {
   .karmik *, .karmik { animation: none !important; }

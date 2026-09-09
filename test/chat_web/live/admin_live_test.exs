@@ -48,6 +48,29 @@ defmodule ChatWeb.AdminLiveTest do
     assert has_element?(view, "#admin-feedback-count", "1")
   end
 
+  test "lets an administrator upload a 30 pixel PNG emoji", %{conn: conn} do
+    assert {:ok, admin} =
+             Accounts.register_user(%{"nickname" => "emoji_admin", "password" => "secret123"})
+
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{"user_auth_token" => UserAuth.sign(admin)})
+      |> live(~p"/admin")
+
+    upload =
+      file_input(view, "#admin-emoji-form", :emoji_image, [
+        %{name: "moon.png", content: png_bytes(16, 16), type: "image/png"}
+      ])
+
+    render_upload(upload, "moon.png")
+
+    view
+    |> form("#admin-emoji-form", emoji: %{code: "-moon-"})
+    |> render_submit()
+
+    assert has_element?(view, "#admin-emojis-list", "-moon-")
+  end
+
   test "denies a registered non-administrator", %{conn: conn} do
     assert {:ok, _admin} =
              Accounts.register_user(%{"nickname" => "primary_admin", "password" => "secret123"})
@@ -62,5 +85,9 @@ defmodule ChatWeb.AdminLiveTest do
 
     assert has_element?(view, "#admin-forbidden", "regular_member")
     refute has_element?(view, "#admin-feedback-list")
+  end
+
+  defp png_bytes(width, height) do
+    <<0x89, "PNG\r\n", 0x1A, "\n", 0::32, "IHDR", width::32, height::32, 8, 6, 0, 0, 0>>
   end
 end

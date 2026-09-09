@@ -12,11 +12,6 @@
           </p>
           <h1 class="mt-1 text-4xl font-black tracking-tight">Шашки для чатлан</h1>
         </div>
-        <.link
-          href={~p"/"}
-          id="back-to-chat"
-          class="rounded-full border border-zinc-700 px-4 py-2 text-sm hover:border-amber-400 hover:text-amber-300"
-        >Вернуться в чат</.link>
       </header>
 
       <%= cond do %>
@@ -42,36 +37,63 @@
             <main class="space-y-6">
               <section
                 id="checkers-lobby"
-                class="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-5"
+                class="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/80"
               >
-                <div class="flex flex-wrap items-end justify-between gap-4">
+                <div class="p-5 sm:p-6">
                   <div>
-                    <h2 class="text-xl font-bold">Игровая</h2>
-                    <p class="text-sm text-zinc-400">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-300">
+                      Игровая
+                    </p>
+                    <h2 class="mt-1 text-2xl font-black tracking-tight">
+                      Выбери достойного соперника
+                    </h2>
+                    <p class="mt-1 text-sm text-zinc-400">
                       Ты вошёл как
                       <span class="text-amber-300">{display_name(@current_user)}</span>
                     </p>
                   </div>
-                  <.form
-                    for={@invite_form}
-                    id="checkers-invite-form"
-                    phx-submit="invite"
-                    class="flex gap-2"
+                  <div
+                    id="checkers-invite-panel"
+                    class="game-launch-card game-launch-card--checkers mt-5"
                   >
-                    <.input
-                      field={@invite_form[:opponent_id]}
-                      type="select"
-                      prompt="Выбрать чатланина"
-                      options={Enum.map(@opponents, &{display_name(&1), &1.id})}
-                    />
-                    <button
-                      id="send-checkers-invite"
-                      class="rounded-xl bg-amber-400 px-4 font-bold text-zinc-950 transition hover:bg-amber-300"
-                    >Пригласить</button>
-                  </.form>
+                    <span class="game-launch-card__art" aria-hidden="true"></span>
+                    <div class="relative z-10 max-w-sm">
+                      <p class="text-xs font-bold uppercase tracking-[0.22em] text-amber-200/85">
+                        Новая партия
+                      </p>
+                      <h3 class="mt-2 text-2xl font-black">Шашки</h3>
+                      <p class="mt-2 text-sm leading-6 text-zinc-300">
+                        Пригласи чатланина на партию — белые начинают первыми.
+                      </p>
+                    </div>
+                    <.form
+                      for={@invite_form}
+                      id="checkers-invite-form"
+                      phx-submit="invite"
+                      class="relative z-10 flex w-full max-w-sm flex-col gap-2 sm:w-auto sm:items-end"
+                    >
+                      <.input
+                        field={@invite_form[:opponent_id]}
+                        type="select"
+                        label="Соперник"
+                        prompt="Выбрать чатланина"
+                        options={Enum.map(@opponents, &{display_name(&1), &1.id})}
+                        class="min-w-52 bg-zinc-950/80"
+                      />
+                      <button
+                        id="send-checkers-invite"
+                        class="game-launch-card__button"
+                      >
+                        <.icon name="hero-paper-airplane" class="size-5" /> Пригласить
+                      </button>
+                    </.form>
+                  </div>
                 </div>
 
-                <div id="checkers-games" class="mt-5 grid gap-3 sm:grid-cols-2">
+                <div
+                  id="checkers-games"
+                  class="grid gap-3 border-t border-zinc-800 p-5 sm:grid-cols-2 sm:p-6"
+                >
                   <p :if={@games == []} id="checkers-games-empty" class="text-sm text-zinc-500">
                     Открытых партий пока нет.
                   </p>
@@ -125,23 +147,30 @@
                 <div
                   :if={@active_games != []}
                   id="checkers-spectator-games"
-                  class="mt-6 border-t border-zinc-800 pt-5"
+                  class="border-t border-zinc-800 px-5 py-5 sm:px-6 sm:py-6"
                 >
                   <h3 class="font-bold">Сейчас играют</h3>
                   <p class="mt-1 text-sm text-zinc-500">Можно открыть доску в режиме зрителя.</p>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div class="mt-3 grid gap-2">
                     <article
                       :for={game <- @active_games}
                       id={"spectator-game-#{game.id}"}
-                      class="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-4"
+                      class="game-spectator-card"
                     >
-                      <strong>{display_name(game.inviter)} — {display_name(game.opponent)}</strong>
+                      <div class="min-w-0">
+                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                          Идёт партия
+                        </p>
+                        <strong class="mt-1 block truncate text-sm sm:text-base">
+                          {display_name(game.inviter)} — {display_name(game.opponent)}
+                        </strong>
+                      </div>
                       <button
                         id={"watch-game-#{game.id}"}
                         phx-click="open_game"
                         phx-value-id={game.id}
-                        class="mt-3 block text-sm font-semibold text-amber-300 hover:text-amber-200"
-                      >Смотреть игру →</button>
+                        class="game-spectator-card__button"
+                      >Смотреть <.icon name="hero-arrow-right" class="size-4" /></button>
                     </article>
                   </div>
                 </div>

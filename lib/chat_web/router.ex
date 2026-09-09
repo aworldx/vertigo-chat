@@ -29,6 +29,7 @@ defmodule ChatWeb.Router do
     get "/profiles/:nickname/photo", ProfilePhotoController, :show
     get "/gallery/photos/:id/thumbnail", GalleryPhotoController, :thumbnail
     get "/gallery/photos/:id", GalleryPhotoController, :show
+    get "/emojis/:id", EmojiController, :show
   end
 
   scope "/", ChatWeb do

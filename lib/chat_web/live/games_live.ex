@@ -12,6 +12,7 @@ defmodule ChatWeb.GamesLive do
     3 => {"cruiser", "Крейсер"},
     4 => {"battleship", "Линкор"}
   }
+  @russian_letters String.graphemes("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ")
 
   @impl true
   def mount(params, _session, socket) do
@@ -34,7 +35,8 @@ defmodule ChatWeb.GamesLive do
      |> assign(:fleet_size, 4)
      |> assign(:fleet_orientation, "horizontal")
      |> assign(:selected_square, nil)
-     |> assign(:word_form, to_form(%{"letter" => "", "word" => ""}, as: :word))
+     |> assign(:word_path, [])
+     |> assign(:balda_letter, nil)
      |> assign(:leaderboard, if(Games.kind?(kind), do: Games.leaderboard(kind), else: []))}
   end
 
@@ -141,7 +143,7 @@ defmodule ChatWeb.GamesLive do
          socket
          |> assign(:game, game)
          |> assign(:fleet_draft, [])
-         |> assign(:selected_square, nil)}
+         |> reset_balda_draft()}
 
       _ ->
         {:noreply, put_flash(socket, :error, "Партия недоступна.")}
@@ -153,7 +155,7 @@ defmodule ChatWeb.GamesLive do
      socket
      |> assign(:game, nil)
      |> assign(:fleet_draft, [])
-     |> assign(:selected_square, nil)
+     |> reset_balda_draft()
      |> refresh()}
   end
 
@@ -163,28 +165,64 @@ defmodule ChatWeb.GamesLive do
   def handle_event("card", %{"card" => card}, socket),
     do: current_game_action(socket, &Games.play_card(&1, socket.assigns.game.id, card))
 
-  def handle_event("balda_square", %{"square" => square}, socket),
-    do: {:noreply, assign(socket, :selected_square, square)}
+  def handle_event("balda_square", %{"square" => square}, socket) do
+    {:noreply,
+     socket
+     |> assign(:selected_square, square)
+     |> assign(:word_path, [])}
+  end
 
-  def handle_event("word", %{"word" => attrs}, socket) do
+  def handle_event("balda_letter", %{"letter" => letter}, socket) do
+    {:noreply,
+     socket
+     |> assign(:word_path, [])
+     |> assign(:balda_letter, letter)}
+  end
+
+  def handle_event("balda_path_square", %{"square" => square}, socket) do
+    if balda_path_square?(socket.assigns, square) do
+      {:noreply, update(socket, :word_path, &(&1 ++ [square]))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("clear_balda_word", _params, socket),
+    do: {:noreply, assign(socket, :word_path, [])}
+
+  def handle_event("cancel_balda_letter", _params, socket),
+    do: {:noreply, reset_balda_draft(socket)}
+
+  def handle_event("word", _params, socket) do
     case Games.play_word(
            socket.assigns.current_user,
            socket.assigns.game.id,
            socket.assigns.selected_square,
-           attrs["letter"],
-           attrs["word"]
+           socket.assigns.balda_letter,
+           balda_word(
+             socket.assigns.game,
+             socket.assigns.word_path,
+             socket.assigns.balda_letter,
+             socket.assigns.selected_square
+           )
          ) do
       {:ok, game} ->
         {:noreply,
          socket
          |> assign(:game, game)
-         |> assign(:selected_square, nil)
-         |> assign(:word_form, to_form(%{"letter" => "", "word" => ""}, as: :word))
+         |> reset_balda_draft()
          |> refresh()}
+
+      {:error, :dictionary_unavailable} ->
+        {:noreply, put_flash(socket, :error, "Словарь сейчас недоступен. Попробуй ещё раз.")}
 
       _ ->
         {:noreply,
-         put_flash(socket, :error, "Слово не складывается на поле или уже было названо.")}
+         put_flash(
+           socket,
+           :error,
+           "Слово не складывается на поле, уже было названо или отсутствует в словаре."
+         )}
     end
   end
 
@@ -223,6 +261,17 @@ defmodule ChatWeb.GamesLive do
 
   def kinds, do: Games.kinds()
   def title(kind), do: Games.title(kind)
+
+  def game_launch_description("battleship"),
+    do: "Собери флот, пригласи соперника и преврати карту в морской бой."
+
+  def game_launch_description("durak"),
+    do: "Садись за карточный стол: партия начинается, когда соберётся компания."
+
+  def game_launch_description("balda"),
+    do: "Заполни поле буквами и находи слова длиннее, чем успеет соперник."
+
+  def game_launch_description(_kind), do: "Создай стол и позови чатлан сыграть."
 
   def squares(size),
     do: for(row <- 0..(size - 1), col <- 0..(size - 1), do: {row, col, "#{row},#{col}"})
@@ -389,6 +438,24 @@ defmodule ChatWeb.GamesLive do
 
   def balda_board(game), do: game.state["board"] || %{}
   def score(game, id), do: game.players |> Enum.find(&(&1.user_id == id)) |> then(& &1.score)
+  def russian_letters, do: @russian_letters
+
+  def balda_word(game, path, letter, selected_square) do
+    board = Map.put(balda_board(game), selected_square, letter)
+
+    Enum.map(path, &board[&1])
+    |> Enum.join()
+    |> String.upcase()
+  end
+
+  def balda_path_square?(assigns, square) do
+    board = Map.put(balda_board(assigns.game), assigns.selected_square, assigns.balda_letter)
+    path = assigns.word_path
+
+    not is_nil(assigns.selected_square) and is_binary(assigns.balda_letter) and
+      Map.has_key?(board, square) and square not in path and
+      (path == [] or adjacent_squares?(List.last(path), square))
+  end
 
   defp current_game_action(socket, fun) do
     with %{} = user <- socket.assigns.current_user,
@@ -397,6 +464,26 @@ defmodule ChatWeb.GamesLive do
       {:noreply, socket |> assign(:game, game) |> refresh()}
     else
       _ -> {:noreply, put_flash(socket, :error, "Этот ход сейчас недоступен.")}
+    end
+  end
+
+  defp reset_balda_draft(socket) do
+    socket
+    |> assign(:selected_square, nil)
+    |> assign(:word_path, [])
+    |> assign(:balda_letter, nil)
+  end
+
+  defp adjacent_squares?(first, second) do
+    with [first_row, first_col] <- String.split(first, ","),
+         [second_row, second_col] <- String.split(second, ","),
+         {first_row, ""} <- Integer.parse(first_row),
+         {first_col, ""} <- Integer.parse(first_col),
+         {second_row, ""} <- Integer.parse(second_row),
+         {second_col, ""} <- Integer.parse(second_col) do
+      abs(first_row - second_row) + abs(first_col - second_col) == 1
+    else
+      _ -> false
     end
   end
 

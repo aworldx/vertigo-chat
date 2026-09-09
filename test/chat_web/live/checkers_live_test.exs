@@ -26,6 +26,8 @@ defmodule ChatWeb.CheckersLiveTest do
     render_hook(view, "authenticate_checkers", %{"token" => ChatWeb.UserAuth.sign(user)})
 
     assert has_element?(view, "#checkers-lobby", "Ты вошёл как checkers_host")
+    assert has_element?(view, "#checkers-invite-panel", "Новая партия")
+    assert has_element?(view, "#send-checkers-invite", "Пригласить")
 
     assert has_element?(
              view,

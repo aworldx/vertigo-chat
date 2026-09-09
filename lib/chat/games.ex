@@ -3,7 +3,7 @@ defmodule Chat.Games do
   import Ecto.Query
 
   alias Chat.Accounts.User
-  alias Chat.Games.{Game, Player}
+  alias Chat.Games.{Dictionary, Game, Player}
   alias Chat.Repo
 
   @topic "games"
@@ -257,6 +257,7 @@ defmodule Chat.Games do
            true <- adjacent_to_letter?(board, point),
            true <- String.length(word) >= 3,
            true <- is_nil(state["words"][word]),
+           {:ok, true} <- Dictionary.valid?(word),
            board = Map.put(board, square, letter),
            true <- word_path?(board, String.graphemes(word), square) do
         points = String.length(word)
@@ -274,6 +275,7 @@ defmodule Chat.Games do
         state = Map.put(state, "turn_id", next_player_id(game.players, user_id))
         finish_or_update_balda(game, state)
       else
+        {:error, :unavailable} -> {:error, :dictionary_unavailable}
         _ -> {:error, :invalid_word}
       end
     end)

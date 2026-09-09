@@ -13,6 +13,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:peer_id, :string, required: true)
   attr(:appearance, :map, required: true)
   attr(:online, :list, required: true)
+  attr(:emojis, :list, default: [])
   attr(:typing, :list, default: [])
 
   def dialogue_frame(assigns) do
@@ -453,9 +454,9 @@ defmodule ChatWeb.RoomComponents do
                       {before}<strong
                         class="chat-message-recipient font-semibold"
                         style={nickname_appearance_style(nickname, @online)}
-                      >{prefix}</strong>{whitespace}{body}
+                      >{prefix}</strong>{whitespace}<.emoji_body body={body} emojis={@emojis} />
                     <% nil -> %>
-                      {message.body}
+                      <.emoji_body body={message.body} emojis={@emojis} />
                   <% end %>
                 </p>
               <% else %>
@@ -474,9 +475,9 @@ defmodule ChatWeb.RoomComponents do
                         {before}<strong
                           class="chat-message-recipient font-semibold"
                           style={nickname_appearance_style(nickname, @online)}
-                        >{prefix}</strong>{whitespace}{body}
+                        >{prefix}</strong>{whitespace}<.emoji_body body={body} emojis={@emojis} />
                       <% nil -> %>
-                        {message.body}
+                        <.emoji_body body={message.body} emojis={@emojis} />
                     <% end %>
                   </span>
                 </p>
@@ -1007,10 +1008,15 @@ defmodule ChatWeb.RoomComponents do
           id="karmik-sprite"
           phx-hook={if(@joined, do: "KarmikPet")}
           class="karmik-sprite"
+          role="button"
+          tabindex="0"
           aria-label="Погладить Кармика курсором"
           aria-describedby="karmik-name"
         >
         </div>
+        <span :if={@karmik_mood == :happy} id="karmik-purr" class="karmik-purr" aria-live="polite">
+          Мур-р-р!
+        </span>
         <span id="karmik-name" class="karmik-tooltip" role="tooltip">Котик Кармик</span>
       </section>
     </aside>
@@ -1031,6 +1037,51 @@ defmodule ChatWeb.RoomComponents do
       <span class="sr-only">{@rank.title}</span>
     </span>
     """
+  end
+
+  attr(:body, :string, required: true)
+  attr(:emojis, :list, default: [])
+
+  def emoji_body(assigns) do
+    assigns = assign(assigns, :parts, emoji_parts(assigns.body, assigns.emojis))
+
+    ~H"""
+    <%= for part <- @parts do %>
+      <img
+        :if={part.type == :emoji}
+        src={"/emojis/#{part.emoji.id}"}
+        alt={part.emoji.code}
+        title={part.emoji.code}
+        class="inline-block size-[30px] align-[-0.45rem] object-contain"
+      />
+      <%= if part.type == :text do %>
+        {part.text}
+      <% end %>
+    <% end %>
+    """
+  end
+
+  defp emoji_parts(body, []), do: [%{type: :text, text: body}]
+
+  defp emoji_parts(body, emojis) do
+    by_code = Map.new(emojis, &{&1.code, &1})
+
+    pattern =
+      emojis
+      |> Enum.map(&Regex.escape(&1.code))
+      |> Enum.sort_by(&byte_size/1, :desc)
+      |> Enum.join("|")
+
+    regex = Regex.compile!("(#{pattern})")
+
+    Regex.split(regex, body, include_captures: true, trim: false)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.map(fn part ->
+      case by_code do
+        %{^part => emoji} -> %{type: :emoji, emoji: emoji}
+        _other -> %{type: :text, text: part}
+      end
+    end)
   end
 
   attr(:message_form, :any, required: true)

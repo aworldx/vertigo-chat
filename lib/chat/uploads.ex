@@ -10,4 +10,12 @@ defmodule Chat.Uploads do
     do: true
 
   def valid_image?(_bytes, _content_type), do: false
+
+  def png_dimensions(
+        <<0x89, "PNG\r\n", 0x1A, "\n", _length::binary-size(4), "IHDR", width::32, height::32,
+          _rest::binary>>
+      ),
+      do: {:ok, {width, height}}
+
+  def png_dimensions(_image), do: :error
 end

@@ -154,9 +154,9 @@ defmodule Chat.GamesTest do
     assert {:ok, game} = Games.start(first, game.id)
 
     assert {:error, :invalid_word} = Games.play_word(first, game.id, "0,0", "Я", "ЯЯЯ")
-    assert {:ok, game} = Games.play_word(first, game.id, "1,0", "Б", "ББАЛДА")
+    assert {:ok, game} = Games.play_word(first, game.id, "1,1", "С", "САЛ")
     assert game.state["turn_id"] == second.id
-    assert Enum.find(game.players, &(&1.user_id == first.id)).score == 6
+    assert Enum.find(game.players, &(&1.user_id == first.id)).score == 3
     assert {:error, :forbidden} = Games.skip(first, game.id)
     assert {:ok, _game} = Games.skip(second, game.id)
   end

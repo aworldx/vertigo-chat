@@ -197,19 +197,66 @@ const chatHooks = {
   KarmikPet: {
     mounted() {
       this.lastPetAt = 0
-      this.pet = () => {
+      this.lastPurrAt = 0
+      this.purrAudio = new Audio("/sounds/karmik-purr.mp3")
+      this.purrAudio.preload = "auto"
+      this.pet = ({ withSound = false } = {}) => {
         const now = Date.now()
 
+        if (withSound) this.purr(now)
         if (now - this.lastPetAt < 10_000) return
 
         this.lastPetAt = now
         this.pushEvent("pet_karmik", {})
       }
 
-      this.el.addEventListener("pointerenter", this.pet)
+      this.purr = now => {
+        if (now - this.lastPurrAt < 10_000) return
+
+        this.lastPurrAt = now
+        window.clearTimeout(this.purrTimer)
+        window.clearInterval(this.purrFade)
+        this.purrAudio.currentTime = 0
+        this.purrAudio.volume = 0.75
+        this.purrAudio.play().catch(() => {})
+        this.purrTimer = window.setTimeout(() => {
+          let stepsLeft = 5
+
+          this.purrFade = window.setInterval(() => {
+            stepsLeft -= 1
+            this.purrAudio.volume = (0.75 * stepsLeft) / 5
+
+            if (stepsLeft > 0) return
+
+            window.clearInterval(this.purrFade)
+            this.purrAudio.pause()
+            this.purrAudio.currentTime = 0
+          }, 60)
+        }, 2_500)
+      }
+
+      this.keyboardPet = event => {
+        if (event.key !== "Enter" && event.key !== " ") return
+
+        event.preventDefault()
+        this.pet({ withSound: true })
+      }
+      this.cursorPet = () => this.pet()
+      this.soundPet = () => this.pet({ withSound: true })
+
+      this.el.addEventListener("pointerenter", this.cursorPet)
+      this.el.addEventListener("pointermove", this.cursorPet)
+      this.el.addEventListener("pointerdown", this.soundPet)
+      this.el.addEventListener("keydown", this.keyboardPet)
     },
     destroyed() {
-      this.el.removeEventListener("pointerenter", this.pet)
+      window.clearTimeout(this.purrTimer)
+      window.clearInterval(this.purrFade)
+      this.purrAudio.pause()
+      this.el.removeEventListener("pointerenter", this.cursorPet)
+      this.el.removeEventListener("pointermove", this.cursorPet)
+      this.el.removeEventListener("pointerdown", this.soundPet)
+      this.el.removeEventListener("keydown", this.keyboardPet)
     },
   },
   PrivateNickname: {

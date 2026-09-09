@@ -10,6 +10,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Chatlans
   alias Chat.Commands
   alias Chat.Drawings
+  alias Chat.Emojis
   alias Chat.Feedback
   alias Chat.Gifs
   alias Chat.MediaShares
@@ -94,6 +95,7 @@ defmodule ChatWeb.RoomLive do
       |> assign_registration_form()
       |> assign_feedback_form()
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
+      |> assign(:emojis, Emojis.list())
       |> assign_settings_form()
       |> stream(:messages, messages)
       |> allow_upload(:profile_photo,
@@ -108,6 +110,7 @@ defmodule ChatWeb.RoomLive do
         Drawings.subscribe(@room_id)
         PrivateMessages.subscribe(presence_key)
         MediaShares.subscribe_peer(@room_id, presence_key)
+        Emojis.subscribe()
 
         socket
         |> restore_connection_session()
@@ -1020,6 +1023,10 @@ defmodule ChatWeb.RoomLive do
   @impl true
   def handle_info({:message_created, message}, socket) do
     {:noreply, socket |> insert_message(message) |> maybe_notify_about_message(message)}
+  end
+
+  def handle_info({:emoji_created, _emoji}, socket) do
+    {:noreply, socket |> assign(:emojis, Emojis.list()) |> rerender_messages()}
   end
 
   def handle_info({:message_reacted, message}, socket) do

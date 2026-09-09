@@ -39,7 +39,7 @@ defmodule ChatWeb.GalleryLiveTest do
     assert has_element?(view, "#gallery-lightbox[role='dialog'][phx-update='ignore']")
     assert has_element?(view, "#close-gallery-lightbox[data-gallery-lightbox-close]")
 
-    assert has_element?(
+    refute has_element?(
              view,
              "a[href='/'][target='vertigo-chat'][data-return-to-chat]",
              "Вернуться в чат"

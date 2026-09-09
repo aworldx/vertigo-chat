@@ -18,7 +18,7 @@ defmodule ChatWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico google10f6b43daaaddcce.html)
+  def static_paths, do: ~w(assets fonts images sounds favicon.ico google10f6b43daaaddcce.html)
 
   def router do
     quote do

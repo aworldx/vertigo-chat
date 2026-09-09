@@ -11,12 +11,6 @@
           </p>
           <h1 class="mt-2 text-3xl font-semibold tracking-tight text-zinc-100">Админка</h1>
         </div>
-        <a
-          href={~p"/"}
-          class="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-amber-300 hover:text-amber-200"
-        >
-          Вернуться в чат
-        </a>
       </header>
 
       <section
@@ -85,6 +79,67 @@
       </section>
 
       <section :if={@access == :granted} id="admin-feedback-section" class="py-8">
+        <section
+          id="admin-emojis-section"
+          class="mb-10 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6"
+        >
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+                Смайлы
+              </p>
+              <h2 class="mt-1 text-2xl font-semibold text-zinc-100">Смайлы для сообщений</h2>
+              <p class="mt-1 text-sm text-zinc-400">
+                PNG до 30 × 30 px. Например, код <code>-ржу-</code>.
+              </p>
+            </div>
+          </div>
+          <.form
+            for={@emoji_form}
+            id="admin-emoji-form"
+            phx-submit="upload_emoji"
+            class="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]"
+          >
+            <.input field={@emoji_form[:code]} label="Код" placeholder="-ржу-" required />
+            <div>
+              <label for="emoji-image" class="mb-2 block text-sm font-semibold text-zinc-200">PNG-файл</label>
+              <.live_file_input
+                upload={@uploads.emoji_image}
+                id="emoji-image"
+                class="block w-full text-sm text-zinc-300"
+              />
+              <p
+                :for={err <- upload_errors(@uploads.emoji_image)}
+                class="mt-1 text-xs text-red-300"
+              >
+                {inspect(err)}
+              </p>
+            </div>
+            <p
+              :if={@emoji_upload_error}
+              id="admin-emoji-error"
+              class="text-sm text-red-300 sm:col-span-2"
+              role="alert"
+            >
+              {@emoji_upload_error}
+            </p>
+            <button
+              id="admin-emoji-submit"
+              type="submit"
+              class="w-fit rounded-lg bg-amber-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-200 sm:col-span-2"
+            >Добавить смайл</button>
+          </.form>
+          <div id="admin-emojis-list" phx-update="stream" class="mt-5 flex flex-wrap gap-2">
+            <div
+              :for={{dom_id, emoji} <- @streams.emojis}
+              id={dom_id}
+              class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm text-zinc-200"
+            >
+              <img src={emoji_url(emoji)} alt={emoji.code} class="size-[30px] object-contain" />
+              <code>{emoji.code}</code>
+            </div>
+          </div>
+        </section>
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">

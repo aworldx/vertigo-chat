@@ -150,6 +150,18 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-drawing-layer")
   end
 
+  test "wakes Karmik when a joined chatlan pets him", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "karmik_pet_user")
+
+    assert has_element?(view, "#karmik-sprite[phx-hook='KarmikPet'][role='button'][tabindex='0']")
+
+    render_hook(view, "pet_karmik", %{})
+
+    assert has_element?(view, "#karmik[data-mood='happy']")
+    assert has_element?(view, "#karmik-purr[aria-live='polite']", "Мур-р-р!")
+  end
+
   test "broadcasts a drawing segment with the active chatlan nickname", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     enter_chat(view, "drawing_tester")

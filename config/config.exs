@@ -23,6 +23,10 @@ config :chat, Chat.Karmik,
   provider: Chat.Karmik.OpenAI,
   review_interval_ms: 180_000
 
+config :chat, Chat.Games.Dictionary, provider: Chat.Games.Wiktionary
+
+config :mime, :types, %{"audio/ogg" => ["ogg"]}
+
 # Configure the endpoint
 config :chat, ChatWeb.Endpoint,
   url: [host: "localhost"],

@@ -30,6 +30,8 @@ defmodule ChatWeb.GamesLiveTest do
     })
 
     assert has_element?(view, "#games-lobby", "Ты вошёл как guest_player")
+    assert has_element?(view, "#create-game-panel", "Новая партия")
+    assert has_element?(view, "#create-game", "Создать стол")
   end
 
   test "creates a battleship table and lets its owner prepare a fleet", %{conn: conn} do
@@ -76,6 +78,32 @@ defmodule ChatWeb.GamesLiveTest do
     view |> element("#watch-game-#{game.id}") |> render_click()
     assert has_element?(view, "#active-game", "Режим зрителя")
     assert has_element?(view, "#balda-0-0.balda-tile[data-game-sound='tile'][disabled]")
+  end
+
+  test "builds a Balda word by selecting its path on the board", %{conn: conn} do
+    {:ok, host} = Accounts.register_user(%{nickname: "balda_path_host", password: "secret123"})
+    {:ok, guest} = Accounts.register_user(%{nickname: "balda_path_guest", password: "secret123"})
+    assert {:ok, game} = Games.create(host, "balda")
+    assert {:ok, game} = Games.join(guest, game.id)
+    assert {:ok, game} = Games.start(host, game.id)
+
+    {:ok, view, _html} = live(conn, ~p"/games/balda")
+    render_hook(view, "authenticate_games", %{"token" => ChatWeb.UserAuth.sign(host)})
+    view |> element("#open-game-#{game.id}") |> render_click()
+    view |> element("#balda-1-1") |> render_click()
+    view |> element("#balda-letter-С") |> render_click()
+    view |> element("#balda-1-1") |> render_click()
+    view |> element("#balda-2-1") |> render_click()
+    view |> element("#balda-2-2") |> render_click()
+
+    assert has_element?(view, "#balda-word", "САЛ")
+    assert has_element?(view, "#balda-1-1.balda-tile--new")
+    assert has_element?(view, "#balda-2-1.balda-tile--word")
+
+    view |> element("#submit-word") |> render_click()
+
+    assert has_element?(view, "#balda-1-1", "С")
+    assert has_element?(view, "#balda-scores", "3")
   end
 
   test "shows the current turn and sunk-ship legend at an active battleship table", %{conn: conn} do

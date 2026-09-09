@@ -1,0 +1,7 @@
+Karmik purr
+
+Source: "Cat Purr" by Joseph SARDIN, BigSoundBank
+https://bigsoundbank.com/cat-purr-s0436.html
+
+Used excerpt: first 2.8 seconds, played client-side with a 0.3-second fade-out.
+License: CC0 (public domain).
