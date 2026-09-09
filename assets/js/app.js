@@ -417,7 +417,10 @@ const chatHooks = {
 
       this.handleEvent("public-message-acknowledged", payload => {
         this.finishAttempt(payload.client_id)
-        acknowledgeOutboxMessage(payload.client_id)
+        updateMessageOutboxEntry(payload.client_id, {
+          state: "confirmed",
+          messageId: payload.message_id,
+        })
         this.clearComposerFor(payload.client_id)
       })
 
@@ -454,7 +457,7 @@ const chatHooks = {
 
       this.retryOutbox = () => {
         readMessageOutbox()
-          .filter(entry => entry.state !== "failed")
+          .filter(entry => entry.state !== "failed" && entry.state !== "confirmed")
           .forEach(entry => this.sendOutboxEntry(entry))
       }
 
@@ -544,7 +547,9 @@ const chatHooks = {
       this.ackTimers.clear()
       writeMessageOutbox(
         readMessageOutbox().map(entry =>
-          entry.state === "failed" ? entry : {...entry, state: "retrying"},
+          entry.state === "failed" || entry.state === "confirmed"
+            ? entry
+            : {...entry, state: "retrying"},
         ),
       )
     },
@@ -704,6 +709,8 @@ const chatHooks = {
       status.textContent =
         entry.state === "failed"
           ? "Не отправлено"
+          : entry.state === "confirmed"
+            ? "Доставлено — ждём обновление истории"
           : entry.state === "retrying"
             ? "Нет связи — отправим после восстановления"
             : "Отправляется…"
