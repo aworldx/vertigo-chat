@@ -153,6 +153,12 @@ defmodule Chat.GamesTest do
     assert {:ok, game} = Games.join(second, game.id)
     assert {:ok, game} = Games.start(first, game.id)
 
+    initial_word =
+      for col <- 0..4, into: "", do: game.state["board"]["2,#{col}"]
+
+    assert initial_word == "САЛАТ"
+    refute initial_word == "БАЛДА"
+
     assert {:error, :invalid_word} = Games.play_word(first, game.id, "0,0", "Я", "ЯЯЯ")
     assert {:ok, game} = Games.play_word(first, game.id, "1,1", "С", "САЛ")
     assert game.state["turn_id"] == second.id

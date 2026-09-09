@@ -4,4 +4,7 @@ defmodule Chat.Games.TestDictionary do
 
   @impl true
   def valid?(word), do: {:ok, word in ["САЛ"]}
+
+  @impl true
+  def random_five_letter_word, do: {:ok, "САЛАТ"}
 end

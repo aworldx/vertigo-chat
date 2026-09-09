@@ -15,6 +15,17 @@ defmodule Chat.Games do
   @ranks ~w(6 7 8 9 10 J Q K A)
   @suits ~w(♠ ♥ ♦ ♣)
   @fleet_lengths [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
+  @balda_start_words ~w(
+    АВТОР АДРЕС АКУЛА АЛМАЗ АРБУЗ АРЕНА БАЛЕТ БАНАН БЛЮДО ВАГОН ВАЛИК ВЕСНА ВЕТЕР ВИШНЯ
+    ВОЛНА ВОРОН ВРЕМЯ ВЬЮГА ГАЛКА ГЕРОЙ ГЛИНА ГОРОД ГОСТЬ ГРУША ДВЕРЬ ДОСКА ДЫМОК ЖИРАФ
+    ЗАВОД ЗАМОК ЗЕМЛЯ ИГРОК КАДЫК КАМИН КАНАЛ КАЛАЧ КАПЛЯ КАТЕР КНИГА КОВЕР КОМАР КОНЕЦ
+    КОШКА КРУПА КУПОЛ ЛАМПА ЛИЛИЯ ЛИМОН ЛЫЖНЯ МАГИЯ МАЛЫШ МАСКА МЕСЯЦ МЕТЛА МИШКА МОЛВА
+    МОРЯК МУЗЕЙ МЯЧИК НАРОД НАЛИМ НИТКА ОГОНЬ ОКЕАН ОПОРА ОСИНА ПАЛАЧ ПАЛЕЦ ПЕСНЯ ПИЛОТ
+    ПЛАМЯ ПЛЕЧО ПОЕЗД ПОЛКА ПОЧКА ПРАВО ПРЯЖА ПТИЦА ПЧЕЛА РЫБАК РЫНОК РУЧКА САЛАТ СВЕЧА
+    СЕВЕР СЕМЬЯ СИРОП СЛОВА СЛИВА СОСНА СПИНА СТЕНА СУМКА СЫРОК ТАЙГА ТАПОК ТЕАТР ТРАВА
+    ТУМАН УГОЛЬ УЛИЦА УМНИК ФАКЕЛ ХАЛАТ ХОББИ ЦИФРА ЧАЙКА ЧАШКА ШАЛАШ ШКОЛА ЩЕНОК ЭКРАН
+    ЮНОША ЯГОДА
+  )
 
   def subscribe, do: Phoenix.PubSub.subscribe(Chat.PubSub, @topic)
   def kinds, do: @kinds
@@ -541,10 +552,19 @@ defmodule Chat.Games do
     [first | _] = Enum.sort_by(players, & &1.position)
 
     board =
-      Enum.with_index(String.graphemes("БАЛДА"), fn letter, col -> {"2,#{col}", letter} end)
+      Enum.with_index(String.graphemes(initial_balda_word()), fn letter, col ->
+        {"2,#{col}", letter}
+      end)
       |> Map.new()
 
     %{"board" => board, "words" => %{}, "turn_id" => first.user_id, "skips" => 0}
+  end
+
+  defp initial_balda_word do
+    case Dictionary.random_five_letter_word() do
+      {:ok, word} -> word
+      :error -> Enum.random(@balda_start_words)
+    end
   end
 
   defp automatic_fleet do
