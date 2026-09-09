@@ -595,13 +595,23 @@ const chatHooks = {
       }
 
       this.pendingMessages = this.el.querySelector("#pending-messages")
+      this.renderedOutboxClientIds = new Set()
 
       this.renderOutbox = () => {
         if (!this.pendingMessages) return
 
-        this.pendingMessages.replaceChildren(
-          ...readMessageOutbox().map(entry => this.buildPendingMessage(entry)),
-        )
+        const entries = readMessageOutbox()
+        const addedEntry = entries.find(entry => !this.renderedOutboxClientIds.has(entry.clientId))
+
+        this.pendingMessages.replaceChildren(...entries.map(entry => this.buildPendingMessage(entry)))
+        this.renderedOutboxClientIds = new Set(entries.map(entry => entry.clientId))
+
+        // Optimistic entries are inserted directly by this hook, so LiveView's
+        // `updated` callback does not run to reveal them. A message just sent by
+        // this tab must remain visible even when the confirmed stream is long.
+        if (addedEntry && !this.initializing) {
+          requestAnimationFrame(() => this.scrollToBottom())
+        }
       }
 
       this.reconcileOutbox = () => {
