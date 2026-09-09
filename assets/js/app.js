@@ -602,6 +602,7 @@ const chatHooks = {
 
         const entries = readMessageOutbox()
         const addedEntry = entries.find(entry => !this.renderedOutboxClientIds.has(entry.clientId))
+        const previousScrollHeight = this.el.scrollHeight
 
         this.pendingMessages.replaceChildren(...entries.map(entry => this.buildPendingMessage(entry)))
         this.renderedOutboxClientIds = new Set(entries.map(entry => entry.clientId))
@@ -610,7 +611,9 @@ const chatHooks = {
         // `updated` callback does not run to reveal them. A message just sent by
         // this tab must remain visible even when the confirmed stream is long.
         if (addedEntry && !this.initializing) {
-          requestAnimationFrame(() => this.scrollToBottom())
+          const addedHeight = this.el.scrollHeight - previousScrollHeight
+
+          if (addedHeight > 0) this.revealLatestMessage(addedHeight)
         }
       }
 
