@@ -79,23 +79,21 @@ PHX_URL_PORT=80
 CADDY_SITE_ADDRESS=http://109.248.170.47
 ```
 
-To deploy a checked local change, do not copy either environment file. Run the
-checks locally, upload the source, then build and restart the Compose stack:
+To deploy a checked local change, commit it and push it to `origin/main`. On the
+VPS, deploy only the committed Git revision: do not copy source with `rsync` and
+do not overwrite either environment file. First check that the VPS worktree is
+clean, pull with fast-forward only, then build and restart the Compose stack:
 
 ```sh
 mix precommit
-
-rsync -az \
-  --exclude='.git/' \
-  --exclude='.env' \
-  --exclude='.env.vps' \
-  --exclude='_build/' \
-  --exclude='deps/' \
-  --exclude='assets/node_modules/' \
-  ./ root@109.248.170.47:/opt/apps/vertigo-chat/
+git add <files>
+git commit -m "Describe the change"
+git push origin main
 
 ssh root@109.248.170.47 '\
   cd /opt/apps/vertigo-chat && \
+  test -z "$(git status --porcelain)" && \
+  git pull --ff-only origin main && \
   docker compose --env-file .env --env-file .env.vps build app && \
   docker compose --env-file .env --env-file .env.vps up -d && \
   docker compose --env-file .env --env-file .env.vps ps'

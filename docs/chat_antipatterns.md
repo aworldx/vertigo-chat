@@ -210,7 +210,10 @@ fencing в общее устойчивое хранилище с атомарн�
 с реальными browser storage и transport.
 
 **Правило.** Завершение изменения в production состоит из: чистый precommit,
-commit, push, deploy, health-check и целевой smoke-сценарий. Разделять
+commit, push в `origin/main`, `git pull --ff-only origin main` на VPS, deploy,
+health-check и целевой smoke-сценарий. Не переносить исходники на production
+через `rsync`: VPS разворачивается только из зафиксированного Git-коммита.
+Разделять
 «закодировано», «задеплоено» и «проверено в браузере».
 
 **Статус:** процессное правило.
