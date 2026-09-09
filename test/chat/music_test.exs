@@ -2,6 +2,7 @@ defmodule Chat.MusicTest do
   use ExUnit.Case, async: false
 
   alias Chat.Music
+  alias Chat.Music.ProxyPool
 
   setup do
     previous_config = Application.get_env(:chat, Music)
@@ -49,6 +50,40 @@ defmodule Chat.MusicTest do
     end)
 
     assert {:error, :not_found} = Music.search("unknown")
+  end
+
+  test "treats a missing MP3mn result page as no results" do
+    Req.Test.expect(__MODULE__, fn conn ->
+      Plug.Conn.send_resp(conn, 404, "not found")
+    end)
+
+    assert {:error, :not_found} = Music.search("Imagine Dragons")
+  end
+
+  test "retries directly after every music proxy fails" do
+    path = Path.join(System.tmp_dir!(), "music-proxy-#{System.unique_integer([:positive])}.txt")
+    File.write!(path, "proxy.example:10000:user:password\n")
+
+    previous_config = Application.get_env(:chat, Music)
+
+    on_exit(fn ->
+      Application.put_env(:chat, Music, previous_config)
+      ProxyPool.reload()
+      File.rm(path)
+    end)
+
+    Application.put_env(:chat, Music, Keyword.put(previous_config, :proxy_file, path))
+    :ok = ProxyPool.reload()
+
+    Req.Test.expect(__MODULE__, fn conn ->
+      Plug.Conn.send_resp(conn, 502, "bad gateway")
+    end)
+
+    Req.Test.expect(__MODULE__, fn conn ->
+      Req.Test.html(conn, track_markup())
+    end)
+
+    assert {:ok, [%{title: "Привет"}]} = Music.search("Bakr Привет")
   end
 
   test "returns at most fifteen tracks for three preview pages" do
@@ -99,5 +134,19 @@ defmodule Chat.MusicTest do
   test "validates search query before making a request" do
     assert {:error, :query_required} = Music.search("  ")
     assert {:error, :query_too_long} = Music.search(String.duplicate("a", 121))
+  end
+
+  defp track_markup do
+    """
+    <ul>
+      <li>
+        <a class="playlist-play" data-url="https://mn1.sunproxy.net/file/test/Bakr_-_Privet.mp3">Прослушать</a>
+        <a href="/t/165-bakr_privet/" class="playlist-down">Скачать</a>
+        <span class="playlist-duration">2:35</span>
+        <div class="playlist-name-artist"><a>Bakr</a></div>
+        <div class="playlist-name-title"><a>Привет</a></div>
+      </li>
+    </ul>
+    """
   end
 end

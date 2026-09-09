@@ -1,6 +1,8 @@
 defmodule Chat.Music do
   @moduledoc "Searches MP3mn's public catalogue and returns playable track metadata."
 
+  require Logger
+
   @endpoint "https://mp3mn.net/"
   @max_results 15
   @max_query_length 120
@@ -79,10 +81,22 @@ defmodule Chat.Music do
     endpoint = config[:endpoint] || @endpoint
     proxies = Chat.Music.ProxyPool.candidates(@proxy_attempts)
 
-    if proxies == [] do
-      fetch_results(endpoint, config, query, nil)
-    else
-      fetch_results_through_proxies(endpoint, config, query, proxies)
+    case proxies do
+      [] ->
+        fetch_results(endpoint, config, query, nil)
+
+      _proxies ->
+        case fetch_results_through_proxies(endpoint, config, query, proxies) do
+          {:ok, _tracks} = result ->
+            result
+
+          {:error, reason} ->
+            Logger.warning(
+              "music_search_proxy_fallback proxy_count=#{length(proxies)} reason=#{reason}"
+            )
+
+            fetch_results(endpoint, config, query, nil)
+        end
     end
   end
 
@@ -108,8 +122,8 @@ defmodule Chat.Music do
       {:ok, tracks}
     else
       true -> {:error, :not_found}
-      {:error, _reason} -> {:error, :provider_unavailable}
-      _unexpected -> {:error, :provider_unavailable}
+      {:error, reason} -> log_search_failure(reason, proxy)
+      _unexpected -> log_search_failure(:request_failed, proxy)
     end
   end
 
@@ -137,7 +151,26 @@ defmodule Chat.Music do
   end
 
   defp successful_status(status) when status in 200..299, do: :ok
-  defp successful_status(_status), do: {:error, :provider_unavailable}
+  defp successful_status(404), do: {:error, :not_found}
+  defp successful_status(status), do: {:error, {:http_status, status}}
+
+  defp log_search_failure(:not_found, _proxy), do: {:error, :not_found}
+
+  defp log_search_failure({:http_status, status}, proxy) do
+    Logger.warning("music_search_provider_status status=#{status} route=#{search_route(proxy)}")
+    {:error, :provider_unavailable}
+  end
+
+  defp log_search_failure(reason, proxy) do
+    Logger.warning(
+      "music_search_provider_failed reason=#{inspect(reason)} route=#{search_route(proxy)}"
+    )
+
+    {:error, :provider_unavailable}
+  end
+
+  defp search_route(nil), do: "direct"
+  defp search_route(_proxy), do: "proxy"
 
   defp parse_tracks(body, endpoint) when is_binary(body) do
     ~r/<li(?:\s[^>]*)?>(.*?)<\/li>/s
