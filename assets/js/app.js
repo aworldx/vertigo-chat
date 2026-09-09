@@ -43,6 +43,7 @@ const LONG_POLL_FALLBACK_MS = 8_000
 const MESSAGE_REHYDRATION_COOLDOWN_MS = 15_000
 const MESSAGE_ACK_TIMEOUT_MS = 10_000
 const MESSAGE_OUTBOX_LIMIT = 50
+const MESSAGE_SYNC_INTERVAL_MS = 10_000
 
 // Auth is deliberately limited to the current browser tab. Older versions
 // stored this token in localStorage, so discard that persistent copy once.
@@ -595,6 +596,22 @@ const chatHooks = {
         }
       }
 
+      // PubSub normally delivers every message immediately. This inexpensive
+      // cursor check is a safety net for a tab whose transport briefly became
+      // stale without completing a visible reconnect cycle.
+      this.syncMissedMessages = () => {
+        const cursor = sessionStorage.getItem(MESSAGE_CURSOR_KEY)
+
+        if (/^\d+$/.test(cursor || "")) {
+          this.pushEvent("sync_messages", {cursor})
+        }
+      }
+
+      this.messageSyncTimer = window.setInterval(
+        this.syncMissedMessages,
+        MESSAGE_SYNC_INTERVAL_MS,
+      )
+
       this.pendingMessages = this.el.querySelector("#pending-messages")
       this.renderedOutboxClientIds = new Set()
 
@@ -664,10 +681,14 @@ const chatHooks = {
       // the server has a chance to append only the messages missed during the outage.
       this.el.setAttribute("phx-update", "ignore")
     },
+    reconnected() {
+      this.syncMissedMessages()
+    },
     destroyed() {
       cancelAnimationFrame(this.scrollAnimationFrame)
       cancelAnimationFrame(this.initialScrollFrame)
       window.clearTimeout(this.initialScrollTimer)
+      window.clearInterval(this.messageSyncTimer)
       this.resizeObserver?.disconnect()
       this.pendingMessages?.removeEventListener("click", this.onPendingClick)
       window.removeEventListener(MESSAGE_OUTBOX_CHANGED_EVENT, this.onOutboxChanged)

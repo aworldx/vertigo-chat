@@ -1099,6 +1099,15 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#messages[style*='--chat-composer-height']")
   end
 
+  test "silently ignores an invalid message sync cursor", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "synccursor")
+
+    render_hook(view, "sync_messages", %{"cursor" => "not-a-cursor"})
+
+    assert has_element?(view, "#message-form")
+  end
+
   test "keeps a registered user in chat after the first message", %{conn: conn} do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "stable_member", "password" => "secret123"})

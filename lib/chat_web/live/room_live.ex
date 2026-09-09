@@ -195,6 +195,22 @@ defmodule ChatWeb.RoomLive do
 
   def handle_event("touch_chat_session", _params, socket), do: {:noreply, socket}
 
+  def handle_event("sync_messages", %{"cursor" => cursor}, %{assigns: %{joined?: true}} = socket) do
+    socket =
+      case parse_message_cursor(cursor) do
+        {:ok, cursor} ->
+          Messages.list_messages_after(@room_id, cursor)
+          |> Enum.reduce(socket, &insert_message(&2, &1))
+
+        :error ->
+          socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("sync_messages", _params, socket), do: {:noreply, socket}
+
   def handle_event("pet_karmik", _params, %{assigns: %{joined?: true}} = socket) do
     Process.send_after(self(), :karmik_rest, 8_000)
     {:noreply, assign(socket, :karmik_mood, :happy)}
@@ -847,13 +863,21 @@ defmodule ChatWeb.RoomLive do
   defp message_cursor(socket) do
     with true <- connected?(socket),
          %{"message_cursor" => cursor} when is_binary(cursor) <- get_connect_params(socket),
-         {message_id, ""} <- Integer.parse(cursor),
-         true <- message_id >= 0 do
+         {:ok, message_id} <- parse_message_cursor(cursor) do
       {:ok, message_id}
     else
       _invalid -> :none
     end
   end
+
+  defp parse_message_cursor(cursor) when is_binary(cursor) do
+    case Integer.parse(cursor) do
+      {message_id, ""} when message_id >= 0 -> {:ok, message_id}
+      _invalid -> :error
+    end
+  end
+
+  defp parse_message_cursor(_cursor), do: :error
 
   defp guest_identity_token(%{user: %{}}), do: nil
 
