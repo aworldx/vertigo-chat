@@ -61,6 +61,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#about-main-menu #show-feedback", "Обратная связь")
     assert has_element?(view, "aside.hidden.md\\:block #online-list")
     assert has_element?(view, "#chat-room.h-dvh.max-h-dvh.min-h-0.overflow-hidden")
+    refute has_element?(view, "#client-error")
+    refute has_element?(view, "#server-error")
   end
 
   test "does not enter the chat without an explicit valid nickname", %{conn: conn} do

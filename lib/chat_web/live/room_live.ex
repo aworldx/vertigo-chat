@@ -37,7 +37,7 @@ defmodule ChatWeb.RoomLive do
   def mount(_params, _session, socket) do
     presence_key = Chatlans.guest_presence_key()
     security_subject = ClientSecurity.subject_from_socket(socket, presence_key)
-    messages = messages_for_mount(socket)
+    {messages, missed_messages, preserve_message_dom?} = messages_for_mount(socket)
 
     socket =
       socket
@@ -92,13 +92,14 @@ defmodule ChatWeb.RoomLive do
       |> assign(:ignored_nicknames, MapSet.new())
       |> assign(:message_items, messages)
       |> assign(:all_message_items, messages)
+      |> assign(:preserve_message_dom?, preserve_message_dom?)
       |> assign_nickname_form()
       |> assign_registration_form()
       |> assign_feedback_form()
       |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
       |> assign(:emojis, Emojis.list())
       |> assign_settings_form()
-      |> stream(:messages, messages)
+      |> stream(:messages, if(preserve_message_dom?, do: [], else: messages))
       |> allow_upload(:profile_photo,
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
@@ -119,6 +120,10 @@ defmodule ChatWeb.RoomLive do
       else
         socket
       end
+
+    if preserve_message_dom? do
+      send(self(), {:restore_messages_after_reconnect, missed_messages})
+    end
 
     {:ok, socket}
   end
@@ -823,14 +828,13 @@ defmodule ChatWeb.RoomLive do
 
     case message_cursor(socket) do
       {:ok, cursor} ->
-        # A LiveView stream is rehydrated after reconnect. Keeping the recent stream
-        # entries in this response lets the client retain their DOM nodes; `after`
-        # adds every message that arrived while its socket was disconnected.
-        recent_messages
-        |> merge_messages(Messages.list_messages_after(@room_id, cursor))
+        # Preserve existing browser DOM in the reconnect join patch, then append only
+        # messages the browser missed while disconnected.
+        missed_messages = Messages.list_messages_after(@room_id, cursor)
+        {merge_messages(recent_messages, missed_messages), missed_messages, true}
 
       :none ->
-        recent_messages
+        {recent_messages, [], false}
     end
   end
 
@@ -1022,6 +1026,13 @@ defmodule ChatWeb.RoomLive do
   end
 
   @impl true
+  def handle_info({:restore_messages_after_reconnect, messages}, socket) do
+    {:noreply,
+     socket
+     |> assign(:preserve_message_dom?, false)
+     |> stream(:messages, messages)}
+  end
+
   def handle_info({:message_created, message}, socket) do
     {:noreply, socket |> insert_message(message) |> maybe_notify_about_message(message)}
   end

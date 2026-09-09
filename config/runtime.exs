@@ -31,7 +31,7 @@ openai_receive_timeout_ms =
 
 config :chat, Chat.Bot.OpenAI,
   api_key: System.get_env("OPENAI_API_KEY"),
-  model: System.get_env("OPENAI_BOT_MODEL", "gpt-5.4-nano"),
+  model: System.get_env("OPENAI_BOT_MODEL", "gpt-5.6-terra"),
   receive_timeout: openai_receive_timeout_ms
 
 config :chat, Chat.Karmik.OpenAI,

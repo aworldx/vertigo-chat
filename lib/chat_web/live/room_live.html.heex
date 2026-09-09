@@ -27,6 +27,7 @@
           online={@online}
           emojis={@emojis}
           typing={@typing_peers |> Map.values() |> Enum.sort()}
+          preserve_message_dom?={@preserve_message_dom?}
         />
       <% else %>
         <main

@@ -55,7 +55,7 @@ defmodule Chat.Bot.OpenAI do
 
   defp payload(config, instructions, messages, opts) do
     %{
-      "model" => config[:model] || "gpt-5.4-nano",
+      "model" => config[:model] || "gpt-5.6-terra",
       "instructions" => instructions,
       "input" => Enum.map(messages, &provider_message/1),
       "max_output_tokens" => opts[:max_output_tokens],

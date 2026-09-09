@@ -19,7 +19,7 @@ Configure the bot through environment variables (the local `.env` file is ignore
 
 ```env
 OPENAI_API_KEY=sk-...
-OPENAI_BOT_MODEL=gpt-5.4-nano
+OPENAI_BOT_MODEL=gpt-5.6-terra
 OPENAI_BOT_RECEIVE_TIMEOUT_MS=120000
 OPENAI_BOT_DAILY_TOKEN_LIMIT=120000
 OPENAI_BOT_TOKEN_WARNING_PERCENT=90

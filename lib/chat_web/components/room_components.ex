@@ -15,6 +15,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:online, :list, required: true)
   attr(:emojis, :list, default: [])
   attr(:typing, :list, default: [])
+  attr(:preserve_message_dom?, :boolean, default: false)
 
   def dialogue_frame(assigns) do
     ~H"""
@@ -25,7 +26,7 @@ defmodule ChatWeb.RoomComponents do
       <div
         id="messages"
         phx-hook="ChatMessages"
-        phx-update="stream"
+        phx-update={if(@preserve_message_dom?, do: "ignore", else: "stream")}
         class="flex min-h-0 flex-1 flex-col overflow-y-auto p-3"
       >
         <div

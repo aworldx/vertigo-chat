@@ -42,7 +42,7 @@ defmodule Chat.BotTest do
     def summarize(_summary, _messages, _opts), do: {:error, :not_called}
   end
 
-  test "asks the provider for short answers and permits a filming excuse" do
+  test "asks the provider for brief, lively replies that continue the conversation" do
     subject = Subject.guest("203.0.113.50", :short_answer_connection)
 
     assert {:ok, request} =
@@ -57,13 +57,14 @@ defmodule Chat.BotTest do
     assert {:ok, _answer} = Bot.answer(request, CapturingProvider)
 
     assert_receive {:bot_generation, instructions, opts}
-    assert instructions =~ "одно-два коротких предложения"
+    assert instructions =~ "одно-три коротких предложения"
     assert instructions =~ "тебя ждут съёмка, монтажная или продюсер"
     assert instructions =~ "обычные человеческие разговоры"
     assert instructions =~ "не притягивая к ним кино"
     assert instructions =~ "Не своди кино автоматически к саспенсу"
-    assert instructions =~ "Не заканчивай каждый ответ встречным вопросом"
-    assert instructions =~ "не задавай дежурных вопросов из вежливости"
+    assert instructions =~ "бодр, дерзок и наблюдателен"
+    assert instructions =~ "чаще всего задай один живой встречный вопрос"
+    assert instructions =~ "вопрос был бы дежурным"
     assert opts[:max_output_tokens] == 120
   end
 

@@ -24,7 +24,6 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/chat"
-import topbar from "../vendor/topbar"
 import MediaSharing from "./media_sharing"
 import "./theme"
 
@@ -660,6 +659,11 @@ const chatHooks = {
 
       this.scrollToBottom({smooth: true})
     },
+    disconnected() {
+      // Prevent LiveView's reconnect join patch from clearing stream children before
+      // the server has a chance to append only the messages missed during the outage.
+      this.el.setAttribute("phx-update", "ignore")
+    },
     destroyed() {
       cancelAnimationFrame(this.scrollAnimationFrame)
       cancelAnimationFrame(this.initialScrollFrame)
@@ -736,7 +740,31 @@ const chatHooks = {
     },
     scrollToBottom({smooth = false} = {}) {
       cancelAnimationFrame(this.scrollAnimationFrame)
-      this.el.scrollTo({top: this.el.scrollHeight, behavior: smooth ? "smooth" : "auto"})
+      const target = Math.max(0, this.el.scrollHeight - this.el.clientHeight)
+
+      if (
+        !smooth ||
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+          Math.abs(target - this.el.scrollTop) < 1
+      ) {
+        this.el.scrollTop = target
+        return
+      }
+
+      const start = this.el.scrollTop
+      const distance = target - start
+      const duration = Math.min(600, Math.max(280, Math.abs(distance) * 0.3))
+      const startedAt = performance.now()
+
+      const animate = now => {
+        const progress = Math.min(1, (now - startedAt) / duration)
+        const easedProgress = 1 - Math.pow(1 - progress, 3)
+        this.el.scrollTop = start + distance * easedProgress
+
+        if (progress < 1) this.scrollAnimationFrame = requestAnimationFrame(animate)
+      }
+
+      this.scrollAnimationFrame = requestAnimationFrame(animate)
     },
   },
   ChatPreferences: {
@@ -832,11 +860,6 @@ const liveSocket = new LiveSocket("/live", Socket, {
   params: () => ({_csrf_token: csrfToken, ...chatSessionParams()}),
   hooks: {...colocatedHooks, ...chatHooks, MediaSharing},
 })
-
-// Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
-window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
-window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
 let gameAudioContext = null
 let lastGameSoundAt = 0
