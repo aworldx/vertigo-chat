@@ -560,9 +560,6 @@ const chatHooks = {
   },
   ChatMessages: {
     mounted() {
-      this.shouldStickToBottom = true
-      this.autoScrolling = false
-      this.previousScrollHeight = this.el.scrollHeight
       const lastHydratedAt = Number(sessionStorage.getItem(MESSAGE_HYDRATED_AT_KEY))
       const recentlyHydrated =
         Number.isSafeInteger(lastHydratedAt) &&
@@ -607,8 +604,6 @@ const chatHooks = {
 
         const entries = readMessageOutbox()
         const addedEntry = entries.find(entry => !this.renderedOutboxClientIds.has(entry.clientId))
-        const previousScrollHeight = this.el.scrollHeight
-
         this.pendingMessages.replaceChildren(...entries.map(entry => this.buildPendingMessage(entry)))
         this.renderedOutboxClientIds = new Set(entries.map(entry => entry.clientId))
 
@@ -616,9 +611,7 @@ const chatHooks = {
         // `updated` callback does not run to reveal them. A message just sent by
         // this tab must remain visible even when the confirmed stream is long.
         if (addedEntry && !this.initializing) {
-          const addedHeight = this.el.scrollHeight - previousScrollHeight
-
-          if (addedHeight > 0) this.revealLatestMessage(addedHeight)
+          this.scrollToBottom({smooth: true})
         }
       }
 
@@ -655,12 +648,6 @@ const chatHooks = {
       this.renderOutbox()
       this.storeMessageCursor()
     },
-    beforeUpdate() {
-      this.shouldStickToBottom =
-        this.autoScrolling ||
-          this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 80
-      this.previousScrollHeight = this.el.scrollHeight
-    },
     updated() {
       this.reconcileOutbox()
       this.renderOutbox()
@@ -671,10 +658,7 @@ const chatHooks = {
         return
       }
 
-      if (!this.shouldStickToBottom) return
-
-      const addedHeight = this.el.scrollHeight - this.previousScrollHeight
-      if (addedHeight > 0) this.revealLatestMessage(addedHeight)
+      this.scrollToBottom({smooth: true})
     },
     destroyed() {
       cancelAnimationFrame(this.scrollAnimationFrame)
@@ -747,43 +731,9 @@ const chatHooks = {
       wrapper.append(author, body, controls)
       return wrapper
     },
-    scrollToBottom() {
+    scrollToBottom({smooth = false} = {}) {
       cancelAnimationFrame(this.scrollAnimationFrame)
-      this.el.scrollTop = this.el.scrollHeight
-      this.autoScrolling = false
-    },
-    revealLatestMessage(addedHeight) {
-      cancelAnimationFrame(this.scrollAnimationFrame)
-
-      const startTop = this.el.scrollTop
-      const maxTop = this.el.scrollHeight - this.el.clientHeight
-      const targetTop = Math.min(startTop + addedHeight, maxTop)
-      const distance = targetTop - startTop
-
-      if (distance <= 0) {
-        this.autoScrolling = false
-        return
-      }
-
-      const startedAt = performance.now()
-      const duration = 900
-      this.autoScrolling = true
-      const tick = now => {
-        const progress = Math.min((now - startedAt) / duration, 1)
-        const eased =
-          progress < 0.5
-            ? 4 * Math.pow(progress, 3)
-            : 1 - Math.pow(-2 * progress + 2, 3) / 2
-        this.el.scrollTop = startTop + distance * eased
-
-        if (progress < 1) {
-          this.scrollAnimationFrame = requestAnimationFrame(tick)
-        } else {
-          this.autoScrolling = false
-        }
-      }
-
-      this.scrollAnimationFrame = requestAnimationFrame(tick)
+      this.el.scrollTo({top: this.el.scrollHeight, behavior: smooth ? "smooth" : "auto"})
     },
   },
   ChatPreferences: {
