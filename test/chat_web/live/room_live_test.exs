@@ -1204,6 +1204,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert is_integer(message_id)
     assert has_element?(view, "#messages [data-client-id='#{client_id}']", "первое сообщение")
+    assert has_element?(view, "#messages [data-delivery-state='published']", "✓✓")
   end
 
   test "rejects an outbox message explicitly when server validation fails", %{conn: conn} do

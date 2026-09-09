@@ -102,10 +102,30 @@ defmodule ChatWeb.RoomComponents do
             datetime={Map.get(message, :sent_at)}
             phx-hook=".LocalMessageTime"
             phx-update="ignore"
-            class="absolute right-2 top-1 text-[10px] text-zinc-500"
+            class={[
+              "absolute top-1 text-[10px] text-zinc-500",
+              Map.get(message, :kind) == :text &&
+                message.author == @nickname &&
+                is_binary(Map.get(message, :client_id)) && "right-8",
+              not (Map.get(message, :kind) == :text && message.author == @nickname &&
+                     is_binary(Map.get(message, :client_id))) && "right-2"
+            ]}
           >
             {message.at}
           </time>
+          <span
+            :if={
+              Map.get(message, :kind) == :text &&
+                message.author == @nickname &&
+                is_binary(Map.get(message, :client_id))
+            }
+            id={"message-delivery-#{dom_id}"}
+            data-delivery-state="published"
+            class="absolute right-2 top-1 text-[11px] font-bold leading-none text-sky-400"
+            aria-label="Опубликовано в истории"
+          >
+            <span aria-hidden="true">✓✓</span>
+          </span>
           <p
             :if={Map.get(message, :kind) == :private}
             class="mb-0.5 pr-12 text-[10px] font-semibold uppercase tracking-wide text-amber-300"

@@ -704,17 +704,30 @@ const chatHooks = {
       const controls = document.createElement("div")
       controls.className = "mt-1 flex items-center gap-2 text-[11px] text-zinc-500"
 
+      const indicator = document.createElement("span")
+      indicator.dataset.deliveryIndicator = ""
+      indicator.setAttribute("aria-hidden", "true")
+      indicator.className =
+        "inline-flex min-w-3 justify-center font-bold leading-none " +
+        (entry.state === "failed"
+          ? "text-red-400"
+          : entry.state === "confirmed"
+            ? "text-sky-400"
+            : "text-zinc-500")
+      indicator.textContent = entry.state === "failed" ? "!" : "✓"
+
       const status = document.createElement("span")
       status.dataset.deliveryStatus = ""
+      status.className = "sr-only"
       status.textContent =
         entry.state === "failed"
           ? "Не отправлено"
           : entry.state === "confirmed"
-            ? "Доставлено — ждём обновление истории"
+            ? "Принято сервером — ожидает публикации в истории"
           : entry.state === "retrying"
-            ? "Нет связи — отправим после восстановления"
-            : "Отправляется…"
-      controls.appendChild(status)
+            ? "Сохранено на устройстве — ждёт восстановления связи"
+            : "Сохранено на устройстве — отправляется на сервер"
+      controls.append(indicator, status)
 
       if (entry.state === "failed") {
         const retry = document.createElement("button")
