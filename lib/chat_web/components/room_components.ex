@@ -587,23 +587,6 @@ defmodule ChatWeb.RoomComponents do
         >
         </div>
       </div>
-      <div
-        id="message-drawing-layer"
-        phx-hook=".MessageDrawing"
-        phx-update="ignore"
-        class="pointer-events-none absolute inset-x-0 bottom-6 top-0 z-10"
-        aria-label="Временные рисунки чатлан"
-      >
-        <svg
-          data-drawing-lines
-          class="absolute inset-0 size-full overflow-visible"
-          viewBox="0 0 1 1"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        ></svg>
-        <div data-drawing-labels class="pointer-events-none absolute inset-0" aria-live="polite">
-        </div>
-      </div>
       <p
         id="typing-indicator"
         class="h-6 shrink-0 px-4 text-xs italic leading-6 text-zinc-500"
@@ -664,153 +647,6 @@ defmodule ChatWeb.RoomComponents do
             particle.style.setProperty("--reaction-drift", `${(index - 1) * 1.1 + (Math.random() - 0.5) * 1.4}rem`)
             particle.addEventListener("animationend", () => particle.remove(), {once: true})
             layer.appendChild(particle)
-          }
-        }
-      </script>
-      <script :type={Phoenix.LiveView.ColocatedHook} name=".MessageDrawing">
-        export default {
-          mounted() {
-            this.lines = this.el.querySelector("[data-drawing-lines]")
-            this.labels = this.el.querySelector("[data-drawing-labels]")
-            this.active = false
-            this.drawing = false
-            this.lastPoint = null
-            this.strokeId = null
-            this.started = false
-            this.lastSentAt = 0
-            this.pendingPoints = []
-
-            this.handleEvent("drawing-segment", segment => this.renderSegment(segment))
-            this.onModeChanged = event => this.setActive(Boolean(event.detail?.active))
-            this.onPointerDown = event => this.start(event)
-            this.onPointerMove = event => this.move(event)
-            this.onPointerUp = event => this.stop(event)
-
-            window.addEventListener("chat:drawing-mode", this.onModeChanged)
-            this.el.addEventListener("pointerdown", this.onPointerDown)
-            this.el.addEventListener("pointermove", this.onPointerMove)
-            this.el.addEventListener("pointerup", this.onPointerUp)
-            this.el.addEventListener("pointercancel", this.onPointerUp)
-          },
-          destroyed() {
-            window.removeEventListener("chat:drawing-mode", this.onModeChanged)
-            this.el.removeEventListener("pointerdown", this.onPointerDown)
-            this.el.removeEventListener("pointermove", this.onPointerMove)
-            this.el.removeEventListener("pointerup", this.onPointerUp)
-            this.el.removeEventListener("pointercancel", this.onPointerUp)
-          },
-          setActive(active) {
-            this.active = active
-            this.el.dataset.drawingActive = active.toString()
-            if (!active) this.resetStroke()
-          },
-          point(event) {
-            const rect = this.el.getBoundingClientRect()
-            if (!rect.width || !rect.height) return null
-
-            return {
-              x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
-              y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
-            }
-          },
-          start(event) {
-            if (!this.active || event.button !== 0) return
-
-            const point = this.point(event)
-            if (!point) return
-
-            event.preventDefault()
-            this.drawing = true
-            this.lastPoint = point
-            this.strokeId = crypto.randomUUID?.().replaceAll("-", "") || `${Date.now()}_${Math.random().toString(36).slice(2)}`
-            this.started = false
-            this.lastSentAt = 0
-            this.pendingPoints = []
-            this.el.setPointerCapture(event.pointerId)
-          },
-          move(event) {
-            if (!this.drawing) return
-
-            const point = this.point(event)
-            const previousPoint = this.pendingPoints.at(-1) || this.lastPoint
-            if (!point || this.distance(previousPoint, point) < 0.0008) return
-
-            event.preventDefault()
-            this.pendingPoints.push(point)
-            const now = performance.now()
-            if (now - this.lastSentAt >= 45 || this.pendingPoints.length >= 11) this.sendPendingSegment()
-          },
-          stop(event) {
-            if (!this.drawing) return
-
-            const point = this.point(event)
-            const previousPoint = this.pendingPoints.at(-1) || this.lastPoint
-            if (point && this.distance(previousPoint, point) >= 0.0008) this.pendingPoints.push(point)
-            this.sendPendingSegment()
-            this.resetStroke()
-          },
-          sendPendingSegment() {
-            const points = [this.lastPoint, ...this.pendingPoints]
-            if (points.length < 2) return
-
-            this.pushEvent("draw_segment", {
-              stroke_id: this.strokeId,
-              started: !this.started,
-              points
-            })
-            this.lastPoint = points.at(-1)
-            this.started = true
-            this.pendingPoints = []
-            this.lastSentAt = performance.now()
-          },
-          resetStroke() {
-            this.drawing = false
-            this.lastPoint = null
-            this.strokeId = null
-            this.pendingPoints = []
-          },
-          distance(first, second) {
-            if (!first || !second) return 0
-            return Math.hypot(first.x - second.x, first.y - second.y)
-          },
-          renderSegment(segment) {
-            const points = segment.points || []
-            if (points.length < 2) return
-
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
-            path.setAttribute("d", this.smoothPath(points))
-            path.setAttribute("vector-effect", "non-scaling-stroke")
-            path.classList.add("chat-drawing-segment")
-            this.lines.appendChild(path)
-
-            if (segment.started) this.addLabel(segment.author, points[0])
-            window.setTimeout(() => path.remove(), 4200)
-          },
-          addLabel(author, point) {
-            const label = document.createElement("span")
-            label.className = "chat-drawing-author"
-            label.textContent = `${author} рисует`
-            label.style.left = `${point.x * 100}%`
-            label.style.top = `${point.y * 100}%`
-            this.labels.appendChild(label)
-            window.setTimeout(() => label.remove(), 4200)
-          },
-          smoothPath(points) {
-            if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`
-
-            let path = `M ${points[0].x} ${points[0].y}`
-            for (let index = 1; index < points.length - 1; index++) {
-              const point = points[index]
-              const nextPoint = points[index + 1]
-              const midpoint = {
-                x: (point.x + nextPoint.x) / 2,
-                y: (point.y + nextPoint.y) / 2
-              }
-              path += ` Q ${point.x} ${point.y} ${midpoint.x} ${midpoint.y}`
-            }
-
-            const lastPoint = points.at(-1)
-            return `${path} L ${lastPoint.x} ${lastPoint.y}`
           }
         }
       </script>
@@ -1206,50 +1042,73 @@ defmodule ChatWeb.RoomComponents do
             </button>
           </div>
         </div>
-        <div
-          id="command-autocomplete"
-          phx-hook=".CommandAutocomplete"
-          class="relative order-first min-w-0 basis-full flex-1 sm:order-none sm:basis-auto"
+        <button
+          id="show-command-menu"
+          type="button"
+          phx-click={JS.dispatch("chat:open-command-menu", to: "#command-autocomplete")}
+          aria-label="Открыть меню команд"
+          aria-controls="command-autocomplete-menu"
+          title="Команды"
+          class="flex h-full min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 font-mono text-base font-semibold text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
         >
-          <input
-            id="message-body"
-            name={@message_form[:body].name}
-            value={@message_form[:body].value}
-            autocomplete="off"
-            maxlength={Chat.Messages.max_body_length()}
-            placeholder="Напиши сообщение..."
-            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
-          />
-          <input id="message-client-id" type="hidden" name="message[client_id]" value="" />
+          / <span class="sr-only">Команды</span>
+        </button>
+        <div class="order-first flex min-w-0 basis-full flex-1 gap-3 sm:contents">
           <div
-            id="command-autocomplete-menu"
-            role="listbox"
-            aria-label="Команды чата"
-            class="absolute bottom-full left-0 z-40 mb-2 hidden w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
+            id="command-autocomplete"
+            phx-hook=".CommandAutocomplete"
+            class="relative min-w-0 flex-1"
           >
-            <button
-              :for={
-                {command, description} <- [
-                  {"/помощь", "Список команд"},
-                  {"/кто", "Кто сейчас в чате"},
-                  {"/инфо ", "Открыть анкету"},
-                  {"/игнор ", "Скрыть или вернуть чатланина"},
-                  {"/игноры", "Список игноров"},
-                  {"/музыка ", "Найти трек и открыть плеер"},
-                  {"/гиф ", "Найти и отправить GIF"},
-                  {"/очистить", "Очистить окно чата только у себя"},
-                  {"/выход", "Выйти из чата"}
-                ]
-              }
-              type="button"
-              role="option"
-              data-command={command}
-              class="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
+            <input
+              id="message-body"
+              name={@message_form[:body].name}
+              value={@message_form[:body].value}
+              autocomplete="off"
+              maxlength={Chat.Messages.max_body_length()}
+              placeholder="Напиши сообщение..."
+              class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
+            />
+            <input id="message-client-id" type="hidden" name="message[client_id]" value="" />
+            <div
+              id="command-autocomplete-menu"
+              role="listbox"
+              aria-label="Команды чата"
+              class="absolute bottom-full left-0 z-40 mb-2 hidden w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
             >
-              <span class="font-semibold text-amber-200">{command}</span>
-              <span class="text-zinc-400">{description}</span>
-            </button>
+              <button
+                :for={
+                  {command, description} <- [
+                    {"/помощь", "Список команд"},
+                    {"/кто", "Кто сейчас в чате"},
+                    {"/инфо ", "Открыть анкету"},
+                    {"/игнор ", "Скрыть или вернуть чатланина"},
+                    {"/игноры", "Список игноров"},
+                    {"/музыка ", "Найти трек и открыть плеер"},
+                    {"/гиф ", "Найти и отправить GIF"},
+                    {"/очистить", "Очистить окно чата только у себя"},
+                    {"/выход", "Выйти из чата"}
+                  ]
+                }
+                type="button"
+                role="option"
+                data-command={command}
+                class="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
+              >
+                <span class="font-semibold text-amber-200">{command}</span>
+                <span class="text-zinc-400">{description}</span>
+              </button>
+            </div>
           </div>
+          <button
+            id="send-message"
+            type="submit"
+            phx-disable-with="Отправляем…"
+            aria-label="Отправить сообщение"
+            class="flex shrink-0 items-center justify-center rounded bg-amber-300 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:opacity-75 sm:px-4"
+          >
+            <.icon name="hero-paper-airplane" class="size-5 sm:hidden" />
+            <span class="hidden sm:inline">Отправить</span>
+          </button>
         </div>
         <div
           id="media-share-controls"
@@ -1300,29 +1159,6 @@ defmodule ChatWeb.RoomComponents do
             Отпусти изображение или музыку здесь
           </div>
         </div>
-        <button
-          id="toggle-message-drawing"
-          type="button"
-          phx-hook=".DrawingToggle"
-          phx-update="ignore"
-          aria-label="Рисовать поверх сообщений"
-          aria-pressed="false"
-          title="Рисовать поверх сообщений"
-          class="flex h-full min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
-        >
-          <.icon name="hero-pencil" class="size-5" />
-          <span class="sr-only">Рисовать</span>
-        </button>
-        <button
-          id="send-message"
-          type="submit"
-          phx-disable-with="Отправляем…"
-          aria-label="Отправить сообщение"
-          class="flex shrink-0 items-center justify-center rounded bg-amber-300 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:opacity-75 sm:px-4"
-        >
-          <.icon name="hero-paper-airplane" class="size-5 sm:hidden" />
-          <span class="hidden sm:inline">Отправить</span>
-        </button>
         <button
           id="leave-chat"
           type="button"
@@ -1396,6 +1232,11 @@ defmodule ChatWeb.RoomComponents do
             }
 
             this.onInput = () => this.refresh()
+            this.open = () => {
+              this.input.value = "/"
+              this.input.dispatchEvent(new Event("input", {bubbles: true}))
+              this.input.focus()
+            }
             this.onClick = event => {
               const item = event.target.closest("[data-command]")
               if (!item) return
@@ -1428,38 +1269,13 @@ defmodule ChatWeb.RoomComponents do
             this.input.addEventListener("input", this.onInput)
             this.input.addEventListener("keydown", this.onKeydown)
             this.menu.addEventListener("click", this.onClick)
+            this.el.addEventListener("chat:open-command-menu", this.open)
           },
           destroyed() {
             this.input.removeEventListener("input", this.onInput)
             this.input.removeEventListener("keydown", this.onKeydown)
             this.menu.removeEventListener("click", this.onClick)
-          }
-        }
-      </script>
-      <script :type={Phoenix.LiveView.ColocatedHook} name=".DrawingToggle">
-        export default {
-          mounted() {
-            this.active = false
-            this.onClick = () => this.setActive(!this.active)
-            this.onKeydown = event => {
-              if (event.key === "Escape" && this.active) this.setActive(false)
-            }
-
-            this.el.addEventListener("click", this.onClick)
-            window.addEventListener("keydown", this.onKeydown)
-          },
-          destroyed() {
-            this.el.removeEventListener("click", this.onClick)
-            window.removeEventListener("keydown", this.onKeydown)
-          },
-          setActive(active) {
-            this.active = active
-            this.el.setAttribute("aria-pressed", active.toString())
-            this.el.classList.toggle("border-amber-300", active)
-            this.el.classList.toggle("bg-amber-300/15", active)
-            this.el.classList.toggle("text-amber-200", active)
-            this.el.classList.toggle("text-zinc-400", !active)
-            window.dispatchEvent(new CustomEvent("chat:drawing-mode", {detail: {active}}))
+            this.el.removeEventListener("chat:open-command-menu", this.open)
           }
         }
       </script>

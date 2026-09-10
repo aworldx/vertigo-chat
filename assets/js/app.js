@@ -426,6 +426,15 @@ const chatHooks = {
 
       this.handleEvent("public-message-rejected", payload => {
         this.finishAttempt(payload.client_id)
+
+        if (payload.reason === "rate_limited") {
+          updateMessageOutboxEntry(payload.client_id, {
+            state: "blocked",
+            error: "rate_limited",
+          })
+          return
+        }
+
         updateMessageOutboxEntry(payload.client_id, {
           state: "failed",
           error: payload.reason || "send_failed",
@@ -457,7 +466,10 @@ const chatHooks = {
 
       this.retryOutbox = () => {
         readMessageOutbox()
-          .filter(entry => entry.state !== "failed" && entry.state !== "confirmed")
+          .filter(
+            entry =>
+              entry.state !== "blocked" && entry.state !== "failed" && entry.state !== "confirmed",
+          )
           .forEach(entry => this.sendOutboxEntry(entry))
       }
 
@@ -548,6 +560,7 @@ const chatHooks = {
       writeMessageOutbox(
         readMessageOutbox().map(entry =>
           entry.state === "failed" || entry.state === "confirmed"
+            || entry.state === "blocked"
             ? entry
             : {...entry, state: "retrying"},
         ),
@@ -712,7 +725,7 @@ const chatHooks = {
 
       const controls = document.createElement("div")
       controls.className =
-        entry.state === "failed"
+        entry.state === "blocked" || entry.state === "failed"
           ? "mt-1 flex items-center gap-2 text-[11px] text-zinc-500"
           : "absolute right-2 top-1 text-[11px] text-zinc-500"
 
@@ -721,18 +734,20 @@ const chatHooks = {
       indicator.setAttribute("aria-hidden", "true")
       indicator.className =
         "inline-flex min-w-3 justify-center font-bold leading-none " +
-        (entry.state === "failed"
+        (entry.state === "blocked" || entry.state === "failed"
           ? "text-red-400"
           : entry.state === "confirmed"
             ? "text-sky-400"
             : "text-zinc-500")
-      indicator.textContent = entry.state === "failed" ? "!" : "✓"
+      indicator.textContent = entry.state === "blocked" || entry.state === "failed" ? "!" : "✓"
 
       const status = document.createElement("span")
       status.dataset.deliveryStatus = ""
       status.className = "sr-only"
       status.textContent =
-        entry.state === "failed"
+        entry.state === "blocked"
+          ? "Заблокировано лимитом — сообщение видно только вам"
+          : entry.state === "failed"
           ? "Не отправлено"
           : entry.state === "confirmed"
             ? "Принято сервером — ожидает публикации в истории"
@@ -740,6 +755,13 @@ const chatHooks = {
             ? "Сохранено на устройстве — ждёт восстановления связи"
             : "Сохранено на устройстве — отправляется на сервер"
       controls.append(indicator, status)
+
+      if (entry.state === "blocked") {
+        const blocked = document.createElement("span")
+        blocked.className = "text-red-300"
+        blocked.textContent = "Заблокировано лимитом"
+        controls.append(blocked)
+      }
 
       if (entry.state === "failed") {
         const retry = document.createElement("button")

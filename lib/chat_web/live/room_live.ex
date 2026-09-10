@@ -9,7 +9,6 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Bot
   alias Chat.Chatlans
   alias Chat.Commands
-  alias Chat.Drawings
   alias Chat.Emojis
   alias Chat.Feedback
   alias Chat.Gifs
@@ -109,7 +108,6 @@ defmodule ChatWeb.RoomLive do
     socket =
       if connected?(socket) do
         Messages.subscribe(@room_id)
-        Drawings.subscribe(@room_id)
         PrivateMessages.subscribe(presence_key)
         MediaShares.subscribe_peer(@room_id, presence_key)
         Emojis.subscribe()
@@ -337,13 +335,6 @@ defmodule ChatWeb.RoomLive do
         end
     end
   end
-
-  def handle_event("draw_segment", params, %{assigns: %{joined?: true}} = socket) do
-    _result = Drawings.broadcast_segment(@room_id, socket.assigns.nickname, params)
-    {:noreply, socket}
-  end
-
-  def handle_event("draw_segment", _params, socket), do: {:noreply, socket}
 
   def handle_event("send_private_message", %{"body" => body}, socket) do
     send_private_message(body, socket)
@@ -1069,12 +1060,6 @@ defmodule ChatWeb.RoomLive do
     {:noreply, insert_message(socket, message)}
   end
 
-  def handle_info({:drawing_segment, segment}, %{assigns: %{joined?: true}} = socket) do
-    {:noreply, push_event(socket, "drawing-segment", segment)}
-  end
-
-  def handle_info({:drawing_segment, _segment}, socket), do: {:noreply, socket}
-
   def handle_info({:bot_status_changed, _status}, socket) do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
   end
@@ -1221,7 +1206,7 @@ defmodule ChatWeb.RoomLive do
         {:noreply,
          socket
          |> assign(:message_error, message_error(reason))
-         |> assign(:message_form, to_form(%{"body" => body}, as: :message))
+         |> assign_rejected_message_form(reason, body)
          |> reject_public_message(client_id, reason)}
     end
   end
@@ -2129,6 +2114,16 @@ defmodule ChatWeb.RoomLive do
     |> assign(:message_error, nil)
     |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
     |> push_event("clear-message-input", %{})
+  end
+
+  defp assign_rejected_message_form(socket, :rate_limited, _body) do
+    socket
+    |> assign(:message_form, to_form(%{"body" => ""}, as: :message))
+    |> push_event("clear-message-input", %{})
+  end
+
+  defp assign_rejected_message_form(socket, _reason, body) do
+    assign(socket, :message_form, to_form(%{"body" => body}, as: :message))
   end
 
   defp clear_message_frame(socket) do

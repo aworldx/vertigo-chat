@@ -132,7 +132,10 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#command-autocomplete-menu [data-command='/очистить']")
 
     assert has_element?(view, "#emoji-input-controls.flex-wrap.sm\\:flex-nowrap")
+    assert has_element?(view, "#show-command-menu[aria-controls='command-autocomplete-menu']")
+    assert has_element?(view, "#command-autocomplete.flex-1")
     assert has_element?(view, "#message-body.w-full.text-base")
+    assert has_element?(view, "#send-message")
     assert has_element?(view, "#current-chatlan-online", "В сети")
     assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
     assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")
@@ -149,9 +152,6 @@ defmodule ChatWeb.RoomLiveTest do
     assert_push_event(view, "focus-message-input", %{})
     assert has_element?(view, "#attach-media[disabled]")
     refute has_element?(view, "#media-file-input")
-    assert has_element?(view, "#toggle-message-drawing[aria-pressed='false']")
-
-    assert has_element?(view, "#message-drawing-layer")
   end
 
   test "wakes Karmik when a joined chatlan pets him", %{conn: conn} do
@@ -164,23 +164,6 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(view, "#karmik[data-mood='happy']")
     assert has_element?(view, "#karmik-purr[aria-live='polite']", "Мур-р-р!")
-  end
-
-  test "broadcasts a drawing segment with the active chatlan nickname", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
-    enter_chat(view, "drawing_tester")
-
-    render_hook(view, "draw_segment", %{
-      "stroke_id" => "test_stroke",
-      "started" => true,
-      "points" => [%{"x" => 0.1, "y" => 0.2}, %{"x" => 0.3, "y" => 0.4}]
-    })
-
-    assert_push_event(view, "drawing-segment", %{
-      "author" => "drawing_tester",
-      "stroke_id" => "test_stroke",
-      "started" => true
-    })
   end
 
   test "restores a registered chatlan from connection parameters", %{conn: conn} do
@@ -1236,6 +1219,32 @@ defmodule ChatWeb.RoomLiveTest do
     })
 
     assert has_element?(view, "#message-error", "Сообщение не должно превышать")
+  end
+
+  test "rejects a rate-limited outbox message without publishing it", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    enter_chat(view, "rate_limit_outbox")
+
+    for index <- 1..3 do
+      render_hook(view, "send_message", %{
+        "message" => %{"body" => "сообщение #{index}", "client_id" => Ecto.UUID.generate()}
+      })
+    end
+
+    client_id = Ecto.UUID.generate()
+
+    render_hook(view, "send_message", %{
+      "message" => %{"body" => "оставить в поле", "client_id" => client_id}
+    })
+
+    assert_push_event(view, "public-message-rejected", %{
+      client_id: ^client_id,
+      reason: "rate_limited"
+    })
+
+    refute has_element?(view, "#message-body[value='оставить в поле']")
+    refute has_element?(view, "#messages .chat-message-body", "оставить в поле")
+    assert has_element?(view, "#message-error", "Слишком часто")
   end
 
   test "does not render an empty public message", %{conn: conn} do

@@ -55,6 +55,10 @@ config :chat, ChatWeb.Endpoint,
 # Enable development-only routes
 config :chat, dev_routes: true
 
+# Permit creating several disposable accounts while manually testing the app.
+# Production retains the registration guard unless explicitly configured otherwise.
+config :chat, :registration_guard_enabled?, false
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

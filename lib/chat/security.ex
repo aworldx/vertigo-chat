@@ -50,14 +50,18 @@ defmodule Chat.Security do
   def claim_registration(nil), do: :ok
 
   def claim_registration(%Subject{} = subject) do
-    attrs = %{
-      "fingerprint" => registration_fingerprint(Subject.registration_identity(subject)),
-      "day" => Date.utc_today()
-    }
+    if registration_guard_enabled?() do
+      attrs = %{
+        "fingerprint" => registration_fingerprint(Subject.registration_identity(subject)),
+        "day" => Date.utc_today()
+      }
 
-    case %RegistrationGuard{} |> RegistrationGuard.changeset(attrs) |> Repo.insert() do
-      {:ok, _guard} -> :ok
-      {:error, %Ecto.Changeset{}} -> {:error, :registration_limit_reached}
+      case %RegistrationGuard{} |> RegistrationGuard.changeset(attrs) |> Repo.insert() do
+        {:ok, _guard} -> :ok
+        {:error, %Ecto.Changeset{}} -> {:error, :registration_limit_reached}
+      end
+    else
+      :ok
     end
   end
 
@@ -66,5 +70,9 @@ defmodule Chat.Security do
     |> :erlang.term_to_binary()
     |> then(&:crypto.hash(:sha256, &1))
     |> Base.url_encode64(padding: false)
+  end
+
+  defp registration_guard_enabled? do
+    Application.get_env(:chat, :registration_guard_enabled?, true)
   end
 end
