@@ -1,6 +1,13 @@
 # Назначение файла: runtime-настройки production и секретов, читаемые при запуске приложения.
 import Config
 
+positive_integer_env = fn name, default ->
+  case Integer.parse(System.get_env(name, Integer.to_string(default))) do
+    {value, ""} when value > 0 -> value
+    _invalid -> default
+  end
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -82,6 +89,11 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  config :chat, Chat.LogFileHandler,
+    path: System.get_env("CHAT_LOG_PATH", "/var/log/chat/chat.log"),
+    max_bytes: positive_integer_env.("CHAT_LOG_MAX_BYTES", 10 * 1_024 * 1_024),
+    max_files: positive_integer_env.("CHAT_LOG_MAX_FILES", 14)
+
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """

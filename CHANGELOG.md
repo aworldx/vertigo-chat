@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-09-10
+
+### Добавлено
+
+- Постоянный файловый журнал production-приложения с ротацией и сжатием архивов; он сохраняется
+  в `logs/` на хосте при пересоздании контейнера.
+
 ## [0.2.2] — 2026-09-10
 
 ### Добавлено
@@ -36,7 +43,8 @@
 
 - Добавлены changelog, semantic versioning и release-теги Git.
 
-[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/aworldx/vertigo-chat/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/aworldx/vertigo-chat/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/aworldx/vertigo-chat/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/aworldx/vertigo-chat/compare/365c134...v0.2.0

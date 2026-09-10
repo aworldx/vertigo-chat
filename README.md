@@ -54,9 +54,19 @@ start without its provider credentials. Keep values containing `$` in single quo
 Compose does not interpret part of the secret as another variable. The PostgreSQL password is also
 embedded into `DATABASE_URL`, so use URL-safe characters or percent-encode reserved characters.
 
-All Compose services write logs to Docker's `local` driver. Docker keeps five files of at most 10 MiB
-per container (about 50 MiB before compression), replacing the oldest file automatically. Follow the
-application logs with `docker compose logs -f app`; session lifecycle records start with `session_`.
+Before the first deploy, create a writable host directory for the persistent application journal:
+
+```sh
+mkdir -p logs
+chown 65534:root logs
+chmod 0770 logs
+```
+
+The app writes its production journal to `./logs/chat.log`. Erlang Logger rotates it at 10 MiB and
+keeps 14 compressed archives (`chat.log.0.gz` is the newest); tune these limits with
+`CHAT_LOG_MAX_BYTES` and `CHAT_LOG_MAX_FILES`. The bind mount means this history survives an app
+container recreation. Docker's `local` driver remains enabled as a short operational log; follow it
+with `docker compose logs -f app`. Session lifecycle records start with `session_`.
 For deployment without a domain, set `PHX_SCHEME=http`, `PHX_URL_PORT=80`, and
 `CADDY_SITE_ADDRESS=http://SERVER_IP`.
 
@@ -94,6 +104,7 @@ ssh root@109.248.170.47 '\
   cd /opt/apps/vertigo-chat && \
   test -z "$(git status --porcelain)" && \
   git pull --ff-only origin main && \
+  mkdir -p logs && chown 65534:root logs && chmod 0770 logs && \
   docker compose --env-file .env --env-file .env.vps build app && \
   docker compose --env-file .env --env-file .env.vps up -d && \
   docker compose --env-file .env --env-file .env.vps ps'

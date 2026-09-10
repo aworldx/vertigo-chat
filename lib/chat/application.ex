@@ -11,6 +11,7 @@ defmodule Chat.Application do
     children = [
       ChatWeb.Telemetry,
       Chat.Repo,
+      Chat.LogFileHandler,
       {DNSCluster, query: Application.get_env(:chat, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Chat.PubSub},
       Chat.Presence,
