@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-09-10
+
+### Добавлено
+
+- Постоянный audit-log Кармика в `karmik_assessments`: ник на момент оценки, снимок реплики,
+  вердикт, краткая причина и изменение кармы. Эти записи не удаляются вместе с историей общей
+  комнаты.
+
 ## [0.2.0] — 2026-09-10
 
 ### Исправлено
@@ -22,5 +30,6 @@
 
 - Добавлены changelog, semantic versioning и release-теги Git.
 
-[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/aworldx/vertigo-chat/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/aworldx/vertigo-chat/compare/365c134...v0.2.0

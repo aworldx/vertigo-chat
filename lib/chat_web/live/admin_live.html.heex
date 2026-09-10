@@ -140,6 +140,71 @@
             </div>
           </div>
         </section>
+        <section
+          id="admin-karmik-audit-section"
+          class="mb-10 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-6"
+        >
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+              Кармик
+            </p>
+            <h2 class="mt-1 text-2xl font-semibold text-zinc-100">Журнал оценок кармы</h2>
+            <p class="mt-1 text-sm text-zinc-400">
+              Хранятся все изменения рейтинга, включая реплики, удалённые из короткой истории чата.
+            </p>
+          </div>
+          <p
+            :if={@karmik_assessment_count == 0}
+            id="admin-karmik-audit-empty"
+            class="mt-5 rounded-xl border border-dashed border-zinc-700 p-4 text-sm text-zinc-400"
+          >
+            Кармик пока никого не оценивал.
+          </p>
+          <div :if={@karmik_assessment_count > 0} class="mt-5 overflow-x-auto">
+            <table id="admin-karmik-audit-table" class="min-w-full text-left text-sm">
+              <thead class="border-b border-zinc-700 text-xs uppercase tracking-[0.12em] text-zinc-400">
+                <tr>
+                  <th class="px-3 py-3 font-semibold">Когда</th>
+                  <th class="px-3 py-3 font-semibold">Чатланин</th>
+                  <th class="px-3 py-3 font-semibold">Изменение</th>
+                  <th class="px-3 py-3 font-semibold">Причина</th>
+                  <th class="px-3 py-3 font-semibold">Реплика</th>
+                </tr>
+              </thead>
+              <tbody
+                id="admin-karmik-audit-list"
+                phx-update="stream"
+                class="divide-y divide-zinc-800"
+              >
+                <tr :for={{dom_id, assessment} <- @streams.karmik_assessments} id={dom_id}>
+                  <td class="whitespace-nowrap px-3 py-3 align-top text-xs text-zinc-500">
+                    <time datetime={assessment.inserted_at}>{assessment_timestamp(assessment)}</time>
+                  </td>
+                  <td class="px-3 py-3 align-top font-semibold text-zinc-100">
+                    {assessment.chatlan_nickname || "Неизвестный чатланин"}
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <span class={[
+                      "rounded-full px-2 py-1 text-xs font-bold",
+                      assessment.delta > 0 && "bg-emerald-400/10 text-emerald-300",
+                      assessment.delta < 0 && "bg-red-400/10 text-red-300"
+                    ]}>
+                      {if assessment.delta > 0,
+                        do: "+#{assessment.delta}",
+                        else: to_string(assessment.delta)}
+                    </span>
+                  </td>
+                  <td class="min-w-56 px-3 py-3 align-top leading-5 text-zinc-300">
+                    {assessment.reason || "Причина не сохранялась в старой записи."}
+                  </td>
+                  <td class="min-w-64 px-3 py-3 align-top whitespace-pre-wrap leading-5 text-zinc-400">
+                    {assessment.message_body || "Реплика не сохранялась в старой записи."}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">

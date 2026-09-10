@@ -7,6 +7,7 @@ defmodule Chat.Admin do
   alias Chat.Accounts.User
   alias Chat.Emojis
   alias Chat.Feedback
+  alias Chat.Karmik
 
   @spec list_feedback(User.t() | nil) :: {:ok, [Chat.Feedback.Entry.t()]} | {:error, :forbidden}
   def list_feedback(%User{} = user) do
@@ -20,6 +21,14 @@ defmodule Chat.Admin do
   end
 
   def list_emojis(_user), do: {:error, :forbidden}
+
+  def list_karmik_assessments(%User{} = user) do
+    if Accounts.admin?(user),
+      do: {:ok, Karmik.list_recent_assessments()},
+      else: {:error, :forbidden}
+  end
+
+  def list_karmik_assessments(_user), do: {:error, :forbidden}
 
   def create_emoji(%User{} = user, code, image, content_type) do
     if Accounts.admin?(user),

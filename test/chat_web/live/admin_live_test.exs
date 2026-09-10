@@ -3,6 +3,7 @@ defmodule ChatWeb.AdminLiveTest do
 
   alias Chat.Accounts
   alias Chat.Feedback
+  alias Chat.Karmik
   alias Chat.Security.Subject
   alias ChatWeb.UserAuth
 
@@ -48,6 +49,33 @@ defmodule ChatWeb.AdminLiveTest do
     assert has_element?(view, "#admin-feedback-count", "1")
   end
 
+  test "renders Karmik's audit trail for an authenticated administrator", %{conn: conn} do
+    assert {:ok, admin} =
+             Accounts.register_user(%{
+               "nickname" => "karmik_audit_admin",
+               "password" => "secret123"
+             })
+
+    assert {:ok, chatlan} =
+             Accounts.register_user(%{"nickname" => "audited_chatlan", "password" => "secret123"})
+
+    assert {:ok, _user} =
+             Karmik.review(
+               %{id: 801, kind: :text, author: chatlan.nickname, body: "Ты идиот"},
+               ChatWeb.AdminLiveTest.BadProvider
+             )
+
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{"user_auth_token" => UserAuth.sign(admin)})
+      |> live(~p"/admin")
+
+    assert has_element?(view, "#admin-karmik-audit-table")
+    assert has_element?(view, "#admin-karmik-audit-list tr", "audited_chatlan")
+    assert has_element?(view, "#admin-karmik-audit-list tr", "Явное оскорбление.")
+    assert has_element?(view, "#admin-karmik-audit-list tr", "Ты идиот")
+  end
+
   test "lets an administrator upload a 30 pixel PNG emoji", %{conn: conn} do
     assert {:ok, admin} =
              Accounts.register_user(%{"nickname" => "emoji_admin", "password" => "secret123"})
@@ -89,5 +117,16 @@ defmodule ChatWeb.AdminLiveTest do
 
   defp png_bytes(width, height) do
     <<0x89, "PNG\r\n", 0x1A, "\n", 0::32, "IHDR", width::32, height::32, 8, 6, 0, 0, 0>>
+  end
+
+  defmodule BadProvider do
+    def assess(_body) do
+      {:ok,
+       %{
+         verdict: :bad,
+         reason: "Явное оскорбление.",
+         usage: %{input_tokens: 4, output_tokens: 1, total_tokens: 5}
+       }}
+    end
   end
 end

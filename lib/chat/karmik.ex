@@ -20,10 +20,11 @@ defmodule Chat.Karmik do
          %User{} = user <- Accounts.get_registered_user_by_nickname(Map.get(message, :author)),
          :ok <- eligible_for_assessment(user, Map.get(message, :id)),
          :ok <- within_token_budget(),
-         {:ok, %{verdict: verdict, usage: usage}} <- provider.assess(Map.get(message, :body)),
+         {:ok, %{verdict: verdict, reason: reason, usage: usage}} <-
+           provider.assess(Map.get(message, :body)),
          {:ok, _usage_state} <- Usage.record(usage),
          delta when delta in [-1, 1] <- delta_for(verdict),
-         {:ok, updated_user} <- apply_assessment(user, Map.get(message, :id), delta) do
+         {:ok, updated_user} <- apply_assessment(user, message, delta, verdict, reason) do
       _ = Messages.announce_karmik_assessment(updated_user.nickname, "lobby", delta)
 
       Phoenix.PubSub.broadcast(
@@ -49,8 +50,22 @@ defmodule Chat.Karmik do
 
   def review(_message, _provider), do: {:ok, :ignored}
 
-  defp apply_assessment(%User{} = user, message_id, delta)
-       when is_integer(message_id) and delta in [-1, 1] do
+  def list_recent_assessments(limit \\ 50) when is_integer(limit) do
+    limit = limit |> max(1) |> min(100)
+
+    from(assessment in Assessment,
+      order_by: [desc: assessment.inserted_at, desc: assessment.id],
+      limit: ^limit
+    )
+    |> Repo.all()
+  end
+
+  defp apply_assessment(%User{} = user, message, delta, verdict, reason)
+       when is_map(message) and delta in [-1, 1] and verdict in [:good, :bad] and
+              is_binary(reason) do
+    message_id = Map.get(message, :id)
+    message_body = Map.get(message, :body)
+
     Repo.transaction(fn ->
       user = Repo.one!(from(user in User, where: user.id == ^user.id, lock: "FOR UPDATE"))
       assessed_on = Date.utc_today()
@@ -73,7 +88,11 @@ defmodule Chat.Karmik do
             user_id: user.id,
             room_message_id: message_id,
             delta: delta,
-            assessed_on: assessed_on
+            assessed_on: assessed_on,
+            chatlan_nickname: user.nickname,
+            message_body: message_body,
+            verdict: Atom.to_string(verdict),
+            reason: String.slice(String.trim(reason), 0, 300)
           })
           |> Repo.insert!()
 
@@ -83,7 +102,8 @@ defmodule Chat.Karmik do
     end)
   end
 
-  defp apply_assessment(_user, _message_id, _delta), do: {:error, :invalid_assessment}
+  defp apply_assessment(_user, _message, _delta, _verdict, _reason),
+    do: {:error, :invalid_assessment}
 
   defp eligible_for_assessment(%User{} = user, message_id) when is_integer(message_id) do
     assessed_on = Date.utc_today()

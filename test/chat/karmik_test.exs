@@ -5,21 +5,24 @@ defmodule Chat.KarmikTest do
   alias Chat.Accounts
   alias Chat.Bot.Usage
   alias Chat.Karmik
+  alias Chat.Karmik.Assessment
 
   defmodule GoodProvider do
-    def assess(_body), do: {:ok, %{verdict: :good, usage: usage()}}
+    def assess(_body),
+      do: {:ok, %{verdict: :good, reason: "Явная благодарность.", usage: usage()}}
 
     defp usage, do: %{input_tokens: 4, output_tokens: 1, total_tokens: 5}
   end
 
   defmodule BadProvider do
-    def assess(_body), do: {:ok, %{verdict: :bad, usage: usage()}}
+    def assess(_body), do: {:ok, %{verdict: :bad, reason: "Явное оскорбление.", usage: usage()}}
 
     defp usage, do: %{input_tokens: 4, output_tokens: 1, total_tokens: 5}
   end
 
   defmodule NeutralProvider do
-    def assess(_body), do: {:ok, %{verdict: :neutral, usage: usage()}}
+    def assess(_body),
+      do: {:ok, %{verdict: :neutral, reason: "Нет ясной оценки.", usage: usage()}}
 
     defp usage, do: %{input_tokens: 4, output_tokens: 1, total_tokens: 5}
   end
@@ -35,6 +38,14 @@ defmodule Chat.KarmikTest do
              )
 
     assert updated_user.karma == 1
+
+    assert %Assessment{
+             chatlan_nickname: "kind_chatlan",
+             message_body: "Спасибо!",
+             verdict: "good",
+             reason: "Явная благодарность.",
+             delta: 1
+           } = Karmik.list_recent_assessments(1) |> hd()
 
     assert {:ok, :neutral} =
              Karmik.review(
