@@ -75,6 +75,7 @@ defmodule Chat.BotTest do
     assert instructions =~ "бодр, дерзок и наблюдателен"
     assert instructions =~ "чаще всего задай один живой встречный вопрос"
     assert instructions =~ "вопрос был бы дежурным"
+    assert instructions =~ "уже отфильтрованные приложением как обращения"
     assert opts[:max_output_tokens] == 240
   end
 

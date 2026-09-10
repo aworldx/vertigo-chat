@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-09-10
+
+### Исправлено
+
+- Хичкок получает явную инструкцию, что реплики уже отфильтрованы как обращения к нему. Раньше
+  приложение убирало префикс «Хичкок,», после чего модель могла корректно, но ошибочно промолчать.
+
 ## [0.3.1] — 2026-09-10
 
 ### Исправлено
@@ -50,7 +57,8 @@
 
 - Добавлены changelog, semantic versioning и release-теги Git.
 
-[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/aworldx/vertigo-chat/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/aworldx/vertigo-chat/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/aworldx/vertigo-chat/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/aworldx/vertigo-chat/compare/v0.2.1...v0.2.2
