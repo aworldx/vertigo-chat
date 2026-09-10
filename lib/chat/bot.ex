@@ -128,6 +128,9 @@ defmodule Chat.Bot do
       {:error, {:rate_limited, retry_after_ms}} ->
         mark_busy(retry_after_ms)
 
+      {:error, :empty_response} ->
+        publish_fallback_answer(request)
+
       {:error, reason} ->
         log_answer_failure(reason)
         {:error, reason}
@@ -159,6 +162,21 @@ defmodule Chat.Bot do
   defp mark_busy(retry_after_ms) do
     Status.mark_busy(retry_after_ms)
     {:error, :bot_busy}
+  end
+
+  defp publish_fallback_answer(request) do
+    fallback =
+      "Моя реплика застряла в монтажной. Сформулируй вопрос ещё раз — и я отвечу без лишней драмы."
+
+    with {:ok, stored} <- store_answer(request.conversation_id, fallback),
+         {:ok, message} <- publish_answer(request, stored.body) do
+      Logger.warning("bot_answer_fallback_published reason=:empty_response")
+      {:ok, message}
+    else
+      {:error, reason} ->
+        log_answer_failure(reason)
+        {:error, reason}
+    end
   end
 
   defp log_answer_failure(reason) do

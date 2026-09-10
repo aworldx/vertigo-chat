@@ -8,10 +8,15 @@ defmodule Chat.Bot.OpenAI do
 
   @impl true
   def generate(instructions, messages, opts) do
-    request(instructions, messages,
+    request_options = [
       max_output_tokens: Keyword.get(opts, :max_output_tokens, 320),
       safety_identifier: Keyword.get(opts, :safety_identifier)
-    )
+    ]
+
+    case request(instructions, messages, request_options) do
+      {:error, :empty_response} -> request(instructions, messages, request_options)
+      result -> result
+    end
   end
 
   @impl true

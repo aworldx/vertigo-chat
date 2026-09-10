@@ -42,6 +42,16 @@ defmodule Chat.BotTest do
     def summarize(_summary, _messages, _opts), do: {:error, :not_called}
   end
 
+  defmodule EmptyResponseProvider do
+    @behaviour Chat.Bot.Provider
+
+    @impl true
+    def generate(_instructions, _messages, _opts), do: {:error, :empty_response}
+
+    @impl true
+    def summarize(_summary, _messages, _opts), do: {:error, :not_called}
+  end
+
   test "asks the provider for brief, lively replies that continue the conversation" do
     subject = Subject.guest("203.0.113.50", :short_answer_connection)
 
@@ -76,6 +86,24 @@ defmodule Chat.BotTest do
 
     task = Bot.answer_async(request, TestProvider)
     assert {:ok, %{author: "Хичкок"}} = Task.await(task)
+  end
+
+  test "publishes a fallback instead of silently dropping an empty provider response" do
+    subject = Subject.guest("203.0.113.52", :empty_response_connection)
+
+    assert {:ok, request} =
+             Bot.ask("fallback_guest", nil, subject, "Вы здесь?", EmptyResponseProvider)
+
+    assert {:ok, answer} = Bot.answer(request, EmptyResponseProvider)
+    assert answer.author == "Хичкок"
+    assert answer.body =~ "застряла в монтажной"
+
+    assert [:user, :assistant] ==
+             Message
+             |> where([message], message.conversation_id == ^request.conversation_id)
+             |> order_by([message], asc: message.id)
+             |> select([message], message.role)
+             |> Repo.all()
   end
 
   test "chooses a reply delay inside the configured range" do
