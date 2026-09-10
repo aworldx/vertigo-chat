@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-09-10
+
+### Добавлено
+
+- Единый read-only просмотрщик всех таблиц PostgreSQL в админке: выбор таблицы и до 100 строк.
+  Аудит Кармика и обратная связь доступны там же как `karmik_assessments` и `feedback_entries`.
+
+### Изменено
+
+- Админка получила отдельный адаптивный интерфейс с навигацией; на её HTTP-страницах больше не
+  подключается клиент LiveView и не открывается WebSocket.
+- Вход в админку хранится в отдельной подписанной `HttpOnly` cookie с областью `/admin`; полная
+  перезагрузка вкладки больше не должна сбрасывать авторизацию.
+
 ## [0.4.0] — 2026-09-10
 
 ### Изменено
@@ -64,7 +78,8 @@
 
 - Добавлены changelog, semantic versioning и release-теги Git.
 
-[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/aworldx/vertigo-chat/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/aworldx/vertigo-chat/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/aworldx/vertigo-chat/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/aworldx/vertigo-chat/compare/v0.3.0...v0.3.1

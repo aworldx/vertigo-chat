@@ -4,18 +4,27 @@ defmodule ChatWeb.AdminController do
   alias Chat.Accounts
   alias Chat.Admin
 
-  @session_key :admin_user_id
+  @admin_cookie "vertigo_admin"
+  @admin_cookie_salt "admin-session"
+  @admin_session_max_age 30 * 24 * 60 * 60
 
-  def index(conn, _params) do
+  def index(conn, params) do
     case current_admin(conn) do
       {:ok, user} ->
-        {:ok, feedback} = Admin.list_feedback(user)
-        {:ok, assessments} = Admin.list_karmik_assessments(user)
         {:ok, emojis} = Admin.list_emojis(user)
-        render_page(conn, user, feedback, assessments, emojis)
+
+        case Admin.database_overview(user, params["table"]) do
+          {:ok, database} ->
+            render_page(conn, user, database, emojis)
+
+          {:error, :database} ->
+            conn
+            |> put_flash(:error, "Не удалось загрузить данные.")
+            |> render_page(user, empty_database(), emojis)
+        end
 
       :error ->
-        render_page(conn, nil, [], [], [])
+        render_page(conn, nil, empty_database(), [])
     end
   end
 
@@ -23,7 +32,7 @@ defmodule ChatWeb.AdminController do
     case Accounts.authenticate(params["nickname"], params["password"]) do
       {:ok, user} ->
         if Accounts.admin?(user),
-          do: conn |> put_session(@session_key, user.id) |> redirect(to: ~p"/admin"),
+          do: conn |> put_admin_cookie(user) |> redirect(to: ~p"/admin"),
           else: conn |> put_flash(:error, "Недостаточно прав.") |> redirect(to: ~p"/admin")
 
       _ ->
@@ -44,22 +53,51 @@ defmodule ChatWeb.AdminController do
   def upload_emoji(conn, _params),
     do: conn |> put_flash(:error, "Выберите PNG-файл.") |> redirect(to: ~p"/admin")
 
-  defp render_page(conn, user, feedback, assessments, emojis) do
+  defp render_page(conn, user, database, emojis) do
     conn
+    |> assign(:disable_live_socket, true)
     |> put_view(ChatWeb.AdminHTML)
     |> render(:index,
       current_user: user,
-      feedback_entries: feedback,
-      karmik_assessments: assessments,
       emojis: emojis,
+      database: database,
       chat_version: Application.spec(:chat, :vsn) |> to_string()
     )
   end
 
+  defp empty_database, do: %{tables: [], selected_table: nil, columns: [], rows: []}
+
   defp current_admin(conn) do
-    case Accounts.get_user(get_session(conn, @session_key)) do
-      user when not is_nil(user) -> if Accounts.admin?(user), do: {:ok, user}, else: :error
-      nil -> :error
+    conn = fetch_cookies(conn)
+
+    with token when is_binary(token) <- Map.get(conn.req_cookies, @admin_cookie),
+         {:ok, user_id} <-
+           Phoenix.Token.verify(ChatWeb.Endpoint, @admin_cookie_salt, token,
+             max_age: @admin_session_max_age
+           ),
+         user when not is_nil(user) <- Accounts.get_user(user_id),
+         true <- Accounts.admin?(user) do
+      {:ok, user}
+    else
+      _ -> :error
     end
+  end
+
+  defp put_admin_cookie(conn, user) do
+    token = Phoenix.Token.sign(ChatWeb.Endpoint, @admin_cookie_salt, user.id)
+
+    put_resp_cookie(conn, @admin_cookie, token,
+      max_age: @admin_session_max_age,
+      http_only: true,
+      path: "/admin",
+      same_site: "Lax",
+      secure: secure_cookie?()
+    )
+  end
+
+  defp secure_cookie? do
+    ChatWeb.Endpoint.config(:url)
+    |> Keyword.get(:scheme, "http")
+    |> Kernel.==("https")
   end
 end

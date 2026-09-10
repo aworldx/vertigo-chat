@@ -1,42 +1,158 @@
 <Layouts.app flash={@flash}>
-  <main id="admin-page" class="min-h-dvh bg-zinc-950 p-8 text-zinc-100">
-    <div class="mx-auto max-w-5xl space-y-8">
-      <header class="flex justify-between border-b border-zinc-800 pb-5">
-        <h1 class="text-3xl font-semibold">Админка</h1><span id="admin-chat-version">Версия {@chat_version}</span>
-      </header>
-      <section :if={is_nil(@current_user)} id="admin-login-required">
-        <form
-          action={~p"/admin/login"}
-          method="post"
-          id="admin-login-form"
-          class="max-w-md space-y-4"
+  <main id="admin-page" class="min-h-dvh bg-[#101612] px-4 py-6 text-stone-100 sm:px-8">
+    <div class="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <aside class="rounded-2xl border border-emerald-950 bg-[#162019] p-5 shadow-2xl shadow-black/20">
+        <div class="border-b border-emerald-950 pb-5">
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">Vertigo</p>
+          <h1 class="mt-1 text-2xl font-semibold text-white">Админка</h1>
+          <p id="admin-chat-version" class="mt-2 text-sm text-emerald-200/70">
+            Версия {@chat_version}
+          </p>
+        </div>
+        <nav
+          :if={@current_user}
+          aria-label="Разделы админки"
+          class="mt-5 space-y-1 text-sm"
         >
-          <.input
-            id="admin-login-nickname"
-            name="admin_auth[nickname]"
-            value=""
-            label="Ник"
-            required
-          /><.input
-            id="admin-login-password"
-            name="admin_auth[password]"
-            value=""
-            type="password"
-            label="Пароль"
-            required
-          /><button id="admin-login-submit" class="rounded bg-amber-300 px-4 py-2 text-zinc-950">Войти</button>
-        </form>
-      </section>
-      <section :if={@current_user} id="admin-feedback-section" class="space-y-8">
-        <section id="admin-emojis-section">
-          <h2 class="text-2xl">Смайлы</h2><form
+          <a
+            href="#database"
+            class="block rounded-lg bg-emerald-900/50 px-3 py-2 font-medium text-emerald-100"
+          >Данные</a>
+          <a
+            href="#emojis"
+            class="block rounded-lg px-3 py-2 text-stone-300 transition hover:bg-emerald-950 hover:text-white"
+          >Смайлы</a>
+        </nav>
+      </aside>
+
+      <div class="min-w-0 space-y-6">
+        <section
+          :if={is_nil(@current_user)}
+          id="admin-login-required"
+          class="mx-auto max-w-md rounded-2xl border border-emerald-900 bg-[#162019] p-6 shadow-xl shadow-black/20"
+        >
+          <p class="text-sm text-amber-300">Закрытая зона</p>
+          <h2 class="mt-1 text-2xl font-semibold text-white">Вход администратора</h2>
+          <form
+            action={~p"/admin/login"}
+            method="post"
+            id="admin-login-form"
+            class="mt-6 space-y-4"
+          >
+            <.input
+              id="admin-login-nickname"
+              name="admin_auth[nickname]"
+              value=""
+              label="Ник"
+              required
+            />
+            <.input
+              id="admin-login-password"
+              name="admin_auth[password]"
+              value=""
+              type="password"
+              label="Пароль"
+              required
+            />
+            <button
+              id="admin-login-submit"
+              class="w-full rounded-lg bg-amber-300 px-4 py-2.5 font-semibold text-stone-950 transition hover:bg-amber-200"
+            >Войти</button>
+          </form>
+        </section>
+
+        <section
+          :if={@current_user}
+          id="database"
+          class="rounded-2xl border border-emerald-950 bg-[#162019] p-5 shadow-xl shadow-black/20 sm:p-6"
+        >
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-amber-300">База данных</p>
+              <h2 class="mt-1 text-2xl font-semibold text-white">Просмотр таблиц</h2>
+              <p class="mt-1 text-sm text-stone-400">
+                Только чтение; отображаются первые 100 строк выбранной таблицы.
+              </p>
+            </div>
+            <span class="rounded-full border border-emerald-800 px-3 py-1 text-xs text-emerald-200">{@current_user.nickname}</span>
+          </div>
+
+          <div id="admin-table-list" class="mt-5 flex flex-wrap gap-2">
+            <a
+              :for={table <- @database.tables}
+              href={~p"/admin?#{[table: table]}"}
+              class={[
+                "rounded-lg border px-3 py-1.5 text-sm transition",
+                if(table == @database.selected_table,
+                  do: "border-amber-300 bg-amber-300 text-stone-950",
+                  else: "border-emerald-900 text-emerald-100 hover:border-emerald-600"
+                )
+              ]}
+            >{table}</a>
+          </div>
+
+          <div class="mt-6 overflow-x-auto rounded-xl border border-emerald-950">
+            <table
+              :if={@database.selected_table}
+              id="admin-database-table"
+              class="min-w-full divide-y divide-emerald-950 text-left text-sm"
+            >
+              <caption class="bg-[#111a14] px-4 py-3 text-left font-medium text-stone-200">
+                {@database.selected_table}
+              </caption>
+              <thead class="bg-emerald-950/40 text-xs uppercase tracking-wide text-emerald-200">
+                <tr>
+                  <th
+                    :for={column <- @database.columns}
+                    class="whitespace-nowrap px-4 py-3 font-medium"
+                  >
+                    {column}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-emerald-950/70 text-stone-300">
+                <tr :for={row <- @database.rows}>
+                  <td :for={value <- row} class="max-w-xs px-4 py-3 align-top break-words">
+                    {admin_value(value)}
+                  </td>
+                </tr>
+                <tr :if={@database.rows == []}>
+                  <td
+                    colspan={max(length(@database.columns), 1)}
+                    class="px-4 py-8 text-center text-stone-500"
+                  >
+                    В таблице пока нет строк.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p
+              :if={is_nil(@database.selected_table)}
+              id="admin-database-empty"
+              class="px-4 py-8 text-center text-stone-500"
+            >
+              Таблицы не найдены.
+            </p>
+          </div>
+        </section>
+
+        <section
+          :if={@current_user}
+          id="emojis"
+          class="rounded-2xl border border-emerald-950 bg-[#162019] p-5 shadow-xl shadow-black/20 sm:p-6"
+        >
+          <p class="text-sm font-medium text-amber-300">Контент</p><h2 class="mt-1 text-2xl font-semibold text-white">
+            Смайлы
+          </h2>
+          <form
             action={~p"/admin/emojis"}
             method="post"
             enctype="multipart/form-data"
             id="admin-emoji-form"
-            class="mt-4 space-y-3"
+            class="mt-5 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
           >
-            <.input id="emoji-code" name="emoji[code]" value="" label="Код" required /><.input
+            <.input id="emoji-code" name="emoji[code]" value="" label="Код" required />
+            <.input
               id="emoji-image"
               name="emoji[image]"
               value=""
@@ -44,48 +160,20 @@
               accept="image/png"
               label="PNG"
               required
-            /><button id="admin-emoji-submit" class="rounded bg-amber-300 px-4 py-2 text-zinc-950">Добавить</button>
-          </form><div id="admin-emojis-list" class="mt-4">
-            <span :for={emoji <- @emojis}><img
-              src={~p"/emojis/#{emoji.id}"}
-              alt={emoji.code}
-              class="inline size-[30px]"
-            /> {emoji.code}</span>
+            />
+            <button
+              id="admin-emoji-submit"
+              class="rounded-lg bg-amber-300 px-4 py-2.5 font-semibold text-stone-950 transition hover:bg-amber-200"
+            >Добавить</button>
+          </form>
+          <div id="admin-emojis-list" class="mt-5 flex flex-wrap gap-3">
+            <span
+              :for={emoji <- @emojis}
+              class="inline-flex items-center gap-2 rounded-lg border border-emerald-950 bg-[#111a14] px-2 py-1 text-sm text-stone-300"
+            ><img src={~p"/emojis/#{emoji.id}"} alt={emoji.code} class="size-[30px]" />{emoji.code}</span>
           </div>
         </section>
-        <section id="admin-karmik-audit-section">
-          <h2 class="text-2xl">Журнал оценок кармы</h2><p
-            :if={@karmik_assessments == []}
-            id="admin-karmik-audit-empty"
-          >
-            Кармик пока никого не оценивал.
-          </p><table
-            :if={@karmik_assessments != []}
-            id="admin-karmik-audit-table"
-            class="mt-4 text-left"
-          >
-            <tbody id="admin-karmik-audit-list">
-              <tr :for={a <- @karmik_assessments}>
-                <td>{a.chatlan_nickname}</td><td>{a.delta}</td><td>{a.reason}</td><td>
-                  {a.message_body}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-        <section>
-          <h2 class="text-2xl">Пожелания пользователей</h2><p
-            :if={@feedback_entries == []}
-            id="admin-feedback-empty"
-          >
-            Обратной связи пока нет.
-          </p><div id="admin-feedback-list">
-            <article :for={entry <- @feedback_entries}>
-              <b>{entry.name}</b><p>{entry.body}</p>
-            </article>
-          </div>
-        </section>
-      </section>
+      </div>
     </div>
   </main>
 </Layouts.app>
