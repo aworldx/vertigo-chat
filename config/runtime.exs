@@ -1,6 +1,10 @@
 # Назначение файла: runtime-настройки production и секретов, читаемые при запуске приложения.
 import Config
 
+config :chat,
+       :runtime_role,
+       if(System.get_env("CHAT_RUNTIME_ROLE") == "admin", do: :admin, else: :chat)
+
 positive_integer_env = fn name, default ->
   case Integer.parse(System.get_env(name, Integer.to_string(default))) do
     {value, ""} when value > 0 -> value

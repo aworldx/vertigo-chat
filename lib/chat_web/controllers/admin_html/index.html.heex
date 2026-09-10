@@ -1,0 +1,91 @@
+<Layouts.app flash={@flash}>
+  <main id="admin-page" class="min-h-dvh bg-zinc-950 p-8 text-zinc-100">
+    <div class="mx-auto max-w-5xl space-y-8">
+      <header class="flex justify-between border-b border-zinc-800 pb-5">
+        <h1 class="text-3xl font-semibold">Админка</h1><span id="admin-chat-version">Версия {@chat_version}</span>
+      </header>
+      <section :if={is_nil(@current_user)} id="admin-login-required">
+        <form
+          action={~p"/admin/login"}
+          method="post"
+          id="admin-login-form"
+          class="max-w-md space-y-4"
+        >
+          <.input
+            id="admin-login-nickname"
+            name="admin_auth[nickname]"
+            value=""
+            label="Ник"
+            required
+          /><.input
+            id="admin-login-password"
+            name="admin_auth[password]"
+            value=""
+            type="password"
+            label="Пароль"
+            required
+          /><button id="admin-login-submit" class="rounded bg-amber-300 px-4 py-2 text-zinc-950">Войти</button>
+        </form>
+      </section>
+      <section :if={@current_user} id="admin-feedback-section" class="space-y-8">
+        <section id="admin-emojis-section">
+          <h2 class="text-2xl">Смайлы</h2><form
+            action={~p"/admin/emojis"}
+            method="post"
+            enctype="multipart/form-data"
+            id="admin-emoji-form"
+            class="mt-4 space-y-3"
+          >
+            <.input id="emoji-code" name="emoji[code]" value="" label="Код" required /><.input
+              id="emoji-image"
+              name="emoji[image]"
+              value=""
+              type="file"
+              accept="image/png"
+              label="PNG"
+              required
+            /><button id="admin-emoji-submit" class="rounded bg-amber-300 px-4 py-2 text-zinc-950">Добавить</button>
+          </form><div id="admin-emojis-list" class="mt-4">
+            <span :for={emoji <- @emojis}><img
+              src={~p"/emojis/#{emoji.id}"}
+              alt={emoji.code}
+              class="inline size-[30px]"
+            /> {emoji.code}</span>
+          </div>
+        </section>
+        <section id="admin-karmik-audit-section">
+          <h2 class="text-2xl">Журнал оценок кармы</h2><p
+            :if={@karmik_assessments == []}
+            id="admin-karmik-audit-empty"
+          >
+            Кармик пока никого не оценивал.
+          </p><table
+            :if={@karmik_assessments != []}
+            id="admin-karmik-audit-table"
+            class="mt-4 text-left"
+          >
+            <tbody id="admin-karmik-audit-list">
+              <tr :for={a <- @karmik_assessments}>
+                <td>{a.chatlan_nickname}</td><td>{a.delta}</td><td>{a.reason}</td><td>
+                  {a.message_body}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <section>
+          <h2 class="text-2xl">Пожелания пользователей</h2><p
+            :if={@feedback_entries == []}
+            id="admin-feedback-empty"
+          >
+            Обратной связи пока нет.
+          </p><div id="admin-feedback-list">
+            <article :for={entry <- @feedback_entries}>
+              <b>{entry.name}</b><p>{entry.body}</p>
+            </article>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+</Layouts.app>

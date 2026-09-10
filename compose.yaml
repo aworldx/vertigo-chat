@@ -58,6 +58,26 @@ services:
       retries: 10
       start_period: 10s
 
+  admin:
+    <<: *app-image
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+      CHAT_RUNTIME_ROLE: admin
+      CHAT_LOG_PATH: /var/log/chat/admin.log
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   postgres:
     image: postgres:17
     restart: unless-stopped

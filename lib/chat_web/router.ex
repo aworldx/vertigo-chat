@@ -41,7 +41,9 @@ defmodule ChatWeb.Router do
     live "/articles/chat-platforms-russia", ArticlesLive, :history
     live "/articles/how-vertigo-chat-works", ArticlesLive, :technology
     live "/", RoomLive, :show
-    live "/admin", AdminLive, :index
+    get "/admin", AdminController, :index
+    post "/admin/login", AdminController, :login
+    post "/admin/emojis", AdminController, :upload_emoji
     live "/profiles", ProfilesLive, :index
     live "/gallery", GalleryLive, :index
     live "/visits", VisitsLive, :index

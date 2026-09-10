@@ -8,12 +8,18 @@ defmodule Chat.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      ChatWeb.Telemetry,
-      Chat.Repo,
-      Chat.LogFileHandler,
+    children = base_children() ++ role_children(Application.get_env(:chat, :runtime_role, :chat))
+    Supervisor.start_link(children, strategy: :one_for_one, name: Chat.Supervisor)
+  end
+
+  defp base_children,
+    do: [ChatWeb.Telemetry, Chat.Repo, Chat.LogFileHandler, {Phoenix.PubSub, name: Chat.PubSub}]
+
+  defp role_children(:admin), do: [ChatWeb.Endpoint]
+
+  defp role_children(_role) do
+    [
       {DNSCluster, query: Application.get_env(:chat, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Chat.PubSub},
       Chat.Presence,
       Chat.Messages.Registry,
       Chat.Sessions.ConnectionRegistry,
@@ -27,16 +33,8 @@ defmodule Chat.Application do
       Chat.MediaShares.Registry,
       {Task.Supervisor, name: Chat.Karmik.TaskSupervisor},
       Chat.Karmik.Worker,
-      # Start a worker by calling: Chat.Worker.start_link(arg)
-      # {Chat.Worker, arg},
-      # Start to serve requests, typically the last entry
       ChatWeb.Endpoint
     ]
-
-    # See https://elixir.hexdocs.pm/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: Chat.Supervisor]
-    Supervisor.start_link(children, opts)
   end
 
   # Tell Phoenix to update the endpoint configuration

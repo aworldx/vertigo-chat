@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-10
+
+### Изменено
+
+- Админка переведена с LiveView на обычные HTTP-страницы и вынесена в отдельный Compose-сервис.
+  Его обновление не перезапускает чат, Хичкока и фоновые workers.
+
 ## [0.3.2] — 2026-09-10
 
 ### Исправлено
@@ -57,7 +64,8 @@
 
 - Добавлены changelog, semantic versioning и release-теги Git.
 
-[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/aworldx/vertigo-chat/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/aworldx/vertigo-chat/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/aworldx/vertigo-chat/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/aworldx/vertigo-chat/compare/v0.2.2...v0.3.0
