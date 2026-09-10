@@ -11,6 +11,7 @@ defmodule ChatWeb.AdminLive do
       socket
       |> assign(:page_title, "Админка")
       |> assign(:robots, "noindex, nofollow")
+      |> assign(:chat_version, chat_version())
       |> assign(:current_user, nil)
       |> assign(:access, :checking)
       |> assign(:feedback_count, 0)
@@ -121,4 +122,10 @@ defmodule ChatWeb.AdminLive do
 
   defp assessment_timestamp(entry),
     do: Calendar.strftime(entry.inserted_at, "%d.%m.%Y · %H:%M UTC")
+
+  defp chat_version do
+    :chat
+    |> Application.spec(:vsn)
+    |> to_string()
+  end
 end

@@ -45,6 +45,7 @@ defmodule ChatWeb.AdminLiveTest do
       |> live(~p"/admin")
 
     assert has_element?(view, "#admin-feedback-section")
+    assert has_element?(view, "#admin-chat-version", "Версия #{chat_version()}")
     assert has_element?(view, "#admin-feedback-list article", "Добавьте поиск по истории")
     assert has_element?(view, "#admin-feedback-count", "1")
   end
@@ -117,6 +118,12 @@ defmodule ChatWeb.AdminLiveTest do
 
   defp png_bytes(width, height) do
     <<0x89, "PNG\r\n", 0x1A, "\n", 0::32, "IHDR", width::32, height::32, 8, 6, 0, 0, 0>>
+  end
+
+  defp chat_version do
+    :chat
+    |> Application.spec(:vsn)
+    |> to_string()
   end
 
   defmodule BadProvider do
