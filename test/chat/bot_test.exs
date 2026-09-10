@@ -68,6 +68,16 @@ defmodule Chat.BotTest do
     assert opts[:max_output_tokens] == 120
   end
 
+  test "runs a reply under the dedicated supervisor" do
+    subject = Subject.guest("203.0.113.51", :background_answer_connection)
+
+    assert {:ok, request} =
+             Bot.ask("background_guest", nil, subject, "Что посмотреть вечером?", TestProvider)
+
+    task = Bot.answer_async(request, TestProvider)
+    assert {:ok, %{author: "Хичкок"}} = Task.await(task)
+  end
+
   test "chooses a reply delay inside the configured range" do
     previous_config = Application.get_env(:chat, Bot)
     Application.put_env(:chat, Bot, reply_delay_range_ms: {5_000, 15_000})

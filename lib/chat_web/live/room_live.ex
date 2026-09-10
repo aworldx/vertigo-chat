@@ -935,8 +935,7 @@ defmodule ChatWeb.RoomLive do
   end
 
   @impl true
-  def handle_async(:bot_reply, {:ok, {:ok, message}}, socket) do
-    _message_was_broadcast_to_the_room = message
+  def handle_async(:bot_reply, {:ok, {:ok, _message}}, socket) do
     {:noreply, socket |> assign(:bot_pending?, false) |> assign(:message_error, nil)}
   end
 
@@ -1087,7 +1086,12 @@ defmodule ChatWeb.RoomLive do
   def handle_info(:karmik_rest, socket), do: {:noreply, assign(socket, :karmik_mood, :resting)}
 
   def handle_info({:start_bot_answer, request}, %{assigns: %{bot_pending?: true}} = socket) do
-    {:noreply, start_async(socket, :bot_reply, fn -> Bot.answer(request) end)}
+    {:noreply,
+     start_async(socket, :bot_reply, fn ->
+       request
+       |> Bot.answer_async()
+       |> Task.await(:infinity)
+     end)}
   end
 
   def handle_info({:start_bot_answer, _request}, socket), do: {:noreply, socket}

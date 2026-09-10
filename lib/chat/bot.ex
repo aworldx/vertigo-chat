@@ -3,6 +3,7 @@ defmodule Chat.Bot do
   @moduledoc "Чат-бот Хичкок с раздельной памятью о зарегистрированных и гостях."
 
   import Ecto.Query
+  require Logger
 
   alias Chat.Accounts.User
   alias Chat.Appearance
@@ -121,10 +122,22 @@ defmodule Chat.Bot do
            max_output_tokens: 120,
            safety_identifier: request.safety_identifier
          ) do
-      {:ok, %Result{} = result} -> finish_answer(request, result, provider)
-      {:error, {:rate_limited, retry_after_ms}} -> mark_busy(retry_after_ms)
-      {:error, reason} -> {:error, reason}
+      {:ok, %Result{} = result} ->
+        finish_answer(request, result, provider)
+
+      {:error, {:rate_limited, retry_after_ms}} ->
+        mark_busy(retry_after_ms)
+
+      {:error, reason} ->
+        log_answer_failure(reason)
+        {:error, reason}
     end
+  end
+
+  def answer_async(%Request{} = request, provider \\ provider()) when is_atom(provider) do
+    Task.Supervisor.async_nolink(Chat.Bot.TaskSupervisor, fn ->
+      safely_answer(request, provider)
+    end)
   end
 
   defp finish_answer(request, result, provider) do
@@ -134,14 +147,34 @@ defmodule Chat.Bot do
          :ok <- continue_within_budget(request, stored, provider, usage_state) do
       {:ok, message}
     else
-      {:error, :rate_limited} -> mark_busy(60_000)
-      {:error, reason} -> {:error, reason}
+      {:error, :rate_limited} ->
+        mark_busy(60_000)
+
+      {:error, reason} ->
+        log_answer_failure(reason)
+        {:error, reason}
     end
   end
 
   defp mark_busy(retry_after_ms) do
     Status.mark_busy(retry_after_ms)
     {:error, :bot_busy}
+  end
+
+  defp log_answer_failure(reason) do
+    Logger.warning("bot_answer_failed reason=#{inspect(reason)}")
+  end
+
+  defp safely_answer(request, provider) do
+    answer(request, provider)
+  rescue
+    exception ->
+      Logger.error("bot_answer_crashed exception=#{Exception.message(exception)}")
+      {:error, :provider_unavailable}
+  catch
+    kind, reason ->
+      Logger.error("bot_answer_crashed kind=#{kind} reason=#{inspect(reason)}")
+      {:error, :provider_unavailable}
   end
 
   defp continue_within_budget(request, _stored, _provider, %{reached?: true} = usage_state) do

@@ -22,6 +22,7 @@ defmodule Chat.Application do
       Chat.Security.RateLimiter,
       Chat.Music.ProxyPool,
       Chat.Bot.Status,
+      {Task.Supervisor, name: Chat.Bot.TaskSupervisor},
       Chat.MediaShares.Registry,
       {Task.Supervisor, name: Chat.Karmik.TaskSupervisor},
       Chat.Karmik.Worker,
