@@ -695,6 +695,11 @@ const chatHooks = {
       this.el.setAttribute("phx-update", "ignore")
     },
     reconnected() {
+      // The reconnect join patch intentionally preserved the old stream DOM with
+      // `phx-update="ignore"`. Return it to stream mode before asking the server
+      // for missed entries; otherwise acknowledged outbox messages remain as
+      // local one-tick placeholders until the page is reloaded.
+      this.el.setAttribute("phx-update", "stream")
       this.syncMissedMessages()
     },
     destroyed() {
