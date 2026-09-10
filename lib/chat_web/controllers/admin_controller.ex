@@ -55,6 +55,7 @@ defmodule ChatWeb.AdminController do
 
   defp render_page(conn, user, database, emojis) do
     conn
+    |> assign(:admin_assets, true)
     |> assign(:disable_live_socket, true)
     |> put_view(ChatWeb.AdminHTML)
     |> render(:index,

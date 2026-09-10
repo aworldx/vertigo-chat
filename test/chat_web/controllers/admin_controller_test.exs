@@ -6,6 +6,8 @@ defmodule ChatWeb.AdminControllerTest do
   test "shows a regular login form and lets an admin sign in", %{conn: conn} do
     response = get(conn, "/admin") |> response(:ok)
     assert response =~ "admin-login-form"
+    assert response =~ "name=\"_csrf_token\""
+    assert response =~ "/admin-assets/css/app.css"
     refute response =~ "/assets/js/app.js"
 
     {:ok, admin} =

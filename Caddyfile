@@ -1,4 +1,9 @@
 {$CADDY_SITE_ADDRESS} {
+	@admin_assets path /admin-assets/*
+	handle @admin_assets {
+		uri replace /admin-assets/ /assets/
+		reverse_proxy admin:4000
+	}
 	@admin path /admin /admin/*
 	handle @admin {
 		reverse_proxy admin:4000

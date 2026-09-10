@@ -39,7 +39,13 @@
       type="font/ttf"
       crossorigin
     />
-    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <link
+      phx-track-static
+      rel="stylesheet"
+      href={
+        if(assigns[:admin_assets], do: "/admin-assets/css/app.css", else: ~p"/assets/css/app.css")
+      }
+    />
     <script
       :if={!assigns[:disable_live_socket]}
       defer

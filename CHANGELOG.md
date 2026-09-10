@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-09-10
+
+### Исправлено
+
+- Стили админки теперь выдаются её собственным контейнером и не зависят от версии основного чата.
+- В обычные HTML-формы админки добавлены CSRF-токены: вход и загрузка смайла больше не отвечают
+  `Forbidden`.
+
 ## [0.4.1] — 2026-09-10
 
 ### Добавлено
@@ -78,7 +86,8 @@
 
 - Добавлены changelog, semantic versioning и release-теги Git.
 
-[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/aworldx/vertigo-chat/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/aworldx/vertigo-chat/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/aworldx/vertigo-chat/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/aworldx/vertigo-chat/compare/v0.3.1...v0.3.2

@@ -39,6 +39,7 @@
             id="admin-login-form"
             class="mt-6 space-y-4"
           >
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
             <.input
               id="admin-login-nickname"
               name="admin_auth[nickname]"
@@ -151,6 +152,7 @@
             id="admin-emoji-form"
             class="mt-5 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
           >
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
             <.input id="emoji-code" name="emoji[code]" value="" label="Код" required />
             <.input
               id="emoji-image"
