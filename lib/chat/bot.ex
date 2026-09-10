@@ -119,7 +119,7 @@ defmodule Chat.Bot do
     instructions = instructions(request.memory)
 
     case provider.generate(instructions, request.messages,
-           max_output_tokens: 120,
+           max_output_tokens: 240,
            safety_identifier: request.safety_identifier
          ) do
       {:ok, %Result{} = result} ->

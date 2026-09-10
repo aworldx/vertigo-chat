@@ -61,4 +61,36 @@ defmodule Chat.Bot.OpenAITest do
     assert {:error, {:rate_limited, 60_000}} =
              OpenAI.generate("Инструкция", [%{role: :user, body: "Здравствуйте"}], [])
   end
+
+  test "retries an empty response with only the current message" do
+    Req.Test.expect(__MODULE__, fn conn ->
+      request = conn |> Req.Test.raw_body() |> Jason.decode!()
+
+      assert request["input"] == [
+               %{"role" => "user", "content" => "Первое"},
+               %{"role" => "user", "content" => "Текущее"}
+             ]
+
+      Req.Test.json(conn, %{"output" => []})
+    end)
+
+    Req.Test.expect(__MODULE__, fn conn ->
+      request = conn |> Req.Test.raw_body() |> Jason.decode!()
+      assert request["input"] == [%{"role" => "user", "content" => "Текущее"}]
+
+      Req.Test.json(conn, %{
+        "output" => [
+          %{"content" => [%{"type" => "output_text", "text" => "Я здесь."}]}
+        ],
+        "usage" => %{"input_tokens" => 10, "output_tokens" => 3, "total_tokens" => 13}
+      })
+    end)
+
+    assert {:ok, %Result{text: "Я здесь."}} =
+             OpenAI.generate(
+               "Инструкция",
+               [%{role: :user, body: "Первое"}, %{role: :user, body: "Текущее"}],
+               []
+             )
+  end
 end

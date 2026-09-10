@@ -2,6 +2,8 @@
 defmodule Chat.Bot.OpenAI do
   @behaviour Chat.Bot.Provider
 
+  require Logger
+
   alias Chat.Bot.Provider.Result
 
   @endpoint "https://api.openai.com/v1/responses"
@@ -14,8 +16,12 @@ defmodule Chat.Bot.OpenAI do
     ]
 
     case request(instructions, messages, request_options) do
-      {:error, :empty_response} -> request(instructions, messages, request_options)
-      result -> result
+      {:error, :empty_response} ->
+        Logger.warning("bot_openai_empty_response retry=current_message")
+        request(instructions, recovery_messages(messages), request_options)
+
+      result ->
+        result
     end
   end
 
@@ -40,23 +46,39 @@ defmodule Chat.Bot.OpenAI do
   defp request(instructions, messages, opts) do
     config = Application.get_env(:chat, __MODULE__, [])
 
-    with api_key when is_binary(api_key) and api_key != "" <- config[:api_key],
-         {:ok, response} <-
-           Req.post(
-             config[:endpoint] || @endpoint,
-             request_options(config, api_key, instructions, messages, opts)
-           ),
-         :ok <- successful_status(response.status),
+    case config[:api_key] do
+      api_key when is_binary(api_key) and api_key != "" ->
+        case Req.post(
+               config[:endpoint] || @endpoint,
+               request_options(config, api_key, instructions, messages, opts)
+             ) do
+          {:ok, response} -> response_result(response)
+          {:error, _reason} = error -> error
+          _unexpected -> {:error, :provider_unavailable}
+        end
+
+      _missing_api_key ->
+        {:error, :not_configured}
+    end
+  end
+
+  defp response_result(response) do
+    with :ok <- successful_status(response.status),
          {:ok, text} <- output_text(response.body),
          {:ok, usage} <- usage(response.body) do
       {:ok, %Result{text: text, usage: usage}}
     else
-      nil -> {:error, :not_configured}
-      "" -> {:error, :not_configured}
-      {:error, _reason} = error -> error
-      _unexpected -> {:error, :provider_unavailable}
+      {:error, :empty_response} = error ->
+        log_empty_response(response)
+        error
+
+      {:error, _reason} = error ->
+        error
     end
   end
+
+  defp recovery_messages([]), do: []
+  defp recovery_messages(messages), do: [List.last(messages)]
 
   defp payload(config, instructions, messages, opts) do
     %{
@@ -107,6 +129,31 @@ defmodule Chat.Bot.OpenAI do
   end
 
   defp output_text(_body), do: {:error, :empty_response}
+
+  defp log_empty_response(response) do
+    output = Map.get(response.body, "output", [])
+
+    Logger.warning(
+      "bot_openai_empty_response " <>
+        "http_status=#{response.status} " <>
+        "response_status=#{inspect(Map.get(response.body, "status"))} " <>
+        "incomplete_details=#{inspect(Map.get(response.body, "incomplete_details"))} " <>
+        "output=#{inspect(output_metadata(output))}"
+    )
+  end
+
+  defp output_metadata(output) when is_list(output) do
+    Enum.map(output, fn item ->
+      %{
+        type: Map.get(item, "type"),
+        status: Map.get(item, "status"),
+        incomplete_details: Map.get(item, "incomplete_details"),
+        content_types: Enum.map(Map.get(item, "content", []), &Map.get(&1, "type"))
+      }
+    end)
+  end
+
+  defp output_metadata(_output), do: :invalid
 
   defp usage(%{
          "usage" => %{
