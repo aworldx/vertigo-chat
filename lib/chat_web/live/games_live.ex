@@ -25,8 +25,8 @@ defmodule ChatWeb.GamesLive do
      |> assign(:page_title, if(kind, do: Games.title(kind), else: "Игры"))
      |> assign(:meta_description, games_description(kind))
      |> assign(:canonical_path, games_path(kind))
-     |> assign(:current_user, nil)
-     |> assign(:auth_checked?, false)
+     |> assign(:current_user, socket.assigns.current_account_user)
+     |> assign(:auth_checked?, true)
      |> assign(:games, [])
      |> assign(:waiting_games, [])
      |> assign(:active_games, [])
@@ -42,13 +42,18 @@ defmodule ChatWeb.GamesLive do
 
   @impl true
   def handle_event("authenticate_games", params, socket) do
-    case game_player(params) do
-      {:ok, user} ->
-        {:noreply,
-         socket |> assign(:current_user, user) |> assign(:auth_checked?, true) |> refresh()}
+    if socket.assigns.current_account_user do
+      {:noreply,
+       socket |> assign(:current_user, socket.assigns.current_account_user) |> refresh()}
+    else
+      case game_player(params) do
+        {:ok, user} ->
+          {:noreply,
+           socket |> assign(:current_user, user) |> assign(:auth_checked?, true) |> refresh()}
 
-      {:error, _reason} ->
-        {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
+        {:error, _reason} ->
+          {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
+      end
     end
   end
 

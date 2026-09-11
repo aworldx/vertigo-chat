@@ -25,12 +25,16 @@ defmodule Chat.ChatlansTest do
   test "tracks, updates, lists and untracks online chatlans" do
     room_id = "presence-test"
     presence_key = Chatlans.guest_presence_key()
+    {:ok, session} = Chat.Sessions.enter(room_id, "alice", "", presence_key: presence_key)
 
     Phoenix.PubSub.subscribe(Chat.PubSub, Messages.room_topic(room_id))
 
     assert {:ok, _ref} =
              Chatlans.track(self(), room_id, presence_key, %{
                nickname: "alice",
+               session_id: session.session_id,
+               identity_key: session.identity_key,
+               connection_epoch: session.connection_epoch,
                registered?: true,
                theme_id: "dark",
                appearance: %{
@@ -40,14 +44,6 @@ defmodule Chat.ChatlansTest do
              })
 
     assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
-
-    assert {:error, :nickname_online} =
-             Chatlans.ensure_nickname_available(room_id, "alice")
-
-    assert :ok = Chatlans.ensure_nickname_available(room_id, "alice", presence_key)
-
-    assert :ok = Chatlans.ensure_nickname_available(room_id, "bob")
-    assert {:error, :nickname_online} = Chatlans.ensure_nickname_available(room_id, "Хичкок")
 
     assert %{nickname: "Хичкок", bot?: true, peer_id: "bot-hitchcock"} =
              Enum.find(Chatlans.list_online(room_id), &Map.get(&1, :bot?, false))
@@ -67,6 +63,9 @@ defmodule Chat.ChatlansTest do
     assert {:ok, _ref} =
              Chatlans.update(self(), room_id, presence_key, %{
                nickname: "alice",
+               session_id: session.session_id,
+               identity_key: session.identity_key,
+               connection_epoch: session.connection_epoch,
                registered?: true,
                theme_id: "dark",
                appearance: %{
@@ -89,10 +88,9 @@ defmodule Chat.ChatlansTest do
 
     assert :ok = Chatlans.untrack(self(), room_id, presence_key)
     assert [] = human_chatlans(room_id)
-    assert :ok = Chatlans.ensure_nickname_available(room_id, "alice")
   end
 
-  test "restores a session with its previous presence key without duplicating its nickname" do
+  test "does not expose a transport without an authoritative session" do
     room_id = "restoration-test"
     presence_key = Chatlans.guest_presence_key()
 
@@ -102,21 +100,7 @@ defmodule Chat.ChatlansTest do
                registered?: false
              })
 
-    assert {:ok, %{nickname: "returning", presence_key: ^presence_key}} =
-             Chatlans.restore_session(
-               room_id,
-               " returning ",
-               Chatlans.guest_presence_key(),
-               presence_key
-             )
-
-    assert {:error, :nickname_online} =
-             Chatlans.restore_session(room_id, "returning", Chatlans.guest_presence_key(), nil)
-
-    assert {:ok, %{presence_key: current_key}} =
-             Chatlans.restore_session(room_id, "another", "presence-current", "not-a-key")
-
-    assert current_key == "presence-current"
+    assert [] = human_chatlans(room_id)
   end
 
   defp human_chatlans(room_id) do

@@ -2,6 +2,8 @@
 defmodule ChatWeb.LibraryLive do
   use ChatWeb, :live_view
 
+  import Phoenix.Controller, only: [get_csrf_token: 0]
+
   alias Chat.Library
   alias Chat.Library.Article
   alias Chat.Ranks
@@ -9,14 +11,16 @@ defmodule ChatWeb.LibraryLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    current_user = socket.assigns.current_account_user
+
     {:ok,
      socket
      |> assign(:page_title, "Библиотека")
      |> assign(:meta_description, "Библиотека Vertigo: книги и обсуждения для чатланов.")
      |> assign(:canonical_path, ~p"/library")
-     |> assign(:current_user, nil)
-     |> assign(:can_add_library_articles?, false)
-     |> assign(:auth_checked?, false)
+     |> assign(:current_user, current_user)
+     |> assign(:can_add_library_articles?, Ranks.can_add_library_articles?(current_user))
+     |> assign(:auth_checked?, true)
      |> assign(:selected_series, nil)
      |> assign(:selected_author_id, nil)
      |> assign(:series, Library.list_series())

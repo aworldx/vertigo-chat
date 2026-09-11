@@ -1,13 +1,17 @@
 <Layouts.app flash={@flash}>
   <section
     id="gallery-page"
-    phx-hook=".GalleryAuth"
     class="chat-shell min-h-screen bg-zinc-950 text-zinc-100"
     data-chat-theme="vertigo"
     data-chat-mode="dark"
   >
     <header class="flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 sm:px-8">
-      <a href={~p"/"} target="vertigo-chat" data-return-to-chat class="flex items-center gap-3">
+      <a
+        href={~p"/chat"}
+        target="vertigo-chat"
+        data-return-to-chat
+        class="flex items-center gap-3"
+      >
         <span class="vertigo-mark" aria-hidden="true"></span>
         <span class="vertigo-wordmark uppercase">Vertigo</span>
       </a>
@@ -21,7 +25,7 @@
           </p>
           <h1 class="mt-2 text-4xl font-semibold sm:text-5xl">Фотоальбом</h1>
           <p class="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-            Общая коллекция снимков чатлан. Загружать фотографии могут чатлане со званием «Статист» после входа в чат.
+            Общая коллекция снимков чатлан. Загружать фотографии могут участники со званием «Статист».
           </p>
         </div>
 

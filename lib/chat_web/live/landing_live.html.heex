@@ -1,128 +1,315 @@
 <Layouts.app flash={@flash}>
-  <main id="vertigo-landing" class="min-h-dvh bg-zinc-950 text-zinc-100">
-    <header class="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-      <a href={~p"/about"} class="flex items-center gap-3" aria-label="Vertigo — о чате">
-        <span class="vertigo-mark" aria-hidden="true"></span>
-        <span class="vertigo-wordmark uppercase">Vertigo</span>
-      </a>
+  <div id="vertigo-landing" class="landing-page">
+    <header class="landing-header landing-container">
       <a
-        id="landing-enter-chat-header"
+        id="landing-logo"
         href={~p"/"}
-        class="rounded-lg border border-amber-300/70 px-4 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-300 hover:text-zinc-950"
+        class="landing-brand"
+        aria-label="Vertigo — главная"
       >
-        Войти в чат
+        <span class="vertigo-mark" aria-hidden="true"></span>
+        <span class="vertigo-wordmark">Vertigo</span>
       </a>
+      <nav
+        aria-label="Навигация по главной"
+        class="flex items-center gap-6 sm:gap-9"
+      >
+        <a href="#landing-sections" class="landing-nav-link hidden sm:inline">Что внутри</a>
+        <a href="#landing-registration" class="landing-nav-link hidden md:inline">Зачем регистрироваться</a>
+        <a id="landing-enter-chat-header" href="#landing-login" class="landing-header-login">
+          Войти <.icon name="hero-arrow-up-right" class="size-4" />
+        </a>
+      </nav>
     </header>
 
-    <section class="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:py-28">
-      <div>
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
-          Vertigo chat
-        </p>
-        <h1 class="mt-5 max-w-3xl text-4xl font-black tracking-tight text-balance sm:text-6xl">
-          Общайся, знакомься и играй вместе
-        </h1>
-        <p class="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
-          Vertigo — русскоязычный чат, в котором можно встретить новых людей, играть в компании
-          и оставаться на связи в общем разговоре.
-        </p>
-        <div class="mt-9 flex flex-wrap gap-4">
-          <a
-            id="landing-enter-chat"
-            href={~p"/"}
-            class="rounded-lg bg-amber-300 px-5 py-3 font-bold text-zinc-950 transition hover:bg-amber-200"
-          >
-            Перейти в чат
-          </a>
-          <a
-            id="landing-open-games"
-            href={~p"/games"}
-            class="rounded-lg border border-zinc-700 px-5 py-3 font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
-          >
-            Посмотреть игры
-          </a>
+    <section class="landing-hero" aria-labelledby="landing-title">
+      <img
+        id="landing-poster"
+        src={~p"/images/vertigo-poster.png"}
+        width="1564"
+        height="915"
+        alt=""
+        fetchpriority="high"
+        class="landing-poster"
+      />
+      <div class="landing-container relative z-10">
+        <div class="landing-hero-copy">
+          <p class="landing-eyebrow"><span aria-hidden="true"></span> Чат с характером</p>
+          <h1 id="landing-title">У каждого<br />своя <em>история.</em></h1>
+          <p class="landing-hero-description">
+            Иногда всё начинается с простого «привет».<br class="hidden sm:block" />
+            Знакомься, играй, делись своим —<br class="hidden sm:block" />
+            и становись частью Vertigo.
+          </p>
+          <div class="mt-8 flex flex-wrap items-center gap-5">
+            <a id="landing-enter-chat" href="#landing-login" class="landing-button">
+              Присоединиться <.icon name="hero-arrow-right" class="size-4" />
+            </a>
+            <a href="#landing-sections" class="landing-text-link">
+              Осмотреться <.icon name="hero-arrow-down" class="size-4" />
+            </a>
+          </div>
+          <p class="landing-hero-note">Можно просто выбрать ник и войти гостем</p>
         </div>
       </div>
-
-      <aside class="rounded-3xl border border-zinc-700 bg-zinc-900 p-7 shadow-2xl shadow-black/30">
-        <h2 class="text-2xl font-bold">В одном месте</h2>
-        <ul class="mt-6 space-y-5 text-zinc-300">
-          <li class="flex gap-3">
-            <.icon
-              name="hero-chat-bubble-left-right"
-              class="mt-0.5 size-5 shrink-0 text-amber-300"
-            />Общий разговор с другими чатланами
-          </li>
-          <li class="flex gap-3">
-            <.icon name="hero-puzzle-piece" class="mt-0.5 size-5 shrink-0 text-amber-300" />Шашки, морской бой, дурак и балда
-          </li>
-          <li class="flex gap-3">
-            <.icon name="hero-photo" class="mt-0.5 size-5 shrink-0 text-amber-300" />Анкеты, фотоальбом и библиотека сообщества
-          </li>
-        </ul>
-      </aside>
-    </section>
-
-    <section class="border-y border-zinc-800 bg-zinc-900/60">
-      <div class="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-        <h2 class="text-3xl font-bold">Чем заняться в Vertigo</h2>
-        <div class="mt-8 grid gap-5 md:grid-cols-3">
-          <a
-            href={~p"/games"}
-            class="rounded-2xl border border-zinc-700 p-6 transition hover:border-amber-300 hover:bg-zinc-900"
-          >
-            <h3 class="text-xl font-bold text-amber-200">Игры</h3>
-            <p class="mt-3 leading-7 text-zinc-300">
-              Создавай игровой стол и зови чатлан присоединиться.
-            </p>
-          </a>
-          <a
-            href={~p"/library"}
-            class="rounded-2xl border border-zinc-700 p-6 transition hover:border-amber-300 hover:bg-zinc-900"
-          >
-            <h3 class="text-xl font-bold text-amber-200">Библиотека</h3>
-            <p class="mt-3 leading-7 text-zinc-300">
-              Находи книги и поводы для нового разговора.
-            </p>
-          </a>
-          <a
-            href={~p"/help"}
-            class="rounded-2xl border border-zinc-700 p-6 transition hover:border-amber-300 hover:bg-zinc-900"
-          >
-            <h3 class="text-xl font-bold text-amber-200">Правила и помощь</h3>
-            <p class="mt-3 leading-7 text-zinc-300">
-              Узнай о возможностях чата и рангах участников.
-            </p>
-          </a>
-          <a
-            href={~p"/articles"}
-            class="rounded-2xl border border-zinc-700 p-6 transition hover:border-amber-300 hover:bg-zinc-900"
-          >
-            <h3 class="text-xl font-bold text-amber-200">Статьи</h3>
-            <p class="mt-3 leading-7 text-zinc-300">
-              Читай о чатах, знакомстве и общении в сети.
-            </p>
-          </a>
-        </div>
+      <div class="landing-hero-caption" aria-hidden="true">
+        Общение. Игры. Неожиданные знакомства.
       </div>
     </section>
 
-    <section class="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-      <h2 class="text-3xl font-bold">Вопросы о чате</h2>
-      <div class="mt-8 grid gap-5 md:grid-cols-2">
-        <div class="rounded-2xl border border-zinc-800 p-6">
-          <h3 class="text-lg font-bold">Что можно делать в Vertigo?</h3>
-          <p class="mt-3 leading-7 text-zinc-300">
-            Общаться в общей комнате, смотреть анкеты, играть и пользоваться разделами сообщества.
+    <div class="landing-container">
+      <section
+        id="landing-registration"
+        class="landing-entrance"
+        aria-labelledby="landing-registration-title"
+      >
+        <div class="landing-benefits">
+          <p class="landing-eyebrow">Твоя роль начинается здесь</p>
+          <h2 id="landing-registration-title">
+            Никаких анкет на входе.<br />Только ник и пароль.
+          </h2>
+          <p class="landing-section-description">
+            Для регистрации не нужны личные данные: ни настоящее имя, ни почта, ни телефон.
+            Зато у твоей истории появляется продолжение.
+          </p>
+          <ul class="landing-benefit-list">
+            <li>
+              <.icon name="hero-finger-print" class="size-5 shrink-0" />
+              <div>
+                <strong>Ник, который принадлежит тебе</strong><p>
+                  Возвращайся под своим именем — другой гость его не займёт.
+                </p>
+              </div>
+            </li>
+            <li>
+              <.icon name="hero-star" class="size-5 shrink-0" />
+              <div>
+                <strong>Прогресс, который остаётся</strong><p>
+                  Сохраняй настройки и двигайся по киношным званиям за общение.
+                </p>
+              </div>
+            </li>
+            <li>
+              <.icon name="hero-sparkles" class="size-5 shrink-0" />
+              <div>
+                <strong>Больше способов проявить себя</strong><p>
+                  Оформи профиль, делись GIF и музыкой. С ростом звания публикуй статьи и фотографии.
+                </p>
+              </div>
+            </li>
+          </ul>
+          <a
+            id="landing-register"
+            href="#landing-login"
+            phx-click="show_registration"
+            class="landing-text-link mt-7"
+          >
+            Зарегистрировать ник <.icon name="hero-arrow-up-right" class="size-4" />
+          </a>
+        </div>
+
+        <div id="landing-login" phx-hook="ChatEntrance" class="landing-login-panel">
+          <p class="landing-ticket-label">
+            <span>Билет в хорошую компанию</span><span aria-hidden="true">V / 01</span>
+          </p>
+          <.link
+            :if={@can_resume?}
+            id="landing-resume-chat"
+            navigate={~p"/chat"}
+            class="landing-resume-link"
+          >
+            Вернуться в чат в этой вкладке <.icon name="hero-arrow-right" class="size-4" />
+          </.link>
+          <%= if @screen == :registration do %>
+            <ChatWeb.AuthComponents.registration_screen
+              registration_form={@registration_form}
+              registration_error={@registration_error}
+              landing
+            />
+          <% else %>
+            <ChatWeb.AuthComponents.login_screen
+              nickname_form={@nickname_form}
+              entrance_error={@entrance_error}
+              landing
+            />
+            <p class="landing-form-footer">
+              Хочешь сохранить свой ник?
+              <button id="landing-show-registration" type="button" phx-click="show_registration">Зарегистрируйся</button>
+            </p>
+          <% end %>
+          <noscript><p class="mt-4 text-sm">Для входа включи JavaScript в браузере.</p></noscript>
+        </div>
+      </section>
+
+      <section
+        id="landing-sections"
+        class="landing-sections"
+        aria-labelledby="landing-sections-title"
+      >
+        <div class="landing-section-heading">
+          <div>
+            <p class="landing-eyebrow">Не только разговоры</p>
+            <h2 id="landing-sections-title">Много поводов<br />вернуться.</h2>
+          </div>
+          <p class="landing-section-description">
+            Один чат, разные увлечения.<br />Выбирай, с чего начнётся твой вечер.
           </p>
         </div>
-        <div class="rounded-2xl border border-zinc-800 p-6">
-          <h3 class="text-lg font-bold">Как начать общение?</h3>
-          <p class="mt-3 leading-7 text-zinc-300">
-            Перейди в чат, выбери ник и присоединяйся к разговору.
-          </p>
+
+        <div class="landing-feature-grid">
+          <a
+            id="landing-section-chat"
+            href="#landing-login"
+            class="landing-feature landing-feature-chat"
+          >
+            <div class="landing-feature-top">
+              <span class="landing-section-number">01 / Общение</span><.icon
+                name="hero-arrow-up-right"
+                class="size-5"
+              />
+            </div>
+            <h3>Разговор без сценария</h3>
+            <p>
+              Общая комната, личные сообщения и новые знакомые. Обсуди день, найди свою компанию или просто скажи «привет».
+            </p>
+            <div class="landing-chat-lines" aria-hidden="true">
+              <span><i></i> С чего начнём?</span>
+              <span>С хорошей компании.</span>
+            </div>
+            <span class="landing-feature-link">Войти в чат
+            <.icon name="hero-arrow-right" class="size-4" /></span>
+          </a>
+          <article id="landing-section-games" class="landing-feature landing-feature-games">
+            <div class="landing-feature-top">
+              <span class="landing-section-number">02 / Игры</span><.icon
+                name="hero-puzzle-piece"
+                class="size-5"
+              />
+            </div>
+            <h3>Есть кому бросить вызов</h3>
+            <p>
+              Собирай игровой стол, приглашай соперника и меняй разговор на партию. А после — обсудите реванш.
+            </p>
+            <div class="landing-game-links">
+              <a href={~p"/checkers"}>Шашки</a>
+              <a href={~p"/games/battleship"}>Морской бой</a>
+              <a href={~p"/games/durak"}>Дурак</a>
+              <a href={~p"/games/balda"}>Балда</a>
+            </div>
+            <a id="landing-open-games" href={~p"/games"} class="landing-feature-link">Выбрать игру
+            <.icon name="hero-arrow-right" class="size-4" /></a>
+          </article>
         </div>
-      </div>
-    </section>
-  </main>
+
+        <div class="landing-directory">
+          <a id="landing-section-profiles" href={~p"/profiles"} class="landing-directory-item">
+            <div class="landing-feature-top">
+              <span class="landing-section-number">03</span><.icon
+                name="hero-user-circle"
+                class="size-6"
+              />
+            </div>
+            <h3>Анкеты</h3>
+            <p>
+              Узнай, кто скрывается за ником. Загляни в профили чатлан и найди общие интересы.
+            </p>
+            <span class="landing-feature-link">Познакомиться ближе
+            <.icon name="hero-arrow-up-right" class="size-4" /></span>
+          </a>
+          <a id="landing-section-library" href={~p"/library"} class="landing-directory-item">
+            <div class="landing-feature-top">
+              <span class="landing-section-number">04</span><.icon
+                name="hero-book-open"
+                class="size-6"
+              />
+            </div>
+            <h3>Библиотека</h3>
+            <p>
+              Авторские статьи и серии от участников. Читай чужие истории — и со временем расскажи свою.
+            </p>
+            <span class="landing-feature-link">Найти, что почитать
+            <.icon name="hero-arrow-up-right" class="size-4" /></span>
+          </a>
+          <a id="landing-section-gallery" href={~p"/gallery"} class="landing-directory-item">
+            <div class="landing-feature-top">
+              <span class="landing-section-number">05</span><.icon
+                name="hero-photo"
+                class="size-6"
+              />
+            </div>
+            <h3>Фотоальбом</h3>
+            <p>
+              Моменты, которыми хочется поделиться. Смотри фотографии и открывай мир глазами других.
+            </p>
+            <span class="landing-feature-link">Заглянуть в альбом
+            <.icon name="hero-arrow-up-right" class="size-4" /></span>
+          </a>
+          <a id="landing-section-visits" href={~p"/visits"} class="landing-directory-item">
+            <div class="landing-feature-top">
+              <span class="landing-section-number">06</span><.icon
+                name="hero-clock"
+                class="size-6"
+              />
+            </div>
+            <h3>Кто был</h3>
+            <p>
+              Разминулись? Посмотри, кто и когда заходил в чат, и узнавай знакомые ники в истории визитов.
+            </p>
+            <span class="landing-feature-link">Посмотреть визиты
+            <.icon name="hero-arrow-up-right" class="size-4" /></span>
+          </a>
+          <a id="landing-section-articles" href={~p"/articles"} class="landing-directory-item">
+            <div class="landing-feature-top">
+              <span class="landing-section-number">07</span><.icon
+                name="hero-newspaper"
+                class="size-6"
+              />
+            </div>
+            <h3>О чате</h3>
+            <p>
+              История онлайн-общения, чаты и мессенджеры, устройство Vertigo. Для тех, кому любопытно, как всё начиналось и работает.
+            </p>
+            <span class="landing-feature-link">Читать статьи
+            <.icon name="hero-arrow-up-right" class="size-4" /></span>
+          </a>
+          <a id="landing-section-help" href={~p"/help"} class="landing-directory-item">
+            <div class="landing-feature-top">
+              <span class="landing-section-number">08</span><.icon
+                name="hero-ticket"
+                class="size-6"
+              />
+            </div>
+            <h3>Помощь и звания</h3>
+            <p>
+              Команды, возможности и путь от зрителя до режиссёра. Узнай, как освоиться и что откроет следующее звание.
+            </p>
+            <span class="landing-feature-link">Разобраться в деталях
+            <.icon name="hero-arrow-up-right" class="size-4" /></span>
+          </a>
+        </div>
+      </section>
+
+      <section class="landing-finale" aria-labelledby="landing-finale-title">
+        <span class="vertigo-mark" aria-hidden="true"></span>
+        <p class="landing-eyebrow">Продолжение — с твоим участием</p>
+        <h2 id="landing-finale-title">Следующая реплика — твоя.</h2>
+        <p>Придумай ник. Сохрани свою историю. Найди своих.</p>
+        <a
+          id="landing-register-bottom"
+          href="#landing-login"
+          phx-click="show_registration"
+          class="landing-button"
+        >
+          Зарегистрироваться <.icon name="hero-arrow-right" class="size-4" />
+        </a>
+        <a href="#landing-login" phx-click="show_login" class="landing-finale-guest">Или сначала зайти гостем</a>
+      </section>
+
+      <footer class="landing-footer">
+        <a href={~p"/"} class="landing-brand" aria-label="Vertigo — главная"><span class="vertigo-wordmark">Vertigo</span></a>
+        <p>Место для людей и их историй.</p>
+        <a href={~p"/help"} class="landing-nav-link">Помощь</a>
+      </footer>
+    </div>
+  </div>
 </Layouts.app>

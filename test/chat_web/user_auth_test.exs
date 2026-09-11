@@ -9,6 +9,7 @@ defmodule ChatWeb.UserAuthTest do
     {:ok, user} = Accounts.register_user(%{nickname: "long_lived_auth", password: "secret123"})
     signed_at = System.system_time(:second) - 301
     session_id = Ecto.UUID.generate()
+    secret = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 
     registered_token =
       Phoenix.Token.sign(ChatWeb.Endpoint, "user-auth", user.id, signed_at: signed_at, max_age: 1)
@@ -17,7 +18,7 @@ defmodule ChatWeb.UserAuthTest do
       Phoenix.Token.sign(
         ChatWeb.Endpoint,
         "chat-session",
-        %{"id" => session_id, "nickname" => "long_lived_guest"},
+        %{"id" => session_id, "nickname" => "long_lived_guest", "resume_secret" => secret},
         signed_at: signed_at,
         max_age: 1
       )
@@ -25,7 +26,9 @@ defmodule ChatWeb.UserAuthTest do
     assert :infinity = UserAuth.session_max_age()
     assert {:ok, restored_user} = UserAuth.verify(registered_token)
     assert restored_user.id == user.id
-    assert {:ok, ^session_id} = UserAuth.verify_chat_session(guest_token, "long_lived_guest")
+
+    assert {:ok, {^session_id, ^secret}} =
+             UserAuth.verify_chat_resume(guest_token, "long_lived_guest")
   end
 
   test "binds a guest identity token to its nickname" do

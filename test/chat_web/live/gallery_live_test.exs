@@ -9,7 +9,6 @@ defmodule ChatWeb.GalleryLiveTest do
   alias Chat.Gallery
   alias Chat.Gallery.Photo
   alias Chat.Repo
-  alias ChatWeb.UserAuth
 
   test "shows photos as a gallery with their uploader", %{conn: conn} do
     {:ok, user} =
@@ -54,8 +53,7 @@ defmodule ChatWeb.GalleryLiveTest do
 
     user = promote_to_statist(user)
 
-    {:ok, view, _html} = live(conn, ~p"/gallery")
-    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: user.id), ~p"/gallery")
 
     assert has_element?(view, "#gallery-upload-form")
 
@@ -86,26 +84,20 @@ defmodule ChatWeb.GalleryLiveTest do
     assert has_element?(view, "#gallery-photo-thumbnail[type='hidden']")
   end
 
-  test "rejects an invalid gallery authentication token", %{conn: conn} do
+  test "does not show upload controls without an account session", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/gallery")
-    render_hook(view, "authenticate_gallery", %{"token" => "invalid"})
 
     assert has_element?(view, "#gallery-login-hint")
     refute has_element?(view, "#gallery-upload-form")
   end
 
   test "handles missing authentication and an upload without a ready photo", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/gallery")
-
-    render_hook(view, "authenticate_gallery", %{})
-    assert has_element?(view, "#gallery-login-hint")
-
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "empty_upload", "password" => "secret123"})
 
     user = promote_to_statist(user)
 
-    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: user.id), ~p"/gallery")
     view |> element("#gallery-upload-form") |> render_change()
     html = view |> element("#gallery-upload-form") |> render_submit()
 
@@ -119,8 +111,7 @@ defmodule ChatWeb.GalleryLiveTest do
 
     user = promote_to_statist(user)
 
-    {:ok, view, _html} = live(conn, ~p"/gallery")
-    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: user.id), ~p"/gallery")
 
     unsupported =
       file_input(view, "#gallery-upload-form", :gallery_photo, [
@@ -147,13 +138,6 @@ defmodule ChatWeb.GalleryLiveTest do
              "Фотография слишком большая: после сжатия файл должен быть не больше 2 МБ."
   end
 
-  test "rejects non-binary tokens and tokens for missing users" do
-    assert {:error, :invalid_token} = UserAuth.verify(nil)
-
-    token = UserAuth.sign(%User{id: -1})
-    assert {:error, :invalid_token} = UserAuth.verify(token)
-  end
-
   test "explains the daily upload quota", %{conn: conn} do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "daily_gallery", "password" => "secret123"})
@@ -164,8 +148,7 @@ defmodule ChatWeb.GalleryLiveTest do
       assert {:ok, _photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp")
     end
 
-    {:ok, view, _html} = live(conn, ~p"/gallery")
-    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: user.id), ~p"/gallery")
     upload_photo(view)
 
     assert has_element?(view, "#flash-error", "Дневной лимит")
@@ -192,8 +175,7 @@ defmodule ChatWeb.GalleryLiveTest do
 
     Repo.insert_all(Photo, rows)
 
-    {:ok, view, _html} = live(conn, ~p"/gallery")
-    render_hook(view, "authenticate_gallery", %{"token" => UserAuth.sign(user)})
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: user.id), ~p"/gallery")
     upload_photo(view)
 
     assert has_element?(

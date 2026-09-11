@@ -20,7 +20,7 @@ defmodule Chat.Visits.Visit do
 
   def entrance_changeset(visit, attrs) do
     visit
-    |> cast(attrs, [:nickname, :identity_key, :session_id, :entered_at, :user_id])
+    |> cast(attrs, [:nickname, :identity_key, :session_id, :entered_at])
     |> validate_required([:nickname, :identity_key, :entered_at])
     |> validate_length(:nickname, min: 3, max: 24)
     |> unique_constraint(:identity_key, name: :visits_active_identity_key_index)

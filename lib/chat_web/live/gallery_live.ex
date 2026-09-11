@@ -4,18 +4,19 @@ defmodule ChatWeb.GalleryLive do
 
   alias Chat.Gallery
   alias Chat.Ranks
-  alias ChatWeb.UserAuth
 
   @impl true
   def mount(_params, _session, socket) do
+    current_user = socket.assigns.current_account_user
+
     {:ok,
      socket
      |> assign(:page_title, "Фотоальбом")
      |> assign(:meta_description, "Фотоальбом сообщества Vertigo.")
      |> assign(:robots, "noindex, follow")
-     |> assign(:current_user, nil)
-     |> assign(:can_add_gallery_photos?, false)
-     |> assign(:auth_checked?, false)
+     |> assign(:current_user, current_user)
+     |> assign(:can_add_gallery_photos?, Ranks.can_add_gallery_photos?(current_user))
+     |> assign(:auth_checked?, true)
      |> assign(:gallery_upload_error, nil)
      |> assign(:upload_form, to_form(%{}, as: :gallery))
      |> allow_upload(:gallery_photo,
@@ -27,31 +28,7 @@ defmodule ChatWeb.GalleryLive do
   end
 
   @impl true
-  def handle_event("authenticate_gallery", %{"token" => token}, socket) do
-    case UserAuth.verify(token) do
-      {:ok, user} ->
-        {:noreply,
-         socket
-         |> assign(:current_user, user)
-         |> assign(:can_add_gallery_photos?, Ranks.can_add_gallery_photos?(user))
-         |> assign(:auth_checked?, true)}
-
-      {:error, :invalid_token} ->
-        {:noreply,
-         socket
-         |> assign(:current_user, nil)
-         |> assign(:can_add_gallery_photos?, false)
-         |> assign(:auth_checked?, true)}
-    end
-  end
-
-  def handle_event("authenticate_gallery", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:current_user, nil)
-     |> assign(:can_add_gallery_photos?, false)
-     |> assign(:auth_checked?, true)}
-  end
+  def handle_event("authenticate_gallery", _params, socket), do: {:noreply, socket}
 
   def handle_event("validate_gallery_photo", %{"gallery" => params}, socket) do
     {:noreply,

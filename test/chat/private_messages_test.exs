@@ -17,8 +17,8 @@ defmodule Chat.PrivateMessagesTest do
       Chatlans.appearance_attrs(nickname, "vertigo", Appearance.default())
     end
 
-    assert {:ok, _ref} = Chatlans.track(self(), room_id, sender_peer, attrs.("alice"))
-    assert {:ok, _ref} = Chatlans.track(self(), room_id, recipient_peer, attrs.("bob"))
+    connect(room_id, sender_peer, attrs.("alice"))
+    connect(room_id, recipient_peer, attrs.("bob"))
 
     :ok = Messages.subscribe(room_id)
     :ok = PrivateMessages.subscribe(sender_peer)
@@ -68,7 +68,7 @@ defmodule Chat.PrivateMessagesTest do
     attrs = Chatlans.appearance_attrs("alice", "vertigo", Appearance.default())
     subject = Subject.internal({room_id, sender_peer})
 
-    assert {:ok, _ref} = Chatlans.track(self(), room_id, sender_peer, attrs)
+    connect(room_id, sender_peer, attrs)
 
     assert {:error, :self_recipient} =
              PrivateMessages.send_private_message(
@@ -78,5 +78,14 @@ defmodule Chat.PrivateMessagesTest do
                %{"body" => "^alice нельзя самому себе"},
                subject
              )
+  end
+
+  defp connect(room_id, peer, attrs) do
+    {:ok, session} = Chat.Sessions.enter(room_id, attrs.nickname, "", presence_key: peer)
+
+    attrs =
+      Map.merge(attrs, %{session_id: session.session_id, identity_key: session.identity_key})
+
+    assert {:ok, _, _} = Chat.Sessions.connect(session, self(), attrs)
   end
 end

@@ -7,7 +7,6 @@ defmodule ChatWeb.RoomLiveTest do
   alias Chat.Accounts
   alias Chat.Bot.Status, as: BotStatus
   alias Chat.Chatlans
-  alias Chat.Chatlans.DepartureNotifier
   alias Chat.Messages
   alias Chat.Messages.Registry, as: MessageRegistry
   alias Chat.Repo
@@ -17,28 +16,17 @@ defmodule ChatWeb.RoomLiveTest do
   setup do
     :sys.replace_state(MessageRegistry, &Map.delete(&1, "lobby"))
 
-    :sys.replace_state(DepartureNotifier, fn state ->
-      Enum.each(state.departures, fn {_key, %{timer: timer}} -> Process.cancel_timer(timer) end)
-
-      Enum.each(state.explicit_leaves, fn {_key, %{timer: timer}} ->
-        Process.cancel_timer(timer)
-      end)
-
-      %{state | departures: %{}, explicit_leaves: %{}}
-    end)
-
     :ok
   end
 
   test "renders the entrance screen and current chatlan info", %{conn: conn} do
-    {:ok, view, html} = live(conn, ~p"/")
+    {:ok, view, html} = live(conn, ~p"/chat")
 
     assert html =~ "Vertigo"
     assert html =~ ~s(data-chat-theme="vertigo")
     assert html =~ "Вход в чат"
-    assert html =~ "Ник"
-    assert has_element?(view, "#entrance-nickname")
-    assert has_element?(view, "#entrance-nickname.text-base")
+    assert has_element?(view, "#chat-login-link[href='/']", "Войти на главной")
+    refute has_element?(view, "#entrance-form")
     assert has_element?(view, "#chat-logo", "Vertigo")
     refute has_element?(view, "#chat-logo[href]")
     refute html =~ ~r/value="guest-[^"]+"/
@@ -66,23 +54,23 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "does not enter the chat without an explicit valid nickname", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     html = enter_chat(view, "")
 
     assert html =~ "Введи ник из 3–24 букв, цифр"
-    assert has_element?(view, "#entrance-form")
+    assert has_element?(view, "#chat-login-link")
     refute has_element?(view, "#message-form")
   end
 
-  test "shows progress while the entrance request is being processed", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+  test "links to the entrance on the home page", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
-    assert has_element?(view, "#enter-chat[phx-disable-with='Входим…']")
+    assert has_element?(view, "#chat-login-link[href='/']")
   end
 
   test "collects feedback from a guest and requires their name", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     view |> element("#show-feedback") |> render_click()
 
@@ -97,7 +85,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "enters the chat with a nickname and renders the initial system message", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     html = enter_chat(view, "tester")
 
@@ -155,7 +143,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "wakes Karmik when a joined chatlan pets him", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "karmik_pet_user")
 
     assert has_element?(view, "#karmik-sprite[phx-hook='KarmikPet'][role='button'][tabindex='0']")
@@ -177,9 +165,9 @@ defmodule ChatWeb.RoomLiveTest do
       conn
       |> put_connect_params(%{
         "user_auth_token" => ChatWeb.UserAuth.sign(user),
-        "chat_session_token" => ChatWeb.UserAuth.sign_chat_session(user.nickname)
+        "chat_session_token" => saved_session_token(user.nickname, "secret123")
       })
-      |> live(~p"/")
+      |> live(~p"/chat")
 
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#online-list", "returning_member")
@@ -192,11 +180,12 @@ defmodule ChatWeb.RoomLiveTest do
       conn
       |> put_connect_params(%{
         "guest_nickname" => "returning_guest",
-        "guest_session_token" => ChatWeb.UserAuth.sign_chat_session("returning_guest"),
+        "guest_session_token" => saved_session_token("returning_guest"),
+        "guest_identity_token" => saved_guest_identity("returning_guest"),
         "theme_id" => "vertigo",
         "appearance" => %{}
       })
-      |> live(~p"/")
+      |> live(~p"/chat")
 
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#online-list", "returning_guest")
@@ -217,25 +206,26 @@ defmodule ChatWeb.RoomLiveTest do
         "theme_id" => "vertigo",
         "appearance" => %{}
       })
-      |> live(~p"/")
+      |> live(~p"/chat")
 
     refute has_element?(view, "#message-form")
-    assert has_element?(view, "#entrance-form")
+    assert has_element?(view, "#chat-login-link")
   end
 
   test "renews a guest session without creating a new visit", %{conn: conn} do
     nickname = "guest_heartbeat_#{System.unique_integer([:positive])}"
-    session_token = ChatWeb.UserAuth.sign_chat_session(nickname)
+    session_token = saved_session_token(nickname)
 
     {:ok, view, _html} =
       conn
       |> put_connect_params(%{
         "guest_nickname" => nickname,
         "guest_session_token" => session_token,
+        "guest_identity_token" => saved_guest_identity(nickname),
         "theme_id" => "vertigo",
         "appearance" => %{}
       })
-      |> live(~p"/")
+      |> live(~p"/chat")
 
     assert [%{id: visit_id}] =
              Enum.filter(Visits.list_recent_visits(), &(&1.nickname == nickname))
@@ -249,8 +239,8 @@ defmodule ChatWeb.RoomLiveTest do
       "session_token" => renewed_token
     })
 
-    assert {:ok, _session_id} = ChatWeb.UserAuth.verify_chat_session(renewed_token, nickname)
-    refute renewed_token == session_token
+    assert {:ok, credentials} = ChatWeb.UserAuth.verify_chat_resume(renewed_token, nickname)
+    assert {:ok, ^credentials} = ChatWeb.UserAuth.verify_chat_resume(session_token, nickname)
 
     assert [%{id: ^visit_id}] =
              Enum.filter(Visits.list_recent_visits(), &(&1.nickname == nickname))
@@ -260,38 +250,40 @@ defmodule ChatWeb.RoomLiveTest do
     conn: conn
   } do
     nickname = "guest_refresh_#{System.unique_integer([:positive])}"
-    session_token = ChatWeb.UserAuth.sign_chat_session(nickname)
+    session_token = saved_session_token(nickname)
 
     params = %{
       "guest_nickname" => nickname,
       "guest_session_token" => session_token,
+      "guest_identity_token" => saved_guest_identity(nickname),
       "theme_id" => "vertigo",
       "appearance" => %{}
     }
 
-    {:ok, previous_view, _html} = conn |> put_connect_params(params) |> live(~p"/")
+    {:ok, previous_view, _html} = conn |> put_connect_params(params) |> live(~p"/chat")
     assert has_element?(previous_view, "#message-form")
 
-    {:ok, refreshed_view, _html} = build_conn() |> put_connect_params(params) |> live(~p"/")
+    {:ok, refreshed_view, _html} = build_conn() |> put_connect_params(params) |> live(~p"/chat")
 
     assert has_element?(refreshed_view, "#message-form")
     assert 1 == Enum.count(Chatlans.list_online("lobby"), &(&1.nickname == nickname))
     assert 1 == Enum.count(Visits.list_recent_visits(), &(&1.nickname == nickname))
   end
 
-  test "keeps one active visit when a registered chatlan opens a second tab", %{conn: conn} do
+  test "rejects a second chat tab while a registered chatlan is active", %{conn: conn} do
     nickname = "two_tabs_#{System.unique_integer([:positive])}"
 
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => nickname, "password" => "secret123"})
 
-    {:ok, first_tab, _html} = live(conn, ~p"/")
+    {:ok, first_tab, _html} = live(conn, ~p"/chat")
     enter_chat(first_tab, nickname, "secret123")
 
-    {:ok, second_tab, _html} = live(build_conn(), ~p"/")
+    {:ok, second_tab, _html} = live(build_conn(), ~p"/chat")
     enter_chat(second_tab, nickname, "secret123")
 
-    assert has_element?(second_tab, "#message-form")
+    assert has_element?(second_tab, "#chat-login-link")
+    assert render(second_tab) =~ "Этот ник уже используется в чате"
 
     assert 1 ==
              Repo.aggregate(
@@ -301,8 +293,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "answers a public address so that the whole room sees it", %{conn: conn} do
-    {:ok, sender, _html} = live(conn, ~p"/")
-    {:ok, observer, _html} = live(build_conn(), ~p"/")
+    {:ok, sender, _html} = live(conn, ~p"/chat")
+    {:ok, observer, _html} = live(build_conn(), ~p"/chat")
     enter_chat(sender, "bot_sender")
     enter_chat(observer, "bot_observer")
 
@@ -360,7 +352,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     Req.Test.expect(__MODULE__, music_response)
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "music_picker")
 
     view
@@ -423,7 +415,7 @@ defmodule ChatWeb.RoomLiveTest do
       Req.Test.html(request, "<ul>#{tracks}</ul>")
     end)
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "music_pagination")
 
     view
@@ -451,7 +443,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "does not answer a private message addressed to Hitchcock", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "private_bot_sender")
 
     render_hook(view, "send_private_message", %{
@@ -464,7 +456,7 @@ defmodule ChatWeb.RoomLiveTest do
 
   test "shows Hitchcock as busy while the provider limit is active", %{conn: conn} do
     on_exit(&BotStatus.reset/0)
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "busy_status_viewer")
 
     :ok = BotStatus.mark_busy(5_000)
@@ -480,21 +472,21 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "rejects a nickname that is already online", %{conn: conn} do
-    {:ok, first_view, _html} = live(conn, ~p"/")
-    {:ok, second_view, _html} = live(build_conn(), ~p"/")
+    {:ok, first_view, _html} = live(conn, ~p"/chat")
+    {:ok, second_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(first_view, "same_nickname")
     html = enter_chat(second_view, "same_nickname")
 
     assert html =~ "Этот ник уже используется в чате"
-    assert has_element?(second_view, "#entrance-form")
+    assert has_element?(second_view, "#chat-login-link")
     refute has_element?(second_view, "#message-form")
     assert has_element?(first_view, "#message-form")
   end
 
   test "shows when another chatlan is typing without shifting the layout", %{conn: conn} do
-    {:ok, writer, _html} = live(conn, ~p"/")
-    {:ok, reader, _html} = live(build_conn(), ~p"/")
+    {:ok, writer, _html} = live(conn, ~p"/chat")
+    {:ok, reader, _html} = live(build_conn(), ~p"/chat")
     enter_chat(writer, "typing_writer")
     enter_chat(reader, "typing_reader")
 
@@ -514,7 +506,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "image_author", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "image_author", "secret123")
 
     assert has_element?(view, "#media-share-controls[phx-hook='MediaSharing']")
@@ -523,7 +515,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "backend rejects an image announcement from a guest", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "guest_image")
 
     render_hook(view, "announce_media", %{
@@ -541,7 +533,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "photo_sender", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "photo_sender", "secret123")
     share_id = Ecto.UUID.generate()
 
@@ -562,7 +554,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "music_sender", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "music_sender", "secret123")
     share_id = Ecto.UUID.generate()
 
@@ -579,7 +571,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "registers a nickname and returns to the entrance screen", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     assert view |> element("#show-registration") |> render_click() =~ "Регистрация"
 
@@ -596,7 +588,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "lets a guest register the current nickname without leaving the chat", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "guest_registering")
 
     assert has_element?(view, "#show-registration", "Регистрация")
@@ -619,10 +611,24 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#show-registration")
     assert Accounts.registered_nickname?("guest_registering")
     refute Accounts.registered_nickname?("another_nickname")
+
+    assert_push_event(view, "save-user-auth", %{token: token, session_token: session_token})
+    [visit] = Visits.list_recent_visits()
+
+    {:ok, refreshed, _} =
+      build_conn()
+      |> put_connect_params(%{"user_auth_token" => token, "chat_session_token" => session_token})
+      |> live(~p"/chat")
+
+    assert has_element?(refreshed, "#message-form")
+    assert [%{id: visit_id, user_id: user_id}] = Visits.list_recent_visits()
+    assert visit_id == visit.id
+    assert user_id
+    refute has_element?(refreshed, "#show-registration")
   end
 
   test "closes in-chat registration without leaving the chat", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "guest_staying")
 
     view |> element("#show-registration") |> render_click()
@@ -633,7 +639,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "returns from registration to login and shows validation errors", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     view |> element("#show-registration") |> render_click()
     assert view |> element("#show-login") |> render_click() =~ "Вход в чат"
@@ -653,7 +659,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "registered", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     html = enter_chat(view, "registered", "secret123")
 
@@ -665,7 +671,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "profiled", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "profiled", "secret123")
 
     html =
@@ -702,7 +708,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "readonly", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "guest_user")
 
     refute has_element?(view, "[id^='profile-link-'][phx-value-nickname='guest_user']")
@@ -723,7 +729,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "opens, validates and closes a guest profile", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "viewer")
 
     render_hook(view, "open_profile", %{"nickname" => "guest_missing"})
@@ -743,7 +749,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "invalid_profile", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "invalid_profile", "secret123")
     render_hook(view, "open_profile", %{"nickname" => "invalid_profile"})
     view |> element("#edit-profile") |> render_click()
@@ -760,7 +766,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "photo_profile", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "photo_profile", "secret123")
     render_hook(view, "open_profile", %{"nickname" => "photo_profile"})
     view |> element("#edit-profile") |> render_click()
@@ -785,9 +791,9 @@ defmodule ChatWeb.RoomLiveTest do
   test "delivers a private message only to sender and recipient", %{
     conn: conn
   } do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
-    {:ok, eve_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
+    {:ok, eve_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "alice")
     enter_chat(bob_view, "bob")
@@ -834,8 +840,8 @@ defmodule ChatWeb.RoomLiveTest do
   test "notifies a chatlan about addressed and private messages when sound is enabled", %{
     conn: conn
   } do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "sound_alice")
     enter_chat(bob_view, "sound_bob")
@@ -860,8 +866,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "renders the author's selected typography only on their messages", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "type_alice")
     enter_chat(bob_view, "type_bob")
@@ -886,8 +892,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "a single nickname click prepares a public addressed message", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "alice_public")
     enter_chat(bob_view, "bob_public")
@@ -899,8 +905,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "renders the addressed nickname in the recipient's selected color", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "alice_address")
     enter_chat(bob_view, "bob_address")
@@ -934,7 +940,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "does not highlight an ordinary word followed by a comma as a nickname", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "comma_writer")
 
     view
@@ -951,8 +957,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "highlights an addressed nickname at the end of a message without a comma", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "alice_trailing_address")
     enter_chat(bob_view, "bob_trailing_address")
@@ -966,8 +972,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "highlights an addressed message for a recipient using the frameless view", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "alice_compact_address")
     enter_chat(bob_view, "bob_compact_address")
@@ -1000,8 +1006,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "accepts the Ctrl+Enter private-message event with comma addressing", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "alice_ctrl")
     enter_chat(bob_view, "bob_ctrl")
@@ -1013,8 +1019,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "loads recent public history for a newcomer without private messages", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
-    {:ok, bob_view, _html} = live(build_conn(), ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
+    {:ok, bob_view, _html} = live(build_conn(), ~p"/chat")
 
     enter_chat(alice_view, "history_alice")
     enter_chat(bob_view, "history_bob")
@@ -1027,7 +1033,7 @@ defmodule ChatWeb.RoomLiveTest do
     |> form("#message-form", message: %{body: "^history_bob, скрытая история"})
     |> render_submit()
 
-    {:ok, newcomer_view, _html} = live(build_conn(), ~p"/")
+    {:ok, newcomer_view, _html} = live(build_conn(), ~p"/chat")
     html = enter_chat(newcomer_view, "newcomer")
 
     assert html =~ "публичная история"
@@ -1039,7 +1045,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "registered", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     html = enter_chat(view, "registered")
 
@@ -1051,7 +1057,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "registered", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     html = enter_chat(view, "registered", "wrong123")
 
@@ -1060,13 +1066,13 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "reports unknown registered-user credentials", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     assert enter_chat(view, "unknown_user", "secret123") =~ "Такой ник не зарегистрирован"
   end
 
   test "sends a public message from the form", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "tester")
 
     view
@@ -1083,7 +1089,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "silently ignores an invalid message sync cursor", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "synccursor")
 
     render_hook(view, "sync_messages", %{"cursor" => "not-a-cursor"})
@@ -1095,7 +1101,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "stable_member", "password" => "secret123"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "stable_member", "secret123")
 
     view
@@ -1106,14 +1112,14 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-form")
     assert has_element?(view, "#messages .chat-message-author", "stable_member")
     assert has_element?(view, "#messages .chat-message-body", "Первое сообщение")
-    refute has_element?(view, "#entrance-form")
+    refute has_element?(view, "#chat-login-link")
   end
 
   test "toggles an emoji reaction on another chatlan's message", %{conn: conn} do
-    {:ok, alice_view, _html} = live(conn, ~p"/")
+    {:ok, alice_view, _html} = live(conn, ~p"/chat")
     enter_chat(alice_view, "reaction_alice")
 
-    {:ok, bob_view, _html} = live(recycle(conn), ~p"/")
+    {:ok, bob_view, _html} = live(recycle(conn), ~p"/chat")
     enter_chat(bob_view, "reaction_bob")
 
     alice_view
@@ -1167,7 +1173,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "renders an emoji picker next to the message input", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "emoji_user")
 
     assert has_element?(
@@ -1183,7 +1189,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "acknowledges a public message with its client and server ids", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "draft_clearing_sender")
     client_id = Ecto.UUID.generate()
 
@@ -1202,7 +1208,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "rejects an outbox message explicitly when server validation fails", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "rejected_outbox_sender")
     client_id = Ecto.UUID.generate()
 
@@ -1222,7 +1228,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "rejects a rate-limited outbox message without publishing it", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "rate_limit_outbox")
 
     for index <- 1..3 do
@@ -1248,7 +1254,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "does not render an empty public message", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "tester")
 
     html =
@@ -1261,16 +1267,16 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "ignores malformed message events", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     render_hook(view, "send_message", %{})
     render_hook(view, "send_private_message", %{})
     render_hook(view, "toggle_reaction", %{})
 
-    assert has_element?(view, "#entrance-form")
+    assert has_element?(view, "#chat-login-link")
   end
 
   test "saves nickname and text colors from the chatlan settings panel", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "tester")
 
     assert view |> element("#toggle-settings") |> render_click() =~ "Цвета моих сообщений"
@@ -1303,7 +1309,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "opens settings in a modal without hiding the chatlan list", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "settings_focus")
 
     assert has_element?(view, "#online-list")
@@ -1316,7 +1322,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "renders a frameless public message without badges or reactions", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "compact_user")
 
     view
@@ -1329,7 +1335,7 @@ defmodule ChatWeb.RoomLiveTest do
              "сообщение меняет оформление"
            )
 
-    {:ok, other_view, _html} = live(build_conn(), ~p"/")
+    {:ok, other_view, _html} = live(build_conn(), ~p"/chat")
     enter_chat(other_view, "framed_viewer")
 
     assert has_element?(
@@ -1391,7 +1397,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "previews nickname and text colors before saving", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "tester")
 
     view |> element("#toggle-settings") |> render_click()
@@ -1416,7 +1422,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "switches to the night sky theme as a dark mode theme", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "tester")
 
     view |> element("#toggle-settings") |> render_click()
@@ -1440,7 +1446,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "discards an unsaved settings draft when the panel closes", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "draft_user")
 
     view |> element("#toggle-settings") |> render_click()
@@ -1460,7 +1466,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "offers the light newspaper theme in settings", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "newspaper_reader")
 
     view |> element("#toggle-settings") |> render_click()
@@ -1475,7 +1481,7 @@ defmodule ChatWeb.RoomLiveTest do
                "password" => "secret123"
              })
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "persistent_style", "secret123")
     view |> element("#toggle-settings") |> render_click()
 
@@ -1508,7 +1514,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     view |> element("#leave-chat") |> render_click()
 
-    {:ok, restored_view, _html} = live(recycle(conn), ~p"/")
+    {:ok, restored_view, _html} = live(recycle(conn), ~p"/chat")
     enter_chat(restored_view, "persistent_style", "secret123")
 
     assert has_element?(restored_view, "#chat-room[data-chat-theme='night_sky']")
@@ -1524,7 +1530,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "loads saved guest preferences in the context of the saved nickname", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     render_hook(view, "load_preferences", %{
       "nickname" => "guest-saved",
@@ -1554,7 +1560,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "retracks a joined guest after loading another nickname", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "before_name")
 
     render_hook(view, "load_preferences", %{
@@ -1567,7 +1573,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "does not apply saved colors when entering with another nickname", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     render_hook(view, "load_preferences", %{
       "nickname" => "guest-saved",
@@ -1587,29 +1593,29 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "--nick-dark: #aa44cc"
   end
 
-  test "leaves the chat and returns to the entrance form", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+  test "leaves the chat and links to the entrance on the home page", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/chat")
 
     enter_chat(view, "tester")
 
     html = view |> element("#leave-chat") |> render_click()
 
     assert html =~ "Вход в чат"
-    assert html =~ "Ник"
+    assert has_element?(view, "#chat-login-link[href='/']", "Войти на главной")
     refute html =~ "Общая комната"
     refute html =~ "Напиши сообщение"
     refute html =~ "Настройки"
   end
 
   test "clears browser session data before sending an explicit exit", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "logout_session")
 
     assert render(view) =~ "phx:clear-chat-session"
   end
 
   test "renders a local framed command result and lets a chatlan be addressed", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "command_user")
 
     view
@@ -1628,7 +1634,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "clears only the current chat frame", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "clear_frame_user")
 
     view
@@ -1646,8 +1652,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "toggles ignored chatlan messages without publishing the command", %{conn: conn} do
-    {:ok, viewer, _html} = live(conn, ~p"/")
-    {:ok, sender, _html} = live(build_conn(), ~p"/")
+    {:ok, viewer, _html} = live(conn, ~p"/chat")
+    {:ok, sender, _html} = live(build_conn(), ~p"/chat")
     enter_chat(viewer, "ignore_viewer")
     enter_chat(sender, "ignore_sender")
 
@@ -1677,8 +1683,8 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "shows subtle system messages when a chatlan joins and leaves", %{conn: conn} do
-    {:ok, observer, _html} = live(conn, ~p"/")
-    {:ok, participant, _html} = live(build_conn(), ~p"/")
+    {:ok, observer, _html} = live(conn, ~p"/chat")
+    {:ok, participant, _html} = live(build_conn(), ~p"/chat")
     enter_chat(observer, "observer")
     enter_chat(participant, "participant")
 
@@ -1705,7 +1711,7 @@ defmodule ChatWeb.RoomLiveTest do
     nickname = "reload_#{System.unique_integer([:positive])}"
     :ok = Messages.subscribe("lobby")
 
-    {:ok, participant, _html} = live(conn, ~p"/")
+    {:ok, participant, _html} = live(conn, ~p"/chat")
     enter_chat(participant, nickname)
     assert_receive {:message_created, %{body: "в чат заходит " <> ^nickname}}
 
@@ -1715,7 +1721,7 @@ defmodule ChatWeb.RoomLiveTest do
   end
 
   test "records entrance and exit timestamps", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "history_user")
 
     assert [visit] = Visits.list_recent_visits()
@@ -1729,9 +1735,25 @@ defmodule ChatWeb.RoomLiveTest do
     assert finished.left_at
   end
 
+  defp saved_session_token(nickname, password \\ "") do
+    {:ok, session} =
+      Chat.Sessions.enter("lobby", nickname, password,
+        presence_key: Chatlans.guest_presence_key()
+      )
+
+    ChatWeb.UserAuth.sign_chat_resume(nickname, session.session_id, session.resume_secret)
+  end
+
+  defp saved_guest_identity(nickname) do
+    session = Enum.find(Chat.Sessions.Store.live("lobby"), &(&1.nickname == nickname))
+    "guest:" <> identity_id = session.identity_key
+    ChatWeb.UserAuth.sign_guest_identity(nickname, identity_id)
+  end
+
   defp enter_chat(view, nickname, password \\ "") do
     view
-    |> form("#entrance-form", entrance: %{nickname: nickname, password: password})
-    |> render_submit()
+    |> render_hook("enter_chat", %{
+      "entrance" => %{"nickname" => nickname, "password" => password}
+    })
   end
 end

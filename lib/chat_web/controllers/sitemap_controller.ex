@@ -3,7 +3,7 @@ defmodule ChatWeb.SitemapController do
   use ChatWeb, :controller
 
   @paths [
-    "/about",
+    "/",
     "/articles",
     "/articles/chats-vs-messengers",
     "/articles/chat-platforms-russia",

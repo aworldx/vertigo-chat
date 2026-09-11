@@ -26,32 +26,30 @@ defmodule ChatWeb.UserAuth do
 
   def verify(_token), do: {:error, :invalid_token}
 
-  def sign_chat_session(nickname, session_id \\ Ecto.UUID.generate())
-      when is_binary(nickname) and is_binary(session_id) do
+  def sign_chat_resume(nickname, session_id, resume_secret)
+      when is_binary(nickname) and is_binary(session_id) and is_binary(resume_secret) do
     Phoenix.Token.sign(
       ChatWeb.Endpoint,
       @chat_session_salt,
-      %{
-        "id" => session_id,
-        "nickname" => nickname
-      },
+      %{"id" => session_id, "nickname" => nickname, "resume_secret" => resume_secret},
       max_age: @session_max_age
     )
   end
 
-  def verify_chat_session(token, nickname) when is_binary(token) and is_binary(nickname) do
-    with {:ok, %{"id" => session_id, "nickname" => ^nickname}} <-
+  def verify_chat_resume(token, nickname) when is_binary(token) and is_binary(nickname) do
+    with {:ok, %{"id" => session_id, "nickname" => ^nickname, "resume_secret" => secret}} <-
            Phoenix.Token.verify(ChatWeb.Endpoint, @chat_session_salt, token,
              max_age: @session_max_age
            ),
-         {:ok, _uuid} <- Ecto.UUID.cast(session_id) do
-      {:ok, session_id}
+         {:ok, _uuid} <- Ecto.UUID.cast(session_id),
+         true <- is_binary(secret) and byte_size(secret) >= 32 do
+      {:ok, {session_id, secret}}
     else
       _invalid -> {:error, :invalid_session}
     end
   end
 
-  def verify_chat_session(_token, _nickname), do: {:error, :invalid_session}
+  def verify_chat_resume(_token, _nickname), do: {:error, :invalid_session}
 
   def sign_guest_identity(nickname, identity_id \\ Ecto.UUID.generate())
       when is_binary(nickname) and is_binary(identity_id) do

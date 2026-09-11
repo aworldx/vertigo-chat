@@ -27,7 +27,7 @@ defmodule ChatWeb.LibraryLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/library")
 
-    assert has_element?(view, "#library-page[phx-hook]")
+    assert has_element?(view, "#library-page")
     assert has_element?(view, "#library-articles[phx-update='stream']")
     assert has_element?(view, "[data-article-title='Открытая статья']")
     assert has_element?(view, "[data-series-name='Старая полка']")

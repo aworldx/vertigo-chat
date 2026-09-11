@@ -5,6 +5,7 @@
 
 @import "tailwindcss" source(none);
 @import "phoenix-colocated/chat/colocated.css";
+@import "./landing.css";
 @source "../css";
 @source "../js";
 @source "../../lib/chat_web";

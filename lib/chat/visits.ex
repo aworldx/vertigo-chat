@@ -40,15 +40,16 @@ defmodule Chat.Visits do
 
       nil ->
         changeset =
-          Visit.entrance_changeset(%Visit{}, %{
+          Visit.entrance_changeset(%Visit{user_id: user_id}, %{
             nickname: nickname,
             identity_key: identity_key,
             session_id: session_id,
-            entered_at: normalize_datetime(entered_at),
-            user_id: user_id
+            entered_at: normalize_datetime(entered_at)
           })
 
-        case Repo.insert(changeset) do
+        # A concurrent entrance may win the unique identity constraint. Keep
+        # the outer session transaction usable for reading the winning visit.
+        case Repo.insert(changeset, mode: :savepoint) do
           {:error, _changeset} ->
             case active_visit(identity_key) || active_visit_for_session(session_id) do
               %Visit{} = visit ->
@@ -108,6 +109,12 @@ defmodule Chat.Visits do
 
   def finish_visit(%Visit{} = visit, _left_at), do: {:ok, visit}
 
+  def register_visit(%Visit{} = visit, %User{} = user) do
+    visit
+    |> Ecto.Changeset.change(user_id: user.id, identity_key: user_identity_key(user))
+    |> Repo.update()
+  end
+
   @doc """
   Finishes active visits whose session has disappeared from the online chat.
 
@@ -122,6 +129,14 @@ defmodule Chat.Visits do
     stale_visits =
       Visit
       |> where([visit], is_nil(visit.left_at))
+      |> where(
+        [visit],
+        visit.id not in subquery(
+          from session in Chat.Sessions.ChatSession,
+            where: not is_nil(session.visit_id),
+            select: session.visit_id
+        )
+      )
       |> where([visit], visit.updated_at < ^cutoff)
       |> Repo.all()
       |> Enum.reject(&MapSet.member?(online_identity_keys, &1.identity_key))

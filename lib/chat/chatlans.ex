@@ -5,12 +5,11 @@ defmodule Chat.Chatlans do
   """
 
   alias Chat.Appearance
-  alias Chat.Accounts
   alias Chat.Bot
   alias Chat.Messages
-  alias Chat.Chatlans.DepartureNotifier
   alias Chat.Presence
   alias Chat.Themes
+  alias Chat.Sessions.Store
 
   def guest_presence_key do
     "presence-" <> (:crypto.strong_rand_bytes(8) |> Base.url_encode64(padding: false))
@@ -25,6 +24,8 @@ defmodule Chat.Chatlans do
   def normalize_nickname(_nickname, fallback), do: fallback
 
   def list_online(room_id) do
+    sessions = Map.new(Store.live(room_id), &{&1.id, &1})
+
     online =
       room_id
       |> Messages.room_topic()
@@ -49,11 +50,18 @@ defmodule Chat.Chatlans do
           }
         end
       end)
+      |> Enum.filter(fn peer ->
+        case Map.get(sessions, peer.session_id) do
+          nil -> false
+          session -> session.status == "active" and session.generation == peer.connection_epoch
+        end
+      end)
       |> Enum.uniq_by(&(&1.identity_key || &1.session_id || &1.peer_id))
 
     reconnecting =
-      room_id
-      |> DepartureNotifier.pending()
+      sessions
+      |> Map.values()
+      |> Enum.filter(&(&1.status == "reconnecting"))
       |> Enum.reject(fn departure ->
         Enum.any?(online, &(&1.identity_key == departure.identity_key))
       end)
@@ -61,7 +69,7 @@ defmodule Chat.Chatlans do
         %{
           id: "reconnecting:#{departure.identity_key}",
           peer_id: "reconnecting:#{departure.identity_key}",
-          session_id: nil,
+          session_id: departure.id,
           identity_key: departure.identity_key,
           nickname: departure.nickname,
           registered?: String.starts_with?(departure.identity_key, "user:"),
@@ -90,43 +98,6 @@ defmodule Chat.Chatlans do
     Presence.untrack(pid, Messages.room_topic(room_id), presence_key)
   end
 
-  def session_online?(room_id, session_id) when is_binary(room_id) and is_binary(session_id) do
-    Enum.any?(list_online(room_id), &(Map.get(&1, :session_id) == session_id))
-  end
-
-  def session_online?(_room_id, _session_id), do: false
-
-  def identity_online?(room_id, identity_key)
-      when is_binary(room_id) and is_binary(identity_key) do
-    room_id
-    |> Messages.room_topic()
-    |> Presence.list()
-    |> Enum.any?(fn {_peer_id, %{metas: metas}} ->
-      Enum.any?(metas, &(Map.get(&1, :identity_key) == identity_key))
-    end)
-  end
-
-  def identity_online?(_room_id, _identity_key), do: false
-
-  def schedule_disconnect(room_id, nickname, identity_key)
-      when is_binary(room_id) and is_binary(nickname) and is_binary(identity_key) do
-    :ok = DepartureNotifier.schedule(room_id, nickname, identity_key, announce?: false)
-    broadcast_presence_grace_change(room_id)
-    :ok
-  end
-
-  def cancel_scheduled_departure(room_id, identity_key)
-      when is_binary(room_id) and is_binary(identity_key) do
-    :ok = DepartureNotifier.cancel(room_id, identity_key)
-    broadcast_presence_grace_change(room_id)
-    :ok
-  end
-
-  def announce_departure(room_id, nickname, identity_key)
-      when is_binary(room_id) and is_binary(nickname) and is_binary(identity_key) do
-    DepartureNotifier.announce_now(room_id, nickname, identity_key)
-  end
-
   def resolve_peer(room_id, nickname) when is_binary(nickname) do
     peers =
       room_id
@@ -138,58 +109,6 @@ defmodule Chat.Chatlans do
       [%{peer_id: peer_id}] -> {:ok, peer_id}
       [] -> {:error, :recipient_offline}
       _duplicates -> {:error, :ambiguous_recipient}
-    end
-  end
-
-  def ensure_nickname_available(
-        room_id,
-        nickname,
-        current_peer_id \\ nil,
-        session_id \\ nil,
-        identity_key \\ nil
-      )
-
-  def ensure_nickname_available(room_id, nickname, current_peer_id, session_id, identity_key)
-      when is_binary(room_id) and is_binary(nickname) do
-    if Enum.any?(list_online(room_id), fn chatlan ->
-         chatlan.nickname == nickname and chatlan.peer_id != current_peer_id and
-           (is_nil(session_id) or chatlan.session_id != session_id) and
-           (is_nil(identity_key) or chatlan.identity_key != identity_key)
-       end) do
-      {:error, :nickname_online}
-    else
-      :ok
-    end
-  end
-
-  def ensure_nickname_available(
-        _room_id,
-        _nickname,
-        _current_peer_id,
-        _session_id,
-        _identity_key
-      ),
-      do: {:error, :invalid_nickname}
-
-  def restore_session(room_id, nickname, current_presence_key, stored_presence_key, opts \\ []) do
-    nickname = normalize_nickname(nickname, nil)
-    presence_key = restored_presence_key(current_presence_key, stored_presence_key)
-
-    with nickname when not is_nil(nickname) <- nickname,
-         false <- Keyword.get(opts, :guest?, false) and Accounts.registered_nickname?(nickname),
-         :ok <-
-           ensure_nickname_available(
-             room_id,
-             nickname,
-             presence_key,
-             opts[:session_id],
-             opts[:identity_key]
-           ) do
-      {:ok, %{nickname: nickname, presence_key: presence_key}}
-    else
-      true -> {:error, :registered_nickname}
-      {:error, reason} -> {:error, reason}
-      _invalid -> {:error, :invalid_nickname}
     end
   end
 
@@ -242,21 +161,4 @@ defmodule Chat.Chatlans do
     |> Map.get(:appearance, Appearance.default())
     |> Appearance.normalize()
   end
-
-  defp broadcast_presence_grace_change(room_id) do
-    Phoenix.PubSub.broadcast(
-      Chat.PubSub,
-      Messages.room_topic(room_id),
-      {:presence_grace_changed, room_id}
-    )
-  end
-
-  defp restored_presence_key(current_presence_key, "presence-" <> encoded = presence_key)
-       when byte_size(encoded) in 8..64 do
-    if Regex.match?(~r/\A[A-Za-z0-9_-]+\z/, encoded),
-      do: presence_key,
-      else: current_presence_key
-  end
-
-  defp restored_presence_key(current_presence_key, _stored_presence_key), do: current_presence_key
 end

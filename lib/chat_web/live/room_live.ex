@@ -46,6 +46,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:nickname, nil)
       |> assign(:presence_key, presence_key)
       |> assign(:chat_session_token, nil)
+      |> assign(:resume_secret, nil)
       |> assign(:chat_session_id, nil)
       |> assign(:connection_epoch, nil)
       |> assign(:identity_key, nil)
@@ -123,7 +124,15 @@ defmodule ChatWeb.RoomLive do
       send(self(), {:restore_messages_after_reconnect, missed_messages})
     end
 
-    {:ok, socket}
+    {:ok,
+     attach_hook(socket, :session_fencing, :handle_event, fn event, _params, socket ->
+       if event != "leave_chat" and socket.assigns.joined? and
+            not Sessions.current_connection?(chat_session(socket)) do
+         {:halt, leave_chat(socket)}
+       else
+         {:cont, socket}
+       end
+     end)}
   end
 
   @impl true
@@ -135,7 +144,8 @@ defmodule ChatWeb.RoomLive do
            Sessions.enter(@room_id, nickname, params["password"],
              presence_key: socket.assigns.presence_key
            ),
-         session_token <- UserAuth.sign_chat_session(session.nickname, session.session_id),
+         session_token <-
+           UserAuth.sign_chat_resume(session.nickname, session.session_id, session.resume_secret),
          guest_identity_token <- guest_identity_token(session) do
       socket =
         socket
@@ -143,6 +153,8 @@ defmodule ChatWeb.RoomLive do
         |> assign(:current_user, session.user)
         |> assign(:chat_session_token, session_token)
         |> assign(:chat_session_id, session.session_id)
+        |> assign(:resume_secret, session.resume_secret)
+        |> assign(:connection_epoch, session.connection_epoch)
         |> assign(:identity_key, session.identity_key)
         |> assign(:guest_identity_token, guest_identity_token)
         |> assign(:visit, session.visit)
@@ -281,15 +293,39 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("register_user", %{"registration" => params}, socket) do
-    params =
+    result =
       if socket.assigns.joined? do
-        Map.put(params, "nickname", socket.assigns.nickname)
+        with {:ok, session} <-
+               Sessions.register_user(
+                 chat_session(socket),
+                 params,
+                 socket.assigns.security_subject
+               ) do
+          socket =
+            socket
+            |> assign(:identity_key, session.identity_key)
+            |> assign(:connection_epoch, session.connection_epoch)
+            |> assign(:resume_secret, session.resume_secret)
+            |> assign(:visit, session.visit)
+            |> assign(:guest_identity_token, nil)
+            |> assign(
+              :chat_session_token,
+              UserAuth.sign_chat_resume(
+                session.nickname,
+                session.session_id,
+                session.resume_secret
+              )
+            )
+
+          {:ok, session.user, socket}
+        end
       else
-        params
+        with {:ok, user} <- Accounts.register_user(params, socket.assigns.security_subject),
+             do: {:ok, user, socket}
       end
 
-    case Accounts.register_user(params, socket.assigns.security_subject) do
-      {:ok, user} ->
+    case result do
+      {:ok, user, socket} ->
         if socket.assigns.joined? do
           {:noreply,
            socket
@@ -706,13 +742,15 @@ defmodule ChatWeb.RoomLive do
 
   defp restore_user_session(token, session_token, socket) do
     with {:ok, user} <- UserAuth.verify(token),
-         {:ok, session_id} <- UserAuth.verify_chat_session(session_token, user.nickname),
+         {:ok, {session_id, resume_secret}} <-
+           UserAuth.verify_chat_resume(session_token, user.nickname),
          {:ok, session} <-
            Sessions.restore(@room_id, %{
              nickname: user.nickname,
              user: user,
              presence_key: socket.assigns.presence_key,
              session_id: session_id,
+             resume_secret: resume_secret,
              identity_key: Visits.user_identity_key(user)
            }) do
       socket =
@@ -721,6 +759,8 @@ defmodule ChatWeb.RoomLive do
         |> assign(:presence_key, session.presence_key)
         |> assign(:chat_session_token, session_token)
         |> assign(:chat_session_id, session.session_id)
+        |> assign(:resume_secret, session.resume_secret)
+        |> assign(:connection_epoch, session.connection_epoch)
         |> assign(:identity_key, session.identity_key)
         |> assign(:guest_identity_token, nil)
         |> assign(:current_user, user)
@@ -757,12 +797,14 @@ defmodule ChatWeb.RoomLive do
     with nickname when not is_nil(nickname) <- nickname,
          {:ok, identity_key, guest_identity_token} <- guest_identity_from_params(params, nickname),
          session_token when is_binary(session_token) <- params["session_token"],
-         {:ok, session_id} <- UserAuth.verify_chat_session(session_token, nickname),
+         {:ok, {session_id, resume_secret}} <-
+           UserAuth.verify_chat_resume(session_token, nickname),
          {:ok, session} <-
            Sessions.restore(@room_id, %{
              nickname: nickname,
              presence_key: socket.assigns.presence_key,
              session_id: session_id,
+             resume_secret: resume_secret,
              identity_key: identity_key
            }) do
       socket =
@@ -771,6 +813,8 @@ defmodule ChatWeb.RoomLive do
         |> assign(:presence_key, session.presence_key)
         |> assign(:chat_session_token, session_token)
         |> assign(:chat_session_id, session.session_id)
+        |> assign(:resume_secret, session.resume_secret)
+        |> assign(:connection_epoch, session.connection_epoch)
         |> assign(:identity_key, session.identity_key)
         |> assign(:guest_identity_token, guest_identity_token)
         |> assign(:visit, session.visit)
@@ -805,19 +849,15 @@ defmodule ChatWeb.RoomLive do
       when is_binary(token) and is_binary(session_token) ->
         restore_user_session(token, session_token, socket)
 
-      %{
-        "guest_nickname" => nickname,
-        "theme_id" => theme_id,
-        "appearance" => appearance
-      } = params
+      %{"guest_nickname" => nickname} = params
       when is_binary(nickname) ->
         restore_guest_session(
           %{
             "nickname" => nickname,
             "session_token" => Map.get(params, "guest_session_token"),
             "identity_token" => Map.get(params, "guest_identity_token"),
-            "theme_id" => theme_id,
-            "appearance" => appearance,
+            "theme_id" => Map.get(params, "theme_id", Themes.default_theme_id()),
+            "appearance" => Map.get(params, "appearance", %{}),
             "font_id" => Map.get(params, "font_id"),
             "font_style" => Map.get(params, "font_style"),
             "message_sound_enabled" => Map.get(params, "message_sound_enabled")
@@ -883,10 +923,7 @@ defmodule ChatWeb.RoomLive do
         {:ok, Visits.guest_identity_key(identity_id), params["identity_token"]}
 
       {:error, :invalid_identity} ->
-        with {:ok, session_id} <- UserAuth.verify_chat_session(params["session_token"], nickname) do
-          {:ok, Visits.guest_identity_key(session_id),
-           UserAuth.sign_guest_identity(nickname, session_id)}
-        end
+        {:error, :invalid_identity}
     end
   end
 
@@ -906,6 +943,7 @@ defmodule ChatWeb.RoomLive do
     |> cancel_async(:gif_search)
     |> assign(:joined?, false)
     |> assign(:chat_session_token, nil)
+    |> assign(:resume_secret, nil)
     |> assign(:chat_session_id, nil)
     |> assign(:connection_epoch, nil)
     |> assign(:identity_key, nil)
@@ -1669,7 +1707,7 @@ defmodule ChatWeb.RoomLive do
 
       _error ->
         Logger.warning("session_connection_track_failed nickname=#{socket.assigns.nickname}")
-        socket
+        socket |> assign(:joined?, false) |> push_navigate(to: ~p"/chat")
     end
   end
 
@@ -2066,6 +2104,11 @@ defmodule ChatWeb.RoomLive do
     "С этого адреса уже создавали аккаунт. Повторная регистрация доступна через сутки."
   end
 
+  defp registration_error(:stale_connection),
+    do: "Сессия изменилась. Обнови страницу и повтори регистрацию."
+
+  defp registration_error(_reason), do: "Не удалось зарегистрироваться."
+
   defp message_security_subject(socket) do
     socket.assigns.security_subject
     |> ClientSecurity.for_user(socket.assigns.current_user)
@@ -2191,7 +2234,11 @@ defmodule ChatWeb.RoomLive do
     :ok = Sessions.touch(chat_session(socket))
 
     session_token =
-      UserAuth.sign_chat_session(socket.assigns.nickname, socket.assigns.chat_session_id)
+      UserAuth.sign_chat_resume(
+        socket.assigns.nickname,
+        socket.assigns.chat_session_id,
+        socket.assigns.resume_secret
+      )
 
     socket = assign(socket, :chat_session_token, session_token)
 
@@ -2210,6 +2257,7 @@ defmodule ChatWeb.RoomLive do
       presence_key: socket.assigns.presence_key,
       session_id: socket.assigns.chat_session_id,
       connection_epoch: socket.assigns.connection_epoch,
+      resume_secret: socket.assigns.resume_secret,
       visit: socket.assigns.visit,
       user: socket.assigns.current_user
     }

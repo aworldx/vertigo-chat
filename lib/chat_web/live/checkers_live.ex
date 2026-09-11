@@ -15,8 +15,8 @@ defmodule ChatWeb.CheckersLive do
      |> assign(:page_title, "Шашки")
      |> assign(:meta_description, "Шашки в Vertigo: сыграй партию с чатланами онлайн.")
      |> assign(:canonical_path, ~p"/checkers")
-     |> assign(:current_user, nil)
-     |> assign(:auth_checked?, false)
+     |> assign(:current_user, socket.assigns.current_account_user)
+     |> assign(:auth_checked?, true)
      |> assign(:opponents, [])
      |> assign(:games, [])
      |> assign(:active_games, [])
@@ -28,15 +28,20 @@ defmodule ChatWeb.CheckersLive do
 
   @impl true
   def handle_event("authenticate_checkers", params, socket) do
-    case game_player(params) do
-      {:ok, user} ->
-        Checkers.notify_lobby()
+    if socket.assigns.current_account_user do
+      {:noreply,
+       socket |> assign(:current_user, socket.assigns.current_account_user) |> refresh()}
+    else
+      case game_player(params) do
+        {:ok, user} ->
+          Checkers.notify_lobby()
 
-        {:noreply,
-         socket |> assign(:current_user, user) |> assign(:auth_checked?, true) |> refresh()}
+          {:noreply,
+           socket |> assign(:current_user, user) |> assign(:auth_checked?, true) |> refresh()}
 
-      {:error, _reason} ->
-        {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
+        {:error, _reason} ->
+          {:noreply, socket |> assign(:current_user, nil) |> assign(:auth_checked?, true)}
+      end
     end
   end
 

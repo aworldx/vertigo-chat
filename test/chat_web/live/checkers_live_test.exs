@@ -10,7 +10,7 @@ defmodule ChatWeb.CheckersLiveTest do
   test "renders authentication state and stable game containers", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/checkers")
     assert has_element?(view, "#checkers-page.games-page--checkers")
-    assert has_element?(view, "#checkers-auth-check")
+    assert has_element?(view, "#checkers-login-hint")
     render_hook(view, "authenticate_checkers", %{})
     assert has_element?(view, "#checkers-login-hint")
   end

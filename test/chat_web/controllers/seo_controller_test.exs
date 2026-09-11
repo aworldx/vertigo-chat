@@ -14,7 +14,7 @@ defmodule ChatWeb.SeoControllerTest do
   test "serves a sitemap containing public pages only", %{conn: conn} do
     conn = get(conn, "/sitemap.xml")
     body = response(conn, 200)
-    about_url = ChatWeb.Endpoint.url() <> "/about"
+    about_url = ChatWeb.Endpoint.url() <> "/"
     games_url = ChatWeb.Endpoint.url() <> "/games"
     articles_url = ChatWeb.Endpoint.url() <> "/articles"
     article_url = ChatWeb.Endpoint.url() <> "/articles/chats-vs-messengers"
@@ -33,11 +33,11 @@ defmodule ChatWeb.SeoControllerTest do
   end
 
   test "renders the public landing page with SEO metadata", %{conn: conn} do
-    {:ok, view, html} = live(conn, "/about")
-    canonical_url = ChatWeb.Endpoint.url() <> "/about"
+    {:ok, view, html} = live(conn, "/")
+    canonical_url = ChatWeb.Endpoint.url() <> "/"
 
-    assert has_element?(view, "#vertigo-landing h1", "Общайся, знакомься и играй вместе")
-    assert has_element?(view, "#landing-enter-chat[href='/']", "Перейти в чат")
+    assert has_element?(view, "#vertigo-landing h1", "У каждого")
+    assert has_element?(view, "#landing-enter-chat[href='#landing-login']", "Присоединиться")
     assert html =~ "<meta name=\"description\""
     assert html =~ "русскоязычный чат"
     assert html =~ "<link rel=\"canonical\" href=\"#{canonical_url}\""

@@ -55,10 +55,25 @@
               registration_error={@registration_error}
             />
           <% else %>
-            <AuthComponents.login_screen
-              nickname_form={@nickname_form}
-              entrance_error={@entrance_error}
-            />
+            <div class="w-full max-w-md text-center">
+              <h1 class="text-3xl font-semibold">Вход в чат</h1>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">
+                Войди на главной странице, чтобы присоединиться к разговору.
+              </p>
+              <p
+                :if={@entrance_error}
+                id="entrance-error"
+                role="alert"
+                class="mt-4 text-sm text-amber-100"
+              >
+                {@entrance_error}
+              </p>
+              <.link
+                id="chat-login-link"
+                navigate={~p"/"}
+                class="mt-6 inline-flex rounded bg-amber-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200"
+              >Войти на главной</.link>
+            </div>
           <% end %>
         </main>
       <% end %>

@@ -32,6 +32,8 @@ const USER_AUTH_KEY = "chat:user-auth"
 const USER_SESSION_KEY = "chat:user-session"
 const GUEST_SESSION_KEY = "chat:guest-session"
 const GUEST_SESSION_TOKEN_KEY = "chat:guest-session-token"
+const GUEST_NICKNAME_KEY = "chat:guest-nickname"
+const GUEST_IDENTITY_TOKEN_KEY = "chat:guest-identity-token"
 const MESSAGE_DRAFT_KEY = "chat:message-draft"
 const MESSAGE_CURSOR_KEY = "chat:message-cursor"
 const MESSAGE_HYDRATED_AT_KEY = "chat:message-hydrated-at"
@@ -137,6 +139,8 @@ const clearGuestSession = () => {
 
   sessionStorage.removeItem(GUEST_SESSION_KEY)
   sessionStorage.removeItem(GUEST_SESSION_TOKEN_KEY)
+  sessionStorage.removeItem(GUEST_NICKNAME_KEY)
+  sessionStorage.removeItem(GUEST_IDENTITY_TOKEN_KEY)
 }
 
 const clearChatSession = () => {
@@ -213,8 +217,8 @@ const chatSessionParams = () => {
   }
 
   const store = readChatPreferenceStore()
-  const currentNickname = store.current_nickname
-  const currentPreferences = currentNickname && store.by_nickname[currentNickname]
+  const currentNickname = sessionStorage.getItem(GUEST_NICKNAME_KEY)
+  const currentPreferences = (currentNickname && store.by_nickname[currentNickname]) || {}
 
   if (
     currentNickname &&
@@ -224,7 +228,7 @@ const chatSessionParams = () => {
     return withMessageCursor({
       guest_nickname: currentNickname,
       guest_session_token: sessionStorage.getItem(GUEST_SESSION_TOKEN_KEY),
-      guest_identity_token: currentPreferences.identity_token,
+      guest_identity_token: sessionStorage.getItem(GUEST_IDENTITY_TOKEN_KEY),
       theme_id: currentPreferences.theme_id,
       appearance: appearanceFrom(currentPreferences),
       font_id: currentPreferences.font_id,
@@ -248,6 +252,33 @@ if (Object.keys(chatSessionParams()).length > 0) {
 }
 
 const chatHooks = {
+  ChatEntrance: {
+    mounted() {
+      this.handleEvent("prepare-chat-navigation", session => {
+        try {
+          clearChatSession()
+          sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
+          sessionStorage.removeItem(MESSAGE_CURSOR_KEY)
+          sessionStorage.removeItem(MESSAGE_HYDRATED_AT_KEY)
+
+          if (session.user_token) {
+            sessionStorage.setItem(USER_AUTH_KEY, session.user_token)
+            sessionStorage.setItem(USER_SESSION_KEY, session.session_token)
+          } else {
+            sessionStorage.setItem(GUEST_NICKNAME_KEY, session.nickname)
+            sessionStorage.setItem(GUEST_SESSION_TOKEN_KEY, session.session_token)
+            sessionStorage.setItem(GUEST_IDENTITY_TOKEN_KEY, session.identity_token)
+            sessionStorage.setItem(GUEST_SESSION_KEY, "true")
+          }
+        } catch (_error) {
+          this.pushEvent("chat_storage_failed", {})
+          return
+        }
+
+        this.pushEvent("chat_session_saved", {})
+      })
+    },
+  },
   KarmikPet: {
     mounted() {
       this.lastPetAt = 0
@@ -847,11 +878,12 @@ const chatHooks = {
           font_id: preferences.font_id,
           font_style: preferences.font_style,
           message_sound_enabled: preferences.message_sound_enabled,
-          identity_token: preferences.identity_token,
         }
         writeChatPreferenceStore(nextStore)
         sessionStorage.setItem(GUEST_SESSION_KEY, "true")
         sessionStorage.setItem(GUEST_SESSION_TOKEN_KEY, preferences.session_token)
+        sessionStorage.setItem(GUEST_NICKNAME_KEY, nickname)
+        sessionStorage.setItem(GUEST_IDENTITY_TOKEN_KEY, preferences.identity_token)
       })
 
       this.handleEvent("play-message-notification", () => playMessageNotification())
@@ -894,7 +926,7 @@ const chatHooks = {
       this.sessionHeartbeat = null
     },
     touchChatSession() {
-      if (this.el.dataset.chatJoined === "true" && document.visibilityState === "visible") {
+      if (this.el.dataset.chatJoined === "true") {
         this.pushEvent("touch_chat_session", {})
       }
     },

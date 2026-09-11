@@ -3,10 +3,39 @@ defmodule Chat.SessionsTest do
   use Chat.DataCase, async: false
 
   alias Chat.Accounts
-  alias Chat.Chatlans.DepartureNotifier
+  alias Chat.Sessions.Store
   alias Chat.Messages
   alias Chat.Sessions
   alias Chat.Sessions.Session
+
+  test "registers an account and its first session atomically" do
+    attrs = %{"nickname" => "new_session_user", "password" => "secret123"}
+
+    assert {:ok, session} =
+             Sessions.register_and_enter("signup-room", attrs, nil,
+               presence_key: Ecto.UUID.generate()
+             )
+
+    assert session.user.nickname == attrs["nickname"]
+    assert session.visit.user_id == session.user.id
+    assert session.identity_key == "user:#{session.user.id}"
+  end
+
+  test "rolls back registration when the nickname belongs to an active guest session" do
+    assert {:ok, _guest} =
+             Sessions.enter("signup-conflict", "reserved_guest", "",
+               presence_key: Ecto.UUID.generate()
+             )
+
+    attrs = %{"nickname" => "reserved_guest", "password" => "secret123"}
+
+    assert {:error, :nickname_online} =
+             Sessions.register_and_enter("signup-conflict", attrs, nil,
+               presence_key: Ecto.UUID.generate()
+             )
+
+    refute Accounts.registered_nickname?("reserved_guest")
+  end
 
   test "rejects an invalid entrance before a session exists" do
     room_id = "invalid-session-room-#{System.unique_integer([:positive])}"
@@ -14,7 +43,7 @@ defmodule Chat.SessionsTest do
     assert {:error, :invalid_nickname} =
              Sessions.enter(room_id, "no", "", presence_key: "presence-#{Ecto.UUID.generate()}")
 
-    assert [] = DepartureNotifier.pending(room_id)
+    assert [] = Store.pending(room_id)
   end
 
   test "starts and restores one guest session without creating another visit" do
@@ -33,6 +62,7 @@ defmodule Chat.SessionsTest do
                nickname: started.nickname,
                presence_key: "presence-#{Ecto.UUID.generate()}",
                session_id: started.session_id,
+               resume_secret: started.resume_secret,
                identity_key: started.identity_key
              })
 
@@ -94,7 +124,7 @@ defmodule Chat.SessionsTest do
     assert :ok = Sessions.connection_lost(session, self())
 
     assert [%{identity_key: identity_key, nickname: ^nickname}] =
-             DepartureNotifier.pending(room_id)
+             Store.pending(room_id)
 
     assert {:error, :nickname_online} =
              Sessions.enter(room_id, nickname, "",
@@ -106,12 +136,13 @@ defmodule Chat.SessionsTest do
                nickname: nickname,
                presence_key: "presence-#{Ecto.UUID.generate()}",
                session_id: session.session_id,
+               resume_secret: session.resume_secret,
                identity_key: identity_key
              })
 
     connect(restored)
 
-    assert [] = DepartureNotifier.pending(room_id)
+    assert [] = Store.pending(room_id)
   end
 
   test "keeps the session active when a stale connection closes after a restore" do
@@ -130,6 +161,7 @@ defmodule Chat.SessionsTest do
                nickname: nickname,
                presence_key: "presence-#{Ecto.UUID.generate()}",
                session_id: original.session_id,
+               resume_secret: original.resume_secret,
                identity_key: original.identity_key
              })
 
@@ -141,7 +173,7 @@ defmodule Chat.SessionsTest do
     # Its stale event must not reserve the nick as reconnecting or hide the
     # still active connection.
     assert :ok = Sessions.connection_lost(original, self())
-    assert [] = DepartureNotifier.pending(room_id)
+    assert [] = Store.pending(room_id)
 
     assert 1 ==
              room_id
@@ -162,7 +194,7 @@ defmodule Chat.SessionsTest do
     session = connect(session)
     assert :ok = Sessions.leave(session, self())
     assert :ok = Sessions.connection_lost(session, self())
-    assert [] = DepartureNotifier.pending(room_id)
+    assert [] = Store.pending(room_id)
   end
 
   test "does not restore a session after its current connection explicitly leaves" do
@@ -181,6 +213,7 @@ defmodule Chat.SessionsTest do
                nickname: session.nickname,
                presence_key: "presence-#{Ecto.UUID.generate()}",
                session_id: session.session_id,
+               resume_secret: session.resume_secret,
                identity_key: session.identity_key
              })
   end
@@ -195,10 +228,10 @@ defmodule Chat.SessionsTest do
 
     session = connect(session)
     assert :ok = Sessions.connection_lost(session, self())
-    assert [_pending] = DepartureNotifier.pending(room_id)
+    assert [_pending] = Store.pending(room_id)
 
     assert :ok = Sessions.leave(session, self())
-    assert [] = DepartureNotifier.pending(room_id)
+    assert [] = Store.pending(room_id)
   end
 
   test "treats repeated explicit leave as one domain transition and allows a new session" do

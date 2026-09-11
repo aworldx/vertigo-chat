@@ -207,6 +207,29 @@ defmodule Chat.Messages do
     persist_and_broadcast(room_id, message)
   end
 
+  @doc "Persists a departure inside the caller's session transaction."
+  def persist_departure(nickname, room_id) do
+    message =
+      Map.merge(
+        %{
+          kind: :system,
+          author: "system",
+          body: "из чата выходит #{nickname}",
+          theme_id: Themes.default_theme_id(),
+          appearance: Appearance.default(),
+          reactions: %{}
+        },
+        timestamp()
+      )
+
+    with {:ok, saved, :inserted} <- History.save(room_id, message), do: {:ok, saved}
+  end
+
+  def broadcast_persisted(room_id, message) do
+    :ok = Registry.append(room_id, message)
+    Phoenix.PubSub.broadcast(Chat.PubSub, room_topic(room_id), {:message_created, message})
+  end
+
   def announce_karmik_assessment(nickname, room_id, 1)
       when is_binary(nickname) and is_binary(room_id) do
     announce_system(room_id, "Кармик варит для #{nickname} сердечко — рейтинг повышен на 1.")

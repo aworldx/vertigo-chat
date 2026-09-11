@@ -35,24 +35,30 @@ defmodule ChatWeb.Router do
   scope "/", ChatWeb do
     pipe_through :browser
 
-    live "/about", LandingLive, :show
-    live "/articles", ArticlesLive, :index
-    live "/articles/chats-vs-messengers", ArticlesLive, :show
-    live "/articles/chat-platforms-russia", ArticlesLive, :history
-    live "/articles/how-vertigo-chat-works", ArticlesLive, :technology
-    live "/", RoomLive, :show
-    get "/admin", AdminController, :index
-    post "/admin/login", AdminController, :login
-    post "/admin/emojis", AdminController, :upload_emoji
-    live "/profiles", ProfilesLive, :index
-    live "/gallery", GalleryLive, :index
-    live "/visits", VisitsLive, :index
-    live "/help", RanksLive, :index
-    live "/ranks", RanksLive, :index
-    live "/library", LibraryLive, :index
-    live "/games", GamesLive, :index
-    live "/games/:kind", GamesLive, :show
-    live "/checkers", CheckersLive, :index
+    post "/account/login", AccountController, :login
+    post "/account/logout", AccountController, :logout
+
+    live_session :account, on_mount: [{ChatWeb.AccountAuth, :default}] do
+      live "/", LandingLive, :show
+      live "/about", LandingLive, :show
+      live "/articles", ArticlesLive, :index
+      live "/articles/chats-vs-messengers", ArticlesLive, :show
+      live "/articles/chat-platforms-russia", ArticlesLive, :history
+      live "/articles/how-vertigo-chat-works", ArticlesLive, :technology
+      live "/chat", RoomLive, :show
+      get "/admin", AdminController, :index
+      post "/admin/login", AdminController, :login
+      post "/admin/emojis", AdminController, :upload_emoji
+      live "/profiles", ProfilesLive, :index
+      live "/gallery", GalleryLive, :index
+      live "/visits", VisitsLive, :index
+      live "/help", RanksLive, :index
+      live "/ranks", RanksLive, :index
+      live "/library", LibraryLive, :index
+      live "/games", GamesLive, :index
+      live "/games/:kind", GamesLive, :show
+      live "/checkers", CheckersLive, :index
+    end
   end
 
   # Enable LiveDashboard in development

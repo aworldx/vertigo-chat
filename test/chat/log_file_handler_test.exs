@@ -29,6 +29,7 @@ defmodule Chat.LogFileHandlerTest do
     start_supervised!(LogFileHandler)
 
     Logger.warning("persistent_chat_log_test")
+    Logger.flush()
     assert :ok = :logger_std_h.filesync(LogFileHandler.handler_name())
 
     assert File.read!(path) =~ "persistent_chat_log_test"
