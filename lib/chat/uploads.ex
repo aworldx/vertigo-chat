@@ -11,6 +11,18 @@ defmodule Chat.Uploads do
 
   def valid_image?(_bytes, _content_type), do: false
 
+  def valid_audio?(<<"ID3", _rest::binary>>, "audio/mpeg"), do: true
+
+  def valid_audio?(<<0xFF, header, _rest::binary>>, "audio/mpeg") when header in 0xE2..0xFB,
+    do: true
+
+  def valid_audio?(<<"OggS", _rest::binary>>, "audio/ogg"), do: true
+
+  def valid_audio?(<<"RIFF", _size::binary-size(4), "WAVE", _rest::binary>>, "audio/wav"),
+    do: true
+
+  def valid_audio?(_bytes, _content_type), do: false
+
   def png_dimensions(
         <<0x89, "PNG\r\n", 0x1A, "\n", _length::binary-size(4), "IHDR", width::32, height::32,
           _rest::binary>>

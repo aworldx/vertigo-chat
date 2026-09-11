@@ -18,6 +18,13 @@ defmodule ChatWeb.ShellComponents do
         aria-label="Основное меню"
       >
         <.link
+          href={~p"/music-chart"}
+          target="vertigo-music-chart"
+          class="hit-parade-button hidden lg:inline-flex"
+        >
+          Хит-парад
+        </.link>
+        <.link
           href={~p"/profiles"}
           target="vertigo-profiles"
           class="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
@@ -167,6 +174,7 @@ defmodule ChatWeb.ShellComponents do
 
   defp mobile_menu_links do
     [
+      {"Хит-парад", ~p"/music-chart"},
       {"Анкеты", ~p"/profiles"},
       {"Библиотека", ~p"/library"},
       {"Фотоальбом", ~p"/gallery"},

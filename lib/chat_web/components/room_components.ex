@@ -49,7 +49,7 @@ defmodule ChatWeb.RoomComponents do
           }
           phx-hook={
             if(message.author == @nickname && reactable_message?(message),
-              do: ".ReactionBurst"
+              do: "ChatWeb.RoomComponents.ReactionBurst"
             )
           }
           class={[

@@ -9,7 +9,7 @@
 @source "../css";
 @source "../js";
 @source "../../lib/chat_web";
-@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film hero-swatch hero-paint-brush hero-chevron-down hero-chat-bubble-left-right hero-lock-closed hero-shield-exclamation");
+@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film hero-swatch hero-paint-brush hero-chevron-down hero-chat-bubble-left-right hero-lock-closed hero-shield-exclamation hero-musical-note hero-heart");
 
 @font-face {
   font-family: "Vertigo Display";
@@ -55,6 +55,42 @@
   font-kerning: normal;
   text-rendering: optimizeLegibility;
 }
+
+.hit-parade-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgb(217 70 239 / 0.45);
+  border-radius: 0.6rem;
+  background-color: rgb(24 24 27 / 0.72);
+  background-image: linear-gradient(105deg, #f9a8d4, #fcd34d, #67e8f9, #c4b5fd, #f9a8d4);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  padding: 0.5rem 0.8rem;
+  color: transparent;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  filter: drop-shadow(0 0 0.12rem rgb(192 132 252 / 0.28));
+  animation: hit-parade-rainbow 9s linear infinite, hit-parade-glow 3.6s ease-in-out infinite;
+  transition: border-color 180ms ease, filter 180ms ease;
+}
+
+.hit-parade-button:hover { border-color: rgb(250 204 21 / 0.8); filter: drop-shadow(0 0 0.22rem rgb(250 204 21 / 0.45)); }
+.hit-parade-button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+.music-chart-hero { background: radial-gradient(circle at 82% 20%, rgb(217 70 239 / 0.32), transparent 22rem), radial-gradient(circle at 12% 100%, rgb(34 211 238 / 0.22), transparent 24rem), linear-gradient(135deg, rgb(39 9 56 / 0.95), rgb(24 24 27 / 0.92)); }
+.music-chart-place { background: linear-gradient(145deg, rgb(250 204 21 / 0.26), rgb(217 70 239 / 0.28)); color: #fef3c7; }
+.music-like-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; border: 1px solid rgb(244 114 182 / 0.45); border-radius: 0.7rem; padding: 0.6rem 0.8rem; color: #fbcfe8; transition: background 160ms ease, transform 160ms ease; }
+.music-like-button:hover { background: rgb(190 24 93 / 0.22); transform: translateY(-1px); }
+.music-like-button--liked { border-color: #f472b6; background: rgb(190 24 93 / 0.35); color: #fff; }
+
+@keyframes hit-parade-rainbow { to { background-position: 260% 0; } }
+@keyframes hit-parade-glow { 0%, 100% { filter: drop-shadow(0 0 0.1rem rgb(192 132 252 / 0.22)); } 50% { filter: drop-shadow(0 0 0.25rem rgb(250 204 21 / 0.46)); } }
+
+@media (prefers-reduced-motion: reduce) { .hit-parade-button { animation: none; } }
 
 /* Keep the profile dialog out of the chat flex layout even if utility CSS is stale. */
 #profile-modal {

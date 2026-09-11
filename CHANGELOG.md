@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-11
+
+### Добавлено
+
+- Хит-парад музыки: зарегистрированные чатланы могут добавить до пяти MP3, OGG или WAV-треков,
+  слушать общую подборку и голосовать за чужие композиции. Рейтинг обновляется по числу лайков.
+
+### Исправлено
+
+- Heartbeat гостевой чат-сессии теперь запускается после входа, поэтому активная вкладка не
+  завершается из-за отсутствия обновлений состояния.
+- Анимация реакций использует полное имя colocated hook и корректно подключается в браузере.
+- Кнопка выхода из чата завершает сессию и возвращает на главную страницу.
+
 ## [0.4.2] — 2026-09-10
 
 ### Исправлено
@@ -86,7 +100,8 @@
 
 - Добавлены changelog, semantic versioning и release-теги Git.
 
-[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/aworldx/vertigo-chat/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/aworldx/vertigo-chat/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/aworldx/vertigo-chat/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/aworldx/vertigo-chat/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/aworldx/vertigo-chat/compare/v0.3.2...v0.4.0

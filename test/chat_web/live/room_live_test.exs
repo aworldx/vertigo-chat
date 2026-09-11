@@ -26,6 +26,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ ~s(data-chat-theme="vertigo")
     assert html =~ "Вход в чат"
     assert has_element?(view, "#chat-login-link[href='/']", "Войти на главной")
+    assert has_element?(view, "#chat-room[data-chat-joined='false']")
     refute has_element?(view, "#entrance-form")
     assert has_element?(view, "#chat-logo", "Vertigo")
     refute has_element?(view, "#chat-logo[href]")
@@ -226,6 +227,8 @@ defmodule ChatWeb.RoomLiveTest do
         "appearance" => %{}
       })
       |> live(~p"/chat")
+
+    assert has_element?(view, "#chat-room[phx-hook='ChatPreferences'][data-chat-joined='true']")
 
     assert [%{id: visit_id}] =
              Enum.filter(Visits.list_recent_visits(), &(&1.nickname == nickname))
@@ -1128,7 +1131,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(
              alice_view,
-             "#messages [data-reaction-counts] [data-reaction-burst-layer][phx-update='ignore']"
+             "#messages [phx-hook='ChatWeb.RoomComponents.ReactionBurst'][data-reaction-counts] [data-reaction-burst-layer][phx-update='ignore']"
            )
 
     assert has_element?(bob_view, "button[data-reaction-picker-emoji='👍']")
@@ -1593,18 +1596,16 @@ defmodule ChatWeb.RoomLiveTest do
     refute html =~ "--nick-dark: #aa44cc"
   end
 
-  test "leaves the chat and links to the entrance on the home page", %{conn: conn} do
+  test "leaves the chat and redirects to the home page", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/chat")
 
     enter_chat(view, "tester")
 
-    html = view |> element("#leave-chat") |> render_click()
+    view |> element("#leave-chat") |> render_click()
 
-    assert html =~ "Вход в чат"
-    assert has_element?(view, "#chat-login-link[href='/']", "Войти на главной")
-    refute html =~ "Общая комната"
-    refute html =~ "Напиши сообщение"
-    refute html =~ "Настройки"
+    assert_redirect(view, ~p"/")
+    assert [visit] = Visits.list_recent_visits()
+    assert visit.left_at
   end
 
   test "clears browser session data before sending an explicit exit", %{conn: conn} do

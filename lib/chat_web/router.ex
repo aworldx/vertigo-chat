@@ -29,6 +29,7 @@ defmodule ChatWeb.Router do
     get "/profiles/:nickname/photo", ProfilePhotoController, :show
     get "/gallery/photos/:id/thumbnail", GalleryPhotoController, :thumbnail
     get "/gallery/photos/:id", GalleryPhotoController, :show
+    get "/music-chart/tracks/:id", MusicChartTrackController, :show
     get "/emojis/:id", EmojiController, :show
   end
 
@@ -51,6 +52,7 @@ defmodule ChatWeb.Router do
       post "/admin/emojis", AdminController, :upload_emoji
       live "/profiles", ProfilesLive, :index
       live "/gallery", GalleryLive, :index
+      live "/music-chart", MusicChartLive, :index
       live "/visits", VisitsLive, :index
       live "/help", RanksLive, :index
       live "/ranks", RanksLive, :index

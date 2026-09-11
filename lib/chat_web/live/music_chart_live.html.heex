@@ -1,0 +1,135 @@
+<Layouts.app flash={@flash}>
+  <section id="music-chart-page" class="chat-shell min-h-screen bg-zinc-950 text-zinc-100">
+    <header class="flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 sm:px-8">
+      <.link href={~p"/"} class="flex items-center gap-3" aria-label="Vertigo — главная">
+        <span class="vertigo-mark" aria-hidden="true"></span>
+        <span class="vertigo-wordmark uppercase">Vertigo</span>
+      </.link>
+      <.link id="music-chart-enter-chat" href={~p"/chat"} class="hit-parade-button">
+        Войти в чат
+      </.link>
+    </header>
+
+    <main class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8">
+      <section class="music-chart-hero rounded-3xl border border-fuchsia-300/25 px-6 py-10 sm:px-10">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-fuchsia-200">
+          Музыка Vertigo
+        </p>
+        <h1 class="mt-3 text-4xl font-semibold sm:text-6xl">Хит-парад</h1>
+        <p class="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
+          Все мы любим слушать музыку. Загружайте сюда любимые треки, близкие вашему сердечку.
+        </p>
+      </section>
+
+      <section class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div>
+          <div class="mb-4 flex items-baseline justify-between gap-4">
+            <h2 class="text-2xl font-semibold">Любимые треки чата</h2>
+            <span class="text-sm text-zinc-500">Сначала больше всего сердечек</span>
+          </div>
+          <div id="music-chart-tracks" phx-update="stream" class="space-y-3">
+            <p
+              id="music-chart-empty"
+              class="hidden rounded-2xl border border-dashed border-zinc-700 px-6 py-16 text-center text-zinc-400 only:block"
+            >
+              Пока тихо. Добавь первый трек.
+            </p>
+            <article
+              :for={{dom_id, track} <- @streams.tracks}
+              id={dom_id}
+              data-track-title={track.title}
+              class="music-chart-track grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:items-center"
+            >
+              <span class="music-chart-place flex size-11 items-center justify-center rounded-full text-lg font-bold">
+                {track.likes_count}
+              </span>
+              <div class="min-w-0">
+                <h3 class="truncate text-base font-semibold text-white">{track.title}</h3>
+                <p class="mt-1 text-sm text-zinc-400">Добавил {track.user.nickname}</p>
+                <audio class="mt-3 w-full" controls preload="metadata" src={audio_url(track)}>
+                  Твой браузер не поддерживает воспроизведение аудио.
+                </audio>
+              </div>
+              <button
+                :if={@current_user && track.user_id != @current_user.id}
+                id={"music-like-#{track.id}"}
+                type="button"
+                phx-click="toggle_music_like"
+                phx-value-id={track.id}
+                aria-pressed={to_string(track.liked?)}
+                class={["music-like-button", track.liked? && "music-like-button--liked"]}
+              >
+                <.icon name="hero-heart" class="size-5" />
+                <span>{track.likes_count}</span>
+              </button>
+              <span
+                :if={!@current_user || track.user_id == @current_user.id}
+                class="text-sm text-zinc-500"
+              >
+                {if track.user_id == (@current_user && @current_user.id),
+                  do: "Твой трек",
+                  else: "Войди, чтобы оценить"}
+              </span>
+            </article>
+          </div>
+        </div>
+
+        <aside class="h-fit rounded-2xl border border-zinc-700 bg-zinc-900/80 p-5">
+          <%= if @current_user do %>
+            <h2 class="text-lg font-semibold">Добавить в топ</h2>
+            <p class="mt-2 text-sm leading-6 text-zinc-400">
+              До {MusicChart.max_tracks_per_user()} треков от одного чатланина.
+            </p>
+            <.form
+              for={@upload_form}
+              id="music-chart-upload-form"
+              phx-change="validate_music_track"
+              phx-submit="upload_music_track"
+              class="mt-5 space-y-4"
+            >
+              <.input
+                field={@upload_form[:title]}
+                id="music-chart-title"
+                type="text"
+                label="Название"
+                maxlength={MusicChart.max_title_length()}
+                placeholder="Если оставить пустым — возьмём имя файла"
+              />
+              <.live_file_input
+                upload={@uploads.music_track}
+                class="block w-full text-sm text-zinc-300 file:mr-3 file:rounded-lg file:border-0 file:bg-fuchsia-300 file:px-3 file:py-2 file:font-semibold file:text-zinc-950"
+              />
+              <p class="text-xs leading-5 text-zinc-500">MP3, OGG или WAV, до 10 МБ.</p>
+              <div
+                :if={music_upload_errors(@uploads.music_track) != []}
+                id="music-chart-upload-error"
+                class="space-y-1 text-sm text-red-300"
+                role="alert"
+              >
+                <p :for={error <- music_upload_errors(@uploads.music_track)}>
+                  {upload_error_message(error)}
+                </p>
+              </div>
+              <button
+                id="upload-music-track"
+                type="submit"
+                phx-disable-with="Загрузка…"
+                class="hit-parade-button w-full justify-center"
+              >Добавить трек</button>
+            </.form>
+          <% else %>
+            <h2 class="text-lg font-semibold">Твой трек здесь?</h2>
+            <p class="mt-2 text-sm leading-6 text-zinc-400">
+              Войди с зарегистрированным ником, чтобы добавлять музыку и ставить сердечки.
+            </p>
+            <.link
+              id="music-chart-login"
+              href={~p"/#landing-login"}
+              class="hit-parade-button mt-5 w-full justify-center"
+            >Войти</.link>
+          <% end %>
+        </aside>
+      </section>
+    </main>
+  </section>
+</Layouts.app>

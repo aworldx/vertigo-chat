@@ -685,7 +685,7 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("leave_chat", _params, socket) do
-    {:noreply, leave_chat(socket)}
+    {:noreply, socket |> leave_chat() |> push_navigate(to: ~p"/")}
   end
 
   def handle_event("toggle_settings", _params, socket) do
