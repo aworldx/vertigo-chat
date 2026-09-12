@@ -11,7 +11,7 @@ defmodule Chat.MusicChart do
 
   @topic "music_chart"
   @max_tracks_per_user 5
-  @max_audio_bytes 10_000_000
+  @max_audio_bytes 20_000_000
   @max_title_length 120
 
   def subscribe, do: Phoenix.PubSub.subscribe(Chat.PubSub, @topic)

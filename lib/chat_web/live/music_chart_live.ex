@@ -62,7 +62,7 @@ defmodule ChatWeb.MusicChartLive do
          )}
 
       {:error, :invalid_audio} ->
-        {:noreply, put_flash(socket, :error, "Выбери исправный MP3, OGG или WAV до 10 МБ.")}
+        {:noreply, put_flash(socket, :error, "Выбери исправный MP3, OGG или WAV до 20 МБ.")}
 
       _reason ->
         {:noreply, put_flash(socket, :error, "Не удалось добавить трек.")}
@@ -92,7 +92,7 @@ defmodule ChatWeb.MusicChartLive do
 
   def audio_url(track), do: ~p"/music-chart/tracks/#{track.id}"
 
-  def upload_error_message(:too_large), do: "Трек больше 10 МБ."
+  def upload_error_message(:too_large), do: "Трек больше 20 МБ."
   def upload_error_message(:not_accepted), do: "Поддерживаются MP3, OGG и WAV."
   def upload_error_message(:too_many_files), do: "Добавляй по одному треку."
   def upload_error_message(_error), do: "Не удалось подготовить аудиофайл."
