@@ -88,15 +88,23 @@ defmodule Chat.Profiles do
   def put_photo(%User{id: user_id}, %Profile{user_id: user_id} = profile, bytes, content_type)
       when is_binary(bytes) and byte_size(bytes) <= 1_500_000 do
     if Uploads.valid_image?(bytes, content_type) do
-      profile
-      |> Profile.photo_changeset(bytes, content_type)
-      |> Repo.update()
+      with {:ok, changeset} <-
+             profile |> Profile.photo_changeset(bytes, content_type) |> Chat.Media.persist() do
+        Repo.update(changeset)
+      end
     else
       {:error, :invalid_photo}
     end
   end
 
   def put_photo(_actor, _profile, _bytes, _content_type), do: {:error, :invalid_photo}
+
+  def photo_resource(nickname, field \\ :photo) do
+    case get_by_nickname(nickname) do
+      {:ok, profile} -> Chat.Media.resource(profile, field)
+      _ -> :not_found
+    end
+  end
 
   defp normalize_search(search) when is_binary(search) do
     search

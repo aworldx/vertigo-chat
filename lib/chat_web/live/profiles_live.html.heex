@@ -83,7 +83,7 @@
           <div class="aspect-[4/3] overflow-hidden bg-zinc-950">
             <%= if photo_url(profile) do %>
               <img
-                src={photo_url(profile)}
+                src={thumbnail_url(profile)}
                 alt={"Фото #{profile.user.nickname}"}
                 class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               />

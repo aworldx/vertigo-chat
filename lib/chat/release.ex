@@ -13,6 +13,16 @@ defmodule Chat.Release do
     end
   end
 
+  def migrate_media do
+    load_app()
+    {:ok, _} = Application.ensure_all_started(:req)
+
+    {:ok, counts, _} =
+      Ecto.Migrator.with_repo(Chat.Repo, fn _repo -> Chat.Media.Migration.run() end)
+
+    IO.inspect(counts, label: "Migrated media records")
+  end
+
   def rollback(repo, version) do
     load_app()
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))

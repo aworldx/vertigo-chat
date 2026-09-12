@@ -12,6 +12,10 @@ defmodule Chat.Profiles.Profile do
     field(:gender, :string)
     field(:about, :string)
     field(:photo, :binary)
+    field(:photo_key, :string)
+    field(:thumbnail, :binary)
+    field(:thumbnail_key, :string)
+    field(:thumbnail_content_type, :string)
     field(:photo_content_type, :string)
 
     belongs_to(:user, User)
@@ -29,7 +33,15 @@ defmodule Chat.Profiles.Profile do
   end
 
   def photo_changeset(profile, photo, content_type) do
-    change(profile, photo: photo, photo_content_type: content_type)
+    profile
+    |> change(
+      photo_content_type: content_type,
+      photo_key: nil,
+      thumbnail: nil,
+      thumbnail_key: nil,
+      thumbnail_content_type: nil
+    )
+    |> force_change(:photo, photo)
   end
 
   defp validate_birth_date(changeset) do

@@ -97,6 +97,9 @@ defmodule ChatWeb.GalleryLive do
 
   def image_url(photo), do: ~p"/gallery/photos/#{photo.id}"
 
+  def thumbnail_url(%{thumbnail_key: key} = photo) when is_binary(key),
+    do: ~p"/gallery/photos/#{photo.id}/thumbnail"
+
   def thumbnail_url(%{thumbnail: thumbnail} = photo) when is_binary(thumbnail),
     do: ~p"/gallery/photos/#{photo.id}/thumbnail"
 

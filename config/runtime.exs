@@ -177,3 +177,27 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 end
+
+if System.get_env("S3_ENABLED") == "true" do
+  required_s3 = fn name ->
+    case System.get_env(name) do
+      value when is_binary(value) and byte_size(value) > 0 -> value
+      _ -> raise "Missing S3 configuration: #{name}"
+    end
+  end
+
+  public_base_url =
+    case System.get_env("S3_PUBLIC_BASE_URL") do
+      value when is_binary(value) and byte_size(value) > 0 -> value
+      _ -> nil
+    end
+
+  config :chat, Chat.Media,
+    enabled: true,
+    endpoint: required_s3.("S3_ENDPOINT"),
+    region: required_s3.("S3_REGION"),
+    bucket: required_s3.("S3_BUCKET"),
+    access_key_id: required_s3.("S3_ACCESS_KEY_ID"),
+    secret_access_key: required_s3.("S3_SECRET_ACCESS_KEY"),
+    public_base_url: public_base_url
+end

@@ -9,6 +9,7 @@ defmodule Chat.MusicChart.Track do
   schema "music_chart_tracks" do
     field :title, :string
     field :audio, :binary
+    field :audio_key, :string
     field :content_type, :string
     field :likes_count, :integer, virtual: true, default: 0
     field :liked?, :boolean, virtual: true, default: false

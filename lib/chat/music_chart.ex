@@ -65,21 +65,24 @@ defmodule Chat.MusicChart do
   def max_title_length, do: @max_title_length
 
   defp insert_track(user, title, audio, content_type) do
-    Repo.transaction(fn ->
-      lock_user!(user.id)
+    Repo.transaction(
+      fn ->
+        lock_user!(user.id)
 
-      if Repo.aggregate(from(track in Track, where: track.user_id == ^user.id), :count) >=
-           @max_tracks_per_user do
-        Repo.rollback(:track_limit_reached)
-      end
+        if Repo.aggregate(from(track in Track, where: track.user_id == ^user.id), :count) >=
+             @max_tracks_per_user do
+          Repo.rollback(:track_limit_reached)
+        end
 
-      case %Track{}
-           |> Track.changeset(user, title, audio, content_type)
-           |> Repo.insert() do
-        {:ok, track} -> track
-        {:error, changeset} -> Repo.rollback(changeset)
-      end
-    end)
+        case %Track{}
+             |> Track.changeset(user, title, audio, content_type)
+             |> store_media() do
+          {:ok, track} -> track
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+      end,
+      timeout: 180_000
+    )
     |> case do
       {:ok, track} ->
         broadcast_change()
@@ -128,6 +131,12 @@ defmodule Chat.MusicChart do
   end
 
   defp liked_track_ids(_viewer), do: MapSet.new()
+
+  defp store_media(changeset) do
+    with {:ok, stored} <- Chat.Media.persist(changeset), do: Repo.insert(stored)
+  end
+
+  def audio_resource(id), do: Chat.Media.resource(get_track(id), :audio)
 
   defp lock_user!(user_id),
     do: Repo.one!(from(user in User, where: user.id == ^user_id, lock: "FOR UPDATE"))

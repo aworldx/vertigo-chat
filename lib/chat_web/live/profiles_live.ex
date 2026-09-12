@@ -55,8 +55,13 @@ defmodule ChatWeb.ProfilesLive do
     {:noreply, assign(socket, :selected_profile, nil)}
   end
 
-  def photo_url(%{photo: nil}), do: nil
+  def photo_url(%{photo: nil, photo_key: nil}), do: nil
   def photo_url(%{user: %{nickname: nickname}}), do: ~p"/profiles/#{nickname}/photo"
+
+  def thumbnail_url(%{thumbnail_key: key, user: %{nickname: nickname}}) when is_binary(key),
+    do: ~p"/profiles/#{nickname}/photo/thumbnail"
+
+  def thumbnail_url(profile), do: photo_url(profile)
 
   def gender_label("male"), do: "Мужской"
   def gender_label("female"), do: "Женский"

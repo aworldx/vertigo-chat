@@ -76,48 +76,57 @@ defmodule Chat.Gallery do
   def max_caption_length, do: @max_caption_length
 
   defp insert_with_quota(user, image, content_type, caption, thumbnail, thumbnail_content_type) do
-    Repo.transaction(fn ->
-      user = lock_user!(user.id)
+    Repo.transaction(
+      fn ->
+        user = lock_user!(user.id)
 
-      total = Repo.aggregate(from(photo in Photo, where: photo.user_id == ^user.id), :count)
+        total = Repo.aggregate(from(photo in Photo, where: photo.user_id == ^user.id), :count)
 
-      daily =
-        Repo.aggregate(
-          from(photo in Photo,
-            where:
-              photo.user_id == ^user.id and
-                photo.inserted_at >= ago(1, "day")
-          ),
-          :count
-        )
+        daily =
+          Repo.aggregate(
+            from(photo in Photo,
+              where:
+                photo.user_id == ^user.id and
+                  photo.inserted_at >= ago(1, "day")
+            ),
+            :count
+          )
 
-      cond do
-        not Ranks.can_add_gallery_photos?(user) ->
-          Repo.rollback(:statist_required)
+        cond do
+          not Ranks.can_add_gallery_photos?(user) ->
+            Repo.rollback(:statist_required)
 
-        total >= @max_photos_per_user ->
-          Repo.rollback(:photo_limit_reached)
+          total >= @max_photos_per_user ->
+            Repo.rollback(:photo_limit_reached)
 
-        daily >= @max_photos_per_day ->
-          Repo.rollback(:daily_photo_limit_reached)
+          daily >= @max_photos_per_day ->
+            Repo.rollback(:daily_photo_limit_reached)
 
-        true ->
-          case %Photo{}
-               |> Photo.create_changeset(
-                 user,
-                 image,
-                 content_type,
-                 caption,
-                 thumbnail,
-                 thumbnail_content_type
-               )
-               |> Repo.insert() do
-            {:ok, photo} -> photo
-            {:error, changeset} -> Repo.rollback(changeset)
-          end
-      end
-    end)
+          true ->
+            case %Photo{}
+                 |> Photo.create_changeset(
+                   user,
+                   image,
+                   content_type,
+                   caption,
+                   thumbnail,
+                   thumbnail_content_type
+                 )
+                 |> store_media() do
+              {:ok, photo} -> photo
+              {:error, changeset} -> Repo.rollback(changeset)
+            end
+        end
+      end,
+      timeout: 180_000
+    )
   end
+
+  defp store_media(changeset) do
+    with {:ok, stored} <- Chat.Media.persist(changeset), do: Repo.insert(stored)
+  end
+
+  def photo_resource(id, field), do: Chat.Media.resource(get_photo(id), field)
 
   defp lock_user!(user_id) do
     Repo.one!(from(user in User, where: user.id == ^user_id, lock: "FOR UPDATE"))

@@ -1641,7 +1641,7 @@ defmodule ChatWeb.RoomComponents do
     """
   end
 
-  defp profile_photo_url(%{photo: nil}), do: nil
+  defp profile_photo_url(%{photo: nil, photo_key: nil}), do: nil
   defp profile_photo_url(%{user: %{nickname: nickname}}), do: ~p"/profiles/#{nickname}/photo"
 
   defp present?(value) when is_binary(value), do: String.trim(value) != ""

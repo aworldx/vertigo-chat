@@ -8,6 +8,8 @@ defmodule Chat.Gallery.Photo do
 
   schema "gallery_photos" do
     field :image, :binary
+    field :image_key, :string
+    field :thumbnail_key, :string
     field :content_type, :string
     field :thumbnail, :binary
     field :thumbnail_content_type, :string

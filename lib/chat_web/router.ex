@@ -9,10 +9,7 @@ defmodule ChatWeb.Router do
     plug :put_root_layout, html: {ChatWeb.Layouts, :root}
     plug :protect_from_forgery
 
-    plug :put_secure_browser_headers, %{
-      "content-security-policy" =>
-        "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss:"
-    }
+    plug ChatWeb.MediaPolicy
   end
 
   pipeline :media do
@@ -26,6 +23,7 @@ defmodule ChatWeb.Router do
     get "/sitemap.xml", SitemapController, :show
     get "/gif-proxy", GifProxyController, :show
     get "/music-proxy", MusicProxyController, :show
+    get "/profiles/:nickname/photo/thumbnail", ProfilePhotoController, :thumbnail
     get "/profiles/:nickname/photo", ProfilePhotoController, :show
     get "/gallery/photos/:id/thumbnail", GalleryPhotoController, :thumbnail
     get "/gallery/photos/:id", GalleryPhotoController, :show

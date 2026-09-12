@@ -39,6 +39,13 @@ The daily limit counts the exact `total_tokens` returned by the Responses API fo
 memory summaries. At the warning percentage the bot announces that it is leaving, becomes busy,
 and returns at local midnight. Set the daily limit to `0` to disable this application-level budget.
 
+## S3 media storage
+
+Photos, gallery thumbnails and chart audio can be moved to S3. Configuration,
+backup, migration and rollback instructions are in [docs/s3_media.md](docs/s3_media.md).
+ImageMagick is included in the production image; install it locally (`brew install
+imagemagick` on macOS) to run thumbnail tests.
+
 ## Docker Compose deployment
 
 Create the production environment file, replace every placeholder, then deploy:
