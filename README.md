@@ -79,7 +79,8 @@ For deployment without a domain, set `PHX_SCHEME=http`, `PHX_URL_PORT=80`, and
 
 ### Current production VPS
 
-The current production instance runs on the Kazakhstan VPS at `109.248.170.47` in
+The public production site is [vertigo-chat.ru](https://vertigo-chat.ru).
+The instance runs on the Kazakhstan VPS at `109.248.170.47` in
 `/opt/apps/vertigo-chat`. SSH access is key-only:
 
 ```sh
@@ -90,10 +91,9 @@ The secret production values are stored only in `/opt/apps/vertigo-chat/.env`.
 The server-specific public override is `/opt/apps/vertigo-chat/.env.vps`:
 
 ```env
-PHX_HOST=109.248.170.47
-PHX_SCHEME=http
-PHX_URL_PORT=80
-CADDY_SITE_ADDRESS=http://109.248.170.47
+PHX_HOST=vertigo-chat.ru
+PHX_SCHEME=https
+PHX_URL_PORT=443
 ```
 
 To deploy a checked local change, commit it and push it to `origin/main`. On the
@@ -118,7 +118,7 @@ ssh root@109.248.170.47 '\
 ```
 
 `migrate` runs before the application starts. Verify the result with
-`curl -I http://109.248.170.47`. The firewall allows only SSH, HTTP and HTTPS;
+`curl -I https://vertigo-chat.ru`. The firewall allows only SSH, HTTP and HTTPS;
 password authentication is disabled. Do not use `rsync --delete` against the
 production directory.
 
