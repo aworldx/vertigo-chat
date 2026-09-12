@@ -2,7 +2,7 @@
 defmodule ChatWeb.LibraryLive do
   use ChatWeb, :live_view
 
-  import Phoenix.Controller, only: [get_csrf_token: 0]
+  import ChatWeb.AccountComponents
 
   alias Chat.Library
   alias Chat.Library.Article
@@ -47,6 +47,25 @@ defmodule ChatWeb.LibraryLive do
   end
 
   @impl true
+  def handle_event(
+        "authenticate_library",
+        _params,
+        %{assigns: %{account_signed_out?: true}} = socket
+      ),
+      do: {:noreply, socket}
+
+  def handle_event(
+        "authenticate_library",
+        _params,
+        %{assigns: %{current_account_user: %{} = user}} = socket
+      ) do
+    {:noreply,
+     socket
+     |> assign(:current_user, user)
+     |> assign(:can_add_library_articles?, Ranks.can_add_library_articles?(user))
+     |> refresh_articles()}
+  end
+
   def handle_event("authenticate_library", %{"token" => token}, socket) do
     case UserAuth.verify(token) do
       {:ok, user} ->

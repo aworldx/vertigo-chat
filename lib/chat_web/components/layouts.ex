@@ -32,11 +32,35 @@ defmodule ChatWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
 
+  attr :current_account_user, :any, default: nil
+  attr :return_to, :string, default: "/"
+
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <main>
+    <main data-account-page={@current_account_user && "true"}>
+      <div
+        :if={@current_account_user}
+        id="site-account"
+        class="flex flex-wrap items-center justify-end gap-3 border-b border-zinc-800 bg-zinc-950 px-4 py-2 text-sm text-zinc-300"
+      >
+        <span id="site-account-nickname">{@current_account_user.nickname}</span>
+        <.form
+          for={to_form(%{})}
+          id="site-account-logout"
+          action={~p"/account/logout"}
+          method="post"
+          data-account-logout
+        >
+          <input type="hidden" name="return_to" value={@return_to} />
+          <button
+            id="site-account-logout-submit"
+            type="submit"
+            class="min-h-11 rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200 focus-visible:outline-2 focus-visible:outline-amber-300"
+          >Выйти с сайта</button>
+        </.form>
+      </div>
       {render_slot(@inner_block)}
     </main>
 

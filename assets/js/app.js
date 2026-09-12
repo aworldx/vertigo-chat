@@ -254,7 +254,7 @@ if (Object.keys(chatSessionParams()).length > 0) {
 const chatHooks = {
   ChatEntrance: {
     mounted() {
-      this.handleEvent("prepare-chat-navigation", session => {
+      this.handleEvent("prepare-chat-navigation", async session => {
         try {
           clearChatSession()
           sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
@@ -275,6 +275,22 @@ const chatHooks = {
           return
         }
 
+        if (session.account_login_token) {
+          try {
+            const response = await fetch("/account/chat-login", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: {"content-type": "application/json", "x-csrf-token": csrfToken},
+              body: JSON.stringify({token: session.account_login_token}),
+            })
+            if (!response.ok) throw new Error("Account login failed")
+            accountChannel?.postMessage("changed")
+          } catch (_error) {
+            clearChatSession()
+            this.pushEvent("chat_storage_failed", {})
+            return
+          }
+        }
         this.pushEvent("chat_session_saved", {})
       })
     },
@@ -1070,3 +1086,29 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
+
+// Account cookies are shared across tabs; chat resume tokens remain tab-local.
+const accountChannel = typeof BroadcastChannel === "function" ? new BroadcastChannel("vertigo-account") : null
+accountChannel?.addEventListener("message", () => {
+  if (!document.querySelector("#chat-room") && !document.querySelector("#vertigo-landing")) {
+    window.location.reload()
+  }
+})
+document.addEventListener("submit", async event => {
+  const form = event.target
+  if (!(form instanceof HTMLFormElement) || !form.hasAttribute("data-account-logout")) return
+  event.preventDefault()
+  const button = form.querySelector("button[type=submit]")
+  if (button) button.disabled = true
+  try {
+    const response = await fetch(form.action, {
+      method: "POST", credentials: "same-origin", body: new FormData(form),
+    })
+    if (!response.ok) throw new Error("Account logout failed")
+    accountChannel?.postMessage("changed")
+    window.location.assign(response.url)
+  } catch (_error) {
+    // Keep the ordinary HTML form as a fallback when fetch is unavailable.
+    HTMLFormElement.prototype.submit.call(form)
+  }
+})

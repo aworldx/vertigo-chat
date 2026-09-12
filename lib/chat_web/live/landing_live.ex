@@ -85,7 +85,7 @@ defmodule ChatWeb.LandingLive do
         _params,
         %{assigns: %{pending_session: %Sessions.Session{}}} = socket
       ),
-      do: {:noreply, push_navigate(socket, to: ~p"/chat")}
+      do: {:noreply, finish_navigation(socket)}
 
   def handle_event("chat_session_saved", _params, socket), do: {:noreply, socket}
 
@@ -116,6 +116,12 @@ defmodule ChatWeb.LandingLive do
   defp entrance_form(nickname \\ ""),
     do: to_form(%{"nickname" => nickname, "password" => ""}, as: :entrance)
 
+  defp finish_navigation(socket) do
+    if socket.assigns.pending_session.user,
+      do: redirect(socket, to: ~p"/chat"),
+      else: push_navigate(socket, to: ~p"/chat")
+  end
+
   defp prepare_navigation(socket) do
     session = socket.assigns.pending_session
 
@@ -124,6 +130,7 @@ defmodule ChatWeb.LandingLive do
       session_token:
         UserAuth.sign_chat_resume(session.nickname, session.session_id, session.resume_secret),
       user_token: if(session.user, do: UserAuth.sign(session.user)),
+      account_login_token: if(session.user, do: ChatWeb.AccountAuth.sign_login(session.user)),
       identity_token:
         if(session.guest_identity_id,
           do: UserAuth.sign_guest_identity(session.nickname, session.guest_identity_id)

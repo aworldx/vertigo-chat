@@ -57,6 +57,17 @@ defmodule ChatWeb.LandingLiveTest do
     assert [] = Visits.list_recent_visits()
   end
 
+  test "registered entrance supplies a short-lived account login token", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "landing_bridge", "password" => "secret123"})
+
+    {:ok, view, _} = live(conn, ~p"/")
+    enter(view, user.nickname, "secret123")
+    assert_push_event(view, "prepare-chat-navigation", tokens)
+    assert {:ok, authenticated} = ChatWeb.AccountAuth.verify_login(tokens.account_login_token)
+    assert authenticated.id == user.id
+  end
+
   test "guest entrance navigates only after saving tokens, and refresh keeps the same visit", %{
     conn: conn
   } do
@@ -64,6 +75,7 @@ defmodule ChatWeb.LandingLiveTest do
     enter(view, "landing_guest")
     assert_push_event(view, "prepare-chat-navigation", tokens)
     assert tokens.user_token == nil
+    assert tokens.account_login_token == nil
 
     assert {:ok, _identity} =
              UserAuth.verify_guest_identity(tokens.identity_token, tokens.nickname)

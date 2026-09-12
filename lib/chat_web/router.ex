@@ -37,6 +37,7 @@ defmodule ChatWeb.Router do
     pipe_through :browser
 
     post "/account/login", AccountController, :login
+    post "/account/chat-login", AccountController, :chat_login
     post "/account/logout", AccountController, :logout
 
     live_session :account, on_mount: [{ChatWeb.AccountAuth, :default}] do

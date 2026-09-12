@@ -5,12 +5,12 @@ defmodule ChatWeb.MusicChartLiveTest do
   alias Chat.Accounts
   alias Chat.MusicChart
 
-  test "shows the invitation, separate chat entry, and login prompt", %{conn: conn} do
+  test "shows the invitation and account login without a chat entry button", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/music-chart")
 
     assert has_element?(view, "#music-chart-page", "Хит-парад")
-    assert has_element?(view, "#music-chart-enter-chat[href='/chat']", "Войти в чат")
-    assert has_element?(view, "#music-chart-login[href='/#landing-login']", "Войти")
+    refute has_element?(view, "#music-chart-enter-chat")
+    assert has_element?(view, "#music-chart-account-login[action='/account/login']", "Войти")
     assert has_element?(view, "#music-chart-tracks[phx-update='stream']")
   end
 

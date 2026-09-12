@@ -2,6 +2,8 @@
 defmodule ChatWeb.GalleryLive do
   use ChatWeb, :live_view
 
+  import ChatWeb.AccountComponents
+
   alias Chat.Gallery
   alias Chat.Ranks
 

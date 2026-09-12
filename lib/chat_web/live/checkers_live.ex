@@ -2,6 +2,8 @@
 defmodule ChatWeb.CheckersLive do
   use ChatWeb, :live_view
 
+  import ChatWeb.AccountComponents
+
   alias Chat.Accounts
   alias Chat.Checkers
   alias ChatWeb.UserAuth
@@ -27,6 +29,13 @@ defmodule ChatWeb.CheckersLive do
   end
 
   @impl true
+  def handle_event(
+        "authenticate_checkers",
+        %{"token" => _token},
+        %{assigns: %{account_signed_out?: true}} = socket
+      ),
+      do: {:noreply, socket}
+
   def handle_event("authenticate_checkers", params, socket) do
     if socket.assigns.current_account_user do
       {:noreply,

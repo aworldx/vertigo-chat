@@ -2,6 +2,8 @@
 defmodule ChatWeb.GamesLive do
   use ChatWeb, :live_view
 
+  import ChatWeb.AccountComponents
+
   alias Chat.Accounts
   alias Chat.Games
   alias ChatWeb.UserAuth
@@ -41,6 +43,13 @@ defmodule ChatWeb.GamesLive do
   end
 
   @impl true
+  def handle_event(
+        "authenticate_games",
+        %{"token" => _token},
+        %{assigns: %{account_signed_out?: true}} = socket
+      ),
+      do: {:noreply, socket}
+
   def handle_event("authenticate_games", params, socket) do
     if socket.assigns.current_account_user do
       {:noreply,

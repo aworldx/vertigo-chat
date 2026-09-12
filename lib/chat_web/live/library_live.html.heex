@@ -1,4 +1,8 @@
-<Layouts.app flash={@flash}>
+<Layouts.app
+  flash={@flash}
+  current_account_user={@current_account_user}
+  return_to={@canonical_path}
+>
   <section
     id="library-page"
     class="library-shell chat-shell relative min-h-screen overflow-hidden text-stone-100"
@@ -54,34 +58,7 @@
                   Добавлять статьи можно со звания «Киноман».
                 </p>
               <% @auth_checked? -> %>
-                <form
-                  id="library-account-login"
-                  action={~p"/account/login"}
-                  method="post"
-                  class="flex flex-wrap gap-2"
-                >
-                  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-                  <input
-                    id="library-account-nickname"
-                    name="account[nickname]"
-                    required
-                    placeholder="Ник"
-                    class="min-w-28 rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm"
-                  />
-                  <input
-                    id="library-account-password"
-                    name="account[password]"
-                    type="password"
-                    required
-                    placeholder="Пароль"
-                    class="min-w-28 rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm"
-                  />
-                  <button
-                    id="library-account-submit"
-                    type="submit"
-                    class="rounded-lg bg-amber-300 px-3 py-2 text-sm font-semibold text-stone-950"
-                  >Войти</button>
-                </form>
+                <.account_login id="library" return_to={~p"/library"} />
               <% true -> %>
                 <p id="library-auth-check" class="text-sm text-stone-500">Проверяем вход…</p>
             <% end %>

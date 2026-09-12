@@ -1,4 +1,8 @@
-<Layouts.app flash={@flash}>
+<Layouts.app
+  flash={@flash}
+  current_account_user={@current_account_user}
+  return_to={@canonical_path}
+>
   <main id="articles-page" class="min-h-dvh bg-zinc-950 text-zinc-100">
     <header class="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
       <a href={~p"/about"} class="flex items-center gap-3" aria-label="Vertigo — о чате">

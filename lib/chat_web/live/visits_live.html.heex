@@ -1,4 +1,8 @@
-<Layouts.app flash={@flash}>
+<Layouts.app
+  flash={@flash}
+  current_account_user={@current_account_user}
+  return_to={~p"/visits"}
+>
   <section
     id="visits-page"
     class="chat-shell min-h-screen bg-zinc-950 text-zinc-100"

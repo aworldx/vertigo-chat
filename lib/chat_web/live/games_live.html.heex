@@ -1,4 +1,8 @@
-<Layouts.app flash={@flash}>
+<Layouts.app
+  flash={@flash}
+  current_account_user={@current_account_user}
+  return_to={@canonical_path}
+>
   <div
     id="games-page"
     phx-hook=".GamesAuth"
@@ -14,6 +18,12 @@
           </h1>
         </div>
       </header>
+
+      <.account_login
+        :if={is_nil(@kind) && is_nil(@current_user)}
+        id="games"
+        return_to={@canonical_path}
+      />
 
       <%= if is_nil(@kind) do %>
         <section id="games-catalog" class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -54,14 +64,7 @@
               Проверяем вход…
             </p>
           <% is_nil(@current_user) -> %>
-            <div
-              id="games-login-hint"
-              class="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-8 text-center"
-            >
-              <h2 class="text-2xl font-bold">Сначала войди в чат</h2><p class="mt-2 text-zinc-400">
-                Играть могут зарегистрированные чатлане.
-              </p>
-            </div>
+            <.account_login id="games" return_to={@canonical_path} />
           <% true -> %>
             <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
               <main class="space-y-6">

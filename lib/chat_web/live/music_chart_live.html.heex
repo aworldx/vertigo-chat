@@ -1,12 +1,13 @@
-<Layouts.app flash={@flash}>
+<Layouts.app
+  flash={@flash}
+  current_account_user={@current_account_user}
+  return_to={@canonical_path}
+>
   <section id="music-chart-page" class="chat-shell min-h-screen bg-zinc-950 text-zinc-100">
     <header class="flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 sm:px-8">
       <.link href={~p"/"} class="flex items-center gap-3" aria-label="Vertigo — главная">
         <span class="vertigo-mark" aria-hidden="true"></span>
         <span class="vertigo-wordmark uppercase">Vertigo</span>
-      </.link>
-      <.link id="music-chart-enter-chat" href={~p"/chat"} class="hit-parade-button">
-        Войти в чат
       </.link>
     </header>
 
@@ -74,7 +75,10 @@
           </div>
         </div>
 
-        <aside class="h-fit rounded-2xl border border-zinc-700 bg-zinc-900/80 p-5">
+        <aside class={[
+          @current_user && "rounded-2xl border border-zinc-700 bg-zinc-900/80 p-5",
+          "h-fit"
+        ]}>
           <%= if @current_user do %>
             <h2 class="text-lg font-semibold">Добавить в топ</h2>
             <p class="mt-2 text-sm leading-6 text-zinc-400">
@@ -118,15 +122,7 @@
               >Добавить трек</button>
             </.form>
           <% else %>
-            <h2 class="text-lg font-semibold">Твой трек здесь?</h2>
-            <p class="mt-2 text-sm leading-6 text-zinc-400">
-              Войди с зарегистрированным ником, чтобы добавлять музыку и ставить сердечки.
-            </p>
-            <.link
-              id="music-chart-login"
-              href={~p"/#landing-login"}
-              class="hit-parade-button mt-5 w-full justify-center"
-            >Войти</.link>
+            <.account_login id="music-chart" return_to={~p"/music-chart"} />
           <% end %>
         </aside>
       </section>
