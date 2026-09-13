@@ -184,6 +184,9 @@ defmodule Chat.Messages do
 
   def list_messages_after(_room_id, _message_id), do: []
 
+  def list_text_messages_before(room_id, message_id),
+    do: History.list_text_before(room_id, message_id)
+
   def announce_presence(nickname, room_id, event)
       when is_binary(nickname) and is_binary(room_id) and event in [:joined, :left] do
     body =

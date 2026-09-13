@@ -6,6 +6,64 @@ defmodule Chat.KarmikTest do
   alias Chat.Bot.Usage
   alias Chat.Karmik
   alias Chat.Karmik.Assessment
+  alias Chat.Messages
+
+  defmodule ContextProvider do
+    def assess(input) do
+      send(self(), {:assessment_input, input})
+
+      {:ok,
+       %{
+         verdict: :neutral,
+         reason: "Пересказ чужой речи.",
+         usage: %{input_tokens: 4, output_tokens: 1, total_tokens: 5}
+       }}
+    end
+  end
+
+  test "provides preceding conversation with authors without changing karma for a neutral quote" do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "storyteller", "password" => "secret123"})
+
+    for n <- 1..14 do
+      assert {:ok, _} =
+               Messages.send_public_message("listener_#{n}", "lobby", %{"body" => "Реплика #{n}"})
+    end
+
+    assert {:ok, _} =
+             Messages.send_public_message(user.nickname, "lobby", %{
+               "body" => "Мои дети кричат мне:"
+             })
+
+    assert {:ok, _} =
+             Messages.send_public_message("other", "other-room", %{"body" => "Другая комната"})
+
+    assert {:ok, message} =
+             Messages.send_public_message(user.nickname, "lobby", %{
+               "body" => "когда будем жрать, мать?"
+             })
+
+    assert {:ok, _} =
+             Messages.send_public_message("listener", "lobby", %{
+               "body" => "Более поздняя реплика"
+             })
+
+    assert {:ok, :neutral} = Karmik.review(message, ContextProvider)
+
+    assert_receive {:assessment_input, %{message: target, context: context}}
+    assert target == %{author: user.nickname, body: "когда будем жрать, мать?"}
+    assert length(context) == 12
+    assert hd(context) == %{author: "listener_4", body: "Реплика 4"}
+    assert List.last(context) == %{author: user.nickname, body: "Мои дети кричат мне:"}
+
+    refute Enum.any?(
+             context,
+             &(&1.body in ["Другая комната", "Более поздняя реплика", target.body])
+           )
+
+    assert Accounts.get_user(user.id).karma == 0
+    assert Karmik.list_recent_assessments() == []
+  end
 
   defmodule GoodProvider do
     def assess(_body),

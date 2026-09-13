@@ -28,6 +28,17 @@ defmodule Chat.Messages.History do
 
   def list_after(_room_id, _message_id), do: []
 
+  def list_text_before(room_id, message_id) when is_binary(room_id) and is_integer(message_id) do
+    from(message in StoredMessage,
+      where: message.room_id == ^room_id and message.id < ^message_id and message.kind == :text,
+      order_by: [desc: message.id],
+      limit: 12
+    )
+    |> Repo.all()
+    |> Enum.reverse()
+    |> Enum.map(&to_message/1)
+  end
+
   def save(room_id, message) when is_binary(room_id) and is_map(message) do
     attrs = %{
       room_id: room_id,

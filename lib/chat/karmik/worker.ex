@@ -3,7 +3,6 @@ defmodule Chat.Karmik.Worker do
   use GenServer
 
   alias Chat.Karmik
-  alias Chat.Karmik.MessageSampler
   alias Chat.Messages
 
   @room_id "lobby"
@@ -51,12 +50,14 @@ defmodule Chat.Karmik.Worker do
   def handle_info(:review_next, %{reviewing?: false} = state) do
     state = %{state | review_scheduled?: false}
 
-    case MessageSampler.select(state.queue) do
-      nil ->
+    case state.queue do
+      [] ->
         {:noreply, state}
 
-      message ->
-        Task.Supervisor.async_nolink(Chat.Karmik.TaskSupervisor, fn -> Karmik.review(message) end)
+      messages ->
+        Task.Supervisor.async_nolink(Chat.Karmik.TaskSupervisor, fn ->
+          Karmik.review_batch(messages)
+        end)
 
         state = %{state | queue: [], queued_ids: MapSet.new(), reviewing?: true}
 
@@ -66,8 +67,10 @@ defmodule Chat.Karmik.Worker do
 
   def handle_info(:review_next, state), do: {:noreply, %{state | review_scheduled?: false}}
 
-  def handle_info({ref, _result}, state) when is_reference(ref),
-    do: {:noreply, review_finished(state)}
+  def handle_info({ref, _result}, state) when is_reference(ref) do
+    Process.demonitor(ref, [:flush])
+    {:noreply, review_finished(state)}
+  end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, state),
     do: {:noreply, review_finished(state)}
