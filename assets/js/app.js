@@ -997,10 +997,23 @@ document.addEventListener("click", event => {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
 
   const chatWindow = window.open("", "vertigo-chat")
-  if (!chatWindow) return
-
   event.preventDefault()
-  if (chatWindow.location.href === "about:blank") chatWindow.location.href = link.href
+
+  // A section opened in the chat tab keeps its name. Focusing that same
+  // window would leave the user stranded on the section instead of returning.
+  if (!chatWindow || chatWindow === window) {
+    window.location.href = link.href
+    return
+  }
+
+  try {
+    if (new URL(chatWindow.location.href).pathname !== "/chat") {
+      chatWindow.location.href = link.href
+    }
+  } catch {
+    // The named tab may have since navigated to another origin.
+    chatWindow.location.href = link.href
+  }
   chatWindow.focus()
 })
 window.addEventListener("phx:clear-message-input", _info => {

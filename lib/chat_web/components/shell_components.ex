@@ -116,8 +116,10 @@ defmodule ChatWeb.ShellComponents do
           </summary>
           <div class="absolute right-0 top-11 z-50 w-56 rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-2xl shadow-black/50">
             <.link
-              :for={{label, href} <- mobile_menu_links()}
+              :for={{label, href, target} <- mobile_menu_links()}
+              id={"mobile-menu-#{target}"}
               href={href}
+              target={target}
               class="block rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200"
             >
               {label}
@@ -128,11 +130,15 @@ defmodule ChatWeb.ShellComponents do
               </summary>
               <div class="border-l border-zinc-700 pl-2">
                 <.link
+                  id="mobile-menu-articles"
                   href={~p"/articles"}
+                  target="vertigo-articles"
                   class="block rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200"
                 >Статьи</.link>
                 <.link
+                  id="mobile-menu-help"
                   href={~p"/help"}
+                  target="vertigo-help"
                   class="block rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200"
                 >Помощь</.link>
                 <button
@@ -174,12 +180,12 @@ defmodule ChatWeb.ShellComponents do
 
   defp mobile_menu_links do
     [
-      {"Хит-парад", ~p"/music-chart"},
-      {"Анкеты", ~p"/profiles"},
-      {"Библиотека", ~p"/library"},
-      {"Фотоальбом", ~p"/gallery"},
-      {"Игры", ~p"/games"},
-      {"Кто был", ~p"/visits"}
+      {"Хит-парад", ~p"/music-chart", "vertigo-music-chart"},
+      {"Анкеты", ~p"/profiles", "vertigo-profiles"},
+      {"Библиотека", ~p"/library", "vertigo-library"},
+      {"Фотоальбом", ~p"/gallery", "vertigo-gallery"},
+      {"Игры", ~p"/games", "vertigo-games"},
+      {"Кто был", ~p"/visits", "vertigo-visits"}
     ]
   end
 end

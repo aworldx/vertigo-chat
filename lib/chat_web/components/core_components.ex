@@ -444,11 +444,10 @@ defmodule ChatWeb.CoreComponents do
   By default, the outline style is used, but solid and mini may
   be applied by using the `-solid` and `-mini` suffix.
 
-  You can customize the size and colors of the icons by setting
-  width, height, and background color classes.
+  You can customize the size and colors with size and text color classes.
 
-  Icons are extracted from the `deps/heroicons` directory and bundled within
-  your compiled app.css by the plugin in `assets/vendor/heroicons.js`.
+  Icons are embedded from `deps/heroicons` at compile time and rendered as SVG,
+  so their visibility does not depend on CSS masks or external image requests.
 
   ## Examples
 
@@ -459,8 +458,19 @@ defmodule ChatWeb.CoreComponents do
   attr :class, :any, default: "size-4"
 
   def icon(%{name: "hero-" <> _} = assigns) do
+    {attributes, body} = ChatWeb.Icons.fetch!(assigns.name)
+    assigns = assign(assigns, icon_attributes: attributes, icon_body: body)
+
     ~H"""
-    <span class={[@name, @class]} />
+    <svg
+      {@icon_attributes}
+      data-icon={@name}
+      class={["inline-block shrink-0 align-middle", @class]}
+      aria-hidden="true"
+      focusable="false"
+    >
+      {Phoenix.HTML.raw(@icon_body)}
+    </svg>
     """
   end
 

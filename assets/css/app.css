@@ -9,7 +9,6 @@
 @source "../css";
 @source "../js";
 @source "../../lib/chat_web";
-@source inline("hero-ticket hero-user-group hero-video-camera hero-star hero-sparkles hero-pencil-square hero-banknotes hero-megaphone hero-camera hero-film hero-swatch hero-paint-brush hero-chevron-down hero-chat-bubble-left-right hero-lock-closed hero-shield-exclamation hero-musical-note hero-heart");
 
 @font-face {
   font-family: "Vertigo Display";
@@ -32,10 +31,6 @@
 }
 /* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
 @source "../../_build/dev/phoenix-colocated/chat/*/";
-
-/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
-   The heroicons installation itself is managed by your mix.exs */
-@plugin "../vendor/heroicons";
 
 /* Add variants based on LiveView classes */
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
