@@ -1163,9 +1163,12 @@ defmodule ChatWeb.RoomComponents do
           </button>
           <div
             id="emoji-picker"
-            class="emoji-picker-closed order-first basis-full rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-xl"
+            class="emoji-picker-closed order-first w-full min-w-0 max-w-full basis-full rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-xl"
           >
-            <div id="emoji-picker-list" class="flex gap-2 overflow-x-auto pb-1">
+            <div
+              id="emoji-picker-list"
+              class="flex w-full min-w-0 touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]"
+            >
               <button
                 :for={emoji <- @emojis}
                 type="button"
