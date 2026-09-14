@@ -21,6 +21,7 @@ defmodule ChatWeb.MusicChartLive do
      |> assign(:canonical_path, ~p"/music-chart")
      |> assign(:current_user, current_user)
      |> assign(:upload_form, to_form(%{}, as: :music_chart))
+     |> assign(:comment_form, to_form(%{}, as: :music_comment))
      |> allow_upload(:music_track,
        accept: ~w(.mp3 .ogg .wav),
        max_entries: 1,
@@ -85,6 +86,34 @@ defmodule ChatWeb.MusicChartLive do
 
   def handle_event("toggle_music_like", _params, socket) do
     {:noreply, put_flash(socket, :error, "Войди с зарегистрированным ником, чтобы голосовать.")}
+  end
+
+  def handle_event(
+        "add_music_comment",
+        %{"track_id" => id, "music_comment" => %{"body" => body}},
+        %{assigns: %{current_user: user}} = socket
+      )
+      when not is_nil(user) do
+    with {track_id, ""} <- Integer.parse(id),
+         {:ok, _comment} <- MusicChart.add_comment(user, track_id, body) do
+      {:noreply, refresh_tracks(socket)}
+    else
+      {:error, _changeset} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Комментарий должен содержать текст и быть не длиннее #{MusicChart.max_comment_length()} символов."
+         )}
+
+      _reason ->
+        {:noreply, put_flash(socket, :error, "Не удалось добавить комментарий.")}
+    end
+  end
+
+  def handle_event("add_music_comment", _params, socket) do
+    {:noreply,
+     put_flash(socket, :error, "Войди с зарегистрированным ником, чтобы комментировать.")}
   end
 
   @impl true

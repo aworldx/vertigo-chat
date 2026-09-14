@@ -48,5 +48,28 @@ defmodule Chat.MusicChartTest do
     assert {:error, :own_track} = MusicChart.toggle_like(author, track.id)
   end
 
+  test "stores short comments under a track" do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "comment_track_author", "password" => "secret123"})
+
+    {:ok, listener} =
+      Accounts.register_user(%{"nickname" => "comment_listener", "password" => "secret123"})
+
+    assert {:ok, track} =
+             MusicChart.add_track(author, "Трек с отзывом", mp3_bytes(), "audio/mpeg")
+
+    assert {:ok, comment} = MusicChart.add_comment(listener, track.id, "  Очень нравится  ")
+    assert comment.body == "Очень нравится"
+    assert comment.user.nickname == "comment_listener"
+
+    [stored_track] = MusicChart.list_tracks(listener)
+    assert [%{body: "Очень нравится"}] = stored_track.comments
+
+    assert {:error, _changeset} = MusicChart.add_comment(listener, track.id, " ")
+
+    assert {:error, _changeset} =
+             MusicChart.add_comment(listener, track.id, String.duplicate("я", 281))
+  end
+
   defp mp3_bytes, do: <<"ID3", 4, 0, 0, 0, 0, 0, 0, 0, 0>>
 end

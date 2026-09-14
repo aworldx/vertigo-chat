@@ -5,7 +5,7 @@ defmodule Chat.MusicChart do
   import Ecto.Query
 
   alias Chat.Accounts.User
-  alias Chat.MusicChart.{Like, Track}
+  alias Chat.MusicChart.{Comment, Like, Track}
   alias Chat.Repo
   alias Chat.Uploads
 
@@ -13,6 +13,7 @@ defmodule Chat.MusicChart do
   @max_tracks_per_user 5
   @max_audio_bytes 20_000_000
   @max_title_length 120
+  @max_comment_length 280
 
   def subscribe, do: Phoenix.PubSub.subscribe(Chat.PubSub, @topic)
 
@@ -25,7 +26,7 @@ defmodule Chat.MusicChart do
     |> order_by([track, like], desc: count(like.id), desc: track.inserted_at, desc: track.id)
     |> select_merge([_track, like], %{likes_count: count(like.id)})
     |> Repo.all()
-    |> Repo.preload(:user)
+    |> Repo.preload([:user, comments: :user])
     |> Enum.map(&%{&1 | liked?: MapSet.member?(liked_track_ids, &1.id)})
   end
 
@@ -60,9 +61,27 @@ defmodule Chat.MusicChart do
 
   def toggle_like(_user, _track_id), do: {:error, :not_found}
 
+  def add_comment(%User{} = user, track_id, body)
+      when is_integer(track_id) and track_id > 0 and is_binary(body) do
+    with %Track{} <- get_track(track_id),
+         {:ok, comment} <-
+           %Comment{}
+           |> Comment.changeset(track_id, user.id, body)
+           |> Repo.insert() do
+      broadcast_change()
+      {:ok, Repo.preload(comment, :user)}
+    else
+      nil -> {:error, :not_found}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  def add_comment(_user, _track_id, _body), do: {:error, :not_found}
+
   def max_tracks_per_user, do: @max_tracks_per_user
   def max_audio_bytes, do: @max_audio_bytes
   def max_title_length, do: @max_title_length
+  def max_comment_length, do: @max_comment_length
 
   defp insert_track(user, title, audio, content_type) do
     Repo.transaction(

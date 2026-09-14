@@ -62,6 +62,28 @@ defmodule Chat.GalleryTest do
     assert photo.thumbnail_content_type == "image/webp"
   end
 
+  test "records a registered chatlan's like on another photo" do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "photo_like_author", "password" => "secret123"})
+
+    {:ok, admirer} =
+      Accounts.register_user(%{"nickname" => "photo_admirer", "password" => "secret123"})
+
+    {:ok, photo} = Gallery.upload_photo(promote_to_statist(author), webp_bytes(), "image/webp")
+
+    assert {:ok, :liked} = Gallery.toggle_like(admirer, photo.id)
+    [liked_photo] = Gallery.list_photos(admirer)
+    assert liked_photo.likes_count == 1
+    assert liked_photo.liked?
+
+    assert {:ok, :unliked} = Gallery.toggle_like(admirer, photo.id)
+    [unliked_photo] = Gallery.list_photos(admirer)
+    assert unliked_photo.likes_count == 0
+    refute unliked_photo.liked?
+
+    assert {:error, :own_photo} = Gallery.toggle_like(author, photo.id)
+  end
+
   test "rejects an invalid thumbnail" do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "invalid_thumbnail", "password" => "secret123"})

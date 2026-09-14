@@ -44,5 +44,26 @@ defmodule ChatWeb.MusicChartLiveTest do
     assert has_element?(view, "[data-track-title='Моя песня']", "Добавил chart_live_voter")
   end
 
+  test "lets a registered chatlan leave a short comment", %{conn: conn} do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "chart_comment_author", "password" => "secret123"})
+
+    {:ok, listener} =
+      Accounts.register_user(%{"nickname" => "chart_comment_listener", "password" => "secret123"})
+
+    assert {:ok, track} =
+             MusicChart.add_track(author, "Трек с комментариями", mp3_bytes(), "audio/mpeg")
+
+    {:ok, view, _html} =
+      live(init_test_session(conn, account_user_id: listener.id), ~p"/music-chart")
+
+    view
+    |> form("#music-comment-form-#{track.id}", music_comment: %{body: "Классный трек"})
+    |> render_submit()
+
+    assert has_element?(view, "#music-track-comments-#{track.id}", "Классный трек")
+    assert has_element?(view, "#music-track-comments-#{track.id}", "chart_comment_listener")
+  end
+
   defp mp3_bytes, do: <<"ID3", 4, 0, 0, 0, 0, 0, 0, 0, 0>>
 end

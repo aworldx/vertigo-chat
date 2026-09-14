@@ -16,6 +16,7 @@ defmodule Chat.MusicChart.Track do
 
     belongs_to :user, User
     has_many :likes, Chat.MusicChart.Like
+    has_many :comments, Chat.MusicChart.Comment
 
     timestamps(type: :utc_datetime)
   end

@@ -10,6 +10,7 @@ defmodule ChatWeb.GalleryLive do
   @impl true
   def mount(_params, _session, socket) do
     current_user = socket.assigns.current_account_user
+    if connected?(socket), do: Gallery.subscribe()
 
     {:ok,
      socket
@@ -26,11 +27,34 @@ defmodule ChatWeb.GalleryLive do
        max_entries: 1,
        max_file_size: 2_000_000
      )
-     |> stream(:photos, Gallery.list_photos())}
+     |> stream(:photos, Gallery.list_photos(current_user))}
   end
 
   @impl true
   def handle_event("authenticate_gallery", _params, socket), do: {:noreply, socket}
+
+  def handle_event(
+        "toggle_gallery_like",
+        %{"id" => id},
+        %{assigns: %{current_user: user}} = socket
+      )
+      when not is_nil(user) do
+    with {photo_id, ""} <- Integer.parse(id),
+         {:ok, _state} <- Gallery.toggle_like(user, photo_id) do
+      {:noreply, refresh_photos(socket)}
+    else
+      {:error, :own_photo} ->
+        {:noreply, put_flash(socket, :error, "Свою фотографию уже можно считать любимой.")}
+
+      _reason ->
+        {:noreply, put_flash(socket, :error, "Не удалось изменить оценку фотографии.")}
+    end
+  end
+
+  def handle_event("toggle_gallery_like", _params, socket) do
+    {:noreply,
+     put_flash(socket, :error, "Войди с зарегистрированным ником, чтобы ставить лайки.")}
+  end
 
   def handle_event("validate_gallery_photo", %{"gallery" => params}, socket) do
     {:noreply,
@@ -95,6 +119,9 @@ defmodule ChatWeb.GalleryLive do
     end
   end
 
+  @impl true
+  def handle_info(:gallery_changed, socket), do: {:noreply, refresh_photos(socket)}
+
   def image_url(photo), do: ~p"/gallery/photos/#{photo.id}"
 
   def thumbnail_url(%{thumbnail_key: key} = photo) when is_binary(key),
@@ -154,4 +181,7 @@ defmodule ChatWeb.GalleryLive do
   end
 
   defp thumbnail_from_params(_params), do: {nil, nil}
+
+  defp refresh_photos(socket),
+    do: stream(socket, :photos, Gallery.list_photos(socket.assigns.current_user), reset: true)
 end

@@ -84,6 +84,23 @@ defmodule ChatWeb.GalleryLiveTest do
     assert has_element?(view, "#gallery-photo-thumbnail[type='hidden']")
   end
 
+  test "lets a registered chatlan like another photo", %{conn: conn} do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "gallery_like_author", "password" => "secret123"})
+
+    {:ok, admirer} =
+      Accounts.register_user(%{"nickname" => "gallery_like_admirer", "password" => "secret123"})
+
+    {:ok, photo} = Gallery.upload_photo(promote_to_statist(author), webp_bytes(), "image/webp")
+
+    {:ok, view, _html} =
+      live(init_test_session(conn, account_user_id: admirer.id), ~p"/gallery")
+
+    assert has_element?(view, "#gallery-like-#{photo.id}[aria-pressed='false']")
+    view |> element("#gallery-like-#{photo.id}") |> render_click()
+    assert has_element?(view, "#gallery-like-#{photo.id}[aria-pressed='true']", "1")
+  end
+
   test "does not show upload controls without an account session", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/gallery")
 

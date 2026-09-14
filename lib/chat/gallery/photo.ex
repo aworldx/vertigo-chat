@@ -14,8 +14,11 @@ defmodule Chat.Gallery.Photo do
     field :thumbnail, :binary
     field :thumbnail_content_type, :string
     field :caption, :string
+    field :likes_count, :integer, virtual: true, default: 0
+    field :liked?, :boolean, virtual: true, default: false
 
     belongs_to :user, User
+    has_many :likes, Chat.Gallery.Like
 
     timestamps(type: :utc_datetime)
   end
