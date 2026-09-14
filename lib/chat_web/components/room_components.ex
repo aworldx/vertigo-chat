@@ -908,20 +908,38 @@ defmodule ChatWeb.RoomComponents do
   attr(:body, :string, required: true)
   attr(:emojis, :list, default: [])
 
+  @url_regex ~r/(?:https?:\/\/|www\.)[^\s<>"']+/iu
+
   def emoji_body(assigns) do
     assigns = assign(assigns, :parts, emoji_parts(assigns.body, assigns.emojis))
 
     ~H"""
     <%= for part <- @parts do %>
-      <img
-        :if={part.type == :emoji}
-        src={"/emojis/#{part.emoji.id}"}
-        alt={part.emoji.code}
-        title={part.emoji.code}
-        class="inline-block size-[30px] align-[-0.45rem] object-contain"
-      />
+      <span :if={part.type == :emoji} class="group relative inline-flex align-text-bottom">
+        <img
+          src={"/emojis/#{part.emoji.id}"}
+          alt={part.emoji.code}
+          title={part.emoji.code}
+          class="size-[30px] object-contain"
+        />
+        <span
+          role="tooltip"
+          class="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-52 -translate-x-1/2 rounded bg-zinc-950 px-2 py-1 text-xs text-zinc-100 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        >{part.emoji.code}</span>
+      </span>
       <%= if part.type == :text do %>
-        {part.text}
+        <%= for text_part <- link_parts(part.text) do %>
+          <a
+            :if={text_part.type == :url}
+            href={text_part.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
+          >{text_part.text}</a>
+          <%= if text_part.type == :text do %>
+            {text_part.text}
+          <% end %>
+        <% end %>
       <% end %>
     <% end %>
     """
@@ -949,6 +967,25 @@ defmodule ChatWeb.RoomComponents do
       end
     end)
   end
+
+  defp link_parts(text) do
+    Regex.split(@url_regex, text, include_captures: true, trim: false)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.flat_map(fn part ->
+      if Regex.match?(@url_regex, part) do
+        url = String.trim_trailing(part, ".,!?;:")
+        trailing_text = String.replace_prefix(part, url, "")
+        href = if String.starts_with?(url, "www."), do: "https://" <> url, else: url
+
+        [%{type: :url, text: url, href: href} | text_part(trailing_text)]
+      else
+        text_part(part)
+      end
+    end)
+  end
+
+  defp text_part(""), do: []
+  defp text_part(text), do: [%{type: :text, text: text}]
 
   attr(:uploads, :any, required: true)
   attr(:error, :string, default: nil)
