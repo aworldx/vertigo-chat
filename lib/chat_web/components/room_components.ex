@@ -1177,7 +1177,9 @@ defmodule ChatWeb.RoomComponents do
                 <img
                   src={"/emojis/#{emoji.id}"}
                   alt={emoji.code}
-                  class="size-8 object-contain"
+                  width={emoji.width}
+                  height={emoji.height}
+                  class="h-auto w-auto max-h-8 max-w-8 object-contain"
                 />
               </button>
               <p :if={@emojis == []} class="px-2 py-2 text-sm text-zinc-400">
