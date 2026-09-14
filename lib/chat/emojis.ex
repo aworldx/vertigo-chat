@@ -34,6 +34,10 @@ defmodule Chat.Emojis do
     )
   end
 
+  def pending_count do
+    Repo.aggregate(from(emoji in Emoji, where: emoji.status == :pending), :count)
+  end
+
   def get(id) when is_integer(id) and id > 0, do: Repo.get(Emoji, id)
   def get(_id), do: nil
 

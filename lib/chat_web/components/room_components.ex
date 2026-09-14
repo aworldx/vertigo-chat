@@ -175,18 +175,47 @@ defmodule ChatWeb.RoomComponents do
                   </div>
                 </section>
               <% else %>
-                <p class="inline-flex items-center gap-2 text-xs leading-4 text-zinc-500">
-                  <span>{message.body}</span>
-                  <time
-                    id={"message-time-#{dom_id}"}
-                    datetime={Map.get(message, :sent_at)}
-                    phx-hook=".LocalMessageTime"
-                    phx-update="ignore"
-                    class="text-[10px] text-zinc-600"
+                <%= if Map.get(message, :system_variant) == :emoji_moderation do %>
+                  <section
+                    data-system-notice="emoji-moderation"
+                    class="mx-auto my-2 flex max-w-xl items-center gap-3 rounded-2xl border border-sky-300/25 bg-sky-300/10 px-3 py-2.5 text-left shadow-lg shadow-black/20"
                   >
-                    {message.at}
-                  </time>
-                </p>
+                    <span class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-sky-300/30 bg-sky-300/10 text-sky-200">
+                      <.icon name="hero-shield-check" class="size-4" />
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-sky-100">
+                        На проверке {message.pending_emoji_count} {emoji_count_label(
+                          message.pending_emoji_count
+                        )}
+                      </p>
+                      <p class="text-xs text-sky-100/70">
+                        Откройте модерацию, чтобы проверить предложенные смайлы.
+                      </p>
+                    </div>
+                    <a
+                      href="/admin?section=emojis"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="ml-auto shrink-0 rounded-lg border border-sky-200/40 px-2.5 py-1.5 text-xs font-semibold text-sky-100 transition hover:bg-sky-200/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+                    >
+                      Проверить
+                    </a>
+                  </section>
+                <% else %>
+                  <p class="inline-flex items-center gap-2 text-xs leading-4 text-zinc-500">
+                    <span>{message.body}</span>
+                    <time
+                      id={"message-time-#{dom_id}"}
+                      datetime={Map.get(message, :sent_at)}
+                      phx-hook=".LocalMessageTime"
+                      phx-update="ignore"
+                      class="text-[10px] text-zinc-600"
+                    >
+                      {message.at}
+                    </time>
+                  </p>
+                <% end %>
               <% end %>
             <% :command -> %>
               <section
@@ -653,6 +682,11 @@ defmodule ChatWeb.RoomComponents do
     </main>
     """
   end
+
+  defp emoji_count_label(count) when rem(abs(count), 100) in 11..14, do: "смайлов"
+  defp emoji_count_label(count) when rem(abs(count), 10) == 1, do: "смайл"
+  defp emoji_count_label(count) when rem(abs(count), 10) in 2..4, do: "смайла"
+  defp emoji_count_label(_count), do: "смайлов"
 
   defp typing_label([]), do: ""
   defp typing_label([nickname]), do: "#{nickname} печатает…"

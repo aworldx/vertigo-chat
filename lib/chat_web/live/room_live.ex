@@ -171,6 +171,7 @@ defmodule ChatWeb.RoomLive do
         |> assign_settings_form()
         |> reset_messages(Messages.list_recent_messages(@room_id))
         |> insert_features_notice()
+        |> maybe_insert_emoji_moderation_notice(session.user)
 
       socket = track_presence(socket)
       {:ok, _message} = Sessions.announce_join(chat_session(socket))
@@ -1863,6 +1864,30 @@ defmodule ChatWeb.RoomLive do
       sent_at: DateTime.to_iso8601(sent_at),
       at: Calendar.strftime(sent_at, "%H:%M:%S")
     })
+  end
+
+  defp maybe_insert_emoji_moderation_notice(socket, user) do
+    pending_count = Emojis.pending_count()
+
+    if Accounts.emoji_moderator?(user) and pending_count > 0 do
+      sent_at = DateTime.utc_now()
+
+      insert_message(socket, %{
+        id: "emoji-moderation-notice-#{System.unique_integer([:positive])}",
+        kind: :system,
+        system_variant: :emoji_moderation,
+        author: "system",
+        pending_emoji_count: pending_count,
+        recipient: nil,
+        reactions: %{},
+        theme_id: Themes.default_theme_id(),
+        appearance: Appearance.default(),
+        sent_at: DateTime.to_iso8601(sent_at),
+        at: Calendar.strftime(sent_at, "%H:%M:%S")
+      })
+    else
+      socket
+    end
   end
 
   defp insert_message(socket, message) do
