@@ -49,6 +49,10 @@ defmodule ChatWeb.Router do
       get "/admin", AdminController, :index
       post "/admin/login", AdminController, :login
       post "/admin/emojis", AdminController, :upload_emoji
+      post "/admin/emojis/:id", AdminController, :moderate_emoji
+      post "/admin/emoji-tags", AdminController, :create_emoji_tag
+      post "/admin/emoji-tags/:id", AdminController, :update_emoji_tag
+      delete "/admin/emoji-tags/:id", AdminController, :delete_emoji_tag
       live "/profiles", ProfilesLive, :index
       live "/gallery", GalleryLive, :index
       live "/music-chart", MusicChartLive, :index

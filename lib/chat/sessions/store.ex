@@ -13,6 +13,20 @@ defmodule Chat.Sessions.Store do
     Repo.insert(ChatSession.create_changeset(%ChatSession{id: session_id}, attrs))
   end
 
+  def end_active_for_identity(room_id, identity_key, now \\ DateTime.utc_now()) do
+    now = truncate(now)
+
+    from(session in ChatSession,
+      where:
+        session.room_id == ^room_id and session.identity_key == ^identity_key and
+          session.status in ["active", "reconnecting"]
+    )
+    |> Repo.update_all(
+      set: [status: "ended", ended_at: now, reconnect_deadline_at: nil, updated_at: now],
+      inc: [generation: 1]
+    )
+  end
+
   def restore(session_id, identity_key, resume_secret, now \\ DateTime.utc_now(), opts \\ []) do
     now = truncate(now)
 

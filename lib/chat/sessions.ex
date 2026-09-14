@@ -52,7 +52,8 @@ defmodule Chat.Sessions do
            true <- is_binary(presence_key),
            {:ok, user} <- Accounts.authorize_entrance(nickname, password),
            {identity_key, guest_identity_id} <- identity_for(user),
-           :ok <- ensure_nickname_available(room_id, nickname),
+           :ok <- ensure_nickname_available(room_id, nickname, identity_key),
+           :ok <- take_over_previous_session(user, room_id, identity_key),
            session_id = Ecto.UUID.generate(),
            {:ok, visit} <- start_visit(user, nickname, session_id, identity_key),
            resume_secret = new_resume_secret(),
@@ -314,11 +315,23 @@ defmodule Chat.Sessions do
 
   defp new_resume_secret, do: :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
 
-  defp ensure_nickname_available(room_id, nickname) do
-    if nickname == Chat.Bot.name() or Enum.any?(Store.live(room_id), &(&1.nickname == nickname)),
-      do: {:error, :nickname_online},
-      else: :ok
+  defp ensure_nickname_available(room_id, nickname, identity_key) do
+    if nickname == Chat.Bot.name() or
+         Enum.any?(
+           Store.live(room_id),
+           &(&1.nickname == nickname and &1.identity_key != identity_key)
+         ),
+       do: {:error, :nickname_online},
+       else: :ok
   end
+
+  defp take_over_previous_session(%User{}, room_id, identity_key) do
+    {count, _} = Store.end_active_for_identity(room_id, identity_key)
+    if count > 0, do: Visits.finish_active_visit(identity_key)
+    :ok
+  end
+
+  defp take_over_previous_session(nil, _room_id, _identity_key), do: :ok
 
   defp start_visit(%User{} = user, _nickname, session_id, _identity_key),
     do: Visits.start_visit(user, DateTime.utc_now(), session_id: session_id)

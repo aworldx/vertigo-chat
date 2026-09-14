@@ -19,6 +19,7 @@ defmodule Chat.Accounts.User do
     field(:font_style, :string, default: "normal")
     field(:message_sound_enabled, :boolean, default: false)
     field(:is_admin, :boolean, default: false)
+    field(:can_moderate_emojis, :boolean, default: false)
     field(:is_game_guest, :boolean, default: false)
     field(:game_nickname, :string)
     field(:guest_identity_id, :binary_id)

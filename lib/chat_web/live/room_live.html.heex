@@ -92,8 +92,16 @@
         message_error={@message_error}
         media_error={@media_error}
         registered={not is_nil(@current_user)}
+        emojis={@emojis}
         peer_id={@presence_key}
         ice_servers={Chat.MediaShares.ice_servers()}
+      />
+    <% end %>
+
+    <%= if @joined? && @emoji_submission_open? do %>
+      <RoomComponents.emoji_submission_modal
+        uploads={@uploads}
+        error={@emoji_submission_error}
       />
     <% end %>
 

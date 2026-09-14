@@ -950,42 +950,104 @@ defmodule ChatWeb.RoomComponents do
     end)
   end
 
+  attr(:uploads, :any, required: true)
+  attr(:error, :string, default: nil)
+
+  def emoji_submission_modal(assigns) do
+    ~H"""
+    <div
+      id="emoji-submission-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="emoji-submission-title"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/85 p-4 backdrop-blur-sm"
+    >
+      <.form
+        for={to_form(%{}, as: :emoji)}
+        id="emoji-submission-form"
+        phx-change="validate_emoji_submission"
+        phx-submit="submit_emoji"
+        class="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="emoji-submission-title" class="text-xl font-semibold text-white">
+              Предложить смайл
+            </h2><p class="mt-1 text-sm text-zinc-400">
+              PNG, WebP или GIF до 3 МБ и 512×512 px. Анимированные файлы поддерживаются.
+            </p>
+          </div>
+          <button
+            id="close-emoji-submission"
+            type="button"
+            phx-click="close_emoji_submission"
+            aria-label="Закрыть"
+            class="text-zinc-400 hover:text-white"
+          ><.icon name="hero-x-mark" class="size-5" /></button>
+        </div>
+        <p :if={@error} id="emoji-submission-error" role="alert" class="mt-4 text-sm text-red-300">
+          {@error}
+        </p>
+        <div class="mt-5 space-y-4">
+          <.input
+            id="emoji-submission-code"
+            field={to_form(%{}, as: :emoji)[:code]}
+            type="text"
+            label="Shortcode"
+            placeholder="кот_плачет"
+            required
+          />
+          <div
+            id="emoji-shortcode-help"
+            class="rounded-lg border border-zinc-700 bg-zinc-950/60 p-3 text-xs leading-5 text-zinc-400"
+          >
+            <p class="font-medium text-zinc-200">Как назвать смайл</p>
+            <p>
+              Введите название без двоеточий: <code>гляжу_котика</code>. В сообщении оно станет
+              <code>:гляжу_котика:</code>
+              и заменится картинкой.
+            </p>
+            <p class="mt-1">
+              Используйте строчные русские или латинские буквы, цифры и <code>_</code>. Лучше коротко описывать эмоцию: <code>вау</code>, <code>кот_плачет</code>, <code>не_понял</code>.
+            </p>
+          </div>
+          <.live_file_input
+            upload={@uploads.emoji_image}
+            id="emoji-submission-image"
+            class="block w-full text-sm text-zinc-300 file:mr-3 file:rounded file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:font-semibold file:text-zinc-950"
+          />
+          <div
+            :for={entry <- @uploads.emoji_image.entries}
+            id={"emoji-upload-#{entry.ref}"}
+            class="text-xs text-zinc-400"
+          >
+            {entry.client_name}
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            phx-click="close_emoji_submission"
+            class="rounded px-4 py-2 text-sm text-zinc-300 hover:text-white"
+          >Отмена</button><button
+            type="submit"
+            class="rounded bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-200"
+          >Отправить</button>
+        </div>
+      </.form>
+    </div>
+    """
+  end
+
   attr(:message_form, :any, required: true)
   attr(:message_error, :string, default: nil)
   attr(:media_error, :string, default: nil)
   attr(:registered, :boolean, required: true)
+  attr(:emojis, :list, default: [])
   attr(:peer_id, :string, required: true)
   attr(:ice_servers, :list, required: true)
 
   def message_input(assigns) do
-    assigns =
-      assign(assigns, :emojis, [
-        "😀",
-        "😂",
-        "😊",
-        "😍",
-        "🥰",
-        "😎",
-        "🤔",
-        "😢",
-        "😡",
-        "👍",
-        "👎",
-        "👏",
-        "🙏",
-        "🔥",
-        "❤️",
-        "🎉",
-        "✨",
-        "💯",
-        "👋",
-        "🤝",
-        "💬",
-        "🚀",
-        "☕",
-        "🌙"
-      ])
-
     ~H"""
     <.form
       for={@message_form}
@@ -1013,14 +1075,14 @@ defmodule ChatWeb.RoomComponents do
       <fieldset
         id="emoji-input-controls"
         phx-hook=".EmojiPicker"
-        class="flex min-w-0 flex-wrap gap-3 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-nowrap"
+        class="flex min-w-0 flex-wrap gap-3 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <div class="relative hidden shrink-0 sm:block">
+        <div class="contents">
           <button
             id="toggle-emoji-picker"
             type="button"
             phx-click={JS.toggle_class("emoji-picker-closed", to: "#emoji-picker")}
-            aria-label="Выбрать эмодзи"
+            aria-label="Выбрать смайл"
             aria-controls="emoji-picker"
             class="flex h-full min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
           >
@@ -1028,18 +1090,36 @@ defmodule ChatWeb.RoomComponents do
           </button>
           <div
             id="emoji-picker"
-            phx-click-away={JS.add_class("emoji-picker-closed", to: "#emoji-picker")}
-            class="emoji-picker-closed absolute bottom-full left-0 z-40 mb-2 grid w-64 grid-cols-6 gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-2xl"
+            class="emoji-picker-closed order-first basis-full rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-xl"
           >
-            <button
-              :for={emoji <- @emojis}
-              type="button"
-              data-emoji={emoji}
-              aria-label={"Вставить #{emoji}"}
-              class="flex size-9 items-center justify-center rounded-lg text-xl transition hover:bg-amber-300/15 hover:scale-110"
-            >
-              {emoji}
-            </button>
+            <div id="emoji-picker-list" class="flex gap-2 overflow-x-auto pb-1">
+              <button
+                :for={emoji <- @emojis}
+                type="button"
+                data-emoji-code={emoji.code}
+                data-emoji-terms={Jason.encode!(emoji.suggestion_terms || [])}
+                aria-label={"Вставить #{emoji.code}"}
+                class="flex size-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-amber-300/15 hover:scale-110"
+              >
+                <img src={"/emojis/#{emoji.id}"} alt={emoji.code} class="size-8 object-contain" />
+              </button>
+              <p :if={@emojis == []} class="px-2 py-2 text-sm text-zinc-400">
+                Смайлы появятся после модерации.
+              </p>
+            </div>
+            <div class="mt-2 flex items-center justify-between gap-3 border-t border-zinc-800 pt-2 text-xs text-zinc-400">
+              <label class="flex items-center gap-2"><input
+                id="emoji-autosuggest"
+                type="checkbox"
+                checked
+              />Автоподбор</label>
+              <button
+                id="open-emoji-submission"
+                type="button"
+                phx-click="open_emoji_submission"
+                class="text-amber-200 hover:text-amber-100"
+              >Загрузить</button>
+            </div>
           </div>
         </div>
         <button
@@ -1174,16 +1254,41 @@ defmodule ChatWeb.RoomComponents do
       <script :type={Phoenix.LiveView.ColocatedHook} name=".EmojiPicker">
         export default {
           mounted() {
+            const input = this.el.querySelector("#message-body")
+            const pickerList = this.el.querySelector("#emoji-picker-list")
+            const autosuggest = this.el.querySelector("#emoji-autosuggest")
+
+            const buttons = [...pickerList.querySelectorAll("[data-emoji-code]")]
+            buttons.forEach((button, index) => {
+              button.dataset.emojiOrder = index
+              button.emojiTerms = JSON.parse(button.dataset.emojiTerms || "[]")
+            })
+
+            const reorder = () => {
+              const text = input.value.toLocaleLowerCase()
+              const score = button =>
+                autosuggest.checked
+                  ? button.emojiTerms.filter(term => term && text.includes(term)).length
+                  : 0
+
+              buttons
+                .sort((a, b) => {
+                  return score(b) - score(a) || Number(a.dataset.emojiOrder) - Number(b.dataset.emojiOrder)
+                })
+                .forEach(button => pickerList.append(button))
+            }
+
+            input.addEventListener("input", () => autosuggest.checked && reorder())
+            autosuggest.addEventListener("change", reorder)
+
             this.el.addEventListener("click", event => {
-              const emojiButton = event.target.closest("[data-emoji]")
+              const emojiButton = event.target.closest("[data-emoji-code]")
               if (!emojiButton) return
 
-              const input = this.el.querySelector("#message-body")
               const start = input.selectionStart ?? input.value.length
               const end = input.selectionEnd ?? input.value.length
-              input.setRangeText(emojiButton.dataset.emoji, start, end, "end")
+              input.setRangeText(emojiButton.dataset.emojiCode, start, end, "end")
               input.dispatchEvent(new Event("input", {bubbles: true}))
-              this.el.querySelector("#emoji-picker").classList.add("emoji-picker-closed")
               input.focus()
             })
           }

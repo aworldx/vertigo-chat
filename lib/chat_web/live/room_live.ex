@@ -10,6 +10,8 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Chatlans
   alias Chat.Commands
   alias Chat.Emojis
+  alias Chat.Media
+  alias Chat.Media.S3
   alias Chat.Feedback
   alias Chat.Gifs
   alias Chat.MediaShares
@@ -76,6 +78,8 @@ defmodule ChatWeb.RoomLive do
       |> assign(:registration_error, nil)
       |> assign(:registration_open?, false)
       |> assign(:feedback_open?, false)
+      |> assign(:emoji_submission_open?, false)
+      |> assign(:emoji_submission_error, nil)
       |> assign(:message_error, nil)
       |> assign(:media_error, nil)
       |> assign(:online, [])
@@ -105,6 +109,7 @@ defmodule ChatWeb.RoomLive do
         max_entries: 1,
         max_file_size: 1_500_000
       )
+      |> allow_emoji_upload()
 
     socket =
       if connected?(socket) do
@@ -371,6 +376,54 @@ defmodule ChatWeb.RoomLive do
         end
     end
   end
+
+  def handle_event(
+        "open_emoji_submission",
+        _params,
+        %{assigns: %{current_user: %{} = _user}} = socket
+      ) do
+    {:noreply,
+     socket |> assign(:emoji_submission_open?, true) |> assign(:emoji_submission_error, nil)}
+  end
+
+  def handle_event("open_emoji_submission", _params, socket) do
+    {:noreply,
+     put_flash(socket, :error, "Загружать смайлы могут только зарегистрированные чатлане.")}
+  end
+
+  def handle_event("close_emoji_submission", _params, socket) do
+    {:noreply,
+     socket |> assign(:emoji_submission_open?, false) |> assign(:emoji_submission_error, nil)}
+  end
+
+  def handle_event("validate_emoji_submission", _params, socket) do
+    {:noreply, assign(socket, :emoji_submission_error, nil)}
+  end
+
+  def handle_event(
+        "submit_emoji",
+        %{"emoji" => %{"code" => code}},
+        %{assigns: %{current_user: user}} = socket
+      )
+      when not is_nil(user) do
+    case save_uploaded_emoji(socket, user, code) do
+      {:ok, _emoji} ->
+        {:noreply,
+         socket
+         |> assign(:emoji_submission_open?, false)
+         |> put_flash(:info, "Смайл отправлен на проверку модератору.")}
+
+      {:error, _reason} ->
+        {:noreply,
+         assign(
+           socket,
+           :emoji_submission_error,
+           "Не удалось загрузить смайл. Проверьте формат, размер и код."
+         )}
+    end
+  end
+
+  def handle_event("submit_emoji", _params, socket), do: {:noreply, socket}
 
   def handle_event("send_private_message", %{"body" => body}, socket) do
     send_private_message(body, socket)
@@ -1089,7 +1142,7 @@ defmodule ChatWeb.RoomLive do
     {:noreply, socket |> insert_message(message) |> maybe_notify_about_message(message)}
   end
 
-  def handle_info({:emoji_created, _emoji}, socket) do
+  def handle_info({:emoji_updated, _emoji}, socket) do
     {:noreply, socket |> assign(:emojis, Emojis.list()) |> rerender_messages()}
   end
 
@@ -2219,6 +2272,59 @@ defmodule ChatWeb.RoomLive do
       _entries ->
         {:error, :invalid_photo}
     end
+  end
+
+  defp save_uploaded_emoji(socket, user, code) do
+    case uploaded_entries(socket, :emoji_image) do
+      {[_entry], []} ->
+        consume_uploaded_entries(socket, :emoji_image, fn %{path: path}, entry ->
+          {:ok, {File.read!(path), entry.client_type}}
+        end)
+        |> case do
+          [{image, content_type}] ->
+            Emojis.submit(user, code, image, content_type)
+
+          [%{key: key, content_type: content_type}] ->
+            Emojis.submit_remote(user, code, key, content_type)
+
+          _ ->
+            {:error, :invalid_emoji}
+        end
+
+      _entries ->
+        {:error, :invalid_emoji}
+    end
+  end
+
+  defp allow_emoji_upload(socket) do
+    options = [
+      accept: Chat.Emojis.accepted_types(),
+      max_entries: 1,
+      max_file_size: Chat.Emojis.max_bytes(),
+      auto_upload: true
+    ]
+
+    options =
+      if Media.enabled?(),
+        do: Keyword.put(options, :external, &presign_emoji_upload/2),
+        else: options
+
+    allow_upload(socket, :emoji_image, options)
+  end
+
+  defp presign_emoji_upload(entry, socket) do
+    extension =
+      %{"image/png" => "png", "image/webp" => "webp", "image/gif" => "gif"}[entry.client_type]
+
+    key = "emoji-staging/#{Ecto.UUID.generate()}.#{extension}"
+
+    {:ok,
+     %{
+       uploader: "S3",
+       key: key,
+       content_type: entry.client_type,
+       url: S3.presigned_put_url(key, entry.client_type)
+     }, socket}
   end
 
   defp sync_user_auth(socket, nil), do: push_event(socket, "clear-user-auth", %{})

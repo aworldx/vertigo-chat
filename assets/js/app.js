@@ -27,6 +27,20 @@ import {hooks as colocatedHooks} from "phoenix-colocated/chat"
 import MediaSharing from "./media_sharing"
 import "./theme"
 
+const Uploaders = {
+  S3(entries, onViewError) {
+    entries.forEach(entry => {
+      const xhr = new XMLHttpRequest()
+      xhr.open("PUT", entry.meta.url, true)
+      xhr.setRequestHeader("content-type", entry.meta.content_type)
+      xhr.upload.addEventListener("progress", event => entry.progress(event.loaded / event.total * 100))
+      xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? entry.progress(100) : onViewError()
+      xhr.onerror = () => onViewError()
+      xhr.send(entry.file)
+    })
+  },
+}
+
 const CHAT_PREFERENCES_KEY = "chat:guest-preferences"
 const USER_AUTH_KEY = "chat:user-auth"
 const USER_SESSION_KEY = "chat:user-session"
@@ -951,6 +965,7 @@ const chatHooks = {
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
+  uploaders: Uploaders,
   longPollFallbackMs: LONG_POLL_FALLBACK_MS,
   sessionStorage: liveSocketSessionStorage,
   params: () => ({_csrf_token: csrfToken, ...chatSessionParams()}),

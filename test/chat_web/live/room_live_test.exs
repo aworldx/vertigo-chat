@@ -120,7 +120,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#command-autocomplete-menu [data-command='/гиф ']")
     assert has_element?(view, "#command-autocomplete-menu [data-command='/очистить']")
 
-    assert has_element?(view, "#emoji-input-controls.flex-wrap.sm\\:flex-nowrap")
+    assert has_element?(view, "#emoji-input-controls.flex-wrap")
     assert has_element?(view, "#show-command-menu[aria-controls='command-autocomplete-menu']")
     assert has_element?(view, "#command-autocomplete.flex-1")
     assert has_element?(view, "#message-body.w-full.text-base")
@@ -273,7 +273,9 @@ defmodule ChatWeb.RoomLiveTest do
     assert 1 == Enum.count(Visits.list_recent_visits(), &(&1.nickname == nickname))
   end
 
-  test "rejects a second chat tab while a registered chatlan is active", %{conn: conn} do
+  test "allows a registered chatlan with the correct password to take over an active session", %{
+    conn: conn
+  } do
     nickname = "two_tabs_#{System.unique_integer([:positive])}"
 
     assert {:ok, _user} =
@@ -285,8 +287,7 @@ defmodule ChatWeb.RoomLiveTest do
     {:ok, second_tab, _html} = live(build_conn(), ~p"/chat")
     enter_chat(second_tab, nickname, "secret123")
 
-    assert has_element?(second_tab, "#chat-login-link")
-    assert render(second_tab) =~ "Этот ник уже используется в чате"
+    assert has_element?(second_tab, "#message-form")
 
     assert 1 ==
              Repo.aggregate(
@@ -1179,13 +1180,12 @@ defmodule ChatWeb.RoomLiveTest do
     {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "emoji_user")
 
-    assert has_element?(
-             view,
-             "#emoji-input-controls > div.hidden.sm\\:block #toggle-emoji-picker"
-           )
+    assert has_element?(view, "#emoji-input-controls #toggle-emoji-picker")
 
-    assert has_element?(view, "#emoji-picker button[data-emoji='😀']")
-    assert has_element?(view, "#emoji-picker[phx-click-away]")
+    assert has_element?(view, "#emoji-picker-list")
+    assert has_element?(view, "#emoji-autosuggest[checked]")
+    assert has_element?(view, "#open-emoji-submission")
+    assert has_element?(view, "#emoji-picker")
     assert has_element?(view, "#emoji-input-controls")
     assert has_element?(view, "#send-message[aria-label='Отправить сообщение'] .sm\\:hidden")
     assert has_element?(view, "#leave-chat[aria-label='Выйти из чата'] .sm\\:hidden")

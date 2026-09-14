@@ -19,6 +19,7 @@ defmodule Chat.Media do
     ]
 
   def fields(Chat.MusicChart.Track), do: [{:audio, :audio_key, :content_type}]
+  def fields(Chat.Emojis.Emoji), do: [{:image, :image_key, :content_type}]
 
   def persist(%{valid?: false} = changeset), do: {:error, changeset}
 
@@ -111,6 +112,7 @@ defmodule Chat.Media do
         Chat.Profiles.Profile -> "profiles"
         Chat.Gallery.Photo -> "gallery"
         Chat.MusicChart.Track -> "music-chart"
+        Chat.Emojis.Emoji -> "emojis"
       end
 
     extension =
@@ -118,6 +120,7 @@ defmodule Chat.Media do
         "image/jpeg" => "jpg",
         "image/png" => "png",
         "image/webp" => "webp",
+        "image/gif" => "gif",
         "audio/mpeg" => "mp3",
         "audio/ogg" => "ogg",
         "audio/wav" => "wav"

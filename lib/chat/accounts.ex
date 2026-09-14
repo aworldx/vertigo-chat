@@ -83,6 +83,10 @@ defmodule Chat.Accounts do
   def admin?(%User{is_admin: true}), do: true
   def admin?(_user), do: false
 
+  def emoji_moderator?(%User{is_admin: true}), do: true
+  def emoji_moderator?(%User{can_moderate_emojis: true}), do: true
+  def emoji_moderator?(_user), do: false
+
   def authenticate(nickname, password) do
     nickname = Chatlans.normalize_nickname(nickname, nil)
     password = normalize_password(password)

@@ -20,10 +20,26 @@ defmodule Chat.Admin do
   def list_feedback(_user), do: {:error, :forbidden}
 
   def list_emojis(%User{} = user) do
-    if Accounts.admin?(user), do: {:ok, Emojis.list()}, else: {:error, :forbidden}
+    if Accounts.emoji_moderator?(user),
+      do: {:ok, Emojis.list_for_moderation()},
+      else: {:error, :forbidden}
   end
 
   def list_emojis(_user), do: {:error, :forbidden}
+
+  def list_emoji_tags(%User{} = user) do
+    if Accounts.emoji_moderator?(user), do: {:ok, Emojis.list_tags()}, else: {:error, :forbidden}
+  end
+
+  def list_emoji_tags(_user), do: {:error, :forbidden}
+
+  def search_emoji_tags(%User{} = user, query) when is_binary(query) do
+    if Accounts.emoji_moderator?(user),
+      do: {:ok, Emojis.search_tags(query)},
+      else: {:error, :forbidden}
+  end
+
+  def search_emoji_tags(_user, _query), do: {:error, :forbidden}
 
   def list_karmik_assessments(%User{} = user) do
     if Accounts.admin?(user),
@@ -52,12 +68,24 @@ defmodule Chat.Admin do
   def database_overview(_user, _requested_table), do: {:error, :forbidden}
 
   def create_emoji(%User{} = user, code, image, content_type) do
-    if Accounts.admin?(user),
-      do: Emojis.create(code, image, content_type),
+    if Accounts.emoji_moderator?(user),
+      do: Emojis.submit(user, code, image, content_type),
       else: {:error, :forbidden}
   end
 
   def create_emoji(_user, _code, _image, _content_type), do: {:error, :forbidden}
+
+  def moderate_emoji(%User{} = user, emoji_id, attrs), do: Emojis.moderate(user, emoji_id, attrs)
+  def moderate_emoji(_user, _emoji_id, _attrs), do: {:error, :forbidden}
+
+  def create_emoji_tag(%User{} = user, attrs), do: Emojis.create_tag(user, attrs)
+  def create_emoji_tag(_user, _attrs), do: {:error, :forbidden}
+
+  def update_emoji_tag(%User{} = user, tag_id, attrs), do: Emojis.update_tag(user, tag_id, attrs)
+  def update_emoji_tag(_user, _tag_id, _attrs), do: {:error, :forbidden}
+
+  def delete_emoji_tag(%User{} = user, tag_id), do: Emojis.delete_tag(user, tag_id)
+  def delete_emoji_tag(_user, _tag_id), do: {:error, :forbidden}
 
   defp load_database_overview(requested_table) do
     with {:ok, %{rows: table_rows}} <- Repo.query(public_tables_query()),

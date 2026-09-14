@@ -20,6 +20,31 @@ defmodule Chat.Media.S3 do
     end
   end
 
+  def presigned_put_url(key, content_type) do
+    config = Media.config()
+    url = object_url(key)
+
+    Req.Utils.aws_sigv4_url(
+      access_key_id: Keyword.fetch!(config, :access_key_id),
+      secret_access_key: Keyword.fetch!(config, :secret_access_key),
+      region: Keyword.fetch!(config, :region),
+      service: :s3,
+      datetime: DateTime.utc_now(),
+      method: :put,
+      url: url,
+      expires: 300,
+      headers: [{"content-type", content_type}]
+    )
+    |> URI.to_string()
+  end
+
+  def get(key) do
+    case request(:get, key, []) do
+      {:ok, %{status: 200, body: bytes}} -> {:ok, bytes}
+      _ -> {:error, :storage_unavailable}
+    end
+  end
+
   # Verify anonymous reads and exact bytes before removing the database copy.
   def verify(key, bytes) do
     opts = Keyword.merge(request_options(), method: :get, url: Media.public_url(key))
@@ -33,9 +58,7 @@ defmodule Chat.Media.S3 do
   defp request(method, key, options) do
     config = Media.config()
 
-    url =
-      String.trim_trailing(Keyword.fetch!(config, :endpoint), "/") <>
-        "/" <> Keyword.fetch!(config, :bucket) <> "/" <> Media.encode_key(key)
+    url = object_url(key)
 
     request_options()
     |> Keyword.merge(options)
@@ -50,6 +73,13 @@ defmodule Chat.Media.S3 do
       ]
     )
     |> Req.request()
+  end
+
+  defp object_url(key) do
+    config = Media.config()
+
+    String.trim_trailing(Keyword.fetch!(config, :endpoint), "/") <>
+      "/" <> Keyword.fetch!(config, :bucket) <> "/" <> Media.encode_key(key)
   end
 
   defp request_options do

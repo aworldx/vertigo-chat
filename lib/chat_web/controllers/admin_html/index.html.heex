@@ -15,13 +15,36 @@
           class="mt-5 space-y-1 text-sm"
         >
           <a
-            href="#database"
-            class="block rounded-lg bg-emerald-900/50 px-3 py-2 font-medium text-emerald-100"
+            :if={@is_admin?}
+            href={~p"/admin?section=database"}
+            class={[
+              "block rounded-lg px-3 py-2 font-medium",
+              if(@selected_section == :database,
+                do: "bg-emerald-900/50 text-emerald-100",
+                else: "text-stone-300 hover:bg-emerald-950 hover:text-white"
+              )
+            ]}
           >Данные</a>
           <a
-            href="#emojis"
-            class="block rounded-lg px-3 py-2 text-stone-300 transition hover:bg-emerald-950 hover:text-white"
+            href={~p"/admin?section=emojis"}
+            class={[
+              "block rounded-lg px-3 py-2 transition",
+              if(@selected_section == :emojis,
+                do: "bg-emerald-900/50 font-medium text-emerald-100",
+                else: "text-stone-300 hover:bg-emerald-950 hover:text-white"
+              )
+            ]}
           >Смайлы</a>
+          <a
+            href={~p"/admin?section=tags"}
+            class={[
+              "block rounded-lg px-3 py-2 transition",
+              if(@selected_section == :tags,
+                do: "bg-emerald-900/50 font-medium text-emerald-100",
+                else: "text-stone-300 hover:bg-emerald-950 hover:text-white"
+              )
+            ]}
+          >Теги</a>
         </nav>
       </aside>
 
@@ -63,7 +86,7 @@
         </section>
 
         <section
-          :if={@current_user}
+          :if={@current_user && @is_admin? && @selected_section == :database}
           id="database"
           class="rounded-2xl border border-emerald-950 bg-[#162019] p-5 shadow-xl shadow-black/20 sm:p-6"
         >
@@ -138,7 +161,7 @@
         </section>
 
         <section
-          :if={@current_user}
+          :if={@current_user && @selected_section == :emojis}
           id="emojis"
           class="rounded-2xl border border-emerald-950 bg-[#162019] p-5 shadow-xl shadow-black/20 sm:p-6"
         >
@@ -153,14 +176,21 @@
             class="mt-5 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
           >
             <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-            <.input id="emoji-code" name="emoji[code]" value="" label="Код" required />
+            <.input
+              id="emoji-code"
+              name="emoji[code]"
+              value=""
+              label="Код без двоеточий"
+              placeholder="гляжу_кота"
+              required
+            />
             <.input
               id="emoji-image"
               name="emoji[image]"
               value=""
               type="file"
-              accept="image/png"
-              label="PNG"
+              accept="image/png,image/webp,image/gif"
+              label="PNG, WebP или GIF"
               required
             />
             <button
@@ -168,11 +198,187 @@
               class="rounded-lg bg-amber-300 px-4 py-2.5 font-semibold text-stone-950 transition hover:bg-amber-200"
             >Добавить</button>
           </form>
-          <div id="admin-emojis-list" class="mt-5 flex flex-wrap gap-3">
-            <span
+          <p class="mt-3 text-sm text-stone-400">
+            Введите код без двоеточий: <code>кот_плачет</code>. В сообщениях он будет выглядеть как <code>:кот_плачет:</code>.
+          </p>
+          <div id="admin-emojis-list" class="mt-5 grid gap-3">
+            <form
               :for={emoji <- @emojis}
-              class="inline-flex items-center gap-2 rounded-lg border border-emerald-950 bg-[#111a14] px-2 py-1 text-sm text-stone-300"
-            ><img src={~p"/emojis/#{emoji.id}"} alt={emoji.code} class="size-[30px]" />{emoji.code}</span>
+              id={"admin-emoji-#{emoji.id}"}
+              action={~p"/admin/emojis/#{emoji.id}"}
+              method="post"
+              class="grid gap-3 rounded-lg border border-emerald-950 bg-[#111a14] p-3 sm:grid-cols-[auto_1fr_15rem_auto] sm:items-center"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <img src={~p"/emojis/#{emoji.id}"} alt={emoji.code} class="size-12 object-contain" />
+              <div class="min-w-0 text-sm text-stone-300">
+                <p class="font-medium">{emoji.code}</p><p class="mt-1 text-xs text-stone-500">
+                  {emoji.width}×{emoji.height} · {emoji.content_type}{if emoji.animated,
+                    do: " · анимация"}{if emoji.user, do: " · " <> emoji.user.nickname}
+                </p>
+              </div>
+              <div class="min-w-0">
+                <details
+                  id={"emoji-tags-#{emoji.id}"}
+                  class="group rounded-lg border border-emerald-900 bg-[#162019]"
+                >
+                  <summary class="cursor-pointer list-none px-3 py-2 text-sm text-stone-200 marker:hidden">
+                    <span class="flex items-center justify-between gap-2">
+                      <span class="font-medium">Теги</span>
+                      <span class="truncate text-xs text-stone-400">
+                        {if emoji.emoji_tags == [],
+                          do: "не выбраны",
+                          else: Enum.map_join(emoji.emoji_tags, ", ", & &1.name)}
+                      </span>
+                    </span>
+                  </summary>
+                  <div class="max-h-44 overflow-y-auto border-t border-emerald-950 p-2">
+                    <label
+                      :for={tag <- @emoji_tags}
+                      for={"emoji-#{emoji.id}-tag-#{tag.id}"}
+                      class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-stone-300 hover:bg-emerald-950"
+                    >
+                      <input
+                        id={"emoji-#{emoji.id}-tag-#{tag.id}"}
+                        name="emoji[tag_ids][]"
+                        type="checkbox"
+                        value={tag.id}
+                        checked={Enum.any?(emoji.emoji_tags, &(&1.id == tag.id))}
+                        class="size-4 rounded border-emerald-700 bg-[#101612] text-amber-300 focus:ring-amber-300"
+                      />
+                      {tag.name}
+                    </label>
+                    <p :if={@emoji_tags == []} class="px-2 py-1 text-sm text-stone-500">
+                      Сначала добавьте теги в разделе «Теги».
+                    </p>
+                  </div>
+                </details>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <select
+                  id={"emoji-status-#{emoji.id}"}
+                  name="emoji[status]"
+                  class="rounded border border-emerald-900 bg-[#162019] px-2 py-2 text-sm text-stone-100"
+                ><option
+                  :for={status <- ~w(pending approved rejected hidden)}
+                  value={status}
+                  selected={to_string(emoji.status) == status}
+                >
+                  {status}
+                </option></select><button
+                  type="submit"
+                  class="rounded bg-amber-300 px-3 py-2 text-sm font-semibold text-stone-950 hover:bg-amber-200"
+                >Сохранить</button>
+              </div>
+              <.input
+                :if={emoji.status == :rejected}
+                id={"emoji-rejection-#{emoji.id}"}
+                name="emoji[rejection_reason]"
+                value={emoji.rejection_reason || ""}
+                label="Причина отклонения"
+              />
+            </form>
+          </div>
+        </section>
+        <section
+          :if={@current_user && @selected_section == :tags}
+          id="emoji-tags"
+          class="rounded-2xl border border-emerald-950 bg-[#162019] p-5 shadow-xl shadow-black/20 sm:p-6"
+        >
+          <p class="text-sm font-medium text-amber-300">Справочник</p>
+          <h2 class="mt-1 text-2xl font-semibold text-white">Теги смайлов</h2>
+          <form
+            action={~p"/admin/emoji-tags"}
+            method="post"
+            id="admin-emoji-tag-form"
+            class="mt-5 grid max-w-3xl gap-4 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-end"
+          >
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+            <.input
+              id="emoji-tag-name"
+              name="emoji_tag[name]"
+              value=""
+              label="Новый тег"
+              placeholder="грусть"
+              required
+            />
+            <.input
+              id="emoji-tag-triggers"
+              name="emoji_tag[triggers]"
+              value=""
+              type="textarea"
+              rows="3"
+              label="Триггеры — необязательно"
+              placeholder="По одному на строку: печаль, грустно, 😢"
+            />
+            <button
+              type="submit"
+              class="shrink-0 rounded-lg bg-amber-300 px-4 py-2.5 font-semibold text-stone-950 hover:bg-amber-200"
+            >Добавить</button>
+          </form>
+          <p class="mt-3 max-w-3xl text-sm text-stone-400">
+            Тег и его триггеры используются для автоподбора. Триггером может быть слово, эмодзи или целая фраза; указывайте по одному на строку.
+          </p>
+          <div id="admin-emoji-tags-list" class="mt-6 grid gap-3 sm:grid-cols-2">
+            <details
+              :for={tag <- @emoji_tags}
+              id={"admin-emoji-tag-#{tag.id}"}
+              class="group rounded-lg border border-emerald-950 bg-[#111a14] text-sm text-stone-200"
+            >
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 marker:hidden hover:bg-emerald-950/40">
+                <span class="min-w-0">
+                  <span class="font-medium text-stone-100">{tag.name}</span>
+                  <span :if={tag.triggers != []} class="ml-2 text-xs text-stone-500">
+                    {Enum.take(tag.triggers, 3) |> Enum.join(" · ")}
+                  </span>
+                </span>
+                <span class="shrink-0 text-xs text-stone-400">
+                  {length(tag.triggers)} триггеров · изменить
+                </span>
+              </summary>
+              <div class="border-t border-emerald-950 p-3">
+                <form
+                  action={~p"/admin/emoji-tags/#{tag.id}"}
+                  method="post"
+                  id={"edit-emoji-tag-#{tag.id}"}
+                  class="grid gap-3"
+                >
+                  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                  <.input
+                    id={"emoji-tag-name-#{tag.id}"}
+                    name="emoji_tag[name]"
+                    value={tag.name}
+                    label="Тег"
+                    required
+                  />
+                  <.input
+                    id={"emoji-tag-triggers-#{tag.id}"}
+                    name="emoji_tag[triggers]"
+                    value={Enum.join(tag.triggers, "\n")}
+                    type="textarea"
+                    rows="4"
+                    label="Триггеры — по одному на строку"
+                    placeholder="Например: печаль, грустно, 😢"
+                  />
+                  <button
+                    type="submit"
+                    class="justify-self-start rounded bg-amber-300 px-3 py-2 text-xs font-semibold text-stone-950 hover:bg-amber-200"
+                  >Сохранить</button>
+                </form>
+                <.form
+                  for={to_form(%{}, as: :tag)}
+                  action={~p"/admin/emoji-tags/#{tag.id}"}
+                  method="delete"
+                  class="mt-3"
+                >
+                  <button
+                    id={"delete-emoji-tag-#{tag.id}"}
+                    type="submit"
+                    class="text-xs text-red-300 hover:text-red-200"
+                  >Удалить тег</button>
+                </.form>
+              </div>
+            </details>
           </div>
         </section>
       </div>
