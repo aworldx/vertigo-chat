@@ -2066,7 +2066,11 @@ defmodule ChatWeb.RoomComponents do
         </label>
       </section>
 
-      <details id="appearance-colors" class="group rounded-2xl border border-zinc-800 bg-zinc-950/70">
+      <details
+        id="appearance-colors"
+        phx-update="ignore"
+        class="group rounded-2xl border border-zinc-800 bg-zinc-950/70"
+      >
         <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-zinc-100 marker:content-none">
           <.icon name="hero-paint-brush" class="size-4 text-amber-300" /> Цвета моих сообщений
           <span class="ml-auto text-xs font-normal text-zinc-500">Дополнительно</span>
