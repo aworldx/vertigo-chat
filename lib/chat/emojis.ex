@@ -204,7 +204,14 @@ defmodule Chat.Emojis do
 
   defp put_tag_names(emoji) do
     tags = Enum.map(emoji.emoji_tags, & &1.name)
-    suggestion_terms = Enum.flat_map(emoji.emoji_tags, &[&1.name | &1.triggers]) |> Enum.uniq()
+
+    suggestion_terms =
+      [
+        emoji.code,
+        String.trim(emoji.code, ":") | Enum.flat_map(emoji.emoji_tags, &[&1.name | &1.triggers])
+      ]
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.uniq()
 
     %{emoji | tags: tags, suggestion_terms: suggestion_terms}
   end
