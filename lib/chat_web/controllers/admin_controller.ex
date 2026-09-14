@@ -99,6 +99,19 @@ defmodule ChatWeb.AdminController do
     end
   end
 
+  def delete_emoji(conn, %{"id" => id}) do
+    with {:ok, user} <- current_admin(conn),
+         {emoji_id, ""} <- Integer.parse(id),
+         {:ok, _emoji} <- Admin.delete_emoji(user, emoji_id) do
+      conn |> put_flash(:info, "Смайл удалён.") |> redirect(to: ~p"/admin?section=emojis")
+    else
+      _ ->
+        conn
+        |> put_flash(:error, "Не удалось удалить смайл.")
+        |> redirect(to: ~p"/admin?section=emojis")
+    end
+  end
+
   def create_emoji_tag(conn, %{"emoji_tag" => attrs}) do
     with {:ok, user} <- current_admin(conn), {:ok, _tag} <- Admin.create_emoji_tag(user, attrs) do
       conn |> put_flash(:info, "Тег добавлен.") |> redirect(to: ~p"/admin?section=tags")

@@ -45,6 +45,13 @@ defmodule Chat.Media.S3 do
     end
   end
 
+  def delete(key) do
+    case request(:delete, key, []) do
+      {:ok, %{status: status}} when status in 200..299 -> :ok
+      _ -> {:error, :storage_unavailable}
+    end
+  end
+
   # Verify anonymous reads and exact bytes before removing the database copy.
   def verify(key, bytes) do
     opts = Keyword.merge(request_options(), method: :get, url: Media.public_url(key))

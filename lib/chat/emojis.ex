@@ -104,6 +104,22 @@ defmodule Chat.Emojis do
     end
   end
 
+  def delete(%User{} = moderator, emoji_id) when is_integer(emoji_id) do
+    with true <- Accounts.emoji_moderator?(moderator),
+         %Emoji{} = emoji <- get(emoji_id),
+         :ok <- delete_image(emoji),
+         {:ok, emoji} <- Repo.delete(emoji) do
+      Phoenix.PubSub.broadcast(Chat.PubSub, @topic, {:emoji_deleted, emoji.id})
+      {:ok, emoji}
+    else
+      false -> {:error, :forbidden}
+      nil -> {:error, :not_found}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  def delete(_moderator, _emoji_id), do: {:error, :forbidden}
+
   def list_tags, do: Repo.all(from tag in Tag, order_by: [asc: tag.name])
 
   def search_tags(query) when is_binary(query) do
@@ -192,4 +208,7 @@ defmodule Chat.Emojis do
 
     %{emoji | tags: tags, suggestion_terms: suggestion_terms}
   end
+
+  defp delete_image(%Emoji{image_key: key}) when is_binary(key), do: S3.delete(key)
+  defp delete_image(_emoji), do: :ok
 end

@@ -78,6 +78,9 @@ defmodule Chat.Admin do
   def moderate_emoji(%User{} = user, emoji_id, attrs), do: Emojis.moderate(user, emoji_id, attrs)
   def moderate_emoji(_user, _emoji_id, _attrs), do: {:error, :forbidden}
 
+  def delete_emoji(%User{} = user, emoji_id), do: Emojis.delete(user, emoji_id)
+  def delete_emoji(_user, _emoji_id), do: {:error, :forbidden}
+
   def create_emoji_tag(%User{} = user, attrs), do: Emojis.create_tag(user, attrs)
   def create_emoji_tag(_user, _attrs), do: {:error, :forbidden}
 

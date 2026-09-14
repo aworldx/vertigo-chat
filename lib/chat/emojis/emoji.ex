@@ -19,7 +19,8 @@ defmodule Chat.Emojis.Emoji do
 
     many_to_many :emoji_tags, Chat.Emojis.Tag,
       join_through: "emoji_tag_assignments",
-      join_keys: [emoji_id: :id, emoji_tag_id: :id]
+      join_keys: [emoji_id: :id, emoji_tag_id: :id],
+      on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end

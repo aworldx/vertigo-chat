@@ -50,6 +50,7 @@ defmodule ChatWeb.Router do
       post "/admin/login", AdminController, :login
       post "/admin/emojis", AdminController, :upload_emoji
       post "/admin/emojis/:id", AdminController, :moderate_emoji
+      delete "/admin/emojis/:id", AdminController, :delete_emoji
       post "/admin/emoji-tags", AdminController, :create_emoji_tag
       post "/admin/emoji-tags/:id", AdminController, :update_emoji_tag
       delete "/admin/emoji-tags/:id", AdminController, :delete_emoji_tag

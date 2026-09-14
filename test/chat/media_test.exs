@@ -37,6 +37,11 @@ defmodule Chat.MediaTest do
           authorization = get_req_header(conn, "authorization")
           assert authorization == [] or match?(["AWS4-HMAC-SHA256 " <> _], authorization)
           send_resp(conn, 200, Agent.get(objects, &Map.fetch!(&1, conn.request_path)))
+
+        "DELETE" ->
+          assert ["AWS4-HMAC-SHA256 " <> _] = get_req_header(conn, "authorization")
+          Agent.update(objects, &Map.delete(&1, conn.request_path))
+          send_resp(conn, 204, "")
       end
     end)
 
@@ -129,6 +134,14 @@ defmodule Chat.MediaTest do
     assert {:ok, emoji} = Emojis.submit_remote(user, ":s3_emoji:", key, "image/webp")
     assert emoji.image == nil
     assert emoji.image_key == key
+  end
+
+  test "deletes an S3 object for a removed emoji", %{objects: objects} do
+    key = "emoji-staging/delete-me.gif"
+    Agent.update(objects, &Map.put(&1, "/vertigo/#{key}", "emoji"))
+
+    assert :ok = Chat.Media.S3.delete(key)
+    assert Agent.get(objects, & &1) == %{}
   end
 
   test "presigns direct browser uploads through the virtual-hosted endpoint" do

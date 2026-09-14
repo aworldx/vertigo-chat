@@ -2,6 +2,7 @@ defmodule ChatWeb.AdminControllerTest do
   use ChatWeb.ConnCase
 
   alias Chat.Accounts
+  alias Chat.Emojis.{Emoji, Tag}
   alias Chat.Repo
 
   test "shows a regular login form and lets an admin sign in", %{conn: conn} do
@@ -53,5 +54,47 @@ defmodule ChatWeb.AdminControllerTest do
     assert response =~ "admin-emojis-list"
     assert response =~ ">Теги</a>"
     refute response =~ "admin-database-table"
+  end
+
+  test "removes emoji tags and deletes an emoji", %{conn: conn} do
+    {:ok, moderator} =
+      Accounts.register_user(%{"nickname" => "emoji_deleter", "password" => "secret123"})
+
+    {:ok, moderator} =
+      moderator
+      |> Ecto.Changeset.change(can_moderate_emojis: true)
+      |> Repo.update()
+
+    emoji =
+      Repo.insert!(%Emoji{
+        code: ":delete_me:",
+        image: <<1>>,
+        content_type: "image/gif",
+        status: :pending,
+        width: 1,
+        height: 1,
+        animated: false,
+        user_id: moderator.id
+      })
+
+    tag = Repo.insert!(%Tag{name: "удалить"})
+    Repo.insert_all("emoji_tag_assignments", [%{emoji_id: emoji.id, emoji_tag_id: tag.id}])
+
+    conn =
+      post(conn, "/admin/login", %{
+        "admin_auth" => %{"nickname" => moderator.nickname, "password" => "secret123"}
+      })
+
+    conn =
+      post(recycle(conn), "/admin/emojis/#{emoji.id}", %{
+        "emoji" => %{"status" => "pending"}
+      })
+
+    assert redirected_to(conn) == "/admin?section=emojis"
+    assert Repo.preload(Repo.get!(Emoji, emoji.id), :emoji_tags).emoji_tags == []
+
+    conn = delete(recycle(conn), "/admin/emojis/#{emoji.id}")
+    assert redirected_to(conn) == "/admin?section=emojis"
+    assert Repo.get(Emoji, emoji.id) == nil
   end
 end

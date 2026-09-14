@@ -1148,6 +1148,10 @@ defmodule ChatWeb.RoomLive do
     {:noreply, socket |> assign(:emojis, Emojis.list()) |> rerender_messages()}
   end
 
+  def handle_info({:emoji_deleted, _emoji_id}, socket) do
+    {:noreply, socket |> assign(:emojis, Emojis.list()) |> rerender_messages()}
+  end
+
   def handle_info({:message_reacted, message}, socket) do
     {:noreply, insert_message(socket, message)}
   end
