@@ -2302,8 +2302,12 @@ defmodule ChatWeb.RoomLive do
   defp save_uploaded_emoji(socket, user, code) do
     case uploaded_entries(socket, :emoji_image) do
       {[_entry], []} ->
-        consume_uploaded_entries(socket, :emoji_image, fn %{path: path}, entry ->
-          {:ok, {File.read!(path), entry.client_type}}
+        consume_uploaded_entries(socket, :emoji_image, fn
+          %{path: path}, entry ->
+            {:ok, {File.read!(path), entry.client_type}}
+
+          %{key: key, content_type: content_type}, _entry ->
+            {:ok, %{key: key, content_type: content_type}}
         end)
         |> case do
           [{image, content_type}] ->
