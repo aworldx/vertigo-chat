@@ -824,6 +824,7 @@ defmodule ChatWeb.RoomLive do
         |> assign(:joined?, true)
         |> assign_nickname_form()
         |> assign_settings_form()
+        |> maybe_insert_emoji_moderation_notice(user)
 
       socket = track_presence(socket)
 

@@ -162,6 +162,18 @@ defmodule ChatWeb.RoomLiveTest do
                "password" => "secret123"
              })
 
+    user = user |> Ecto.Changeset.change(is_admin: true) |> Repo.update!()
+
+    Repo.insert!(%Chat.Emojis.Emoji{
+      code: ":waiting_emoji:",
+      image: <<1>>,
+      content_type: "image/gif",
+      status: :pending,
+      width: 1,
+      height: 1,
+      animated: false
+    })
+
     {:ok, view, _html} =
       conn
       |> put_connect_params(%{
@@ -174,6 +186,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#online-list", "returning_member")
     assert_push_event(view, "save-user-auth", %{token: _token})
     refute has_element?(view, "[data-system-notice='features']")
+    assert has_element?(view, "[data-system-notice='emoji-moderation']", "На проверке 1 смайл")
   end
 
   test "restores a guest chatlan only from an active saved session", %{conn: conn} do
