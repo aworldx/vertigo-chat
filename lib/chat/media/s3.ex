@@ -77,9 +77,17 @@ defmodule Chat.Media.S3 do
 
   defp object_url(key) do
     config = Media.config()
+    endpoint = String.trim_trailing(Keyword.fetch!(config, :endpoint), "/")
 
-    String.trim_trailing(Keyword.fetch!(config, :endpoint), "/") <>
-      "/" <> Keyword.fetch!(config, :bucket) <> "/" <> Media.encode_key(key)
+    base_url =
+      if config[:virtual_hosted] do
+        uri = URI.parse(endpoint)
+        %{uri | host: "#{Keyword.fetch!(config, :bucket)}.#{uri.host}"} |> URI.to_string()
+      else
+        endpoint <> "/" <> Keyword.fetch!(config, :bucket)
+      end
+
+    base_url <> "/" <> Media.encode_key(key)
   end
 
   defp request_options do

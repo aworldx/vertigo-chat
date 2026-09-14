@@ -116,6 +116,15 @@ defmodule Chat.MediaTest do
              Media.public_url(photo.thumbnail_key)
   end
 
+  test "presigns direct browser uploads through the virtual-hosted endpoint" do
+    Application.put_env(:chat, Media, Keyword.put(Media.config(), :virtual_hosted, true))
+
+    url = Chat.Media.S3.presigned_put_url("emoji-staging/test.gif", "image/gif") |> URI.parse()
+
+    assert url.host == "vertigo.storage.example.test"
+    assert url.path == "/emoji-staging/test.gif"
+  end
+
   test "migration creates missing previews, verifies bytes and is resumable", %{
     user: user,
     objects: objects

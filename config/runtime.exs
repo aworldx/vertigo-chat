@@ -199,5 +199,6 @@ if System.get_env("S3_ENABLED") == "true" do
     bucket: required_s3.("S3_BUCKET"),
     access_key_id: required_s3.("S3_ACCESS_KEY_ID"),
     secret_access_key: required_s3.("S3_SECRET_ACCESS_KEY"),
-    public_base_url: public_base_url
+    public_base_url: public_base_url,
+    virtual_hosted: System.get_env("S3_VIRTUAL_HOSTED") == "true"
 end

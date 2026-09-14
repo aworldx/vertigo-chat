@@ -16,6 +16,7 @@ S3_BUCKET=vertigo
 S3_ACCESS_KEY_ID='...'
 S3_SECRET_ACCESS_KEY='...'
 S3_PUBLIC_BASE_URL=https://1c6516a8-c238-4cda-8d6b-6fc656183321.srvstatic.kz
+S3_VIRTUAL_HOSTED=true
 ```
 
 Публичный домен нужно взять из вкладки «Домены» бакета. S3 API endpoint и
@@ -24,6 +25,11 @@ S3_PUBLIC_BASE_URL=https://1c6516a8-c238-4cda-8d6b-6fc656183321.srvstatic.kz
 всем провайдерам. В Selectel бакет должен разрешать публичную раздачу.
 Публичные права на запись или удаление не нужны. Существующие правила доступа
 сервисных пользователей должны сохраняться.
+
+`S3_VIRTUAL_HOSTED=true` включает адресацию `bucket.s3-domain` для S3 API. Она
+нужна для прямой загрузки смайлов из браузера: в Selectel для этого должны быть
+включены vHosted-адресация и CORS с origin `https://vertigo-chat.ru`, методом
+`PUT` и заголовком `content-type`.
 
 `compose.yaml` передаёт настройки в app, admin и migrate. Без `S3_ENABLED=true`
 новые загрузки используют прежнее хранение в БД. После переноса нельзя просто
