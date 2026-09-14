@@ -956,8 +956,7 @@ defmodule ChatWeb.RoomComponents do
           title={part.emoji.code}
           width={part.emoji.width}
           height={part.emoji.height}
-          style={emoji_preview_style(part.emoji, 30)}
-          class="object-contain"
+          class="h-auto w-auto max-h-16 max-w-24 object-contain"
         />
         <span
           role="tooltip"
@@ -1004,15 +1003,6 @@ defmodule ChatWeb.RoomComponents do
       end
     end)
   end
-
-  defp emoji_preview_style(%{width: width, height: height}, maximum)
-       when is_integer(width) and width > 0 and is_integer(height) and height > 0 do
-    scale = maximum / max(width, height)
-
-    "width: #{Float.round(width * scale, 2)}px; height: #{Float.round(height * scale, 2)}px"
-  end
-
-  defp emoji_preview_style(_emoji, maximum), do: "width: #{maximum}px; height: #{maximum}px"
 
   defp link_parts(text) do
     Regex.split(@url_regex, text, include_captures: true, trim: false)
@@ -1187,10 +1177,7 @@ defmodule ChatWeb.RoomComponents do
                 <img
                   src={"/emojis/#{emoji.id}"}
                   alt={emoji.code}
-                  width={emoji.width}
-                  height={emoji.height}
-                  style={emoji_preview_style(emoji, 32)}
-                  class="object-contain"
+                  class="size-8 object-contain"
                 />
               </button>
               <p :if={@emojis == []} class="px-2 py-2 text-sm text-zinc-400">
