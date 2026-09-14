@@ -78,6 +78,20 @@ defmodule Chat.Media do
         "/" <> Keyword.fetch!(config(), :bucket)
   end
 
+  def upload_origin do
+    if enabled?() do
+      config = config()
+      uri = URI.parse(Keyword.fetch!(config, :endpoint))
+
+      host =
+        if config[:virtual_hosted],
+          do: "#{Keyword.fetch!(config, :bucket)}.#{uri.host}",
+          else: uri.host
+
+      URI.to_string(%URI{scheme: uri.scheme, host: host, port: uri.port})
+    end
+  end
+
   def encode_key(key),
     do:
       key

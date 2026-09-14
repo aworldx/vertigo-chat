@@ -68,6 +68,7 @@ defmodule Chat.MediaTest do
     [policy] = get_resp_header(get(build_conn(), "/profiles"), "content-security-policy")
     assert policy =~ "img-src 'self' data: blob: https://storage.example.test"
     assert policy =~ "media-src 'self' blob: https://storage.example.test"
+    assert policy =~ "connect-src 'self' ws: wss: https://storage.example.test"
   end
 
   test "replacing an S3 profile photo replaces both media references", %{user: user} do
@@ -123,6 +124,7 @@ defmodule Chat.MediaTest do
 
     assert url.host == "vertigo.storage.example.test"
     assert url.path == "/emoji-staging/test.gif"
+    assert Media.upload_origin() == "https://vertigo.storage.example.test"
   end
 
   test "migration creates missing previews, verifies bytes and is resumable", %{

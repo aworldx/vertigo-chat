@@ -31,11 +31,12 @@ const Uploaders = {
   S3(entries, onViewError) {
     entries.forEach(entry => {
       const xhr = new XMLHttpRequest()
+      onViewError(() => xhr.abort())
       xhr.open("PUT", entry.meta.url, true)
       xhr.setRequestHeader("content-type", entry.meta.content_type)
       xhr.upload.addEventListener("progress", event => entry.progress(event.loaded / event.total * 100))
-      xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? entry.progress(100) : onViewError()
-      xhr.onerror = () => onViewError()
+      xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? entry.progress(100) : entry.error()
+      xhr.onerror = () => entry.error()
       xhr.send(entry.file)
     })
   },
