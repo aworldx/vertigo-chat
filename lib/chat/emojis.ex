@@ -13,7 +13,7 @@ defmodule Chat.Emojis do
 
   @topic "emojis"
   @max_size 512
-  @max_bytes 3_000_000
+  @max_bytes 600_000
   @accepted_types ~w(image/png image/webp image/gif)
 
   def list do

@@ -1178,7 +1178,7 @@ defmodule ChatWeb.RoomComponents do
                 class="flex size-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-amber-300/15 hover:scale-110"
               >
                 <img
-                  src={"/emojis/#{emoji.id}"}
+                  data-src={"/emojis/#{emoji.id}"}
                   alt={emoji.code}
                   width={emoji.width}
                   height={emoji.height}
@@ -1340,6 +1340,34 @@ defmodule ChatWeb.RoomComponents do
             const pickerList = this.el.querySelector("#emoji-picker-list")
             const autosuggest = this.el.querySelector("#emoji-autosuggest")
 
+            const loadImage = image => {
+              if (image.hasAttribute("src") || !image.dataset.src) return
+              image.src = image.dataset.src
+              image.removeAttribute("data-src")
+            }
+
+            const loadVisibleImages = () => {
+              const images = pickerList.querySelectorAll("img[data-src]")
+
+              if (!window.IntersectionObserver) {
+                images.forEach(loadImage)
+                return
+              }
+
+              this.imageObserver ||= new IntersectionObserver(
+                entries => {
+                  entries.forEach(entry => {
+                    if (!entry.isIntersecting) return
+                    loadImage(entry.target)
+                    this.imageObserver.unobserve(entry.target)
+                  })
+                },
+                {root: pickerList}
+              )
+
+              images.forEach(image => this.imageObserver.observe(image))
+            }
+
             const buttons = [...pickerList.querySelectorAll("[data-emoji-code]")]
             buttons.forEach((button, index) => {
               button.dataset.emojiOrder = index
@@ -1364,6 +1392,11 @@ defmodule ChatWeb.RoomComponents do
             autosuggest.addEventListener("change", reorder)
 
             this.el.addEventListener("click", event => {
+              if (event.target.closest("#toggle-emoji-picker")) {
+                requestAnimationFrame(loadVisibleImages)
+                return
+              }
+
               const emojiButton = event.target.closest("[data-emoji-code]")
               if (!emojiButton) return
 
@@ -1373,6 +1406,9 @@ defmodule ChatWeb.RoomComponents do
               input.dispatchEvent(new Event("input", {bubbles: true}))
               input.focus()
             })
+          },
+          destroyed() {
+            this.imageObserver?.disconnect()
           }
         }
       </script>
