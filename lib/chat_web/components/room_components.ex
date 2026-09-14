@@ -1388,8 +1388,42 @@ defmodule ChatWeb.RoomComponents do
                 .forEach(button => pickerList.append(button))
             }
 
-            input.addEventListener("input", () => autosuggest.checked && reorder())
-            autosuggest.addEventListener("change", reorder)
+            this.autosuggestTimer = null
+
+            const reorderByCodes = codes => {
+              const order = new Map(codes.map((code, index) => [code, index]))
+
+              buttons
+                .sort((a, b) => {
+                  const aOrder = order.get(a.dataset.emojiCode)
+                  const bOrder = order.get(b.dataset.emojiCode)
+                  const aMatched = aOrder !== undefined
+                  const bMatched = bOrder !== undefined
+
+                  if (aMatched !== bMatched) return aMatched ? -1 : 1
+                  if (aMatched) return aOrder - bOrder
+                  return Number(a.dataset.emojiOrder) - Number(b.dataset.emojiOrder)
+                })
+                .forEach(button => pickerList.append(button))
+            }
+
+            const requestAutosuggest = () => {
+              clearTimeout(this.autosuggestTimer)
+
+              if (!autosuggest.checked || !input.value.trim()) {
+                reorder()
+                return
+              }
+
+              this.autosuggestTimer = setTimeout(() => {
+                this.pushEvent("emoji_autosuggest", {body: input.value}, reply => {
+                  if (autosuggest.checked) reorderByCodes(reply.codes || [])
+                })
+              }, 180)
+            }
+
+            input.addEventListener("input", requestAutosuggest)
+            autosuggest.addEventListener("change", requestAutosuggest)
 
             this.el.addEventListener("click", event => {
               if (event.target.closest("#toggle-emoji-picker")) {
@@ -1408,6 +1442,7 @@ defmodule ChatWeb.RoomComponents do
             })
           },
           destroyed() {
+            clearTimeout(this.autosuggestTimer)
             this.imageObserver?.disconnect()
           }
         }

@@ -27,4 +27,23 @@ defmodule Chat.EmojisTest do
     assert "расслабление" in suggested
     assert "отдохнуть" in suggested
   end
+
+  test "finds an emoji by a Russian word stem in its tag trigger" do
+    emoji =
+      Repo.insert!(%Emoji{
+        code: ":трясу:",
+        image: <<1>>,
+        content_type: "image/gif",
+        status: :approved,
+        width: 1,
+        height: 1,
+        animated: false
+      })
+
+    tag = Repo.insert!(%Tag{name: "трясу", triggers: ["трясусь"]})
+    Repo.insert_all("emoji_tag_assignments", [%{emoji_id: emoji.id, emoji_tag_id: tag.id}])
+
+    assert ":трясу:" in Emojis.autosuggest_codes("тряс")
+    assert ":трясу:" in Emojis.autosuggest_codes("я трясусь")
+  end
 end

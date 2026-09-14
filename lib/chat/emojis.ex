@@ -146,6 +146,19 @@ defmodule Chat.Emojis do
     end
   end
 
+  def autosuggest_codes(query) when is_binary(query) do
+    query = String.trim(query)
+
+    if query == "" do
+      []
+    else
+      (shortcode_codes(query) ++ tag_search_codes(query))
+      |> Enum.uniq()
+    end
+  end
+
+  def autosuggest_codes(_query), do: []
+
   def create_tag(%User{} = moderator, attrs) when is_map(attrs) do
     if Accounts.emoji_moderator?(moderator),
       do: %Tag{} |> Tag.changeset(attrs) |> Repo.insert(),
@@ -201,6 +214,54 @@ defmodule Chat.Emojis do
   end
 
   defp tags_from_ids(_ids), do: []
+
+  defp shortcode_codes(query) do
+    Emoji
+    |> where([emoji], emoji.status == :approved)
+    |> where([emoji], fragment("position(lower(?) in lower(?)) > 0", ^query, emoji.code))
+    |> order_by([emoji], asc: emoji.code)
+    |> select([emoji], emoji.code)
+    |> Repo.all()
+  end
+
+  defp tag_search_codes(query) do
+    case prefix_tsquery(query) do
+      "" ->
+        []
+
+      tsquery ->
+        Repo.all(
+          from emoji in Emoji,
+            join: tag in assoc(emoji, :emoji_tags),
+            where: emoji.status == :approved,
+            where:
+              fragment(
+                "? @@ to_tsquery('russian', ?)",
+                tag.search_document,
+                ^tsquery
+              ),
+            group_by: [emoji.id, emoji.code],
+            order_by: [
+              desc:
+                fragment(
+                  "max(ts_rank_cd(?, to_tsquery('russian', ?)))",
+                  tag.search_document,
+                  ^tsquery
+                ),
+              asc: emoji.code
+            ],
+            select: emoji.code
+        )
+    end
+  end
+
+  defp prefix_tsquery(query) do
+    query
+    |> String.downcase()
+    |> String.split(~r/[^\p{L}\p{N}_]+/u, trim: true)
+    |> Enum.map(&(&1 <> ":*"))
+    |> Enum.join(" & ")
+  end
 
   defp put_tag_names(emoji) do
     tags = Enum.map(emoji.emoji_tags, & &1.name)

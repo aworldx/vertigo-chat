@@ -392,6 +392,12 @@ defmodule ChatWeb.RoomLive do
      put_flash(socket, :error, "Загружать смайлы могут только зарегистрированные чатлане.")}
   end
 
+  def handle_event("emoji_autosuggest", %{"body" => body}, socket) when is_binary(body) do
+    {:reply, %{codes: Emojis.autosuggest_codes(body)}, socket}
+  end
+
+  def handle_event("emoji_autosuggest", _params, socket), do: {:reply, %{codes: []}, socket}
+
   def handle_event("close_emoji_submission", _params, socket) do
     {:noreply,
      socket |> assign(:emoji_submission_open?, false) |> assign(:emoji_submission_error, nil)}
