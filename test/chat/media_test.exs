@@ -1,7 +1,7 @@
 defmodule Chat.MediaTest do
   use ChatWeb.ConnCase, async: false
 
-  alias Chat.{Accounts, Gallery, Media, MusicChart, Profiles, Repo}
+  alias Chat.{Accounts, Emojis, Gallery, Media, MusicChart, Profiles, Repo}
 
   setup do
     previous = Application.get_env(:chat, Media)
@@ -34,7 +34,8 @@ defmodule Chat.MediaTest do
           send_resp(conn, 200, "")
 
         "GET" ->
-          assert [] == get_req_header(conn, "authorization")
+          authorization = get_req_header(conn, "authorization")
+          assert authorization == [] or match?(["AWS4-HMAC-SHA256 " <> _], authorization)
           send_resp(conn, 200, Agent.get(objects, &Map.fetch!(&1, conn.request_path)))
       end
     end)
@@ -115,6 +116,19 @@ defmodule Chat.MediaTest do
 
     assert redirected_to(get(build_conn(), "/gallery/photos/#{photo.id}/thumbnail")) ==
              Media.public_url(photo.thumbnail_key)
+  end
+
+  test "emoji submitted from S3 stores its key without a database binary", %{
+    user: user,
+    objects: objects
+  } do
+    key = "emoji-staging/test.webp"
+    {:ok, image} = Media.Thumbnail.generate(png())
+    Agent.update(objects, &Map.put(&1, "/vertigo/#{key}", image))
+
+    assert {:ok, emoji} = Emojis.submit_remote(user, ":s3_emoji:", key, "image/webp")
+    assert emoji.image == nil
+    assert emoji.image_key == key
   end
 
   test "presigns direct browser uploads through the virtual-hosted endpoint" do
