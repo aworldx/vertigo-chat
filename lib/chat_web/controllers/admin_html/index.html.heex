@@ -213,7 +213,14 @@
               class="grid gap-3 rounded-lg border border-emerald-950 bg-[#111a14] p-3 sm:grid-cols-[auto_1fr_15rem_auto] sm:items-center"
             >
               <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-              <img src={~p"/emojis/#{emoji.id}"} alt={emoji.code} class="size-12 object-contain" />
+              <img
+                src={~p"/emojis/#{emoji.id}"}
+                alt={emoji.code}
+                width={emoji.width}
+                height={emoji.height}
+                style={emoji_preview_style(emoji, 48)}
+                class="object-contain"
+              />
               <div class="min-w-0 text-sm text-stone-300">
                 <p class="font-medium">{emoji.code}</p><p class="mt-1 text-xs text-stone-500">
                   {emoji.width}×{emoji.height} · {emoji.content_type}{if emoji.animated,
