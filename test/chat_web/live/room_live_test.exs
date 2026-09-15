@@ -120,7 +120,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#command-autocomplete-menu [data-command='/гиф ']")
     assert has_element?(view, "#command-autocomplete-menu [data-command='/очистить']")
 
-    assert has_element?(view, "#emoji-input-controls.grid")
+    assert has_element?(view, "#emoji-input-controls.flex")
+    assert has_element?(view, "#emoji-composer-controls.grid")
     assert has_element?(view, "#command-autocomplete.col-span-3.row-start-1")
     assert has_element?(view, "#send-message.col-start-4.row-start-1")
     assert has_element?(view, "#show-command-menu[aria-controls='command-autocomplete-menu']")
@@ -1192,7 +1193,7 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(alice_view, "[data-reaction-emoji='❤️']")
   end
 
-  test "renders an emoji picker next to the message input", %{conn: conn} do
+  test "renders a full-width emoji picker inside the message frame", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "emoji_user")
 
@@ -1201,10 +1202,24 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#emoji-picker-list")
     assert has_element?(view, "#emoji-autosuggest[checked]")
     assert has_element?(view, "#open-emoji-submission")
-    assert has_element?(view, "#emoji-picker")
+    assert has_element?(view, "#emoji-picker.w-full")
+    refute has_element?(view, "#emoji-frequency")
     assert has_element?(view, "#emoji-input-controls")
     assert has_element?(view, "#send-message[aria-label='Отправить сообщение'] .size-5")
     assert has_element?(view, "#leave-chat[aria-label='Выйти из чата'] .sm\\:hidden")
+  end
+
+  test "offers saved frequency sorting only to registered chatlan", %{conn: conn} do
+    assert {:ok, _user} =
+             Accounts.register_user(%{"nickname" => "emoji_member", "password" => "secret123"})
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+    enter_chat(view, "emoji_member", "secret123")
+
+    assert has_element?(view, "#emoji-input-controls[data-registered='true']")
+    assert has_element?(view, "#emoji-order-mode[role='radiogroup']")
+    assert has_element?(view, "#emoji-autosuggest[type='radio'][checked]")
+    assert has_element?(view, "#emoji-frequency[type='radio'][value='frequency']")
   end
 
   test "acknowledges a public message with its client and server ids", %{conn: conn} do

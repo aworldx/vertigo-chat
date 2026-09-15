@@ -56,7 +56,7 @@ defmodule ChatWeb.AdminControllerTest do
     refute response =~ "admin-database-table"
   end
 
-  test "removes emoji tags and deletes an emoji", %{conn: conn} do
+  test "edits an emoji code, removes tags and deletes an emoji", %{conn: conn} do
     {:ok, moderator} =
       Accounts.register_user(%{"nickname" => "emoji_deleter", "password" => "secret123"})
 
@@ -87,11 +87,13 @@ defmodule ChatWeb.AdminControllerTest do
 
     conn =
       post(recycle(conn), "/admin/emojis/#{emoji.id}", %{
-        "emoji" => %{"status" => "pending"}
+        "emoji" => %{"code" => "переименован", "status" => "pending"}
       })
 
     assert redirected_to(conn) == "/admin?section=emojis"
-    assert Repo.preload(Repo.get!(Emoji, emoji.id), :emoji_tags).emoji_tags == []
+    updated_emoji = Repo.preload(Repo.get!(Emoji, emoji.id), :emoji_tags)
+    assert updated_emoji.code == ":переименован:"
+    assert updated_emoji.emoji_tags == []
 
     conn = delete(recycle(conn), "/admin/emojis/#{emoji.id}")
     assert redirected_to(conn) == "/admin?section=emojis"

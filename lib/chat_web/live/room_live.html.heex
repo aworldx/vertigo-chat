@@ -92,6 +92,7 @@
         message_error={@message_error}
         media_error={@media_error}
         registered={not is_nil(@current_user)}
+        emoji_preferences_key={if(@current_user, do: "user:#{@current_user.id}")}
         emojis={@emojis}
         peer_id={@presence_key}
         ice_servers={Chat.MediaShares.ice_servers()}

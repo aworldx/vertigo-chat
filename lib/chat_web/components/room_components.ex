@@ -1116,6 +1116,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:message_error, :string, default: nil)
   attr(:media_error, :string, default: nil)
   attr(:registered, :boolean, required: true)
+  attr(:emoji_preferences_key, :string, default: nil)
   attr(:emojis, :list, default: [])
   attr(:peer_id, :string, required: true)
   attr(:ice_servers, :list, required: true)
@@ -1145,13 +1146,93 @@ defmodule ChatWeb.RoomComponents do
       >
         {@media_error}
       </p>
-      <%!-- На мобильных поле и отправка занимают первую строку; остальные элементы — вторую. --%>
+      <%!--
+        Контракт композера: пикер смайлов — полноширинная часть нижнего фрейма, а не поповер.
+        На мобильных поле и отправка занимают первую строку; остальные элементы — вторую.
+      --%>
       <fieldset
         id="emoji-input-controls"
         phx-hook=".EmojiPicker"
-        class="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] gap-3 disabled:cursor-not-allowed disabled:opacity-60 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto]"
+        data-registered={to_string(@registered)}
+        data-emoji-preferences-key={@emoji_preferences_key}
+        class="flex min-w-0 flex-col gap-3 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <div class="relative col-start-1 row-start-2 shrink-0 sm:row-start-1">
+        <div
+          id="emoji-picker"
+          class="emoji-picker-closed w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 shadow-inner"
+        >
+          <div
+            id="emoji-picker-list"
+            class="flex w-full min-w-0 touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]"
+          >
+            <button
+              :for={emoji <- @emojis}
+              type="button"
+              data-emoji-code={emoji.code}
+              data-emoji-terms={Jason.encode!(emoji.suggestion_terms || [])}
+              aria-label={"Вставить #{emoji.code}"}
+              class="flex size-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-amber-300/15 hover:scale-110"
+            >
+              <img
+                src={"/emojis/#{emoji.id}"}
+                alt={emoji.code}
+                width={emoji.width}
+                height={emoji.height}
+                class="h-auto w-auto max-h-8 max-w-8 object-contain"
+              />
+            </button>
+            <p :if={@emojis == []} class="px-2 py-2 text-sm text-zinc-400">
+              Смайлы появятся после модерации.
+            </p>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 pt-2 text-xs text-zinc-400">
+            <div class="flex flex-wrap items-center gap-3">
+              <div
+                :if={@registered}
+                id="emoji-order-mode"
+                class="flex items-center gap-1"
+                role="radiogroup"
+                aria-label="Порядок смайлов"
+              >
+                <label class="cursor-pointer rounded px-2 py-1 has-[:checked]:bg-amber-300/15 has-[:checked]:text-amber-100">
+                  <input
+                    id="emoji-autosuggest"
+                    type="radio"
+                    name="emoji-order-mode"
+                    value="autosuggest"
+                    checked
+                    class="sr-only"
+                  /> Автоподбор
+                </label>
+                <label class="cursor-pointer rounded px-2 py-1 has-[:checked]:bg-amber-300/15 has-[:checked]:text-amber-100">
+                  <input
+                    id="emoji-frequency"
+                    type="radio"
+                    name="emoji-order-mode"
+                    value="frequency"
+                    class="sr-only"
+                  /> Частые
+                </label>
+              </div>
+              <label :if={!@registered} class="flex items-center gap-2"><input
+                id="emoji-autosuggest"
+                type="checkbox"
+                checked
+              />Автоподбор</label>
+              <p :if={!@registered} class="text-zinc-500">Частые смайлы доступны после регистрации</p>
+            </div>
+            <button
+              id="open-emoji-submission"
+              type="button"
+              phx-click="open_emoji_submission"
+              class="text-amber-200 transition hover:text-amber-100"
+            >Загрузить</button>
+          </div>
+        </div>
+        <div
+          id="emoji-composer-controls"
+          class="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] gap-3 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto]"
+        >
           <button
             id="toggle-emoji-picker"
             type="button"
@@ -1162,173 +1243,133 @@ defmodule ChatWeb.RoomComponents do
           >
             <.icon name="hero-face-smile" class="size-5" />
           </button>
-          <div
-            id="emoji-picker"
-            class="emoji-picker-closed absolute bottom-full left-0 z-40 mb-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-xl"
-          >
-            <div
-              id="emoji-picker-list"
-              class="flex w-full min-w-0 touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]"
-            >
-              <button
-                :for={emoji <- @emojis}
-                type="button"
-                data-emoji-code={emoji.code}
-                data-emoji-terms={Jason.encode!(emoji.suggestion_terms || [])}
-                aria-label={"Вставить #{emoji.code}"}
-                class="flex size-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-amber-300/15 hover:scale-110"
-              >
-                <img
-                  data-src={"/emojis/#{emoji.id}"}
-                  alt={emoji.code}
-                  width={emoji.width}
-                  height={emoji.height}
-                  class="h-auto w-auto max-h-8 max-w-8 object-contain"
-                />
-              </button>
-              <p :if={@emojis == []} class="px-2 py-2 text-sm text-zinc-400">
-                Смайлы появятся после модерации.
-              </p>
-            </div>
-            <div class="mt-2 flex items-center justify-between gap-3 border-t border-zinc-800 pt-2 text-xs text-zinc-400">
-              <label class="flex items-center gap-2"><input
-                id="emoji-autosuggest"
-                type="checkbox"
-                checked
-              />Автоподбор</label>
-              <button
-                id="open-emoji-submission"
-                type="button"
-                phx-click="open_emoji_submission"
-                class="text-amber-200 hover:text-amber-100"
-              >Загрузить</button>
-            </div>
-          </div>
-        </div>
-        <button
-          id="show-command-menu"
-          type="button"
-          phx-click={JS.dispatch("chat:open-command-menu", to: "#command-autocomplete")}
-          aria-label="Открыть меню команд"
-          aria-controls="command-autocomplete-menu"
-          title="Команды"
-          class="col-start-2 row-start-2 flex min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 font-mono text-base font-semibold text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 sm:row-start-1"
-        >
-          / <span class="sr-only">Команды</span>
-        </button>
-        <div
-          id="command-autocomplete"
-          phx-hook=".CommandAutocomplete"
-          class="relative col-span-3 row-start-1 min-w-0 sm:col-span-1 sm:col-start-3"
-        >
-          <input
-            id="message-body"
-            name={@message_form[:body].name}
-            value={@message_form[:body].value}
-            autocomplete="off"
-            maxlength={Chat.Messages.max_body_length()}
-            placeholder="Напиши сообщение..."
-            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
-          />
-          <input id="message-client-id" type="hidden" name="message[client_id]" value="" />
-          <div
-            id="command-autocomplete-menu"
-            role="listbox"
-            aria-label="Команды чата"
-            class="absolute bottom-full left-0 z-40 mb-2 hidden w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
-          >
-            <button
-              :for={
-                {command, description} <- [
-                  {"/помощь", "Список команд"},
-                  {"/кто", "Кто сейчас в чате"},
-                  {"/инфо ", "Открыть анкету"},
-                  {"/игнор ", "Скрыть или вернуть чатланина"},
-                  {"/игноры", "Список игноров"},
-                  {"/музыка ", "Найти трек и открыть плеер"},
-                  {"/гиф ", "Найти и отправить GIF"},
-                  {"/очистить", "Очистить окно чата только у себя"},
-                  {"/выход", "Выйти из чата"}
-                ]
-              }
-              type="button"
-              role="option"
-              data-command={command}
-              class="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
-            >
-              <span class="font-semibold text-amber-200">{command}</span>
-              <span class="text-zinc-400">{description}</span>
-            </button>
-          </div>
-        </div>
-        <button
-          id="send-message"
-          type="submit"
-          aria-label="Отправить сообщение"
-          title="Отправить сообщение"
-          class="col-start-4 row-start-1 flex size-10 shrink-0 items-center justify-center rounded bg-amber-300 text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:bg-amber-500 phx-submit-loading:text-amber-950 phx-submit-loading:opacity-75 sm:col-start-4"
-        >
-          <.icon name="hero-paper-airplane" class="size-5" />
-        </button>
-        <div
-          id="media-share-controls"
-          phx-hook="MediaSharing"
-          phx-update="ignore"
-          data-can-share={to_string(@registered)}
-          data-peer-id={@peer_id}
-          data-max-image-size={Chat.MediaShares.max_image_size()}
-          data-max-audio-size={Chat.MediaShares.max_audio_size()}
-          data-relay-chunk-size={Chat.MediaShares.relay_chunk_size()}
-          data-accepted-types={Jason.encode!(Chat.MediaShares.accepted_types())}
-          data-ice-servers={Jason.encode!(@ice_servers)}
-          class="col-start-3 row-start-2 shrink-0 sm:col-start-5 sm:row-start-1"
-        >
-          <input
-            :if={@registered}
-            id="media-file-input"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,audio/mpeg,audio/mp3,audio/x-mp3,audio/ogg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,.mp3,.ogg,.wav,.m4a,.aac"
-            class="sr-only"
-            tabindex="-1"
-          />
           <button
-            id="attach-media"
+            id="show-command-menu"
             type="button"
-            disabled={not @registered}
-            aria-label={
-              if(@registered,
-                do: "Прикрепить изображение или музыку",
-                else: "Вложения доступны после регистрации"
-              )
-            }
-            title={
-              if(@registered,
-                do: "Прикрепить изображение или аудиофайл",
-                else: "Только для зарегистрированных чатлан"
-              )
-            }
-            class="flex min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-400"
+            phx-click={JS.dispatch("chat:open-command-menu", to: "#command-autocomplete")}
+            aria-label="Открыть меню команд"
+            aria-controls="command-autocomplete-menu"
+            title="Команды"
+            class="col-start-2 row-start-2 flex min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 font-mono text-base font-semibold text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 sm:row-start-1"
           >
-            <.icon name="hero-paper-clip" class="size-5" />
+            / <span class="sr-only">Команды</span>
           </button>
-          <p id="media-client-error" class="hidden" role="alert"></p>
           <div
-            id="media-drop-overlay"
-            class="pointer-events-none absolute inset-1 z-30 hidden items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-zinc-950/95 text-sm font-semibold text-amber-200"
+            id="command-autocomplete"
+            phx-hook=".CommandAutocomplete"
+            class="relative col-span-3 row-start-1 min-w-0 sm:col-span-1 sm:col-start-3"
           >
-            Отпусти изображение или музыку здесь
+            <input
+              id="message-body"
+              name={@message_form[:body].name}
+              value={@message_form[:body].value}
+              autocomplete="off"
+              maxlength={Chat.Messages.max_body_length()}
+              placeholder="Напиши сообщение..."
+              class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
+            />
+            <input id="message-client-id" type="hidden" name="message[client_id]" value="" />
+            <div
+              id="command-autocomplete-menu"
+              role="listbox"
+              aria-label="Команды чата"
+              class="absolute bottom-full left-0 z-40 mb-2 hidden w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
+            >
+              <button
+                :for={
+                  {command, description} <- [
+                    {"/помощь", "Список команд"},
+                    {"/кто", "Кто сейчас в чате"},
+                    {"/инфо ", "Открыть анкету"},
+                    {"/игнор ", "Скрыть или вернуть чатланина"},
+                    {"/игноры", "Список игноров"},
+                    {"/музыка ", "Найти трек и открыть плеер"},
+                    {"/гиф ", "Найти и отправить GIF"},
+                    {"/очистить", "Очистить окно чата только у себя"},
+                    {"/выход", "Выйти из чата"}
+                  ]
+                }
+                type="button"
+                role="option"
+                data-command={command}
+                class="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
+              >
+                <span class="font-semibold text-amber-200">{command}</span>
+                <span class="text-zinc-400">{description}</span>
+              </button>
+            </div>
           </div>
+          <button
+            id="send-message"
+            type="submit"
+            aria-label="Отправить сообщение"
+            title="Отправить сообщение"
+            class="col-start-4 row-start-1 flex size-10 shrink-0 items-center justify-center rounded bg-amber-300 text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:bg-amber-500 phx-submit-loading:text-amber-950 phx-submit-loading:opacity-75 sm:col-start-4"
+          >
+            <.icon name="hero-paper-airplane" class="size-5" />
+          </button>
+          <div
+            id="media-share-controls"
+            phx-hook="MediaSharing"
+            phx-update="ignore"
+            data-can-share={to_string(@registered)}
+            data-peer-id={@peer_id}
+            data-max-image-size={Chat.MediaShares.max_image_size()}
+            data-max-audio-size={Chat.MediaShares.max_audio_size()}
+            data-relay-chunk-size={Chat.MediaShares.relay_chunk_size()}
+            data-accepted-types={Jason.encode!(Chat.MediaShares.accepted_types())}
+            data-ice-servers={Jason.encode!(@ice_servers)}
+            class="col-start-3 row-start-2 shrink-0 sm:col-start-5 sm:row-start-1"
+          >
+            <input
+              :if={@registered}
+              id="media-file-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,audio/mpeg,audio/mp3,audio/x-mp3,audio/ogg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac,.mp3,.ogg,.wav,.m4a,.aac"
+              class="sr-only"
+              tabindex="-1"
+            />
+            <button
+              id="attach-media"
+              type="button"
+              disabled={not @registered}
+              aria-label={
+                if(@registered,
+                  do: "Прикрепить изображение или музыку",
+                  else: "Вложения доступны после регистрации"
+                )
+              }
+              title={
+                if(@registered,
+                  do: "Прикрепить изображение или аудиофайл",
+                  else: "Только для зарегистрированных чатлан"
+                )
+              }
+              class="flex min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-400"
+            >
+              <.icon name="hero-paper-clip" class="size-5" />
+            </button>
+            <p id="media-client-error" class="hidden" role="alert"></p>
+            <div
+              id="media-drop-overlay"
+              class="pointer-events-none absolute inset-1 z-30 hidden items-center justify-center rounded-xl border-2 border-dashed border-amber-300 bg-zinc-950/95 text-sm font-semibold text-amber-200"
+            >
+              Отпусти изображение или музыку здесь
+            </div>
+          </div>
+          <button
+            id="leave-chat"
+            type="button"
+            phx-click={
+              JS.dispatch("phx:clear-chat-session", to: "#chat-room") |> JS.push("leave_chat")
+            }
+            aria-label="Выйти из чата"
+            class="col-start-4 row-start-2 flex shrink-0 items-center justify-center rounded border border-zinc-700 px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-300 hover:text-red-200 sm:col-start-6 sm:row-start-1 sm:px-4"
+          >
+            <.icon name="hero-arrow-right-start-on-rectangle" class="size-5 sm:hidden" />
+            <span class="hidden sm:inline">Выход</span>
+          </button>
         </div>
-        <button
-          id="leave-chat"
-          type="button"
-          phx-click={JS.dispatch("phx:clear-chat-session", to: "#chat-room") |> JS.push("leave_chat")}
-          aria-label="Выйти из чата"
-          class="col-start-4 row-start-2 flex shrink-0 items-center justify-center rounded border border-zinc-700 px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-300 hover:text-red-200 sm:col-start-6 sm:row-start-1 sm:px-4"
-        >
-          <.icon name="hero-arrow-right-start-on-rectangle" class="size-5 sm:hidden" />
-          <span class="hidden sm:inline">Выход</span>
-        </button>
       </fieldset>
 
       <script :type={Phoenix.LiveView.ColocatedHook} name=".EmojiPicker">
@@ -1337,33 +1378,46 @@ defmodule ChatWeb.RoomComponents do
             const input = this.el.querySelector("#message-body")
             const pickerList = this.el.querySelector("#emoji-picker-list")
             const autosuggest = this.el.querySelector("#emoji-autosuggest")
+            const frequency = this.el.querySelector("#emoji-frequency")
+            const registered = this.el.dataset.registered === "true"
+            const preferencesKey = this.el.dataset.emojiPreferencesKey
+            const storageKey = "vertigo:emoji-picker-preferences"
 
-            const loadImage = image => {
-              if (image.hasAttribute("src") || !image.dataset.src) return
-              image.src = image.dataset.src
-              image.removeAttribute("data-src")
+            const readPreferences = () => {
+              if (!registered || !preferencesKey) return {mode: "autosuggest", usage: {}}
+
+              try {
+                const preferences = JSON.parse(localStorage.getItem(storageKey) || "{}")
+                const current = preferences[preferencesKey] || {}
+
+                return {
+                  mode: current.mode === "frequency" ? "frequency" : "autosuggest",
+                  usage: typeof current.usage === "object" && current.usage ? current.usage : {}
+                }
+              } catch (_) {
+                return {mode: "autosuggest", usage: {}}
+              }
             }
 
-            const loadVisibleImages = () => {
-              const images = pickerList.querySelectorAll("img[data-src]")
+            const preferences = readPreferences()
 
-              if (!window.IntersectionObserver) {
-                images.forEach(loadImage)
-                return
+            const savePreferences = () => {
+              if (!registered || !preferencesKey) return
+
+              try {
+                const saved = JSON.parse(localStorage.getItem(storageKey) || "{}")
+                saved[preferencesKey] = preferences
+                localStorage.setItem(storageKey, JSON.stringify(saved))
+              } catch (_) {
+                // Local storage can be unavailable in private browsing; the picker still works.
               }
+            }
 
-              this.imageObserver ||= new IntersectionObserver(
-                entries => {
-                  entries.forEach(entry => {
-                    if (!entry.isIntersecting) return
-                    loadImage(entry.target)
-                    this.imageObserver.unobserve(entry.target)
-                  })
-                },
-                {root: pickerList}
-              )
+            const frequencyMode = () => registered && frequency?.checked
 
-              images.forEach(image => this.imageObserver.observe(image))
+            if (frequency) {
+              frequency.checked = preferences.mode === "frequency"
+              autosuggest.checked = preferences.mode !== "frequency"
             }
 
             const buttons = [...pickerList.querySelectorAll("[data-emoji-code]")]
@@ -1375,7 +1429,9 @@ defmodule ChatWeb.RoomComponents do
             const reorder = () => {
               const text = input.value.toLocaleLowerCase()
               const score = button =>
-                autosuggest.checked
+                frequencyMode()
+                  ? Number(preferences.usage[button.dataset.emojiCode] || 0)
+                  : autosuggest.checked
                   ? button.emojiTerms.filter(term => term && text.includes(term)).length
                   : 0
 
@@ -1408,7 +1464,7 @@ defmodule ChatWeb.RoomComponents do
             const requestAutosuggest = () => {
               clearTimeout(this.autosuggestTimer)
 
-              if (!autosuggest.checked || !input.value.trim()) {
+              if (frequencyMode() || !autosuggest.checked || !input.value.trim()) {
                 reorder()
                 return
               }
@@ -1422,10 +1478,21 @@ defmodule ChatWeb.RoomComponents do
 
             input.addEventListener("input", requestAutosuggest)
             autosuggest.addEventListener("change", requestAutosuggest)
+            frequency?.addEventListener("change", () => {
+              if (!frequency.checked) return
+              preferences.mode = "frequency"
+              savePreferences()
+              reorder()
+            })
+
+            autosuggest.addEventListener("change", () => {
+              if (!autosuggest.checked || !registered) return
+              preferences.mode = "autosuggest"
+              savePreferences()
+            })
 
             this.el.addEventListener("click", event => {
               if (event.target.closest("#toggle-emoji-picker")) {
-                requestAnimationFrame(loadVisibleImages)
                 return
               }
 
@@ -1435,13 +1502,18 @@ defmodule ChatWeb.RoomComponents do
               const start = input.selectionStart ?? input.value.length
               const end = input.selectionEnd ?? input.value.length
               input.setRangeText(emojiButton.dataset.emojiCode, start, end, "end")
+              if (registered) {
+                const code = emojiButton.dataset.emojiCode
+                preferences.usage[code] = Number(preferences.usage[code] || 0) + 1
+                savePreferences()
+                if (frequencyMode()) reorder()
+              }
               input.dispatchEvent(new Event("input", {bubbles: true}))
               input.focus()
             })
           },
           destroyed() {
             clearTimeout(this.autosuggestTimer)
-            this.imageObserver?.disconnect()
           }
         }
       </script>

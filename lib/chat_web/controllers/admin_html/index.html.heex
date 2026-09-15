@@ -210,7 +210,7 @@
               id={"admin-emoji-#{emoji.id}"}
               action={~p"/admin/emojis/#{emoji.id}"}
               method="post"
-              class="grid gap-3 rounded-lg border border-emerald-950 bg-[#111a14] p-3 sm:grid-cols-[auto_1fr_15rem_auto] sm:items-center"
+              class="grid gap-3 rounded-lg border border-emerald-950 bg-[#111a14] p-3 sm:grid-cols-[auto_minmax(11rem,1fr)_minmax(12rem,1fr)_15rem_auto] sm:items-center"
             >
               <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
               <img
@@ -221,7 +221,14 @@
                 class="h-auto w-auto max-h-24 max-w-32 object-contain"
               />
               <div class="min-w-0 text-sm text-stone-300">
-                <p class="font-medium">{emoji.code}</p><p class="mt-1 text-xs text-stone-500">
+                <.input
+                  id={"emoji-code-#{emoji.id}"}
+                  name="emoji[code]"
+                  value={emoji.code}
+                  label="Код смайла"
+                  required
+                />
+                <p class="mt-1 text-xs text-stone-500">
                   {emoji.width}×{emoji.height} · {emoji.content_type}{if emoji.animated,
                     do: " · анимация"}{if emoji.user, do: " · " <> emoji.user.nickname}
                 </p>

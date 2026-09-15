@@ -50,7 +50,12 @@ defmodule Chat.Emojis.Emoji do
 
   def moderation_changeset(emoji, attrs) do
     emoji
-    |> cast(attrs, [:status, :tags, :rejection_reason])
+    |> cast(attrs, [:code, :status, :tags, :rejection_reason])
+    |> normalize_code()
+    |> validate_format(:code, ~r/^:[\p{Ll}\p{Nd}_]{2,30}:$/u,
+      message: "используйте код вида :кот_плачет:"
+    )
+    |> unique_constraint(:code)
     |> update_change(:tags, &normalize_tags/1)
     |> validate_required([:status])
     |> validate_length(:rejection_reason, max: 500)
