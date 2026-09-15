@@ -27,6 +27,7 @@ defmodule ChatWeb.MusicChartLiveTest do
       live(init_test_session(conn, account_user_id: voter.id), ~p"/music-chart")
 
     assert has_element?(view, "#music-like-#{track.id}[aria-pressed='false']")
+    assert has_element?(view, "#music-like-#{track.id}.self-start")
     view |> element("#music-like-#{track.id}") |> render_click()
     assert has_element?(view, "#music-like-#{track.id}[aria-pressed='true']")
 
@@ -56,6 +57,9 @@ defmodule ChatWeb.MusicChartLiveTest do
 
     {:ok, view, _html} =
       live(init_test_session(conn, account_user_id: listener.id), ~p"/music-chart")
+
+    assert has_element?(view, "#music-comment-body-#{track.id}.w-full.border-fuchsia-300\\/50")
+    assert has_element?(view, "#music-comment-submit-#{track.id}", "Отправить")
 
     view
     |> form("#music-comment-form-#{track.id}", music_comment: %{body: "Классный трек"})

@@ -1145,25 +1145,26 @@ defmodule ChatWeb.RoomComponents do
       >
         {@media_error}
       </p>
+      <%!-- На мобильных поле и отправка занимают первую строку; остальные элементы — вторую. --%>
       <fieldset
         id="emoji-input-controls"
         phx-hook=".EmojiPicker"
-        class="flex min-w-0 flex-wrap gap-3 disabled:cursor-not-allowed disabled:opacity-60"
+        class="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] gap-3 disabled:cursor-not-allowed disabled:opacity-60 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto]"
       >
-        <div class="contents">
+        <div class="relative col-start-1 row-start-2 shrink-0 sm:row-start-1">
           <button
             id="toggle-emoji-picker"
             type="button"
             phx-click={JS.toggle_class("emoji-picker-closed", to: "#emoji-picker")}
             aria-label="Выбрать смайл"
             aria-controls="emoji-picker"
-            class="flex h-full min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
+            class="flex min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
           >
             <.icon name="hero-face-smile" class="size-5" />
           </button>
           <div
             id="emoji-picker"
-            class="emoji-picker-closed order-first w-full min-w-0 max-w-full basis-full rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-xl"
+            class="emoji-picker-closed absolute bottom-full left-0 z-40 mb-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-xl"
           >
             <div
               id="emoji-picker-list"
@@ -1211,67 +1212,64 @@ defmodule ChatWeb.RoomComponents do
           aria-label="Открыть меню команд"
           aria-controls="command-autocomplete-menu"
           title="Команды"
-          class="flex h-full min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 font-mono text-base font-semibold text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
+          class="col-start-2 row-start-2 flex min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 font-mono text-base font-semibold text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 sm:row-start-1"
         >
           / <span class="sr-only">Команды</span>
         </button>
-        <div class="order-first flex min-w-0 basis-full flex-1 gap-3 sm:contents">
+        <div
+          id="command-autocomplete"
+          phx-hook=".CommandAutocomplete"
+          class="relative col-span-3 row-start-1 min-w-0 sm:col-span-1 sm:col-start-3"
+        >
+          <input
+            id="message-body"
+            name={@message_form[:body].name}
+            value={@message_form[:body].value}
+            autocomplete="off"
+            maxlength={Chat.Messages.max_body_length()}
+            placeholder="Напиши сообщение..."
+            class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
+          />
+          <input id="message-client-id" type="hidden" name="message[client_id]" value="" />
           <div
-            id="command-autocomplete"
-            phx-hook=".CommandAutocomplete"
-            class="relative min-w-0 flex-1"
+            id="command-autocomplete-menu"
+            role="listbox"
+            aria-label="Команды чата"
+            class="absolute bottom-full left-0 z-40 mb-2 hidden w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
           >
-            <input
-              id="message-body"
-              name={@message_form[:body].name}
-              value={@message_form[:body].value}
-              autocomplete="off"
-              maxlength={Chat.Messages.max_body_length()}
-              placeholder="Напиши сообщение..."
-              class="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
-            />
-            <input id="message-client-id" type="hidden" name="message[client_id]" value="" />
-            <div
-              id="command-autocomplete-menu"
-              role="listbox"
-              aria-label="Команды чата"
-              class="absolute bottom-full left-0 z-40 mb-2 hidden w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
+            <button
+              :for={
+                {command, description} <- [
+                  {"/помощь", "Список команд"},
+                  {"/кто", "Кто сейчас в чате"},
+                  {"/инфо ", "Открыть анкету"},
+                  {"/игнор ", "Скрыть или вернуть чатланина"},
+                  {"/игноры", "Список игноров"},
+                  {"/музыка ", "Найти трек и открыть плеер"},
+                  {"/гиф ", "Найти и отправить GIF"},
+                  {"/очистить", "Очистить окно чата только у себя"},
+                  {"/выход", "Выйти из чата"}
+                ]
+              }
+              type="button"
+              role="option"
+              data-command={command}
+              class="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
             >
-              <button
-                :for={
-                  {command, description} <- [
-                    {"/помощь", "Список команд"},
-                    {"/кто", "Кто сейчас в чате"},
-                    {"/инфо ", "Открыть анкету"},
-                    {"/игнор ", "Скрыть или вернуть чатланина"},
-                    {"/игноры", "Список игноров"},
-                    {"/музыка ", "Найти трек и открыть плеер"},
-                    {"/гиф ", "Найти и отправить GIF"},
-                    {"/очистить", "Очистить окно чата только у себя"},
-                    {"/выход", "Выйти из чата"}
-                  ]
-                }
-                type="button"
-                role="option"
-                data-command={command}
-                class="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
-              >
-                <span class="font-semibold text-amber-200">{command}</span>
-                <span class="text-zinc-400">{description}</span>
-              </button>
-            </div>
+              <span class="font-semibold text-amber-200">{command}</span>
+              <span class="text-zinc-400">{description}</span>
+            </button>
           </div>
-          <button
-            id="send-message"
-            type="submit"
-            phx-disable-with="Отправляем…"
-            aria-label="Отправить сообщение"
-            class="flex shrink-0 items-center justify-center rounded bg-amber-300 px-3 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:opacity-75 sm:px-4"
-          >
-            <.icon name="hero-paper-airplane" class="size-5 sm:hidden" />
-            <span class="hidden sm:inline">Отправить</span>
-          </button>
         </div>
+        <button
+          id="send-message"
+          type="submit"
+          aria-label="Отправить сообщение"
+          title="Отправить сообщение"
+          class="col-start-4 row-start-1 flex size-10 shrink-0 items-center justify-center rounded bg-amber-300 text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:bg-amber-500 phx-submit-loading:text-amber-950 phx-submit-loading:opacity-75 sm:col-start-4"
+        >
+          <.icon name="hero-paper-airplane" class="size-5" />
+        </button>
         <div
           id="media-share-controls"
           phx-hook="MediaSharing"
@@ -1283,7 +1281,7 @@ defmodule ChatWeb.RoomComponents do
           data-relay-chunk-size={Chat.MediaShares.relay_chunk_size()}
           data-accepted-types={Jason.encode!(Chat.MediaShares.accepted_types())}
           data-ice-servers={Jason.encode!(@ice_servers)}
-          class="shrink-0"
+          class="col-start-3 row-start-2 shrink-0 sm:col-start-5 sm:row-start-1"
         >
           <input
             :if={@registered}
@@ -1309,7 +1307,7 @@ defmodule ChatWeb.RoomComponents do
                 else: "Только для зарегистрированных чатлан"
               )
             }
-            class="flex h-full min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-400"
+            class="flex min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-400"
           >
             <.icon name="hero-paper-clip" class="size-5" />
           </button>
@@ -1326,7 +1324,7 @@ defmodule ChatWeb.RoomComponents do
           type="button"
           phx-click={JS.dispatch("phx:clear-chat-session", to: "#chat-room") |> JS.push("leave_chat")}
           aria-label="Выйти из чата"
-          class="flex shrink-0 items-center justify-center rounded border border-zinc-700 px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-300 hover:text-red-200 sm:px-4"
+          class="col-start-4 row-start-2 flex shrink-0 items-center justify-center rounded border border-zinc-700 px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-300 hover:text-red-200 sm:col-start-6 sm:row-start-1 sm:px-4"
         >
           <.icon name="hero-arrow-right-start-on-rectangle" class="size-5 sm:hidden" />
           <span class="hidden sm:inline">Выход</span>

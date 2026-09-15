@@ -120,9 +120,11 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#command-autocomplete-menu [data-command='/гиф ']")
     assert has_element?(view, "#command-autocomplete-menu [data-command='/очистить']")
 
-    assert has_element?(view, "#emoji-input-controls.flex-wrap")
+    assert has_element?(view, "#emoji-input-controls.grid")
+    assert has_element?(view, "#command-autocomplete.col-span-3.row-start-1")
+    assert has_element?(view, "#send-message.col-start-4.row-start-1")
     assert has_element?(view, "#show-command-menu[aria-controls='command-autocomplete-menu']")
-    assert has_element?(view, "#command-autocomplete.flex-1")
+    assert has_element?(view, "#command-autocomplete.col-span-3.row-start-1")
     assert has_element?(view, "#message-body.w-full.text-base")
     assert has_element?(view, "#send-message")
     assert has_element?(view, "#current-chatlan-online", "В сети")
@@ -1100,7 +1102,8 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert html =~ "привет из теста"
     refute html =~ "  привет из теста  "
-    assert has_element?(view, "#send-message[phx-disable-with='Отправляем…']")
+    refute has_element?(view, "#send-message[phx-disable-with]")
+    assert has_element?(view, "#send-message.size-10[title='Отправить сообщение'] .size-5")
     assert has_element?(view, "#message-form.relative.z-20")
     refute has_element?(view, "#messages[style*='--chat-composer-height']")
   end
@@ -1200,7 +1203,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#open-emoji-submission")
     assert has_element?(view, "#emoji-picker")
     assert has_element?(view, "#emoji-input-controls")
-    assert has_element?(view, "#send-message[aria-label='Отправить сообщение'] .sm\\:hidden")
+    assert has_element?(view, "#send-message[aria-label='Отправить сообщение'] .size-5")
     assert has_element?(view, "#leave-chat[aria-label='Выйти из чата'] .sm\\:hidden")
   end
 
@@ -1645,6 +1648,12 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(view, "[data-command-result='who']")
     assert has_element?(view, "[data-command-result='who'] button", "command_user")
+
+    view
+    |> element("[data-command-result='who'] button[phx-value-nickname='command_user']")
+    |> render_click()
+
+    assert has_element?(view, "#message-body[value='command_user, ']")
   end
 
   test "clears only the current chat frame", %{conn: conn} do

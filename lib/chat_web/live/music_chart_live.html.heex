@@ -39,9 +39,9 @@
               :for={{dom_id, track} <- @streams.tracks}
               id={dom_id}
               data-track-title={track.title}
-              class="music-chart-track grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:items-center"
+              class="music-chart-track grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:items-start"
             >
-              <span class="music-chart-place flex size-11 items-center justify-center rounded-full text-lg font-bold">
+              <span class="music-chart-place flex size-11 items-center justify-center self-start rounded-full text-lg font-bold sm:self-center">
                 {track.likes_count}
               </span>
               <div class="min-w-0">
@@ -79,15 +79,17 @@
                     class="mt-3 flex gap-2"
                   >
                     <input type="hidden" name="track_id" value={track.id} />
-                    <.input
-                      field={@comment_form[:body]}
-                      id={"music-comment-body-#{track.id}"}
-                      type="text"
-                      maxlength={MusicChart.max_comment_length()}
-                      placeholder="Оставить комментарий"
-                      aria-label={"Комментарий к треку #{track.title}"}
-                      class="min-w-0 flex-1"
-                    />
+                    <div class="min-w-0 flex-1">
+                      <.input
+                        field={@comment_form[:body]}
+                        id={"music-comment-body-#{track.id}"}
+                        type="text"
+                        maxlength={MusicChart.max_comment_length()}
+                        placeholder="Оставить комментарий"
+                        aria-label={"Комментарий к треку #{track.title}"}
+                        class="w-full rounded-lg border border-fuchsia-300/50 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 shadow-sm outline-none transition placeholder:text-zinc-500 hover:border-fuchsia-200/70 focus:border-fuchsia-200 focus:ring-4 focus:ring-fuchsia-300/15"
+                      />
+                    </div>
                     <button
                       id={"music-comment-submit-#{track.id}"}
                       type="submit"
@@ -108,14 +110,17 @@
                 phx-click="toggle_music_like"
                 phx-value-id={track.id}
                 aria-pressed={to_string(track.liked?)}
-                class={["music-like-button", track.liked? && "music-like-button--liked"]}
+                class={[
+                  "music-like-button self-start",
+                  track.liked? && "music-like-button--liked"
+                ]}
               >
                 <.icon name="hero-heart" class="size-5" />
                 <span>{track.likes_count}</span>
               </button>
               <span
                 :if={!@current_user || track.user_id == @current_user.id}
-                class="text-sm text-zinc-500"
+                class="self-start text-sm text-zinc-500"
               >
                 {if track.user_id == (@current_user && @current_user.id),
                   do: "Твой трек",
