@@ -12,8 +12,8 @@ defmodule Chat.Emojis do
   alias Chat.Media.S3
 
   @topic "emojis"
-  @max_size 512
-  @max_bytes 600_000
+  @max_size 100
+  @max_bytes 700_000
   @accepted_types ~w(image/png image/webp image/gif)
 
   def list do

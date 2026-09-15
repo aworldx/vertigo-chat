@@ -8,7 +8,7 @@ defmodule Chat.Emojis.Emoji do
     field :image, :binary
     field :image_key, :string
     field :content_type, :string
-    field :status, Ecto.Enum, values: [:pending, :approved, :rejected, :hidden], default: :pending
+    field :status, Ecto.Enum, values: [:pending, :approved, :rejected], default: :pending
     field :tags, {:array, :string}, default: []
     field :suggestion_terms, {:array, :string}, virtual: true, default: []
     field :width, :integer

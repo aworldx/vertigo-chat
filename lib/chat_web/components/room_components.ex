@@ -1047,7 +1047,7 @@ defmodule ChatWeb.RoomComponents do
             <h2 id="emoji-submission-title" class="text-xl font-semibold text-white">
               Предложить смайл
             </h2><p class="mt-1 text-sm text-zinc-400">
-              PNG, WebP или GIF до 3 МБ и 512×512 px. Анимированные файлы поддерживаются.
+              PNG, WebP или GIF до 700 КБ и 100×100 px. Анимированные файлы поддерживаются.
             </p>
           </div>
           <button
@@ -1066,7 +1066,7 @@ defmodule ChatWeb.RoomComponents do
             id="emoji-submission-code"
             field={to_form(%{}, as: :emoji)[:code]}
             type="text"
-            label="Shortcode"
+            label="Код смайла без двоеточий"
             placeholder="кот_плачет"
             required
           />

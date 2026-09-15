@@ -13,6 +13,7 @@ defmodule ChatWeb.AdminController do
       {:ok, user} ->
         {:ok, emojis} = Admin.list_emojis(user)
         {:ok, emoji_tags} = Admin.list_emoji_tags(user)
+        selected_emoji = Enum.find(emojis, &(&1.id == selected_emoji_id(params)))
 
         if Accounts.admin?(user) do
           case Admin.database_overview(user, params["table"]) do
@@ -23,7 +24,8 @@ defmodule ChatWeb.AdminController do
                 database,
                 emojis,
                 emoji_tags,
-                selected_section(params, user)
+                selected_section(params, user),
+                selected_emoji
               )
 
             {:error, :database} ->
@@ -34,7 +36,8 @@ defmodule ChatWeb.AdminController do
                 empty_database(),
                 emojis,
                 emoji_tags,
-                selected_section(params, user)
+                selected_section(params, user),
+                selected_emoji
               )
           end
         else
@@ -44,12 +47,13 @@ defmodule ChatWeb.AdminController do
             empty_database(),
             emojis,
             emoji_tags,
-            selected_section(params, user)
+            selected_section(params, user),
+            selected_emoji
           )
         end
 
       :error ->
-        render_page(conn, nil, empty_database(), [], [], :database)
+        render_page(conn, nil, empty_database(), [], [], :database, nil)
     end
   end
 
@@ -149,7 +153,7 @@ defmodule ChatWeb.AdminController do
     end
   end
 
-  defp render_page(conn, user, database, emojis, emoji_tags, selected_section) do
+  defp render_page(conn, user, database, emojis, emoji_tags, selected_section, selected_emoji) do
     conn
     |> assign(:admin_assets, true)
     |> assign(:disable_live_socket, true)
@@ -158,7 +162,9 @@ defmodule ChatWeb.AdminController do
       current_user: user,
       is_admin?: Accounts.admin?(user),
       selected_section: selected_section,
+      selected_emoji: selected_emoji,
       emojis: emojis,
+      emoji_groups: group_emojis(emojis),
       emoji_tags: emoji_tags,
       database: database,
       chat_version: Application.spec(:chat, :vsn) |> to_string()
@@ -172,6 +178,23 @@ defmodule ChatWeb.AdminController do
 
   defp selected_section(_params, %Chat.Accounts.User{} = user),
     do: if(Accounts.admin?(user), do: :database, else: :emojis)
+
+  defp selected_emoji_id(%{"emoji_id" => id}) when is_binary(id) do
+    case Integer.parse(id) do
+      {emoji_id, ""} when emoji_id > 0 -> emoji_id
+      _ -> nil
+    end
+  end
+
+  defp selected_emoji_id(_params), do: nil
+
+  defp group_emojis(emojis) do
+    %{
+      pending: Enum.filter(emojis, &(&1.status == :pending)),
+      approved: Enum.filter(emojis, &(&1.status == :approved)),
+      rejected: Enum.filter(emojis, &(&1.status == :rejected))
+    }
+  end
 
   defp current_admin(conn) do
     conn = fetch_cookies(conn)

@@ -77,6 +77,28 @@ defmodule ChatWeb.AdminControllerTest do
         user_id: moderator.id
       })
 
+    Repo.insert!(%Emoji{
+      code: ":approved_emoji:",
+      image: <<1>>,
+      content_type: "image/gif",
+      status: :approved,
+      width: 1,
+      height: 1,
+      animated: false,
+      user_id: moderator.id
+    })
+
+    Repo.insert!(%Emoji{
+      code: ":rejected_emoji:",
+      image: <<1>>,
+      content_type: "image/gif",
+      status: :rejected,
+      width: 1,
+      height: 1,
+      animated: false,
+      user_id: moderator.id
+    })
+
     tag = Repo.insert!(%Tag{name: "удалить"})
     Repo.insert_all("emoji_tag_assignments", [%{emoji_id: emoji.id, emoji_tag_id: tag.id}])
 
@@ -94,6 +116,15 @@ defmodule ChatWeb.AdminControllerTest do
     updated_emoji = Repo.preload(Repo.get!(Emoji, emoji.id), :emoji_tags)
     assert updated_emoji.code == ":переименован:"
     assert updated_emoji.emoji_tags == []
+
+    response = get(recycle(conn), "/admin?section=emojis&emoji_id=#{emoji.id}") |> response(:ok)
+    assert response =~ "Код смайла без двоеточий"
+    assert response =~ "value=\"переименован\""
+    assert response =~ "admin-emoji-editor-#{emoji.id}"
+    assert response =~ "admin-emojis-pending-grid"
+    assert response =~ "admin-emojis-approved-grid"
+    assert response =~ "admin-emojis-rejected-grid"
+    refute response =~ "value=\"hidden\""
 
     conn = delete(recycle(conn), "/admin/emojis/#{emoji.id}")
     assert redirected_to(conn) == "/admin?section=emojis"

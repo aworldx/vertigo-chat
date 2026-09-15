@@ -5,6 +5,11 @@ defmodule Chat.EmojisTest do
   alias Chat.Emojis.{Emoji, Tag}
   alias Chat.Repo
 
+  test "limits submitted emoji files to 700 KB and 100 pixels" do
+    assert Emojis.max_bytes() == 700_000
+    assert Emojis.max_size() == 100
+  end
+
   test "includes an emoji shortcode in autosuggestion terms" do
     emoji =
       Repo.insert!(%Emoji{

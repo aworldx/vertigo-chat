@@ -127,11 +127,16 @@ defmodule Chat.MediaTest do
     user: user,
     objects: objects
   } do
-    key = "emoji-staging/test.webp"
-    {:ok, image} = Media.Thumbnail.generate(png())
+    key = "emoji-staging/test.png"
+
+    image =
+      Base.decode64!(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLuwAAAAABJRU5ErkJggg=="
+      )
+
     Agent.update(objects, &Map.put(&1, "/vertigo/#{key}", image))
 
-    assert {:ok, emoji} = Emojis.submit_remote(user, ":s3_emoji:", key, "image/webp")
+    assert {:ok, emoji} = Emojis.submit_remote(user, ":s3_emoji:", key, "image/png")
     assert emoji.image == nil
     assert emoji.image_key == key
   end
