@@ -962,6 +962,30 @@ const chatHooks = {
       }
     },
   },
+  ListeningAudio: {
+    mounted() {
+      this.track = this.el.dataset.trackTitle || ""
+      this.listening = false
+      this.started = () => {
+        this.listening = true
+        this.pushEvent("music_started", {track: this.track})
+      }
+      this.stopped = () => {
+        if (!this.listening) return
+        this.listening = false
+        this.pushEvent("music_stopped", {track: this.track})
+      }
+      this.el.addEventListener("play", this.started)
+      this.el.addEventListener("pause", this.stopped)
+      this.el.addEventListener("ended", this.stopped)
+    },
+    destroyed() {
+      this.stopped()
+      this.el.removeEventListener("play", this.started)
+      this.el.removeEventListener("pause", this.stopped)
+      this.el.removeEventListener("ended", this.stopped)
+    },
+  },
 }
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

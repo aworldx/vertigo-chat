@@ -5,6 +5,9 @@ defmodule ChatWeb.MusicChartLive do
   import ChatWeb.AccountComponents
 
   alias Chat.MusicChart
+  alias Chat.Listening
+
+  @room_id "lobby"
 
   @impl true
   def mount(_params, _session, socket) do
@@ -36,6 +39,28 @@ defmodule ChatWeb.MusicChartLive do
   end
 
   def handle_event("validate_music_track", _params, socket), do: {:noreply, socket}
+
+  def handle_event(
+        "music_started",
+        %{"track" => track},
+        %{assigns: %{current_user: %{id: id}}} = socket
+      ) do
+    :ok = Listening.start_listening(@room_id, "user:#{id}", track)
+    {:noreply, socket}
+  end
+
+  def handle_event("music_started", _params, socket), do: {:noreply, socket}
+
+  def handle_event(
+        "music_stopped",
+        %{"track" => track},
+        %{assigns: %{current_user: %{id: id}}} = socket
+      ) do
+    :ok = Listening.stop_listening(@room_id, "user:#{id}", track)
+    {:noreply, socket}
+  end
+
+  def handle_event("music_stopped", _params, socket), do: {:noreply, socket}
 
   def handle_event("upload_music_track", %{"music_chart" => params}, socket) do
     with %{} = user <- socket.assigns.current_user,
@@ -118,6 +143,12 @@ defmodule ChatWeb.MusicChartLive do
 
   @impl true
   def handle_info(:music_chart_changed, socket), do: {:noreply, refresh_tracks(socket)}
+
+  @impl true
+  def terminate(_reason, %{assigns: %{current_user: %{id: id}}}),
+    do: Listening.stop_listening(@room_id, "user:#{id}", "")
+
+  def terminate(_reason, _socket), do: :ok
 
   def audio_url(track), do: ~p"/music-chart/tracks/#{track.id}"
 

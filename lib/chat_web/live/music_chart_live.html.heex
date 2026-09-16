@@ -47,7 +47,15 @@
               <div class="min-w-0">
                 <h3 class="truncate text-base font-semibold text-white">{track.title}</h3>
                 <p class="mt-1 text-sm text-zinc-400">Добавил {track.user.nickname}</p>
-                <audio class="mt-3 w-full" controls preload="metadata" src={audio_url(track)}>
+                <audio
+                  id={"music-chart-player-#{track.id}"}
+                  phx-hook="ListeningAudio"
+                  data-track-title={track.title}
+                  class="mt-3 w-full"
+                  controls
+                  preload="metadata"
+                  src={audio_url(track)}
+                >
                   Твой браузер не поддерживает воспроизведение аудио.
                 </audio>
                 <section

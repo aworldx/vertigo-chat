@@ -487,6 +487,8 @@ defmodule ChatWeb.RoomComponents do
                 </div>
                 <audio
                   id={"music-message-player-#{dom_id}"}
+                  phx-hook="ListeningAudio"
+                  data-track-title={"#{message.media_artist} — #{message.body}"}
                   controls
                   preload="none"
                   controlslist="nodownload"
@@ -892,6 +894,15 @@ defmodule ChatWeb.RoomComponents do
               {user.nickname}
             </span>
             <.rank_badge rank={Map.get(user, :rank)} />
+            <span
+              :if={is_binary(Map.get(user, :listening_track))}
+              id={"listening-chatlan-#{user.id}"}
+              class="shrink-0 text-fuchsia-200"
+              title={"Слушает: #{user.listening_track}"}
+              aria-label={"#{user.nickname} слушает: #{user.listening_track}"}
+            >
+              <span aria-hidden="true">🎧</span>
+            </span>
             <span
               class="shrink-0 text-[10px] font-medium"
               role={if(user.peer_id == @peer_id, do: "status")}

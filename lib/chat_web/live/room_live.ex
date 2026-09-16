@@ -15,6 +15,7 @@ defmodule ChatWeb.RoomLive do
   alias Chat.Feedback
   alias Chat.Gifs
   alias Chat.MediaShares
+  alias Chat.Listening
   alias Chat.Music
   alias Chat.Messages
   alias Chat.Profiles
@@ -114,6 +115,7 @@ defmodule ChatWeb.RoomLive do
     socket =
       if connected?(socket) do
         Messages.subscribe(@room_id)
+        Listening.subscribe(@room_id)
         PrivateMessages.subscribe(presence_key)
         MediaShares.subscribe_peer(@room_id, presence_key)
         Emojis.subscribe()
@@ -210,6 +212,20 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("touch_chat_session", _params, socket), do: {:noreply, socket}
+
+  def handle_event("music_started", %{"track" => track}, %{assigns: %{joined?: true}} = socket) do
+    :ok = Listening.start_listening(@room_id, socket.assigns.identity_key, track)
+    {:noreply, socket}
+  end
+
+  def handle_event("music_started", _params, socket), do: {:noreply, socket}
+
+  def handle_event("music_stopped", %{"track" => track}, %{assigns: %{joined?: true}} = socket) do
+    :ok = Listening.stop_listening(@room_id, socket.assigns.identity_key, track)
+    {:noreply, socket}
+  end
+
+  def handle_event("music_stopped", _params, socket), do: {:noreply, socket}
 
   def handle_event("sync_messages", %{"cursor" => cursor}, %{assigns: %{joined?: true}} = socket) do
     socket =
@@ -993,6 +1009,7 @@ defmodule ChatWeb.RoomLive do
 
     if socket.assigns.joined? do
       log_session("leave_requested", socket)
+      :ok = Listening.stop_listening(@room_id, socket.assigns.identity_key, "")
       :ok = broadcast_stopped_typing(socket)
       :ok = Sessions.leave(chat_session(socket), self())
     end
@@ -1259,10 +1276,15 @@ defmodule ChatWeb.RoomLive do
     {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
   end
 
+  def handle_info(:listening_changed, socket) do
+    {:noreply, assign(socket, :online, Chatlans.list_online(@room_id))}
+  end
+
   @impl true
   def terminate(_reason, socket) do
     if socket.assigns.joined? do
       log_session("connection_terminated", socket)
+      :ok = Listening.stop_listening(@room_id, socket.assigns.identity_key, "")
       :ok = broadcast_stopped_typing(socket)
       :ok = Sessions.connection_lost(chat_session(socket), self())
     end

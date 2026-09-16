@@ -409,6 +409,19 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "[data-command-result='music']")
   end
 
+  test "shows the current track beside a chatlan while audio is playing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/chat")
+    enter_chat(view, "listening_guest")
+
+    render_hook(view, "music_started", %{"track" => "Bakr — Привет"})
+
+    assert has_element?(view, "[id^='listening-chatlan-'][title='Слушает: Bakr — Привет']")
+
+    render_hook(view, "music_stopped", %{"track" => "Bakr — Привет"})
+
+    refute has_element?(view, "[id^='listening-chatlan-']")
+  end
+
   test "paginates music search results in groups of five", %{conn: conn} do
     previous_config = Application.get_env(:chat, Chat.Music)
 

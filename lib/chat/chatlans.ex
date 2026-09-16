@@ -7,6 +7,7 @@ defmodule Chat.Chatlans do
   alias Chat.Appearance
   alias Chat.Bot
   alias Chat.Messages
+  alias Chat.Listening
   alias Chat.Presence
   alias Chat.Themes
   alias Chat.Sessions.Store
@@ -40,6 +41,7 @@ defmodule Chat.Chatlans do
             peer_id: id,
             session_id: Map.get(meta, :session_id),
             identity_key: Map.get(meta, :identity_key),
+            listening_track: Listening.track_for(room_id, Map.get(meta, :identity_key)),
             connection_epoch: Map.get(meta, :connection_epoch),
             nickname: meta.nickname,
             registered?: Map.get(meta, :registered?, false),
