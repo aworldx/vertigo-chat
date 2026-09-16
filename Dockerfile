@@ -77,7 +77,8 @@ RUN mix release
 FROM ${RUNNER_IMAGE} AS final
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates curl imagemagick ffmpeg yt-dlp \
+  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates curl imagemagick ffmpeg nodejs python3-pip \
+  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
   && rm -rf /var/lib/apt/lists/*
 
 # Set the locale
