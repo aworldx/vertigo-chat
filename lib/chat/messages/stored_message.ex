@@ -6,7 +6,7 @@ defmodule Chat.Messages.StoredMessage do
 
   schema "room_messages" do
     field :room_id, :string
-    field :kind, Ecto.Enum, values: [:text, :system, :gif, :music]
+    field :kind, Ecto.Enum, values: [:text, :system, :gif, :music, :youtube]
     field :author, :string
     field :body, :string
     field :client_id, :string

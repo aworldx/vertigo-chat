@@ -268,6 +268,72 @@ defmodule Chat.MessagesTest do
     end
   end
 
+  describe "send_youtube/5" do
+    setup do
+      previous_config = Application.get_env(:chat, Chat.YouTube)
+
+      Application.put_env(:chat, Chat.YouTube,
+        duration_resolver: fn _source_url -> {:ok, 600} end
+      )
+
+      on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
+    end
+
+    test "broadcasts a YouTube video as a persistent public message" do
+      room_id = "youtube-room"
+      :ok = Messages.subscribe(room_id)
+
+      assert {:ok, message} =
+               Messages.send_youtube(
+                 "alice",
+                 room_id,
+                 "https://youtu.be/dQw4w9WgXcQ",
+                 %{},
+                 Subject.internal(:youtube_test)
+               )
+
+      assert message.kind == :youtube
+      assert message.media_url == "dQw4w9WgXcQ"
+      assert message.media_duration == "10:00"
+      assert message.media_source_url == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      assert_receive {:message_created, ^message}
+
+      assert [stored] = Messages.list_recent_messages(room_id)
+      assert stored.kind == :youtube
+      assert stored.media_url == message.media_url
+    end
+
+    test "rejects videos longer than 20 minutes" do
+      previous_config = Application.get_env(:chat, Chat.YouTube)
+
+      Application.put_env(:chat, Chat.YouTube,
+        duration_resolver: fn _source_url -> {:ok, Chat.YouTube.max_duration_seconds() + 1} end
+      )
+
+      on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
+
+      assert {:error, :video_too_long} =
+               Messages.send_youtube(
+                 "alice",
+                 "youtube-room",
+                 "https://youtu.be/dQw4w9WgXcQ",
+                 %{},
+                 Subject.internal(:long_youtube_test)
+               )
+    end
+
+    test "rejects invalid YouTube links" do
+      assert {:error, :invalid_youtube} =
+               Messages.send_youtube(
+                 "alice",
+                 "youtube-room",
+                 "https://example.com/video",
+                 %{},
+                 Subject.internal(:invalid_youtube_test)
+               )
+    end
+  end
+
   test "room_topic/1 returns the canonical realtime topic" do
     assert Messages.room_topic("lobby") == "room:lobby"
   end

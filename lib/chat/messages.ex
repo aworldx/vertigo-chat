@@ -18,6 +18,7 @@ defmodule Chat.Messages do
   alias Chat.Security.Subject
   alias Chat.Themes
   alias Chat.Typography
+  alias Chat.YouTube
 
   @default_room_id "lobby"
   @max_body_length 1_000
@@ -165,6 +166,42 @@ defmodule Chat.Messages do
 
   def send_registered_music(_user, _room_id, _track, _attrs, %Subject{}),
     do: {:error, :invalid_track}
+
+  def send_youtube(author, room_id, link, attrs, %Subject{} = subject)
+      when is_binary(author) and is_binary(room_id) and is_binary(link) and is_map(attrs) do
+    with {:ok, video} <- YouTube.prepare_video(link),
+         :ok <- allow_youtube_message(subject) do
+      broadcast_youtube(author, room_id, video, attrs, nil)
+    end
+  end
+
+  def send_youtube(_author, _room_id, _link, _attrs, %Subject{}), do: {:error, :invalid_youtube}
+
+  def send_registered_youtube(
+        %User{id: user_id} = user,
+        room_id,
+        link,
+        attrs,
+        %Subject{actor_id: user_id} = subject
+      )
+      when is_binary(room_id) and is_binary(link) and is_map(attrs) do
+    with {:ok, video} <- YouTube.prepare_video(link),
+         :ok <- allow_youtube_message(subject),
+         {:ok, updated_user} <- Ranks.public_message_sent(user),
+         {:ok, message} <-
+           broadcast_youtube(
+             updated_user.nickname,
+             room_id,
+             video,
+             attrs,
+             Ranks.for_user(updated_user)
+           ) do
+      {:ok, message, updated_user}
+    end
+  end
+
+  def send_registered_youtube(_user, _room_id, _link, _attrs, %Subject{}),
+    do: {:error, :invalid_youtube}
 
   def list_recent_messages(room_id \\ @default_room_id) do
     case History.list_recent(room_id) do
@@ -418,6 +455,21 @@ defmodule Chat.Messages do
     persist_and_broadcast(room_id, message)
   end
 
+  defp broadcast_youtube(author, room_id, video, attrs, rank) do
+    message =
+      build_youtube_message(
+        author,
+        video,
+        Themes.normalize_theme_id(Map.get(attrs, "theme_id")),
+        Appearance.normalize(Map.get(attrs, "appearance") || %{}),
+        Typography.normalize_font_id(Map.get(attrs, "font_id")),
+        Typography.normalize_font_style(Map.get(attrs, "font_style")),
+        rank
+      )
+
+    persist_and_broadcast(room_id, message)
+  end
+
   defp persist_and_broadcast(room_id, message) do
     with {:ok, message, :inserted} <- History.save(room_id, message) do
       :ok = Registry.append(room_id, message)
@@ -576,6 +628,28 @@ defmodule Chat.Messages do
     )
   end
 
+  defp build_youtube_message(author, video, theme_id, appearance, font_id, font_style, rank) do
+    Map.merge(
+      %{
+        id: System.unique_integer([:positive]),
+        kind: :youtube,
+        author: author,
+        body: "YouTube-видео",
+        media_url: video.id,
+        media_duration: format_youtube_duration(video.duration),
+        media_source_url: video.source_url,
+        recipient: nil,
+        reactions: %{},
+        theme_id: theme_id,
+        appearance: appearance,
+        font_id: font_id,
+        font_style: font_style
+      }
+      |> maybe_put_rank(rank),
+      timestamp()
+    )
+  end
+
   defp normalize_gif(gif) do
     url = Map.get(gif, :url) || Map.get(gif, "url")
     title = Map.get(gif, :title) || Map.get(gif, "title") || "GIF"
@@ -599,6 +673,14 @@ defmodule Chat.Messages do
       :ok -> :ok
       {:error, {:rate_limited, _retry_after_ms}} -> {:error, :rate_limited}
     end
+  end
+
+  defp allow_youtube_message(subject), do: allow_music_message(subject)
+
+  defp format_youtube_duration(duration) do
+    minutes = div(duration, 60)
+    seconds = rem(duration, 60)
+    "#{minutes}:#{String.pad_leading(to_string(seconds), 2, "0")}"
   end
 
   defp maybe_put_rank(message, nil), do: message

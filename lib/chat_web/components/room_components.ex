@@ -7,6 +7,7 @@ defmodule ChatWeb.RoomComponents do
   alias Chat.Music
   alias Chat.Ranks
   alias Chat.Typography
+  alias Chat.YouTube
 
   attr(:messages, :any, required: true)
   attr(:nickname, :string, required: true)
@@ -56,7 +57,7 @@ defmodule ChatWeb.RoomComponents do
             "chat-message-entry group/message relative transition-colors",
             Map.get(message, :kind) == :system && "px-3 py-0.5 text-center",
             Map.get(message, :kind) == :command && "px-1 py-1",
-            Map.get(message, :kind) not in [:system, :command, :music] &&
+            Map.get(message, :kind) not in [:system, :command, :music, :youtube] &&
               framed_message?(message, @appearance) &&
               "rounded border px-3 pb-2 pt-5 shadow-sm",
             Map.get(message, :kind) == :music &&
@@ -64,6 +65,7 @@ defmodule ChatWeb.RoomComponents do
               "w-full max-w-xl border-zinc-700 bg-zinc-950/90 px-3 py-2.5",
             Map.get(message, :kind) == :music && "ml-auto w-full max-w-xl",
             Map.get(message, :kind) == :gif && "ml-auto w-fit max-w-full",
+            Map.get(message, :kind) == :youtube && "ml-auto w-full max-w-sm",
             Map.get(message, :kind) not in [:system, :command] &&
               not framed_message?(message, @appearance) && "px-1",
             Map.get(message, :kind) != :system && not framed_message?(message, @appearance) &&
@@ -74,7 +76,7 @@ defmodule ChatWeb.RoomComponents do
             Map.get(message, :kind) == :private && framed_message?(message, @appearance) &&
               Map.get(message, :recipient) != @nickname &&
               "border-sky-400/50 bg-sky-400/10",
-            Map.get(message, :kind) not in [:private, :system, :music] &&
+            Map.get(message, :kind) not in [:private, :system, :music, :youtube] &&
               framed_message?(message, @appearance) &&
               Map.get(message, :recipient) != @nickname &&
               "border-zinc-800 bg-zinc-900"
@@ -82,7 +84,7 @@ defmodule ChatWeb.RoomComponents do
         >
           <button
             :if={
-              Map.get(message, :kind) not in [:system, :command, :music] &&
+              Map.get(message, :kind) not in [:system, :command, :music, :youtube] &&
                 framed_message?(message, @appearance)
             }
             id={"message-author-#{dom_id}"}
@@ -96,7 +98,7 @@ defmodule ChatWeb.RoomComponents do
           </button>
           <time
             :if={
-              Map.get(message, :kind) not in [:system, :command, :music] &&
+              Map.get(message, :kind) not in [:system, :command, :music, :youtube] &&
                 framed_message?(message, @appearance)
             }
             id={"message-time-#{dom_id}"}
@@ -494,6 +496,39 @@ defmodule ChatWeb.RoomComponents do
                   class="mt-2 h-9 w-full"
                 ></audio>
               </article>
+            <% :youtube -> %>
+              <figure class="overflow-hidden rounded-xl border border-zinc-700 bg-black shadow-sm">
+                <video
+                  id={"youtube-message-player-#{dom_id}"}
+                  controls
+                  preload="metadata"
+                  controlslist="nodownload"
+                  src={YouTube.proxy_url(message.media_url)}
+                  aria-label={"Воспроизвести YouTube-видео от #{message.author}"}
+                  class="aspect-video w-full bg-zinc-950"
+                ></video>
+                <figcaption class="flex items-center justify-between gap-3 px-2 py-1.5 text-xs text-zinc-400">
+                  <button
+                    id={"message-author-#{dom_id}"}
+                    type="button"
+                    phx-hook="PrivateNickname"
+                    data-private-nickname={message.author}
+                    class="min-w-0 truncate font-semibold hover:underline"
+                    style={appearance_style(message)}
+                  >
+                    {message.author}
+                  </button>
+                  <time
+                    id={"message-time-#{dom_id}"}
+                    datetime={Map.get(message, :sent_at)}
+                    phx-hook=".LocalMessageTime"
+                    phx-update="ignore"
+                    class="shrink-0 text-zinc-500"
+                  >
+                    {message.at}
+                  </time>
+                </figcaption>
+              </figure>
             <% _text -> %>
               <%= if framed_message?(message, @appearance) do %>
                 <p
@@ -1285,6 +1320,7 @@ defmodule ChatWeb.RoomComponents do
                     {"/игноры", "Список игноров"},
                     {"/музыка ", "Найти трек и открыть плеер"},
                     {"/гиф ", "Найти и отправить GIF"},
+                    {"/ютуб ", "Отправить YouTube-видео через сервер"},
                     {"/очистить", "Очистить окно чата только у себя"},
                     {"/выход", "Выйти из чата"}
                   ]

@@ -10,7 +10,7 @@ defmodule Chat.Commands do
           | :exit
           | :ignores
           | :clear
-          | {:info | :toggle_ignore | :music | :gif, String.t()}
+          | {:info | :toggle_ignore | :music | :gif | :youtube, String.t()}
 
   @spec parse(String.t()) :: :not_command | {:ok, command()} | {:error, atom()}
   def parse(body) when is_binary(body) do
@@ -31,15 +31,26 @@ defmodule Chat.Commands do
   defp parse_command("игноры", nil), do: {:ok, :ignores}
   defp parse_command("очистить", nil), do: {:ok, :clear}
 
-  defp parse_command(command, argument) when command in ["музыка", "music", "гиф", "gif"] do
+  defp parse_command(command, argument)
+       when command in ["музыка", "music", "гиф", "gif", "ютуб", "youtube"] do
     case argument && String.trim(argument) do
       query when is_binary(query) and query != "" ->
-        command = if command in ["музыка", "music"], do: :music, else: :gif
+        command =
+          cond do
+            command in ["музыка", "music"] -> :music
+            command in ["гиф", "gif"] -> :gif
+            true -> :youtube
+          end
+
         {:ok, {command, query}}
 
       _ ->
         error =
-          if command in ["музыка", "music"], do: :music_query_required, else: :gif_query_required
+          cond do
+            command in ["музыка", "music"] -> :music_query_required
+            command in ["гиф", "gif"] -> :gif_query_required
+            true -> :youtube_link_required
+          end
 
         {:error, error}
     end

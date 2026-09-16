@@ -1351,6 +1351,7 @@ defmodule ChatWeb.RoomLive do
             %{label: "/игноры", description: "показать список игноров"},
             %{label: "/музыка запрос", description: "найти трек и открыть плеер"},
             %{label: "/гиф запрос", description: "найти и отправить GIF"},
+            %{label: "/ютуб ссылка", description: "отправить видео через серверный прокси"},
             %{label: "/очистить", description: "очистить окно чата только у себя"}
           ])
           |> clear_message_input()}}
@@ -1412,6 +1413,9 @@ defmodule ChatWeb.RoomLive do
       {:ok, {:gif, query}} ->
         start_gif_search(query, socket)
 
+      {:ok, {:youtube, link}} ->
+        {:handled, send_chatlan_youtube(link, socket)}
+
       {:ok, :ignores} ->
         nicknames = socket.assigns.ignored_nicknames |> MapSet.to_list() |> Enum.sort()
         body = if nicknames == [], do: "Список игноров пуст.", else: "Скрытые чатлане:"
@@ -1454,6 +1458,13 @@ defmodule ChatWeb.RoomLive do
          {:noreply,
           socket
           |> insert_command_result(:error, "Поиск GIF", "Укажи запрос: /гиф эмоция или сюжет.")
+          |> clear_message_input()}}
+
+      {:error, :youtube_link_required} ->
+        {:handled,
+         {:noreply,
+          socket
+          |> insert_command_result(:error, "YouTube", "Укажи ссылку: /ютуб https://youtu.be/...")
           |> clear_message_input()}}
 
       {:error, :unknown_command} ->
@@ -1649,6 +1660,39 @@ defmodule ChatWeb.RoomLive do
 
       {:error, reason} ->
         {:noreply, assign(socket, :message_error, message_error(reason))}
+    end
+  end
+
+  defp send_chatlan_youtube(link, %{assigns: %{current_user: %{} = user}} = socket) do
+    case Messages.send_registered_youtube(
+           user,
+           @room_id,
+           link,
+           public_message_attrs("", nil, socket),
+           message_security_subject(socket)
+         ) do
+      {:ok, _message, updated_user} ->
+        {:noreply,
+         socket
+         |> assign(:current_user, updated_user)
+         |> update_presence()
+         |> clear_message_input()}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, :message_error, message_error(reason))}
+    end
+  end
+
+  defp send_chatlan_youtube(link, socket) do
+    case Messages.send_youtube(
+           socket.assigns.nickname,
+           @room_id,
+           link,
+           public_message_attrs("", nil, socket),
+           message_security_subject(socket)
+         ) do
+      {:ok, _message} -> {:noreply, clear_message_input(socket)}
+      {:error, reason} -> {:noreply, assign(socket, :message_error, message_error(reason))}
     end
   end
 
@@ -1865,6 +1909,7 @@ defmodule ChatWeb.RoomLive do
         %{icon: "hero-command-line", label: "Команды", text: "/помощь"},
         %{icon: "hero-musical-note", label: "Музыка", text: "/музыка"},
         %{icon: "hero-film", label: "GIF", text: "/гиф"},
+        %{icon: "hero-video-camera", label: "YouTube", text: "/ютуб"},
         %{icon: "hero-chat-bubble-bottom-center-text", label: "Фидбэк", text: "в меню"},
         %{icon: "hero-puzzle-piece", label: "Игры", text: "в меню"}
       ],
@@ -2228,6 +2273,9 @@ defmodule ChatWeb.RoomLive do
   defp message_error(:rate_limited), do: "Слишком часто. Подожди немного перед отправкой."
   defp message_error(:message_too_long), do: "Сообщение не должно превышать 1000 символов."
   defp message_error(:empty_body), do: "Нельзя отправить пустое сообщение."
+  defp message_error(:invalid_youtube), do: "Нужна корректная ссылка YouTube."
+  defp message_error(:video_too_long), do: "Видео должно быть не длиннее 20 минут."
+  defp message_error(:video_unavailable), do: "Не удалось получить длительность видео YouTube."
   defp message_error(_reason), do: "Не удалось отправить сообщение."
 
   defp private_message_error(:private_recipient_required),

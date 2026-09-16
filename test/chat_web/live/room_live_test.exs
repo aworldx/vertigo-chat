@@ -96,6 +96,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "[data-system-notice='features']", "Новое в чате")
     assert has_element?(view, "[data-system-notice='features']", "/музыка")
     assert has_element?(view, "[data-system-notice='features']", "/гиф")
+    assert has_element?(view, "[data-system-notice='features']", "/ютуб")
 
     assert has_element?(
              view,
@@ -118,6 +119,7 @@ defmodule ChatWeb.RoomLiveTest do
            )
 
     assert has_element?(view, "#command-autocomplete-menu [data-command='/гиф ']")
+    assert has_element?(view, "#command-autocomplete-menu [data-command='/ютуб ']")
     assert has_element?(view, "#command-autocomplete-menu [data-command='/очистить']")
 
     assert has_element?(view, "#emoji-input-controls.flex")
@@ -460,6 +462,26 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "[id^='music-track-'][id$='-1']")
     assert has_element?(view, "[data-command-result='music']", "Исполнитель 6")
     refute has_element?(view, "[data-command-result='music']", "Исполнитель 1")
+  end
+
+  test "shares a YouTube link as a compact server-proxied video", %{conn: conn} do
+    previous_config = Application.get_env(:chat, Chat.YouTube)
+
+    Application.put_env(:chat, Chat.YouTube, duration_resolver: fn _source_url -> {:ok, 600} end)
+
+    on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+    enter_chat(view, "youtube_sender")
+
+    view
+    |> form("#message-form", message: %{body: "/ютуб https://youtu.be/dQw4w9WgXcQ"})
+    |> render_submit()
+
+    assert has_element?(view, "[data-message-kind='youtube'] [id^='youtube-message-player-']")
+    assert has_element?(view, "[data-message-kind='youtube'].ml-auto.max-w-sm")
+    assert has_element?(view, "video[src='/youtube-proxy/dQw4w9WgXcQ']")
+    assert has_element?(view, "#message-body[value='']")
   end
 
   test "does not answer a private message addressed to Hitchcock", %{conn: conn} do

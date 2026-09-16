@@ -15,6 +15,9 @@ defmodule Chat.CommandsTest do
     assert {:ok, {:music, "Bakr Привет"}} = Commands.parse("/музыка Bakr Привет")
     assert {:ok, {:music, "Daft Punk"}} = Commands.parse("/music Daft Punk")
     assert {:ok, {:gif, "аплодисменты"}} = Commands.parse("/гиф аплодисменты")
+
+    assert {:ok, {:youtube, "https://youtu.be/dQw4w9WgXcQ"}} =
+             Commands.parse("/ютуб https://youtu.be/dQw4w9WgXcQ")
   end
 
   test "does not treat ordinary messages as commands" do
@@ -27,5 +30,6 @@ defmodule Chat.CommandsTest do
     assert {:error, :nickname_required} = Commands.parse("/игнор не подходит")
     assert {:error, :music_query_required} = Commands.parse("/музыка")
     assert {:error, :gif_query_required} = Commands.parse("/гиф")
+    assert {:error, :youtube_link_required} = Commands.parse("/ютуб")
   end
 end
