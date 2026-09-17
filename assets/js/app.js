@@ -1059,6 +1059,10 @@ document.addEventListener("click", event => {
 window.addEventListener("phx:clear-message-input", _info => {
   sessionStorage.removeItem(MESSAGE_DRAFT_KEY)
 
+  document.getElementById("emoji-input-controls")?.dispatchEvent(
+    new CustomEvent("chat:clear-emoji-filter")
+  )
+
   const messageInput = document.getElementById("message-body")
 
   if (messageInput) {

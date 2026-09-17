@@ -1236,7 +1236,7 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(view, "#emoji-picker-list")
     assert has_element?(view, "#emoji-autosuggest[checked]")
-    assert has_element?(view, "#open-emoji-submission")
+    refute has_element?(view, "#open-emoji-submission")
     assert has_element?(view, "#emoji-picker.w-full")
     refute has_element?(view, "#emoji-frequency")
     assert has_element?(view, "#emoji-input-controls")
@@ -1255,6 +1255,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#emoji-order-mode[role='radiogroup']")
     assert has_element?(view, "#emoji-autosuggest[type='radio'][checked]")
     assert has_element?(view, "#emoji-frequency[type='radio'][value='frequency']")
+    assert has_element?(view, "#open-emoji-submission")
   end
 
   test "acknowledges a public message with its client and server ids", %{conn: conn} do

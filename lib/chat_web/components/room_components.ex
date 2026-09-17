@@ -996,14 +996,26 @@ defmodule ChatWeb.RoomComponents do
     ~H"""
     <%= for part <- @parts do %>
       <span :if={part.type == :emoji} class="group relative inline-flex align-text-bottom">
-        <img
-          src={"/emojis/#{part.emoji.id}"}
-          alt={part.emoji.code}
-          title={part.emoji.code}
-          width={part.emoji.width}
-          height={part.emoji.height}
-          class="h-auto w-auto max-h-16 max-w-24 object-contain"
-        />
+        <button
+          type="button"
+          phx-click={
+            JS.dispatch("chat:insert-emoji",
+              to: "#emoji-input-controls",
+              detail: %{code: part.emoji.code}
+            )
+          }
+          aria-label={"Вставить #{part.emoji.code} в сообщение"}
+          class="rounded outline-none transition hover:scale-110 focus-visible:ring-2 focus-visible:ring-amber-300"
+        >
+          <img
+            src={"/emojis/#{part.emoji.id}"}
+            alt={part.emoji.code}
+            title={part.emoji.code}
+            width={part.emoji.width}
+            height={part.emoji.height}
+            class="h-auto w-auto max-h-16 max-w-24 object-contain"
+          />
+        </button>
         <span
           role="tooltip"
           class="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-max max-w-52 -translate-x-1/2 rounded bg-zinc-950 px-2 py-1 text-xs text-zinc-100 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
@@ -1209,7 +1221,7 @@ defmodule ChatWeb.RoomComponents do
         >
           <div
             id="emoji-picker-list"
-            class="flex w-full min-w-0 touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]"
+            class="flex min-h-11 w-full min-w-0 touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]"
           >
             <button
               :for={emoji <- @emojis}
@@ -1265,9 +1277,9 @@ defmodule ChatWeb.RoomComponents do
                 type="checkbox"
                 checked
               />Автоподбор</label>
-              <p :if={!@registered} class="text-zinc-500">Частые смайлы доступны после регистрации</p>
             </div>
             <button
+              :if={@registered}
               id="open-emoji-submission"
               type="button"
               phx-click="open_emoji_submission"
@@ -1473,52 +1485,46 @@ defmodule ChatWeb.RoomComponents do
               button.emojiTerms = JSON.parse(button.dataset.emojiTerms || "[]")
             })
 
-            const reorder = () => {
-              const text = input.value.toLocaleLowerCase()
-              const score = button =>
-                frequencyMode()
-                  ? Number(preferences.usage[button.dataset.emojiCode] || 0)
-                  : autosuggest.checked
-                  ? button.emojiTerms.filter(term => term && text.includes(term)).length
-                  : 0
+            const showAll = () => buttons.forEach(button => { button.hidden = false })
 
+            const reorderByFrequency = () => {
               buttons
                 .sort((a, b) => {
-                  return score(b) - score(a) || Number(a.dataset.emojiOrder) - Number(b.dataset.emojiOrder)
+                  return Number(preferences.usage[b.dataset.emojiCode] || 0) -
+                    Number(preferences.usage[a.dataset.emojiCode] || 0) ||
+                    Number(a.dataset.emojiOrder) - Number(b.dataset.emojiOrder)
                 })
                 .forEach(button => pickerList.append(button))
             }
 
             this.autosuggestTimer = null
 
-            const reorderByCodes = codes => {
-              const order = new Map(codes.map((code, index) => [code, index]))
+            const filterByCodes = codes => {
+              const matchedCodes = new Set(codes)
+              buttons.forEach(button => { button.hidden = !matchedCodes.has(button.dataset.emojiCode) })
+            }
 
-              buttons
-                .sort((a, b) => {
-                  const aOrder = order.get(a.dataset.emojiCode)
-                  const bOrder = order.get(b.dataset.emojiCode)
-                  const aMatched = aOrder !== undefined
-                  const bMatched = bOrder !== undefined
-
-                  if (aMatched !== bMatched) return aMatched ? -1 : 1
-                  if (aMatched) return aOrder - bOrder
-                  return Number(a.dataset.emojiOrder) - Number(b.dataset.emojiOrder)
-                })
-                .forEach(button => pickerList.append(button))
+            this.filterRevision = 0
+            const resetFilter = () => {
+              this.filterRevision += 1
+              showAll()
             }
 
             const requestAutosuggest = () => {
               clearTimeout(this.autosuggestTimer)
 
               if (frequencyMode() || !autosuggest.checked || !input.value.trim()) {
-                reorder()
+                resetFilter()
                 return
               }
 
               this.autosuggestTimer = setTimeout(() => {
+                const revision = ++this.filterRevision
+
                 this.pushEvent("emoji_autosuggest", {body: input.value}, reply => {
-                  if (autosuggest.checked) reorderByCodes(reply.codes || [])
+                  if (revision === this.filterRevision && !frequencyMode() && autosuggest.checked) {
+                    filterByCodes(reply.codes || [])
+                  }
                 })
               }, 180)
             }
@@ -1529,13 +1535,25 @@ defmodule ChatWeb.RoomComponents do
               if (!frequency.checked) return
               preferences.mode = "frequency"
               savePreferences()
-              reorder()
+              resetFilter()
+              reorderByFrequency()
             })
 
             autosuggest.addEventListener("change", () => {
               if (!autosuggest.checked || !registered) return
               preferences.mode = "autosuggest"
               savePreferences()
+              requestAutosuggest()
+            })
+
+            this.el.addEventListener("chat:clear-emoji-filter", resetFilter)
+            this.el.addEventListener("chat:insert-emoji", event => {
+              const code = event.detail.code
+              const start = input.selectionStart ?? input.value.length
+              const end = input.selectionEnd ?? input.value.length
+              input.setRangeText(code, start, end, "end")
+              input.dispatchEvent(new Event("input", {bubbles: true}))
+              input.focus()
             })
 
             this.el.addEventListener("click", event => {
@@ -1553,7 +1571,7 @@ defmodule ChatWeb.RoomComponents do
                 const code = emojiButton.dataset.emojiCode
                 preferences.usage[code] = Number(preferences.usage[code] || 0) + 1
                 savePreferences()
-                if (frequencyMode()) reorder()
+                if (frequencyMode()) reorderByFrequency()
               }
               input.dispatchEvent(new Event("input", {bubbles: true}))
               input.focus()

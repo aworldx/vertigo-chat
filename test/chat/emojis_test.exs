@@ -51,4 +51,41 @@ defmodule Chat.EmojisTest do
     assert ":трясу:" in Emojis.autosuggest_codes("тряс")
     assert ":трясу:" in Emojis.autosuggest_codes("я трясусь")
   end
+
+  test "finds emojis for every significant word in a message" do
+    love =
+      Repo.insert!(%Emoji{
+        code: ":love:",
+        image: <<1>>,
+        content_type: "image/gif",
+        status: :approved,
+        width: 1,
+        height: 1,
+        animated: false
+      })
+
+    sadness =
+      Repo.insert!(%Emoji{
+        code: ":sadness:",
+        image: <<1>>,
+        content_type: "image/gif",
+        status: :approved,
+        width: 1,
+        height: 1,
+        animated: false
+      })
+
+    love_tag = Repo.insert!(%Tag{name: "обожание", triggers: []})
+    sadness_tag = Repo.insert!(%Tag{name: "уныние", triggers: []})
+
+    Repo.insert_all("emoji_tag_assignments", [
+      %{emoji_id: love.id, emoji_tag_id: love_tag.id},
+      %{emoji_id: sadness.id, emoji_tag_id: sadness_tag.id}
+    ])
+
+    codes = Emojis.autosuggest_codes("про обожание и про уныние")
+
+    assert ":love:" in codes
+    assert ":sadness:" in codes
+  end
 end

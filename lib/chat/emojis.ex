@@ -147,14 +147,10 @@ defmodule Chat.Emojis do
   end
 
   def autosuggest_codes(query) when is_binary(query) do
-    query = String.trim(query)
-
-    if query == "" do
-      []
-    else
-      (shortcode_codes(query) ++ tag_search_codes(query))
-      |> Enum.uniq()
-    end
+    query
+    |> suggestion_terms()
+    |> Enum.flat_map(&(shortcode_codes(&1) ++ tag_search_codes(&1)))
+    |> Enum.uniq()
   end
 
   def autosuggest_codes(_query), do: []
@@ -261,6 +257,12 @@ defmodule Chat.Emojis do
     |> String.split(~r/[^\p{L}\p{N}_]+/u, trim: true)
     |> Enum.map(&(&1 <> ":*"))
     |> Enum.join(" & ")
+  end
+
+  defp suggestion_terms(query) do
+    query
+    |> String.downcase()
+    |> String.split(~r/[^\p{L}\p{N}_]+/u, trim: true)
   end
 
   defp put_tag_names(emoji) do
