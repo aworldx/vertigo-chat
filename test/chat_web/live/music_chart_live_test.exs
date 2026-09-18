@@ -3,6 +3,7 @@ defmodule ChatWeb.MusicChartLiveTest do
   use ChatWeb.ConnCase
 
   alias Chat.Accounts
+  alias Chat.Listening
   alias Chat.MusicChart
 
   test "shows the invitation and account login without a chat entry button", %{conn: conn} do
@@ -12,6 +13,27 @@ defmodule ChatWeb.MusicChartLiveTest do
     refute has_element?(view, "#music-chart-enter-chat")
     assert has_element?(view, "#music-chart-account-login[action='/account/login']", "Войти")
     assert has_element?(view, "#music-chart-tracks[phx-update='stream']")
+  end
+
+  test "broadcasts a playing chart track for a guest with a signed identity", %{conn: conn} do
+    nickname = "chart_listening_guest"
+    identity_id = Ecto.UUID.generate()
+
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{
+        "guest_nickname" => nickname,
+        "guest_identity_token" => ChatWeb.UserAuth.sign_guest_identity(nickname, identity_id)
+      })
+      |> live(~p"/music-chart")
+
+    render_hook(view, "music_started", %{"track" => "Гость — Любимый трек"})
+
+    assert Listening.track_for("lobby", "guest:#{identity_id}") == "Гость — Любимый трек"
+
+    render_hook(view, "music_stopped", %{"track" => "Гость — Любимый трек"})
+
+    assert Listening.track_for("lobby", "guest:#{identity_id}") == nil
   end
 
   test "lets a registered chatlan upload a track and vote for another one", %{conn: conn} do

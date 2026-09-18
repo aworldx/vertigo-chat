@@ -4,14 +4,18 @@ defmodule ChatWeb.MusicChartLive do
 
   import ChatWeb.AccountComponents
 
-  alias Chat.MusicChart
+  alias Chat.Chatlans
   alias Chat.Listening
+  alias Chat.MusicChart
+  alias Chat.Visits
+  alias ChatWeb.UserAuth
 
   @room_id "lobby"
 
   @impl true
   def mount(_params, _session, socket) do
     current_user = socket.assigns.current_account_user
+    listening_identity_key = listening_identity_key(socket, current_user)
     if connected?(socket), do: MusicChart.subscribe()
 
     {:ok,
@@ -23,6 +27,7 @@ defmodule ChatWeb.MusicChartLive do
      )
      |> assign(:canonical_path, ~p"/music-chart")
      |> assign(:current_user, current_user)
+     |> assign(:listening_identity_key, listening_identity_key)
      |> assign(:upload_form, to_form(%{}, as: :music_chart))
      |> assign(:comment_form, to_form(%{}, as: :music_comment))
      |> allow_upload(:music_track,
@@ -43,9 +48,10 @@ defmodule ChatWeb.MusicChartLive do
   def handle_event(
         "music_started",
         %{"track" => track},
-        %{assigns: %{current_user: %{id: id}}} = socket
-      ) do
-    :ok = Listening.start_listening(@room_id, "user:#{id}", track)
+        %{assigns: %{listening_identity_key: identity_key}} = socket
+      )
+      when is_binary(identity_key) do
+    :ok = Listening.start_listening(@room_id, identity_key, track)
     {:noreply, socket}
   end
 
@@ -54,9 +60,10 @@ defmodule ChatWeb.MusicChartLive do
   def handle_event(
         "music_stopped",
         %{"track" => track},
-        %{assigns: %{current_user: %{id: id}}} = socket
-      ) do
-    :ok = Listening.stop_listening(@room_id, "user:#{id}", track)
+        %{assigns: %{listening_identity_key: identity_key}} = socket
+      )
+      when is_binary(identity_key) do
+    :ok = Listening.stop_listening(@room_id, identity_key, track)
     {:noreply, socket}
   end
 
@@ -145,8 +152,9 @@ defmodule ChatWeb.MusicChartLive do
   def handle_info(:music_chart_changed, socket), do: {:noreply, refresh_tracks(socket)}
 
   @impl true
-  def terminate(_reason, %{assigns: %{current_user: %{id: id}}}),
-    do: Listening.stop_listening(@room_id, "user:#{id}", "")
+  def terminate(_reason, %{assigns: %{listening_identity_key: identity_key}})
+      when is_binary(identity_key),
+      do: Listening.stop_listening(@room_id, identity_key, "")
 
   def terminate(_reason, _socket), do: :ok
 
@@ -187,4 +195,24 @@ defmodule ChatWeb.MusicChartLive do
 
   defp refresh_tracks(socket),
     do: stream(socket, :tracks, MusicChart.list_tracks(socket.assigns.current_user), reset: true)
+
+  defp listening_identity_key(_socket, user) when not is_nil(user),
+    do: Visits.user_identity_key(user)
+
+  defp listening_identity_key(socket, nil) do
+    case get_connect_params(socket) || %{} do
+      %{"guest_nickname" => nickname, "guest_identity_token" => token}
+      when is_binary(nickname) and is_binary(token) ->
+        with normalized_nickname when is_binary(normalized_nickname) <-
+               Chatlans.normalize_nickname(nickname, nil),
+             {:ok, identity_id} <- UserAuth.verify_guest_identity(token, normalized_nickname) do
+          Visits.guest_identity_key(identity_id)
+        else
+          _invalid -> nil
+        end
+
+      _params ->
+        nil
+    end
+  end
 end
