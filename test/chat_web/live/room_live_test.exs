@@ -479,8 +479,17 @@ defmodule ChatWeb.RoomLiveTest do
 
   test "shares a YouTube link as a compact server-proxied video", %{conn: conn} do
     previous_config = Application.get_env(:chat, Chat.YouTube)
+    test_pid = self()
 
-    Application.put_env(:chat, Chat.YouTube, duration_resolver: fn _source_url -> {:ok, 600} end)
+    Application.put_env(:chat, Chat.YouTube,
+      duration_resolver: fn _source_url ->
+        send(test_pid, {:youtube_duration_requested, self()})
+
+        receive do
+          :resolve_youtube_duration -> {:ok, 600}
+        end
+      end
+    )
 
     on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
 
@@ -490,6 +499,13 @@ defmodule ChatWeb.RoomLiveTest do
     view
     |> form("#message-form", message: %{body: "/ютуб https://youtu.be/dQw4w9WgXcQ"})
     |> render_submit()
+
+    assert_receive {:youtube_duration_requested, task_pid}
+    assert has_element?(view, "[data-command-result='youtube']", "Подготавливаю видео")
+    assert has_element?(view, "#message-body[value='']")
+
+    send(task_pid, :resolve_youtube_duration)
+    render_async(view)
 
     assert has_element?(view, "[data-message-kind='youtube'] [id^='youtube-message-player-']")
     assert has_element?(view, "[data-message-kind='youtube'].ml-auto.max-w-sm")

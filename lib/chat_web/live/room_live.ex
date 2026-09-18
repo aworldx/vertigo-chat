@@ -91,6 +91,8 @@ defmodule ChatWeb.RoomLive do
       |> assign(:music_results, [])
       |> assign(:music_page, 1)
       |> assign(:music_search_message_id, nil)
+      |> assign(:youtube_pending?, false)
+      |> assign(:youtube_publish_message_id, nil)
       |> assign(:gif_pending?, false)
       |> assign(:gif_results, [])
       |> assign(:gif_search_message_id, nil)
@@ -1018,6 +1020,7 @@ defmodule ChatWeb.RoomLive do
 
     socket
     |> cancel_async(:music_search)
+    |> cancel_async(:youtube_publish)
     |> cancel_async(:gif_search)
     |> assign(:joined?, false)
     |> assign(:chat_session_token, nil)
@@ -1042,6 +1045,8 @@ defmodule ChatWeb.RoomLive do
     |> assign(:music_results, [])
     |> assign(:music_page, 1)
     |> assign(:music_search_message_id, nil)
+    |> assign(:youtube_pending?, false)
+    |> assign(:youtube_publish_message_id, nil)
     |> assign(:gif_pending?, false)
     |> assign(:gif_results, [])
     |> assign(:gif_search_message_id, nil)
@@ -1110,6 +1115,48 @@ defmodule ChatWeb.RoomLive do
      socket
      |> assign(:music_pending?, false)
      |> replace_music_search_result("Поиск музыки", "Не удалось найти музыку. Попробуй ещё раз.")}
+  end
+
+  def handle_async(:youtube_publish, _result, %{assigns: %{joined?: false}} = socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> remove_youtube_publish_result()}
+  end
+
+  def handle_async(:youtube_publish, {:ok, {:ok, _message, updated_user}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> assign(:current_user, updated_user)
+     |> assign(:message_error, nil)
+     |> remove_youtube_publish_result()
+     |> update_presence()}
+  end
+
+  def handle_async(:youtube_publish, {:ok, {:ok, _message}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> assign(:message_error, nil)
+     |> remove_youtube_publish_result()}
+  end
+
+  def handle_async(:youtube_publish, {:ok, {:error, reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> replace_youtube_publish_result("YouTube", message_error(reason))}
+  end
+
+  def handle_async(:youtube_publish, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> replace_youtube_publish_result(
+       "YouTube",
+       "Не удалось подготовить видео. Попробуй ещё раз."
+     )}
   end
 
   def handle_async(:gif_search, _result, %{assigns: %{gif_search_message_id: nil}} = socket) do
@@ -1436,7 +1483,7 @@ defmodule ChatWeb.RoomLive do
         start_gif_search(query, socket)
 
       {:ok, {:youtube, link}} ->
-        {:handled, send_chatlan_youtube(link, socket)}
+        start_youtube_publish(link, socket)
 
       {:ok, :ignores} ->
         nicknames = socket.assigns.ignored_nicknames |> MapSet.to_list() |> Enum.sort()
@@ -1579,6 +1626,33 @@ defmodule ChatWeb.RoomLive do
     {:handled, {:noreply, start_async(socket, :gif_search, fn -> Gifs.search(query) end)}}
   end
 
+  defp start_youtube_publish(_link, %{assigns: %{youtube_pending?: true}} = socket) do
+    {:handled,
+     {:noreply, assign(socket, :message_error, "Дождись окончания подготовки видео YouTube.")}}
+  end
+
+  defp start_youtube_publish(link, socket) do
+    publish_message_id = "youtube-publish-#{System.unique_integer([:positive])}"
+    publish = youtube_publish_function(link, socket)
+
+    socket =
+      socket
+      |> remove_youtube_publish_result()
+      |> assign(:youtube_pending?, true)
+      |> assign(:youtube_publish_message_id, publish_message_id)
+      |> assign(:message_error, nil)
+      |> insert_command_result(
+        :youtube,
+        "YouTube",
+        "Подготавливаю видео — оно появится в общей комнате автоматически.",
+        [],
+        publish_message_id
+      )
+      |> clear_message_input()
+
+    {:handled, {:noreply, start_async(socket, :youtube_publish, publish)}}
+  end
+
   defp send_chatlan_private_message(body, socket) do
     result =
       if socket.assigns.joined? do
@@ -1685,37 +1759,19 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  defp send_chatlan_youtube(link, %{assigns: %{current_user: %{} = user}} = socket) do
-    case Messages.send_registered_youtube(
-           user,
-           @room_id,
-           link,
-           public_message_attrs("", nil, socket),
-           message_security_subject(socket)
-         ) do
-      {:ok, _message, updated_user} ->
-        {:noreply,
-         socket
-         |> assign(:current_user, updated_user)
-         |> update_presence()
-         |> clear_message_input()}
+  defp youtube_publish_function(link, %{assigns: %{current_user: %{} = user}} = socket) do
+    attrs = public_message_attrs("", nil, socket)
+    subject = message_security_subject(socket)
 
-      {:error, reason} ->
-        {:noreply, assign(socket, :message_error, message_error(reason))}
-    end
+    fn -> Messages.send_registered_youtube(user, @room_id, link, attrs, subject) end
   end
 
-  defp send_chatlan_youtube(link, socket) do
-    case Messages.send_youtube(
-           socket.assigns.nickname,
-           @room_id,
-           link,
-           public_message_attrs("", nil, socket),
-           message_security_subject(socket)
-         ) do
-      {:ok, _message} -> {:noreply, clear_message_input(socket)}
-      {:error, reason} -> {:noreply, assign(socket, :message_error, message_error(reason))}
-    end
+  defp youtube_publish_function(link, socket) do
+    nickname = socket.assigns.nickname
+    attrs = public_message_attrs("", nil, socket)
+    subject = message_security_subject(socket)
+
+    fn -> Messages.send_youtube(nickname, @room_id, link, attrs, subject) end
   end
 
   defp assign_preferences(socket, params, opts \\ []) do
@@ -2068,6 +2124,27 @@ defmodule ChatWeb.RoomLive do
       nil -> insert_command_result(socket, :music, title, body, page_entries, nil, pagination)
       id -> insert_command_result(socket, :music, title, body, page_entries, id, pagination)
     end
+  end
+
+  defp replace_youtube_publish_result(socket, title, body) do
+    case socket.assigns.youtube_publish_message_id do
+      nil -> insert_command_result(socket, :youtube, title, body)
+      id -> insert_command_result(socket, :youtube, title, body, [], id)
+    end
+  end
+
+  defp remove_youtube_publish_result(%{assigns: %{youtube_publish_message_id: nil}} = socket),
+    do: socket
+
+  defp remove_youtube_publish_result(socket) do
+    message_id = socket.assigns.youtube_publish_message_id
+    message = Enum.find(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+
+    socket
+    |> assign(:youtube_publish_message_id, nil)
+    |> then(fn updated_socket ->
+      if message, do: stream_delete(updated_socket, :messages, message), else: updated_socket
+    end)
   end
 
   defp remove_gif_search_result(%{assigns: %{gif_search_message_id: nil}} = socket), do: socket
