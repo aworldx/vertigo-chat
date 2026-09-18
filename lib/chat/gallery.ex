@@ -36,6 +36,23 @@ defmodule Chat.Gallery do
   def get_photo(id) when is_integer(id) and id > 0, do: Repo.get(Photo, id)
   def get_photo(_id), do: nil
 
+  def update_caption(%User{} = user, photo_id, caption)
+      when is_integer(photo_id) and photo_id > 0 and (is_binary(caption) or is_nil(caption)) do
+    with %Photo{} = photo <- Repo.get_by(Photo, id: photo_id, user_id: user.id),
+         caption <- normalize_caption(caption),
+         true <- is_nil(caption) or String.length(caption) <= @max_caption_length,
+         {:ok, photo} <- Repo.update(Photo.caption_changeset(photo, caption)) do
+      broadcast_change()
+      {:ok, photo}
+    else
+      nil -> {:error, :not_found}
+      false -> {:error, :invalid_caption}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  def update_caption(_user, _photo_id, _caption), do: {:error, :not_found}
+
   def toggle_like(%User{} = user, photo_id) when is_integer(photo_id) and photo_id > 0 do
     case Repo.get(Photo, photo_id) do
       nil -> {:error, :not_found}

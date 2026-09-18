@@ -49,7 +49,7 @@
                 field={@upload_form[:caption]}
                 id="gallery-photo-caption"
                 type="text"
-                label="Подпись к фотографии"
+                label="Название фотографии"
                 maxlength={Gallery.max_caption_length()}
                 placeholder="Необязательно"
               />
@@ -172,19 +172,69 @@
               <span>{photo.likes_count}</span>
             </span>
           </div>
-          <figcaption class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent px-4 pb-4 pt-12">
+          <figcaption class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent px-4 pb-4 pt-12">
             <div class="flex items-end justify-between gap-3">
               <div>
                 <p class="text-xs uppercase tracking-[0.16em] text-zinc-400">Загрузил</p>
                 <p class="chat-user-nickname mt-1 text-lg font-semibold">{photo.user.nickname}</p>
-                <p :if={photo.caption} class="mt-2 text-sm leading-5 text-zinc-200">
-                  {photo.caption}
-                </p>
+                <%= if @editing_photo_id == photo.id do %>
+                  <.form
+                    for={to_form(%{"caption" => photo.caption || ""}, as: :photo)}
+                    id={"edit-gallery-photo-#{photo.id}"}
+                    phx-submit="update_gallery_caption"
+                    phx-value-id={photo.id}
+                    class="mt-2 flex gap-2"
+                  >
+                    <.input
+                      field={to_form(%{"caption" => photo.caption || ""}, as: :photo)[:caption]}
+                      id={"gallery-photo-caption-#{photo.id}"}
+                      type="text"
+                      aria-label="Название фотографии"
+                      maxlength={Gallery.max_caption_length()}
+                      class="min-w-0 flex-1 bg-zinc-900/90 text-sm"
+                    />
+                    <button
+                      id={"save-gallery-photo-caption-#{photo.id}"}
+                      type="submit"
+                      class="rounded-lg bg-amber-300 px-2 py-1 text-xs font-semibold text-zinc-950 hover:bg-amber-200"
+                    >
+                      Сохранить
+                    </button>
+                    <button
+                      id={"cancel-gallery-photo-caption-#{photo.id}"}
+                      type="button"
+                      phx-click="cancel_gallery_caption_edit"
+                      class="rounded-lg border border-zinc-500 px-2 py-1 text-xs text-zinc-200 hover:border-zinc-300"
+                    >
+                      Отмена
+                    </button>
+                  </.form>
+                <% else %>
+                  <p :if={photo.caption} class="mt-2 text-sm leading-5 text-zinc-200">
+                    {photo.caption}
+                  </p>
+                <% end %>
               </div>
-              <time class="text-xs text-zinc-500">{Calendar.strftime(
-                photo.inserted_at,
-                "%d.%m.%Y"
-              )}</time>
+              <div class="flex shrink-0 flex-col items-end gap-2">
+                <button
+                  :if={
+                    @current_user && photo.user_id == @current_user.id &&
+                      @editing_photo_id != photo.id
+                  }
+                  id={"edit-gallery-photo-#{photo.id}"}
+                  type="button"
+                  phx-click="start_gallery_caption_edit"
+                  phx-value-id={photo.id}
+                  aria-label="Изменить название фотографии"
+                  class="rounded-lg bg-zinc-800/90 p-1.5 text-zinc-200 transition hover:bg-zinc-700 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                >
+                  <.icon name="hero-pencil-square" class="size-4" />
+                </button>
+                <time class="text-xs text-zinc-500">{Calendar.strftime(
+                  photo.inserted_at,
+                  "%d.%m.%Y"
+                )}</time>
+              </div>
             </div>
           </figcaption>
         </figure>

@@ -44,4 +44,10 @@ defmodule Chat.Gallery.Photo do
     |> validate_required([:image, :content_type, :user])
     |> validate_length(:caption, max: 280)
   end
+
+  def caption_changeset(photo, caption) do
+    photo
+    |> cast(%{"caption" => caption}, [:caption])
+    |> validate_length(:caption, max: 280)
+  end
 end

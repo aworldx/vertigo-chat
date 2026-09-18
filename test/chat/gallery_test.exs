@@ -42,6 +42,31 @@ defmodule Chat.GalleryTest do
              )
   end
 
+  test "lets an author update a photo caption" do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "caption_editor", "password" => "secret123"})
+
+    {:ok, another_user} =
+      Accounts.register_user(%{"nickname" => "caption_stranger", "password" => "secret123"})
+
+    author = promote_to_statist(author)
+    {:ok, photo} = Gallery.upload_photo(author, webp_bytes(), "image/webp", "Старое название")
+
+    assert {:ok, updated} = Gallery.update_caption(author, photo.id, "  Новое название  ")
+    assert updated.caption == "Новое название"
+    assert {:error, :not_found} = Gallery.update_caption(another_user, photo.id, "Чужое название")
+
+    assert {:error, :invalid_caption} =
+             Gallery.update_caption(
+               author,
+               photo.id,
+               String.duplicate("я", Gallery.max_caption_length() + 1)
+             )
+
+    assert {:ok, cleared} = Gallery.update_caption(author, photo.id, "  ")
+    assert is_nil(cleared.caption)
+  end
+
   test "stores a separate thumbnail for gallery previews" do
     {:ok, user} =
       Accounts.register_user(%{"nickname" => "thumbnail_author", "password" => "secret123"})

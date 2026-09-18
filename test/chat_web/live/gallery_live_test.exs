@@ -101,6 +101,68 @@ defmodule ChatWeb.GalleryLiveTest do
     assert has_element?(view, "#gallery-like-#{photo.id}[aria-pressed='true']", "1")
   end
 
+  test "lets an author edit a photo title after uploading", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "gallery_title_editor", "password" => "secret123"})
+
+    user = promote_to_statist(user)
+    {:ok, photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp", "До правки")
+
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: user.id), ~p"/gallery")
+
+    assert has_element?(view, "#edit-gallery-photo-#{photo.id}")
+
+    view
+    |> element("#edit-gallery-photo-#{photo.id}")
+    |> render_click()
+
+    assert has_element?(view, "#edit-gallery-photo-#{photo.id}")
+
+    view
+    |> form("#edit-gallery-photo-#{photo.id}", photo: %{caption: "После правки"})
+    |> render_submit()
+
+    assert has_element?(view, "[data-photo-caption='После правки']", "После правки")
+    assert Gallery.get_photo(photo.id).caption == "После правки"
+  end
+
+  test "keeps an invalid title in the edit form without changing the photo", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "gallery_invalid_title", "password" => "secret123"})
+
+    user = promote_to_statist(user)
+    {:ok, photo} = Gallery.upload_photo(user, webp_bytes(), "image/webp", "Исходное название")
+
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: user.id), ~p"/gallery")
+
+    view
+    |> element("#edit-gallery-photo-#{photo.id}")
+    |> render_click()
+
+    view
+    |> form("#edit-gallery-photo-#{photo.id}", photo: %{caption: String.duplicate("я", 281)})
+    |> render_submit()
+
+    assert has_element?(view, "#edit-gallery-photo-#{photo.id}")
+    assert has_element?(view, "#flash-error", "Название должно быть не длиннее")
+    assert Gallery.get_photo(photo.id).caption == "Исходное название"
+  end
+
+  test "does not expose title editing controls for another user's photo", %{conn: conn} do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "gallery_photo_author", "password" => "secret123"})
+
+    {:ok, viewer} =
+      Accounts.register_user(%{"nickname" => "gallery_photo_viewer", "password" => "secret123"})
+
+    {:ok, photo} =
+      Gallery.upload_photo(promote_to_statist(author), webp_bytes(), "image/webp", "Авторское")
+
+    {:ok, view, _html} = live(init_test_session(conn, account_user_id: viewer.id), ~p"/gallery")
+
+    refute has_element?(view, "#edit-gallery-photo-#{photo.id}")
+  end
+
   test "does not show upload controls without an account session", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/gallery")
 

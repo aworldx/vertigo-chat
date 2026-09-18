@@ -39,6 +39,13 @@ The daily limit counts the exact `total_tokens` returned by the Responses API fo
 memory summaries. At the warning percentage the bot announces that it is leaving, becomes busy,
 and returns at local midnight. Set the daily limit to `0` to disable this application-level budget.
 
+## Music search proxies
+
+If the music provider requires authenticated HTTP proxies, store them outside the repository and
+set `MUSIC_PROXY_FILE` to the absolute path. The file contains one
+`host:port:username:password` entry per line. Do not commit the proxy list or include it in a
+Docker image; mount it as a read-only secret/volume in production.
+
 ## S3 media storage
 
 Photos, gallery thumbnails and chart audio can be moved to S3. Configuration,

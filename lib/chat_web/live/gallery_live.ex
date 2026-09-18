@@ -21,6 +21,7 @@ defmodule ChatWeb.GalleryLive do
      |> assign(:can_add_gallery_photos?, Ranks.can_add_gallery_photos?(current_user))
      |> assign(:auth_checked?, true)
      |> assign(:gallery_upload_error, nil)
+     |> assign(:editing_photo_id, nil)
      |> assign(:upload_form, to_form(%{}, as: :gallery))
      |> allow_upload(:gallery_photo,
        accept: ~w(.jpg .jpeg .png .webp),
@@ -74,6 +75,60 @@ defmodule ChatWeb.GalleryLive do
      )}
   end
 
+  def handle_event(
+        "start_gallery_caption_edit",
+        %{"id" => id},
+        %{assigns: %{current_user: %{id: user_id}}} = socket
+      ) do
+    case Integer.parse(id) do
+      {photo_id, ""} ->
+        case Gallery.get_photo(photo_id) do
+          %{user_id: ^user_id} ->
+            {:noreply, socket |> assign(:editing_photo_id, photo_id) |> refresh_photos()}
+
+          _photo ->
+            {:noreply, put_flash(socket, :error, "Можно редактировать только свои фотографии.")}
+        end
+
+      :error ->
+        {:noreply, put_flash(socket, :error, "Не удалось открыть редактирование фотографии.")}
+    end
+  end
+
+  def handle_event("start_gallery_caption_edit", _params, socket), do: {:noreply, socket}
+
+  def handle_event("cancel_gallery_caption_edit", _params, socket) do
+    {:noreply, socket |> assign(:editing_photo_id, nil) |> refresh_photos()}
+  end
+
+  def handle_event(
+        "update_gallery_caption",
+        %{"id" => id, "photo" => %{"caption" => caption}},
+        %{assigns: %{current_user: user}} = socket
+      ) do
+    with {photo_id, ""} <- Integer.parse(id),
+         {:ok, _photo} <- Gallery.update_caption(user, photo_id, caption) do
+      {:noreply,
+       socket
+       |> assign(:editing_photo_id, nil)
+       |> refresh_photos()
+       |> put_flash(:info, "Название фотографии сохранено.")}
+    else
+      {:error, :invalid_caption} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Название должно быть не длиннее #{Gallery.max_caption_length()} символов."
+         )}
+
+      _reason ->
+        {:noreply, put_flash(socket, :error, "Не удалось сохранить название фотографии.")}
+    end
+  end
+
+  def handle_event("update_gallery_caption", _params, socket), do: {:noreply, socket}
+
   def handle_event("upload_gallery_photo", params, socket) do
     caption = get_in(params, ["gallery", "caption"])
 
@@ -107,7 +162,7 @@ defmodule ChatWeb.GalleryLive do
          put_flash(
            socket,
            :error,
-           "Подпись должна быть не длиннее #{Gallery.max_caption_length()} символов."
+           "Название должно быть не длиннее #{Gallery.max_caption_length()} символов."
          )}
 
       {:error, :statist_required} ->

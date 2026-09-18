@@ -27,8 +27,12 @@ defmodule ChatWeb.YouTubeProxyController do
     receive do
       {^port, {:data, data}} ->
         case chunk(conn, data) do
-          {:ok, conn} -> stream(conn, port)
-          {:error, _reason} -> close_port(port)
+          {:ok, conn} ->
+            stream(conn, port)
+
+          {:error, _reason} ->
+            close_port(port)
+            conn
         end
 
       {^port, {:exit_status, _status}} ->
@@ -36,6 +40,7 @@ defmodule ChatWeb.YouTubeProxyController do
     after
       @chunk_timeout ->
         close_port(port)
+        conn
     end
   end
 
