@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Назначение файла: разворачивает на production VPS готовый linux/amd64-образ,
-# опубликованный GitHub Actions в private GHCR. На VPS сборка не выполняется.
+# опубликованный GitLab CI в Container Registry. На VPS сборка не выполняется.
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 remote_host="${CHAT_DEPLOY_HOST:-root@109.248.170.47}"
 remote_dir="${CHAT_DEPLOY_DIR:-/opt/apps/vertigo-chat}"
-image_repository="${CHAT_IMAGE:-ghcr.io/aworldx/vertigo-chat}"
+image_repository="${CHAT_IMAGE:-registry.gitlab.com/aworldx1/vertigo-chat}"
 
 cd "$project_dir"
 
@@ -30,6 +30,7 @@ set -euo pipefail
 deploy_dir="$1"
 expected_revision="$2"
 image_repository="$3"
+registry_host="${CHAT_REGISTRY_HOST:-registry.gitlab.com}"
 
 env_value() {
   local key="$1"
@@ -41,17 +42,20 @@ test -z "$(git status --porcelain)"
 git pull --ff-only origin main
 test "$(git rev-parse HEAD)" = "$expected_revision"
 
-ghcr_username="$(env_value GHCR_USERNAME)"
-ghcr_token="$(env_value GHCR_PULL_TOKEN)"
-ghcr_username="${ghcr_username:-aworldx}"
+registry_username="$(env_value GITLAB_REGISTRY_USERNAME)"
+registry_token="$(env_value GITLAB_REGISTRY_TOKEN)"
 
-if [[ -z "$ghcr_token" ]]; then
-  echo "GHCR_PULL_TOKEN must be set in $deploy_dir/.env" >&2
-  exit 1
+if [[ -n "$registry_token" ]]; then
+  if [[ -z "$registry_username" ]]; then
+    echo "GITLAB_REGISTRY_USERNAME must be set with GITLAB_REGISTRY_TOKEN." >&2
+    exit 1
+  fi
+
+  printf '%s' "$registry_token" | docker login "$registry_host" --username "$registry_username" --password-stdin
+  unset registry_token
+else
+  echo "No GitLab Registry token configured; attempting an anonymous image pull."
 fi
-
-printf '%s' "$ghcr_token" | docker login ghcr.io --username "$ghcr_username" --password-stdin
-unset ghcr_token
 
 mkdir -p logs
 chown 65534:root logs

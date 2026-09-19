@@ -103,27 +103,27 @@ PHX_SCHEME=https
 PHX_URL_PORT=443
 ```
 
-To deploy a checked local change, commit it and push it to `origin/main`.
-GitHub Actions builds the `linux/amd64` image natively and publishes it as the
-private image `ghcr.io/aworldx/vertigo-chat:<commit SHA>`. The VPS only pulls
-that finished image: it never runs `mix deps.get` or `docker compose build`.
+To deploy a checked local change, commit it and push it to both `origin/main`
+and `gitlab/main`. GitLab CI builds the `linux/amd64` image natively and
+publishes it as `registry.gitlab.com/aworldx1/vertigo-chat:<commit SHA>`. The
+VPS only pulls that finished image: it never runs `mix deps.get` or `docker
+compose build`.
 
-Before the first deploy, create a GitHub token for the package with
-`read:packages` permission and place it only in
+For a private GitLab image, create a GitLab project deploy token with only
+`read_registry` permission and place it only in
 `/opt/apps/vertigo-chat/.env`:
 
 ```env
-GHCR_USERNAME=aworldx
-GHCR_PULL_TOKEN=github_pat_or_classic_pat_with_read_packages
+GITLAB_REGISTRY_USERNAME=gitlab_deploy_token_username
+GITLAB_REGISTRY_TOKEN=gitlab_deploy_token_value
 ```
 
-Keep the token unquoted and do not copy it into the repository. A fine-grained
-token must also be granted access to this repository's package. Wait for the
-**Publish production image** GitHub Actions workflow for the commit to finish,
+Keep the token unquoted and do not copy it into the repository. If the GitLab
+image is public, omit both variables and the script pulls it anonymously. Wait
+for the **build_production_image** GitLab pipeline for the commit to finish,
 then run the deploy command. The script rejects a dirty tree or a revision
-different from `origin/main`, authenticates the VPS to GHCR, pulls that exact
-SHA (retrying for up to five minutes), migrates, recreates `app` and `admin`,
-and checks the local endpoint.
+different from `origin/main`, pulls that exact SHA (retrying for up to five
+minutes), migrates, recreates `app` and `admin`, and checks the local endpoint.
 
 ```sh
 mix precommit
