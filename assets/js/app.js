@@ -782,7 +782,7 @@ const chatHooks = {
       wrapper.dataset.pendingClientId = entry.clientId
       wrapper.dataset.deliveryState = entry.state || "retrying"
       wrapper.className =
-        "chat-message-entry relative mt-2 rounded border border-dashed border-zinc-700 bg-zinc-900/70 px-3 pb-2 pt-5 opacity-80"
+        "chat-message-entry relative rounded border border-dashed border-zinc-700 bg-zinc-900/70 px-3 pb-2 pt-5 opacity-80"
 
       const author = document.createElement("span")
       author.className =

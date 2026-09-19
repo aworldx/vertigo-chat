@@ -28,7 +28,7 @@ defmodule ChatWeb.RoomComponents do
         id="messages"
         phx-hook="ChatMessages"
         phx-update={if(@preserve_message_dom?, do: "ignore", else: "stream")}
-        class="flex min-h-0 flex-1 flex-col overflow-y-auto p-3"
+        class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3"
       >
         <div
           :for={{dom_id, message} <- @messages}
@@ -703,13 +703,13 @@ defmodule ChatWeb.RoomComponents do
           phx-update="ignore"
           data-nickname={@nickname}
           aria-live="polite"
-          class="order-last"
+          class="order-last flex flex-col gap-3"
         >
         </div>
       </div>
       <p
         id="typing-indicator"
-        class="h-6 shrink-0 px-4 text-xs italic leading-6 text-zinc-500"
+        class="min-h-6 shrink-0 break-words px-4 text-xs italic leading-6 text-zinc-500"
         aria-live="polite"
       >
         {typing_label(@typing)}

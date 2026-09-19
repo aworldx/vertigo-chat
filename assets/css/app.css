@@ -860,10 +860,6 @@ html[data-chat-session-restore-timed-out] #chat-session-restore-timeout {
   }
 }
 
-#messages > .chat-message-entry + .chat-message-entry {
-  margin-block-start: 0.75rem;
-}
-
 /* A GIF frame must shrink to the media before its auto margin can align it to the right. */
 #messages > .chat-message-entry[data-message-kind="gif"] {
   display: table;
@@ -873,23 +869,6 @@ html[data-chat-session-restore-timed-out] #chat-session-restore-timeout {
 
 #messages {
   scroll-behavior: auto;
-}
-
-#messages > .chat-message-entry + .chat-message-entry[data-message-kind="system"],
-#messages > .chat-message-entry[data-message-kind="system"] + .chat-message-entry {
-  margin-block-start: 0.5rem;
-}
-
-#messages
-  > .chat-message-entry[data-message-kind="system"]
-  + .chat-message-entry[data-message-kind="system"] {
-  margin-block-start: 0.25rem;
-}
-
-#messages
-  > .chat-message-entry[data-message-frame="false"]
-  + .chat-message-entry[data-message-frame="false"] {
-  margin-block-start: 0.375rem;
 }
 
 @keyframes chat-reaction-enter {

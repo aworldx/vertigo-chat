@@ -657,17 +657,19 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(first_view, "#message-form")
   end
 
-  test "shows when another chatlan is typing without shifting the layout", %{conn: conn} do
+  test "keeps messages, pending sends and typing indicator in the flex flow", %{conn: conn} do
     {:ok, writer, _html} = live(conn, ~p"/chat")
     {:ok, reader, _html} = live(build_conn(), ~p"/chat")
     enter_chat(writer, "typing_writer")
     enter_chat(reader, "typing_reader")
 
-    assert has_element?(reader, "#typing-indicator.h-6", "")
+    assert has_element?(reader, "#messages.flex.flex-col.gap-3")
+    assert has_element?(reader, "#pending-messages.order-last.flex.flex-col.gap-3")
+    assert has_element?(reader, "#typing-indicator.min-h-6", "")
 
     render_hook(writer, "typing", %{"typing" => true})
     render(reader)
-    assert has_element?(reader, "#typing-indicator.h-6", "typing_writer печатает…")
+    assert has_element?(reader, "#typing-indicator.min-h-6", "typing_writer печатает…")
     refute render(writer) =~ "typing_writer печатает…"
 
     render_hook(writer, "typing", %{"typing" => false})
