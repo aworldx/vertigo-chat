@@ -155,7 +155,9 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       GF_SERVER_ROOT_URL: ${PHX_SCHEME:-https}://${PHX_HOST:?PHX_HOST must be set}/monitoring/
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # Caddy removes /monitoring before proxying; root_url keeps generated
+      # links and redirects under that public prefix.
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana_data:/var/lib/grafana
