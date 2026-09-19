@@ -552,6 +552,54 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-body[value='']")
   end
 
+  test "searches YouTube by text and lets a chatlan publish one result", %{conn: conn} do
+    previous_config = Application.get_env(:chat, Chat.YouTube)
+    test_pid = self()
+
+    Application.put_env(:chat, Chat.YouTube,
+      search_resolver: fn _query ->
+        {:ok,
+         [
+           %{"id" => "dQw4w9WgXcQ", "title" => "Найденный ролик", "duration" => 120},
+           %{"id" => "9bZkp7q19f0", "title" => "Длинный ролик", "duration" => 1_201}
+         ]}
+      end,
+      duration_resolver: fn _source_url ->
+        send(test_pid, {:youtube_search_duration_requested, self()})
+
+        receive do
+          :resolve_youtube_search_duration -> {:ok, 120}
+        end
+      end
+    )
+
+    on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+    enter_chat(view, "youtube_searcher")
+
+    view
+    |> form("#message-form", message: %{body: "/ютуб найденный ролик"})
+    |> render_submit()
+
+    render_async(view)
+
+    assert has_element?(view, "[data-command-result='youtube_search']", "Найденный ролик")
+    assert has_element?(view, "[id^='youtube-result-'][id$='-dQw4w9WgXcQ']")
+    refute has_element?(view, "[data-command-result='youtube_search']", "Длинный ролик")
+
+    view
+    |> element("[id^='send-youtube-'][id$='-dQw4w9WgXcQ']")
+    |> render_click()
+
+    assert_receive {:youtube_search_duration_requested, task_pid}
+    send(task_pid, :resolve_youtube_search_duration)
+    render_async(view)
+
+    assert has_element?(view, "[data-message-kind='youtube']")
+    refute has_element?(view, "[data-command-result='youtube_search']")
+  end
+
   test "does not answer a private message addressed to Hitchcock", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "private_bot_sender")

@@ -28,6 +28,7 @@ defmodule Chat.Application do
       Chat.Games.Janitor,
       Chat.Security.RateLimiter,
       Chat.Music.ProxyPool,
+      Chat.YouTube.Cache,
       Chat.Bot.Status,
       {Task.Supervisor, name: Chat.Bot.TaskSupervisor},
       Chat.MediaShares.Registry,

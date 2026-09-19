@@ -1,14 +1,13 @@
 # Назначение файла: проверка ссылок YouTube и запуск серверного потока для видеосообщений.
 defmodule Chat.YouTube do
   @moduledoc """
-  Normalizes YouTube links accepted by the chat and starts `yt-dlp` streaming.
-
-  The downloader runs on the application host; browsers receive video bytes only
-  from the local `/youtube-proxy/:id` endpoint.
+  Normalizes links, searches YouTube, and prepares Safari-compatible cached MP4 files.
   """
 
   @video_id_pattern ~r/\A[A-Za-z0-9_-]{11}\z/
   @max_duration_seconds 20 * 60
+  @max_search_results 5
+  @max_search_query_length 200
   @youtube_hosts ["youtube.com", "www.youtube.com", "m.youtube.com"]
   @short_hosts ["youtu.be", "www.youtu.be"]
 
@@ -45,32 +44,41 @@ defmodule Chat.YouTube do
   end
 
   def max_duration_seconds, do: @max_duration_seconds
+  def max_search_results, do: @max_search_results
+
+  def search(query) when is_binary(query) do
+    query = String.trim(query)
+
+    cond do
+      query == "" -> {:error, :query_required}
+      String.length(query) > @max_search_query_length -> {:error, :query_too_long}
+      true -> search_videos(query)
+    end
+  end
+
+  def search(_query), do: {:error, :query_required}
 
   @spec proxy_url(String.t()) :: String.t()
   def proxy_url(video_id) when is_binary(video_id), do: "/youtube-proxy/" <> URI.encode(video_id)
 
-  @spec open_stream(String.t()) :: {:ok, port()} | {:error, :stream_unavailable}
-  def open_stream(video_id) when is_binary(video_id) do
+  def download_to_file(video_id, path) when is_binary(video_id) and is_binary(path) do
     with true <- Regex.match?(@video_id_pattern, video_id),
          yt_dlp when is_binary(yt_dlp) <- executable_path(:yt_dlp),
          ffmpeg when is_binary(ffmpeg) <- executable_path(:ffmpeg) do
-      port =
-        Port.open({:spawn_executable, ~c"/bin/sh"}, [
-          :binary,
-          :exit_status,
-          :use_stdio,
-          args: [~c"-c", shell_command(yt_dlp, ffmpeg, video_id)]
-        ])
+      downloader = Application.get_env(:chat, __MODULE__, []) |> Keyword.get(:download_fun)
 
-      {:ok, port}
+      result =
+        if is_function(downloader, 2),
+          do: downloader.(video_id, path),
+          else: download_with_yt_dlp(yt_dlp, ffmpeg, video_id, path)
+
+      if result == :ok, do: :ok, else: {:error, :download_failed}
     else
       _unavailable -> {:error, :stream_unavailable}
     end
-  rescue
-    ArgumentError -> {:error, :stream_unavailable}
   end
 
-  def open_stream(_video_id), do: {:error, :stream_unavailable}
+  def download_to_file(_video_id, _path), do: {:error, :stream_unavailable}
 
   defp video_id(%URI{path: "/watch", query: query}, host) when host in @youtube_hosts do
     case URI.decode_query(query || "") do
@@ -148,11 +156,87 @@ defmodule Chat.YouTube do
     end
   end
 
-  defp shell_command(yt_dlp, ffmpeg, video_id) do
-    "#{yt_dlp} --quiet --no-warnings --no-playlist --no-part " <>
+  defp search_videos(query) do
+    resolver =
+      Application.get_env(:chat, __MODULE__, [])
+      |> Keyword.get(:search_resolver, &search_with_yt_dlp/1)
+
+    case resolver.(query) do
+      {:ok, videos} when is_list(videos) ->
+        videos
+        |> Enum.flat_map(&search_entry/1)
+        |> Enum.filter(&(&1.duration <= @max_duration_seconds))
+        |> Enum.take(@max_search_results)
+        |> case do
+          [] -> {:error, :not_found}
+          videos -> {:ok, videos}
+        end
+
+      {:error, _reason} = error ->
+        error
+
+      _invalid ->
+        {:error, :video_unavailable}
+    end
+  end
+
+  defp search_entry(%{"id" => id, "title" => title, "duration" => duration})
+       when is_binary(id) and is_binary(title) and is_number(duration) do
+    if Regex.match?(@video_id_pattern, id) and duration > 0,
+      do: [
+        %{
+          id: id,
+          title: title,
+          duration: trunc(duration),
+          source_url: "https://www.youtube.com/watch?v=#{id}"
+        }
+      ],
+      else: []
+  end
+
+  defp search_entry(_entry), do: []
+
+  defp search_with_yt_dlp(query) do
+    with path when is_binary(path) <- executable_path(:yt_dlp),
+         {output, 0} <-
+           System.cmd(
+             path,
+             [
+               "--quiet",
+               "--no-warnings",
+               "--no-playlist",
+               "--dump-single-json",
+               "ytsearch#{@max_search_results}:#{query}"
+             ],
+             stderr_to_stdout: true
+           ),
+         {:ok, %{"entries" => entries}} <- Jason.decode(output) do
+      {:ok, entries}
+    else
+      _error -> {:error, :video_unavailable}
+    end
+  end
+
+  defp download_with_yt_dlp(yt_dlp, ffmpeg, video_id, path) do
+    temporary_path = path <> ".part"
+    File.rm(temporary_path)
+
+    command =
+      shell_command(yt_dlp, ffmpeg, video_id, temporary_path) <>
+        " && mv " <> shell_escape(temporary_path) <> " " <> shell_escape(path)
+
+    case System.cmd("/bin/sh", ["-c", command], stderr_to_stdout: true) do
+      {_output, 0} -> :ok
+      _error -> {:error, :download_failed}
+    end
+  end
+
+  defp shell_command(yt_dlp, ffmpeg, video_id, output_path) do
+    "#{shell_escape(yt_dlp)} --quiet --no-warnings --no-playlist --no-part " <>
       "--format 'bestvideo[vcodec^=avc1][height<=360]+bestaudio[acodec^=mp4a]/best[ext=mp4][height<=360]' " <>
       "--output - 'https://www.youtube.com/watch?v=#{video_id}' | " <>
-      "#{ffmpeg} -hide_banner -loglevel error -i pipe:0 -c copy -bsf:a aac_adtstoasc " <>
-      "-movflags frag_keyframe+empty_moov+default_base_moof -f mp4 pipe:1"
+      "#{shell_escape(ffmpeg)} -hide_banner -loglevel error -i pipe:0 -c copy -bsf:a aac_adtstoasc -movflags +faststart -f mp4 #{shell_escape(output_path)}"
   end
+
+  defp shell_escape(value), do: "'" <> String.replace(value, "'", "'\\\"'\\\"'") <> "'"
 end

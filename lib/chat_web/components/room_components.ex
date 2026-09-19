@@ -247,6 +247,16 @@ defmodule ChatWeb.RoomComponents do
                   >
                     <.icon name="hero-x-mark" class="size-3.5" /> Закрыть
                   </button>
+                  <button
+                    :if={message.command == :youtube_search}
+                    id={"dismiss-youtube-search-#{dom_id}"}
+                    type="button"
+                    phx-click="dismiss_youtube_search"
+                    class="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium normal-case tracking-normal text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                    aria-label="Закрыть поиск YouTube"
+                  >
+                    <.icon name="hero-x-mark" class="size-3.5" /> Закрыть
+                  </button>
                   <time
                     id={"message-time-#{dom_id}"}
                     datetime={message.sent_at}
@@ -254,7 +264,7 @@ defmodule ChatWeb.RoomComponents do
                     phx-update="ignore"
                     class={[
                       "text-[10px] font-normal normal-case tracking-normal text-zinc-500",
-                      message.command not in [:gif, :music] && "ml-auto"
+                      message.command not in [:gif, :music, :youtube_search] && "ml-auto"
                     ]}
                   >
                     {message.at}
@@ -269,7 +279,11 @@ defmodule ChatWeb.RoomComponents do
                       else:
                         if(message.command == :music,
                           do: "mt-3 space-y-1.5",
-                          else: "mt-3 flex flex-wrap gap-2"
+                          else:
+                            if(message.command == :youtube_search,
+                              do: "mt-3 space-y-1.5",
+                              else: "mt-3 flex flex-wrap gap-2"
+                            )
                         )
                   }
                 >
@@ -319,6 +333,25 @@ defmodule ChatWeb.RoomComponents do
                         id={"send-music-#{dom_id}-#{entry.id}"}
                         type="button"
                         phx-click="send_music"
+                        phx-value-id={entry.id}
+                        class="shrink-0 rounded-md border border-amber-300/50 px-2 py-1 text-[11px] font-semibold text-amber-200 transition hover:border-amber-200 hover:bg-amber-300/10"
+                      >
+                        В чат
+                      </button>
+                    </article>
+                    <article
+                      :if={Map.get(entry, :type) == :youtube}
+                      id={"youtube-result-#{dom_id}-#{entry.id}"}
+                      class="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border border-zinc-800 bg-zinc-950/70 px-2.5 py-2"
+                    >
+                      <div class="min-w-0 text-xs leading-4 text-zinc-300">
+                        <p class="truncate font-semibold text-zinc-100">{entry.title}</p>
+                        <p class="mt-0.5 text-[11px] text-zinc-500">{entry.duration}</p>
+                      </div>
+                      <button
+                        id={"send-youtube-#{dom_id}-#{entry.id}"}
+                        type="button"
+                        phx-click="send_youtube"
                         phx-value-id={entry.id}
                         class="shrink-0 rounded-md border border-amber-300/50 px-2 py-1 text-[11px] font-semibold text-amber-200 transition hover:border-amber-200 hover:bg-amber-300/10"
                       >
@@ -1359,7 +1392,7 @@ defmodule ChatWeb.RoomComponents do
                     {"/игноры", "Список игноров"},
                     {"/музыка ", "Найти трек и открыть плеер"},
                     {"/гиф ", "Найти и отправить GIF"},
-                    {"/ютуб ", "Отправить YouTube-видео через сервер"},
+                    {"/ютуб ", "Найти или отправить YouTube-видео"},
                     {"/очистить", "Очистить окно чата только у себя"},
                     {"/выход", "Выйти из чата"}
                   ]

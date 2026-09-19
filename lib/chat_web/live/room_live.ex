@@ -94,6 +94,8 @@ defmodule ChatWeb.RoomLive do
       |> assign(:music_search_message_id, nil)
       |> assign(:youtube_pending?, false)
       |> assign(:youtube_publish_message_id, nil)
+      |> assign(:youtube_results, [])
+      |> assign(:youtube_search_message_id, nil)
       |> assign(:gif_pending?, false)
       |> assign(:gif_results, [])
       |> assign(:gif_search_message_id, nil)
@@ -500,6 +502,25 @@ defmodule ChatWeb.RoomLive do
 
   def handle_event("send_music", _params, socket), do: {:noreply, socket}
 
+  def handle_event("send_youtube", %{"id" => id}, %{assigns: %{joined?: true}} = socket) do
+    case Enum.find(socket.assigns.youtube_results, &(&1.id == id)) do
+      nil ->
+        {:noreply,
+         assign(socket, :message_error, "Это видео больше недоступно. Выполни поиск ещё раз.")}
+
+      video ->
+        {:handled, {:noreply, socket}} =
+          start_youtube_publish(
+            video.source_url,
+            socket |> assign(:youtube_results, []) |> remove_youtube_search_result()
+          )
+
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("send_youtube", _params, socket), do: {:noreply, socket}
+
   def handle_event("dismiss_gif_search", _params, socket) do
     {:noreply,
      socket
@@ -517,6 +538,15 @@ defmodule ChatWeb.RoomLive do
      |> assign(:music_results, [])
      |> assign(:music_page, 1)
      |> remove_music_search_result()}
+  end
+
+  def handle_event("dismiss_youtube_search", _params, socket) do
+    {:noreply,
+     socket
+     |> cancel_async(:youtube_search)
+     |> assign(:youtube_pending?, false)
+     |> assign(:youtube_results, [])
+     |> remove_youtube_search_result()}
   end
 
   def handle_event("change_music_page", %{"page" => page}, %{assigns: %{joined?: true}} = socket) do
@@ -1036,6 +1066,7 @@ defmodule ChatWeb.RoomLive do
 
     socket
     |> cancel_async(:music_search)
+    |> cancel_async(:youtube_search)
     |> cancel_async(:youtube_publish)
     |> cancel_async(:gif_search)
     |> assign(:joined?, false)
@@ -1063,6 +1094,8 @@ defmodule ChatWeb.RoomLive do
     |> assign(:music_search_message_id, nil)
     |> assign(:youtube_pending?, false)
     |> assign(:youtube_publish_message_id, nil)
+    |> assign(:youtube_results, [])
+    |> assign(:youtube_search_message_id, nil)
     |> assign(:gif_pending?, false)
     |> assign(:gif_results, [])
     |> assign(:gif_search_message_id, nil)
@@ -1138,6 +1171,50 @@ defmodule ChatWeb.RoomLive do
      socket
      |> assign(:youtube_pending?, false)
      |> remove_youtube_publish_result()}
+  end
+
+  def handle_async(
+        :youtube_search,
+        _result,
+        %{assigns: %{youtube_search_message_id: nil}} = socket
+      ) do
+    {:noreply, assign(socket, :youtube_pending?, false)}
+  end
+
+  def handle_async(:youtube_search, {:ok, {:ok, videos}}, %{assigns: %{joined?: true}} = socket) do
+    entries = youtube_entries(videos)
+
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> assign(:youtube_results, entries)
+     |> assign(:message_error, nil)
+     |> replace_youtube_search_result("YouTube", "Выбери видео для общей комнаты.", entries)}
+  end
+
+  def handle_async(:youtube_search, _result, %{assigns: %{joined?: false}} = socket) do
+    {:noreply, assign(socket, :youtube_pending?, false)}
+  end
+
+  def handle_async(:youtube_search, {:ok, {:error, :not_found}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> replace_youtube_search_result("YouTube", "Ничего не найдено. Попробуй другой запрос.")}
+  end
+
+  def handle_async(:youtube_search, {:ok, {:error, :query_too_long}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> replace_youtube_search_result("YouTube", "Запрос слишком длинный.")}
+  end
+
+  def handle_async(:youtube_search, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:youtube_pending?, false)
+     |> replace_youtube_search_result("YouTube", "Не удалось найти видео. Попробуй ещё раз.")}
   end
 
   def handle_async(:youtube_publish, {:ok, {:ok, _message, updated_user}}, socket) do
@@ -1437,7 +1514,10 @@ defmodule ChatWeb.RoomLive do
             %{label: "/игноры", description: "показать список игноров"},
             %{label: "/музыка запрос", description: "найти трек и открыть плеер"},
             %{label: "/гиф запрос", description: "найти и отправить GIF"},
-            %{label: "/ютуб ссылка", description: "отправить видео через серверный прокси"},
+            %{
+              label: "/ютуб ссылка или запрос",
+              description: "найти или отправить видео через сервер"
+            },
             %{label: "/очистить", description: "очистить окно чата только у себя"}
           ])
           |> clear_message_input()}}
@@ -1499,8 +1579,11 @@ defmodule ChatWeb.RoomLive do
       {:ok, {:gif, query}} ->
         start_gif_search(query, socket)
 
-      {:ok, {:youtube, link}} ->
-        start_youtube_publish(link, socket)
+      {:ok, {:youtube, query}} ->
+        case Chat.YouTube.normalize_link(query) do
+          {:ok, _video} -> start_youtube_publish(query, socket)
+          {:error, :invalid_youtube} -> start_youtube_search(query, socket)
+        end
 
       {:ok, :ignores} ->
         nicknames = socket.assigns.ignored_nicknames |> MapSet.to_list() |> Enum.sort()
@@ -1550,7 +1633,11 @@ defmodule ChatWeb.RoomLive do
         {:handled,
          {:noreply,
           socket
-          |> insert_command_result(:error, "YouTube", "Укажи ссылку: /ютуб https://youtu.be/...")
+          |> insert_command_result(
+            :error,
+            "YouTube",
+            "Укажи ссылку или запрос: /ютуб название видео."
+          )
           |> clear_message_input()}}
 
       {:error, :unknown_command} ->
@@ -1668,6 +1755,33 @@ defmodule ChatWeb.RoomLive do
       |> clear_message_input()
 
     {:handled, {:noreply, start_async(socket, :youtube_publish, publish)}}
+  end
+
+  defp start_youtube_search(_query, %{assigns: %{youtube_pending?: true}} = socket) do
+    {:handled, {:noreply, assign(socket, :message_error, "Дождись окончания операции YouTube.")}}
+  end
+
+  defp start_youtube_search(query, socket) do
+    search_message_id = "youtube-search-#{System.unique_integer([:positive])}"
+
+    socket =
+      socket
+      |> remove_youtube_search_result()
+      |> assign(:youtube_pending?, true)
+      |> assign(:youtube_results, [])
+      |> assign(:youtube_search_message_id, search_message_id)
+      |> assign(:message_error, nil)
+      |> insert_command_result(
+        :youtube_search,
+        "Поиск YouTube",
+        "Ищу «#{query}»…",
+        [],
+        search_message_id
+      )
+      |> clear_message_input()
+
+    {:handled,
+     {:noreply, start_async(socket, :youtube_search, fn -> Chat.YouTube.search(query) end)}}
   end
 
   defp send_chatlan_private_message(body, socket) do
@@ -2150,6 +2264,13 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp replace_youtube_search_result(socket, title, body, entries \\ []) do
+    case socket.assigns.youtube_search_message_id do
+      nil -> insert_command_result(socket, :youtube_search, title, body, entries)
+      id -> insert_command_result(socket, :youtube_search, title, body, entries, id)
+    end
+  end
+
   defp remove_youtube_publish_result(%{assigns: %{youtube_publish_message_id: nil}} = socket),
     do: socket
 
@@ -2162,6 +2283,28 @@ defmodule ChatWeb.RoomLive do
     |> then(fn updated_socket ->
       if message, do: stream_delete(updated_socket, :messages, message), else: updated_socket
     end)
+  end
+
+  defp remove_youtube_search_result(%{assigns: %{youtube_search_message_id: nil}} = socket),
+    do: socket
+
+  defp remove_youtube_search_result(socket) do
+    message_id = socket.assigns.youtube_search_message_id
+    message = Enum.find(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+
+    socket =
+      socket
+      |> assign(
+        :all_message_items,
+        Enum.reject(socket.assigns.all_message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(
+        :message_items,
+        Enum.reject(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(:youtube_search_message_id, nil)
+
+    if message, do: stream_delete(socket, :messages, message), else: socket
   end
 
   defp remove_gif_search_result(%{assigns: %{gif_search_message_id: nil}} = socket), do: socket
@@ -2212,6 +2355,19 @@ defmodule ChatWeb.RoomLive do
     |> Enum.map(fn {track, index} ->
       Map.put(track, :type, :track) |> Map.put(:id, index)
     end)
+  end
+
+  defp youtube_entries(videos) do
+    Enum.map(videos, fn video ->
+      video
+      |> Map.put(:type, :youtube)
+      |> Map.update!(:duration, &format_youtube_duration/1)
+    end)
+  end
+
+  defp format_youtube_duration(seconds) when is_integer(seconds) do
+    time = Time.from_seconds_after_midnight(seconds)
+    Calendar.strftime(time, if(seconds >= 3600, do: "%H:%M:%S", else: "%M:%S"))
   end
 
   defp music_page(value, entries) when is_binary(value) do

@@ -18,6 +18,8 @@ defmodule Chat.CommandsTest do
 
     assert {:ok, {:youtube, "https://youtu.be/dQw4w9WgXcQ"}} =
              Commands.parse("/ютуб https://youtu.be/dQw4w9WgXcQ")
+
+    assert {:ok, {:youtube, "любимый клип"}} = Commands.parse("/ютуб любимый клип")
   end
 
   test "does not treat ordinary messages as commands" do
