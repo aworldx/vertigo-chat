@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Vertigo chat
+    orgId: 1
+    folder: Vertigo chat
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

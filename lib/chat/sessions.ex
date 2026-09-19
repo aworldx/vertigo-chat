@@ -238,8 +238,12 @@ defmodule Chat.Sessions do
     Chatlans.untrack(pid, session.room_id, session.presence_key)
 
     case Store.reconnect(session.session_id, session.identity_key, session.connection_epoch) do
-      {:ok, _deadline} -> notify_change(session.room_id)
-      :stale -> :ok
+      {:ok, _deadline} ->
+        Chat.Metrics.increment(:sessions_reconnecting)
+        notify_change(session.room_id)
+
+      :stale ->
+        :ok
     end
   end
 

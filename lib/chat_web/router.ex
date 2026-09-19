@@ -16,6 +16,17 @@ defmodule ChatWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :internal do
+    plug :accepts, ["text"]
+    plug ChatWeb.MetricsAuth
+  end
+
+  scope "/internal", ChatWeb do
+    pipe_through :internal
+
+    get "/metrics", MetricsController, :show
+  end
+
   scope "/", ChatWeb do
     pipe_through :media
 

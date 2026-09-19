@@ -1,0 +1,42 @@
+groups:
+  - name: vertigo-chat
+    rules:
+      - alert: ChatUnavailable
+        expr: up{job="chat"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Chat metrics endpoint is unavailable
+
+      - alert: VpsDiskNearlyFull
+        expr: node_filesystem_avail_bytes{job="vps",mountpoint="/"} / node_filesystem_size_bytes{job="vps",mountpoint="/"} < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: VPS root disk has less than 15% free space
+
+      - alert: VpsHighCpu
+        expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{job="vps",mode="idle"}[5m])) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: VPS CPU has been above 90% for 15 minutes
+
+      - alert: Chat5xxGrowth
+        expr: sum(rate(chat_http_requests_5xx_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Chat is returning 5xx responses
+
+      - alert: ChatReconnectGrowth
+        expr: rate(chat_sessions_reconnecting_total[15m]) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Chat reconnect rate is unusually high

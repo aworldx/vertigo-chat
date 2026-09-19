@@ -12,6 +12,15 @@ defmodule Chat.Sessions.Store do
   def hidden_grace_seconds,
     do: grace_seconds(:hidden_grace_seconds, @default_hidden_grace_seconds)
 
+  def count_by_status do
+    from(session in ChatSession,
+      group_by: session.status,
+      select: {session.status, count(session.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
   def create(attrs) do
     session_id = Map.fetch!(attrs, :id)
     Repo.insert(ChatSession.create_changeset(%ChatSession{id: session_id}, attrs))

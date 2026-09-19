@@ -68,6 +68,28 @@ start without its provider credentials. Keep values containing `$` in single quo
 Compose does not interpret part of the secret as another variable. The PostgreSQL password is also
 embedded into `DATABASE_URL`, so use URL-safe characters or percent-encode reserved characters.
 
+### Monitoring
+
+The chat exposes aggregate Prometheus data at `GET /internal/metrics`. It has no browser pipeline
+and requires `Authorization: Bearer $METRICS_TOKEN`; never route it through the public Caddy site.
+The exporter includes HTTP request counts/latency, active and reconnecting sessions, public-message
+counts by kind, and BEAM memory/run queue. It deliberately contains no message text, IP addresses,
+nicknames, cookies, or tokens.
+
+Compose starts Prometheus with 30-day retention and preconfigured scrape targets. Before starting it,
+write the same value as `METRICS_TOKEN` into `METRICS_TOKEN_FILE` without a trailing newline, for
+example `printf %s "$METRICS_TOKEN" > /opt/apps/vertigo-chat/.metrics_token`; keep that file mode
+`0600`. Compose also starts `node-exporter` on the same private network (without a published port) for
+VPS CPU, RAM, disk and network metrics. The included Prometheus rules cover failed chat scraping, low
+free disk, sustained CPU use, 5xx growth and reconnect growth. Connect Grafana to
+`http://prometheus:9090` from the private network for 1h/24h/7d charts and add Alertmanager for delivery
+to Telegram/email; Prometheus and node-exporter are not exposed through Caddy.
+
+Grafana is available to the administrator at `/monitoring/` and requires its separate
+`GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`. Its pre-provisioned dashboard is named
+**Vertigo chat — мониторинг**. Generate the password with `openssl rand -base64 36`; Grafana
+does not allow self-registration.
+
 Before the first deploy, create a writable host directory for the persistent application journal:
 
 ```sh

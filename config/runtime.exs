@@ -83,6 +83,12 @@ config :chat, Chat.Sessions.Store,
 # tokens or other browser credentials here.
 config :chat, :session_debug, System.get_env("CHAT_SESSION_DEBUG") in ~w(true 1)
 
+if config_env() == :prod do
+  config :chat,
+         :metrics_token,
+         System.get_env("METRICS_TOKEN") || raise("environment variable METRICS_TOKEN is missing")
+end
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :chat, ChatWeb.Endpoint,

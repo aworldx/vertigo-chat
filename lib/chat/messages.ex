@@ -474,6 +474,8 @@ defmodule Chat.Messages do
     with {:ok, message, :inserted} <- History.save(room_id, message) do
       :ok = Registry.append(room_id, message)
 
+      Chat.Metrics.increment(:public_messages, %{kind: message.kind})
+
       :ok =
         Phoenix.PubSub.broadcast(Chat.PubSub, room_topic(room_id), {:message_created, message})
 

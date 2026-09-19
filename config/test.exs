@@ -31,6 +31,7 @@ config :chat, Chat.Bot.Usage, daily_token_limit: 1_000_000, warning_percent: 90
 
 config :chat, Chat.Karmik, enabled?: false
 config :chat, Chat.Sessions.Reaper, enabled?: false
+config :chat, :metrics_token, "test-metrics-token"
 
 config :chat, Chat.Games.Dictionary, provider: Chat.Games.TestDictionary
 

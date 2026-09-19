@@ -21,6 +21,7 @@ defmodule Chat.Application do
     [
       {DNSCluster, query: Application.get_env(:chat, :dns_cluster_query) || :ignore},
       Chat.Presence,
+      Chat.Metrics,
       Chat.Listening,
       Chat.Messages.Registry,
       {Chat.Sessions.Reaper, Application.get_env(:chat, Chat.Sessions.Reaper, [])},

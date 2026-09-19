@@ -1,4 +1,12 @@
 {$CADDY_SITE_ADDRESS} {
+	@internal path /internal /internal/*
+	handle @internal {
+		respond 404
+	}
+	@monitoring path /monitoring /monitoring/*
+	handle @monitoring {
+		reverse_proxy grafana:3000
+	}
 	@admin_assets path /admin-assets/*
 	handle @admin_assets {
 		uri replace /admin-assets/ /assets/
