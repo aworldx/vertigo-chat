@@ -16,6 +16,8 @@ defmodule Chat.Sessions do
   alias Chat.Sessions.Store
   alias Chat.Visits
 
+  require Logger
+
   defmodule Session do
     @enforce_keys [
       :room_id,
@@ -248,10 +250,18 @@ defmodule Chat.Sessions do
   end
 
   def reap(now \\ DateTime.utc_now()) do
-    Store.mark_stale(now)
-    |> Enum.each(&notify_change(&1.room_id))
+    stale_sessions = Store.mark_stale(now)
+
+    Enum.each(stale_sessions, fn session ->
+      log_debug_session("heartbeat_stale", session, last_seen_at: session.last_seen_at)
+      notify_change(session.room_id)
+    end)
 
     Enum.each(Store.expired(now), fn session ->
+      log_debug_session("reconnect_grace_expired", session,
+        deadline: session.reconnect_deadline_at
+      )
+
       finalize(session, fn -> Store.expire(session, now) end, now)
     end)
 
@@ -287,6 +297,17 @@ defmodule Chat.Sessions do
     end
 
     :ok
+  end
+
+  defp log_debug_session(event, session, details) do
+    if Application.get_env(:chat, :session_debug, false) do
+      detail_text = details |> Enum.map_join(" ", fn {key, value} -> "#{key}=#{value}" end)
+
+      Logger.info(
+        "session_debug event=#{event} nickname=#{session.nickname} visit_id=#{session.visit_id || "none"} " <>
+          "session_id=#{session.id} epoch=#{session.generation} #{detail_text}"
+      )
+    end
   end
 
   defp notify_change(room_id) do

@@ -881,6 +881,7 @@ const chatHooks = {
     mounted() {
       window.name = "vertigo-chat"
       this.onVisibilityChange = () => {
+        this.reportSessionDebug("visibility_changed")
         if (document.visibilityState === "visible") {
           this.touchChatSession()
         }
@@ -893,6 +894,8 @@ const chatHooks = {
       } else {
         this.restorationTimer = window.setTimeout(() => this.finishSessionRestoration(), 1500)
       }
+
+      this.reportSessionDebug("mounted")
 
       this.handleEvent("save-chat-preferences", preferences => {
         const nextStore = readChatPreferenceStore()
@@ -924,6 +927,7 @@ const chatHooks = {
       })
     },
     reconnected() {
+      this.reportSessionDebug("reconnected")
       this.startSessionHeartbeat()
     },
     updated() {
@@ -958,7 +962,12 @@ const chatHooks = {
     },
     touchChatSession() {
       if (this.el.dataset.chatJoined === "true") {
-        this.pushEvent("touch_chat_session", {})
+        this.pushEvent("touch_chat_session", {visibility: document.visibilityState})
+      }
+    },
+    reportSessionDebug(event) {
+      if (this.el.dataset.sessionDebug === "true" && this.el.dataset.chatJoined === "true") {
+        this.pushEvent("session_debug_client", {event, visibility: document.visibilityState})
       }
     },
   },

@@ -2,6 +2,7 @@
 defmodule ChatWeb.RoomLiveTest do
   use ChatWeb.ConnCase
 
+  import ExUnit.CaptureLog
   import Ecto.Query
 
   alias Chat.Accounts
@@ -265,6 +266,42 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert [%{id: ^visit_id}] =
              Enum.filter(Visits.list_recent_visits(), &(&1.nickname == nickname))
+  end
+
+  test "writes heartbeat diagnostics only while session debug is enabled", %{conn: conn} do
+    previous_setting = Application.get_env(:chat, :session_debug)
+    previous_log_level = Logger.level()
+    Application.put_env(:chat, :session_debug, true)
+    Logger.configure(level: :info)
+
+    on_exit(fn ->
+      Application.put_env(:chat, :session_debug, previous_setting)
+      Logger.configure(level: previous_log_level)
+    end)
+
+    nickname = "debug_heartbeat_#{System.unique_integer([:positive])}"
+    session_token = saved_session_token(nickname)
+
+    {:ok, view, _html} =
+      conn
+      |> put_connect_params(%{
+        "guest_nickname" => nickname,
+        "guest_session_token" => session_token,
+        "guest_identity_token" => saved_guest_identity(nickname),
+        "theme_id" => "vertigo",
+        "appearance" => %{}
+      })
+      |> live(~p"/chat")
+
+    log =
+      capture_log(
+        [level: :info],
+        fn -> render_hook(view, "touch_chat_session", %{"visibility" => "hidden"}) end
+      )
+
+    assert log =~ "session_debug event=heartbeat"
+    assert log =~ "nickname=#{nickname}"
+    assert log =~ "visibility=hidden"
   end
 
   test "restores a guest during page refresh while its previous connection is still online", %{

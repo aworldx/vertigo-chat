@@ -53,6 +53,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:chat_session_id, nil)
       |> assign(:connection_epoch, nil)
       |> assign(:identity_key, nil)
+      |> assign(:session_debug?, session_debug?())
       |> assign(:guest_identity_token, nil)
       |> assign(:security_subject, security_subject)
       |> assign(:preference_nickname, nil)
@@ -209,11 +210,26 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
-  def handle_event("touch_chat_session", _params, %{assigns: %{joined?: true}} = socket) do
+  def handle_event("touch_chat_session", params, %{assigns: %{joined?: true}} = socket) do
+    log_session_debug("heartbeat", socket, visibility: visibility_from(params))
     {:noreply, renew_chat_session(socket)}
   end
 
   def handle_event("touch_chat_session", _params, socket), do: {:noreply, socket}
+
+  def handle_event("session_debug_client", params, %{assigns: %{joined?: true}} = socket) do
+    case Map.get(params, "event") do
+      event when event in ["mounted", "reconnected", "visibility_changed"] ->
+        log_session_debug("client_#{event}", socket, visibility: visibility_from(params))
+
+      _invalid ->
+        :ok
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("session_debug_client", _params, socket), do: {:noreply, socket}
 
   def handle_event("music_started", %{"track" => track}, %{assigns: %{joined?: true}} = socket) do
     :ok = Listening.start_listening(@room_id, socket.assigns.identity_key, track)
@@ -1328,9 +1344,10 @@ defmodule ChatWeb.RoomLive do
   end
 
   @impl true
-  def terminate(_reason, socket) do
+  def terminate(reason, socket) do
     if socket.assigns.joined? do
       log_session("connection_terminated", socket)
+      log_session_debug("transport_terminated", socket, reason: inspect(reason, limit: 8))
       :ok = Listening.stop_listening(@room_id, socket.assigns.identity_key, "")
       :ok = broadcast_stopped_typing(socket)
       :ok = Sessions.connection_lost(chat_session(socket), self())
@@ -2564,6 +2581,27 @@ defmodule ChatWeb.RoomLive do
       "session_#{event} nickname=#{socket.assigns.nickname} visit_id=#{visit_id || "none"} kind=#{kind}"
     )
   end
+
+  defp log_session_debug(event, socket, details) do
+    if socket.assigns[:session_debug?] do
+      visit_id = socket.assigns[:visit] && socket.assigns.visit.id
+      kind = if socket.assigns.current_user, do: "registered", else: "guest"
+      detail_text = details |> Enum.map_join(" ", fn {key, value} -> "#{key}=#{value}" end)
+
+      Logger.info(
+        "session_debug event=#{event} nickname=#{socket.assigns.nickname} " <>
+          "visit_id=#{visit_id || "none"} kind=#{kind} epoch=#{socket.assigns.connection_epoch || "none"} " <>
+          detail_text
+      )
+    end
+  end
+
+  defp session_debug?, do: Application.get_env(:chat, :session_debug, false)
+
+  defp visibility_from(%{"visibility" => visibility}) when visibility in ["visible", "hidden"],
+    do: visibility
+
+  defp visibility_from(_params), do: "unknown"
 
   defp log_entrance_attempt(nickname, password) do
     Logger.info(
