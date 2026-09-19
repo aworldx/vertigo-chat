@@ -626,24 +626,27 @@ defmodule ChatWeb.RoomComponents do
                 </p>
               <% end %>
           <% end %>
-          <button
-            :if={@can_delete_messages? && deletable_message?(message)}
-            id={"delete-message-#{dom_id}"}
-            type="button"
-            phx-click="delete_message"
-            phx-value-id={message.id}
-            data-confirm="Удалить это сообщение для всех?"
-            class="absolute right-28 top-1 z-20 flex size-5 items-center justify-center rounded text-zinc-500 transition hover:bg-rose-400/15 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
-            aria-label="Удалить сообщение для всех"
-            title="Удалить для всех"
-          >
-            <.icon name="hero-trash" class="size-3.5" />
-          </button>
           <div
-            :if={reactable_message?(message) && framed_message?(message, @appearance)}
+            :if={
+              (reactable_message?(message) && framed_message?(message, @appearance)) ||
+                (@can_delete_messages? && deletable_message?(message))
+            }
             class="absolute -bottom-2.5 right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1"
-            aria-label="Реакции на сообщение"
+            aria-label="Действия с сообщением"
           >
+            <button
+              :if={@can_delete_messages? && deletable_message?(message)}
+              id={"delete-message-#{dom_id}"}
+              type="button"
+              phx-click="delete_message"
+              phx-value-id={message.id}
+              data-confirm="Удалить это сообщение для всех?"
+              class="flex size-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-rose-300/60 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+              aria-label="Удалить сообщение для всех"
+              title="Удалить для всех"
+            >
+              <.icon name="hero-trash" class="size-3" />
+            </button>
             <%= for emoji <- present_reactions(message) do %>
               <button
                 :if={message.author != @nickname}
