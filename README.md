@@ -90,6 +90,9 @@ Grafana is available to the administrator at `/monitoring/` and requires its sep
 **Vertigo chat — мониторинг**. Generate the password with `openssl rand -base64 36`; Grafana
 does not allow self-registration.
 
+The second provisioned dashboard, **Vertigo chat — состояние и алерты**, explains the indicators
+and lists currently firing Prometheus rules.
+
 Before the first deploy, create a writable host directory for the persistent application journal:
 
 ```sh
