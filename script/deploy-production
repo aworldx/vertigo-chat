@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Назначение файла: собирает linux/amd64-образ локально и разворачивает его на production VPS без сборки на сервере.
+set -euo pipefail
+
+project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+remote_host="${CHAT_DEPLOY_HOST:-root@109.248.170.47}"
+remote_dir="${CHAT_DEPLOY_DIR:-/opt/apps/vertigo-chat}"
+image_name="chat-app:latest"
+
+cd "$project_dir"
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "Working tree must be clean before production deployment." >&2
+  exit 1
+fi
+
+git fetch origin main
+local_revision="$(git rev-parse HEAD)"
+remote_revision="$(git rev-parse origin/main)"
+
+if [[ "$local_revision" != "$remote_revision" ]]; then
+  echo "HEAD must match origin/main before production deployment." >&2
+  exit 1
+fi
+
+docker buildx version >/dev/null
+docker buildx build --platform linux/amd64 --load --tag "$image_name" .
+docker image save "$image_name" | ssh "$remote_host" 'docker image load'
+
+ssh "$remote_host" bash -s -- "$remote_dir" "$local_revision" <<'REMOTE'
+set -euo pipefail
+
+deploy_dir="$1"
+expected_revision="$2"
+
+cd "$deploy_dir"
+test -z "$(git status --porcelain)"
+git pull --ff-only origin main
+test "$(git rev-parse HEAD)" = "$expected_revision"
+
+mkdir -p logs
+chown 65534:root logs
+chmod 0770 logs
+
+docker compose --env-file .env --env-file .env.vps run --rm --no-deps migrate
+docker compose --env-file .env --env-file .env.vps up -d --no-build --force-recreate --no-deps app admin
+docker compose --env-file .env --env-file .env.vps ps
+curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
+REMOTE

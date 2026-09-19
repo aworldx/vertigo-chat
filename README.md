@@ -103,10 +103,16 @@ PHX_SCHEME=https
 PHX_URL_PORT=443
 ```
 
-To deploy a checked local change, commit it and push it to `origin/main`. On the
-VPS, deploy only the committed Git revision: do not copy source with `rsync` and
-do not overwrite either environment file. First check that the VPS worktree is
-clean, pull with fast-forward only, then build and restart the Compose stack:
+To deploy a checked local change, commit it and push it to `origin/main`. The
+production image is assembled on the local development machine for
+`linux/amd64`, then transferred directly to the VPS. The VPS never runs `mix
+deps.get` or `docker compose build`: this keeps a transient Hex/GitHub problem
+from blocking a production deploy.
+
+The local Docker installation must have Buildx available; Docker Desktop
+provides it. The script refuses a dirty working tree or a local revision that
+does not exactly match `origin/main`. It transfers only the resulting image,
+not source files or either production environment file.
 
 ```sh
 mix precommit
@@ -114,20 +120,14 @@ git add <files>
 git commit -m "Describe the change"
 git push origin main
 
-ssh root@109.248.170.47 '\
-  cd /opt/apps/vertigo-chat && \
-  test -z "$(git status --porcelain)" && \
-  git pull --ff-only origin main && \
-  mkdir -p logs && chown 65534:root logs && chmod 0770 logs && \
-  docker compose --env-file .env --env-file .env.vps build app && \
-  docker compose --env-file .env --env-file .env.vps up -d && \
-  docker compose --env-file .env --env-file .env.vps ps'
+bash script/deploy-production
 ```
 
-`migrate` runs before the application starts. Verify the result with
-`curl -I https://vertigo-chat.ru`. The firewall allows only SSH, HTTP and HTTPS;
-password authentication is disabled. Do not use `rsync --delete` against the
-production directory.
+The script verifies the fast-forwarded revision, runs `migrate` using the
+transferred image, recreates only `app` and `admin` with `--no-build`, then
+checks the local production endpoint. The firewall allows only SSH, HTTP and
+HTTPS; password authentication is disabled. Do not use `rsync --delete`
+against the production directory.
 
 Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
 
