@@ -40,3 +40,6 @@ npm-debug.log
 .env.vps
 .music_proxies
 /logs/
+
+# macOS Finder metadata.
+.DS_Store
