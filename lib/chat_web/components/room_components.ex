@@ -633,7 +633,7 @@ defmodule ChatWeb.RoomComponents do
             phx-click="delete_message"
             phx-value-id={message.id}
             data-confirm="Удалить это сообщение для всех?"
-            class="absolute right-14 top-1 z-20 flex size-5 items-center justify-center rounded text-zinc-500 transition hover:bg-rose-400/15 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+            class="absolute right-28 top-1 z-20 flex size-5 items-center justify-center rounded text-zinc-500 transition hover:bg-rose-400/15 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
             aria-label="Удалить сообщение для всех"
             title="Удалить для всех"
           >
@@ -677,7 +677,6 @@ defmodule ChatWeb.RoomComponents do
                 <span class="tabular-nums">{reaction_count(message, emoji)}</span>
               </span>
             <% end %>
-
             <details :if={message.author != @nickname} class="relative">
               <summary
                 class="flex size-5 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200 [&::-webkit-details-marker]:hidden"

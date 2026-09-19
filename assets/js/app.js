@@ -665,7 +665,7 @@ const chatHooks = {
       this.resizeObserver.observe(this.el)
 
       this.isNearBottom = () =>
-        this.el.scrollHeight - this.el.clientHeight - this.el.scrollTop < 24
+        this.el.scrollHeight - this.el.clientHeight - this.el.scrollTop <= 24
       this.stickToBottom = true
       this.autoScrolling = false
       this.onScroll = () => {
@@ -674,7 +674,7 @@ const chatHooks = {
       this.cancelAutoScroll = () => {
         cancelAnimationFrame(this.scrollAnimationFrame)
         this.autoScrolling = false
-        this.stickToBottom = false
+        this.stickToBottom = this.isNearBottom()
       }
       this.el.addEventListener("scroll", this.onScroll)
       this.el.addEventListener("wheel", this.cancelAutoScroll, {passive: true})
@@ -718,7 +718,7 @@ const chatHooks = {
       this.renderOutbox = () => {
         if (!this.pendingMessages) return
 
-        const wasAtBottom = this.stickToBottom && this.isNearBottom()
+        const wasAtBottom = this.isNearBottom()
         const entries = readMessageOutbox()
         const addedEntry = entries.find(entry => !this.renderedOutboxClientIds.has(entry.clientId))
         this.pendingMessages.replaceChildren(...entries.map(entry => this.buildPendingMessage(entry)))
@@ -766,7 +766,7 @@ const chatHooks = {
       this.storeMessageCursor()
     },
     beforeUpdate() {
-      this.wasAtBottomBeforeUpdate = this.stickToBottom && this.isNearBottom()
+      this.wasAtBottomBeforeUpdate = this.isNearBottom()
     },
     updated() {
       const messageIds = this.messageIds()
