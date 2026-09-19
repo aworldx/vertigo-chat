@@ -243,10 +243,11 @@ defmodule Chat.Sessions do
     end
   end
 
-  def touch(%Session{} = session) do
-    if Store.touch(session.session_id, session.identity_key, session.connection_epoch) == :ok,
-      do: Visits.touch_active_visit(session.identity_key),
-      else: :ok
+  def touch(%Session{} = session, visibility \\ "unknown") do
+    if Store.touch(session.session_id, session.identity_key, session.connection_epoch, visibility) ==
+         :ok,
+       do: Visits.touch_active_visit(session.identity_key),
+       else: :ok
   end
 
   def reap(now \\ DateTime.utc_now()) do

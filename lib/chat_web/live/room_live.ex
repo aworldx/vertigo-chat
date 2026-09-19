@@ -213,8 +213,9 @@ defmodule ChatWeb.RoomLive do
   end
 
   def handle_event("touch_chat_session", params, %{assigns: %{joined?: true}} = socket) do
-    log_session_debug("heartbeat", socket, visibility: visibility_from(params))
-    {:noreply, renew_chat_session(socket)}
+    visibility = visibility_from(params)
+    log_session_debug("heartbeat", socket, visibility: visibility)
+    {:noreply, renew_chat_session(socket, visibility)}
   end
 
   def handle_event("touch_chat_session", _params, socket), do: {:noreply, socket}
@@ -2696,8 +2697,8 @@ defmodule ChatWeb.RoomLive do
     })
   end
 
-  defp renew_chat_session(socket) do
-    :ok = Sessions.touch(chat_session(socket))
+  defp renew_chat_session(socket, visibility) do
+    :ok = Sessions.touch(chat_session(socket), visibility)
 
     session_token =
       UserAuth.sign_chat_resume(

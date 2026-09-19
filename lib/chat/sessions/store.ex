@@ -6,7 +6,10 @@ defmodule Chat.Sessions.Store do
   alias Chat.Sessions.ChatSession
 
   @grace_seconds 60
+  @hidden_grace_seconds 30 * 60
   @heartbeat_timeout_seconds 180
+
+  def hidden_grace_seconds, do: @hidden_grace_seconds
 
   def create(attrs) do
     session_id = Map.fetch!(attrs, :id)
@@ -72,7 +75,6 @@ defmodule Chat.Sessions.Store do
 
   def reconnect(session_id, identity_key, generation, now \\ DateTime.utc_now()) do
     now = truncate(now)
-    deadline = DateTime.add(now, @grace_seconds, :second)
 
     query =
       from session in ChatSession,
@@ -80,11 +82,19 @@ defmodule Chat.Sessions.Store do
           session.id == ^session_id and session.identity_key == ^identity_key and
             session.generation == ^generation and session.status == "active"
 
-    case Repo.update_all(query,
-           set: [status: "reconnecting", reconnect_deadline_at: deadline, updated_at: now]
-         ) do
-      {1, _} -> {:ok, deadline}
-      {0, _} -> :stale
+    case Repo.one(query) do
+      nil ->
+        :stale
+
+      session ->
+        deadline = DateTime.add(now, grace_seconds(session), :second)
+
+        case Repo.update_all(query,
+               set: [status: "reconnecting", reconnect_deadline_at: deadline, updated_at: now]
+             ) do
+          {1, _} -> {:ok, deadline}
+          {0, _} -> :stale
+        end
     end
   end
 
@@ -92,11 +102,16 @@ defmodule Chat.Sessions.Store do
     now = truncate(now)
     cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + @grace_seconds), :second)
 
+    hidden_cutoff =
+      DateTime.add(now, -(@heartbeat_timeout_seconds + @hidden_grace_seconds), :second)
+
     from(session in ChatSession,
       where:
         session.id == ^session_id and session.identity_key == ^identity_key and
           session.generation == ^generation and session.status in ["active", "reconnecting"] and
-          ((session.status == "active" and session.last_seen_at > ^cutoff) or
+          ((session.status == "active" and
+              ((session.last_visibility == "hidden" and session.last_seen_at > ^hidden_cutoff) or
+                 (session.last_visibility != "hidden" and session.last_seen_at > ^cutoff))) or
              (session.status == "reconnecting" and session.reconnect_deadline_at > ^now)),
       select: session.generation
     )
@@ -172,19 +187,19 @@ defmodule Chat.Sessions.Store do
     do: :crypto.hash(:sha256, secret) |> Base.encode16(case: :lower)
 
   def current?(id, identity, generation) do
-    cutoff =
-      DateTime.add(
-        DateTime.utc_now() |> truncate(),
-        -(@heartbeat_timeout_seconds + @grace_seconds),
-        :second
-      )
+    now = DateTime.utc_now() |> truncate()
+    cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + @grace_seconds), :second)
+
+    hidden_cutoff =
+      DateTime.add(now, -(@heartbeat_timeout_seconds + @hidden_grace_seconds), :second)
 
     Repo.exists?(
       from session in ChatSession,
         where:
           session.id == ^id and session.identity_key == ^identity and
             session.generation == ^generation and session.status == "active" and
-            session.last_seen_at > ^cutoff
+            ((session.last_visibility == "hidden" and session.last_seen_at > ^hidden_cutoff) or
+               (session.last_visibility != "hidden" and session.last_seen_at > ^cutoff))
     )
   end
 
@@ -213,18 +228,35 @@ defmodule Chat.Sessions.Store do
     end
   end
 
-  def touch(id, identity, generation, now \\ DateTime.utc_now()) do
+  def touch(id, identity, generation),
+    do: touch(id, identity, generation, "unknown", DateTime.utc_now())
+
+  def touch(id, identity, generation, %DateTime{} = now),
+    do: touch(id, identity, generation, "unknown", now)
+
+  def touch(id, identity, generation, visibility),
+    do: touch(id, identity, generation, visibility, DateTime.utc_now())
+
+  def touch(id, identity, generation, visibility, now) do
     now = truncate(now)
     cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + @grace_seconds), :second)
+
+    hidden_cutoff =
+      DateTime.add(now, -(@heartbeat_timeout_seconds + @hidden_grace_seconds), :second)
+
+    visibility = normalize_visibility(visibility)
 
     query =
       from session in ChatSession,
         where:
           session.id == ^id and session.identity_key == ^identity and
             session.generation == ^generation and session.status == "active" and
-            session.last_seen_at > ^cutoff
+            ((session.last_visibility == "hidden" and session.last_seen_at > ^hidden_cutoff) or
+               (session.last_visibility != "hidden" and session.last_seen_at > ^cutoff))
 
-    case Repo.update_all(query, set: [last_seen_at: now, updated_at: now]) do
+    case Repo.update_all(query,
+           set: [last_seen_at: now, last_visibility: visibility, updated_at: now]
+         ) do
       {1, _} -> :ok
       {0, _} -> :stale
     end
@@ -237,18 +269,31 @@ defmodule Chat.Sessions.Store do
     query =
       from session in ChatSession,
         where: session.status == "active" and session.last_seen_at <= ^cutoff,
-        update: [set: [reconnect_deadline_at: datetime_add(session.last_seen_at, 240, "second")]],
         select: session
 
-    {_count, sessions} =
-      Repo.update_all(query,
-        set: [
-          status: "reconnecting",
-          updated_at: now
-        ]
-      )
+    query
+    |> Repo.all()
+    |> Enum.flat_map(fn session ->
+      deadline =
+        DateTime.add(
+          session.last_seen_at,
+          @heartbeat_timeout_seconds + grace_seconds(session),
+          :second
+        )
 
-    sessions
+      update =
+        from current in ChatSession,
+          where:
+            current.id == ^session.id and current.generation == ^session.generation and
+              current.status == "active" and current.last_seen_at <= ^cutoff
+
+      case Repo.update_all(update,
+             set: [status: "reconnecting", reconnect_deadline_at: deadline, updated_at: now]
+           ) do
+        {1, _} -> [session]
+        {0, _} -> []
+      end
+    end)
   end
 
   def live(room_id) do
@@ -260,11 +305,17 @@ defmodule Chat.Sessions.Store do
 
   def pending(room_id), do: Enum.filter(live(room_id), &(&1.status == "reconnecting"))
 
-  defp expired?(%ChatSession{reconnect_deadline_at: nil, last_seen_at: seen}, now),
-    do: DateTime.diff(now, seen) >= @heartbeat_timeout_seconds + @grace_seconds
+  defp expired?(%ChatSession{reconnect_deadline_at: nil, last_seen_at: seen} = session, now),
+    do: DateTime.diff(now, seen) >= @heartbeat_timeout_seconds + grace_seconds(session)
 
   defp expired?(%ChatSession{reconnect_deadline_at: deadline}, now),
     do: DateTime.compare(deadline, now) != :gt
 
   defp truncate(datetime), do: DateTime.truncate(datetime, :second)
+
+  defp grace_seconds(%ChatSession{last_visibility: "hidden"}), do: @hidden_grace_seconds
+  defp grace_seconds(_session), do: @grace_seconds
+
+  defp normalize_visibility(visibility) when visibility in ["visible", "hidden"], do: visibility
+  defp normalize_visibility(_visibility), do: "unknown"
 end

@@ -145,6 +145,37 @@ defmodule Chat.SessionsTest do
     assert [] = Store.pending(room_id)
   end
 
+  test "keeps a hidden mobile session reconnectable for thirty minutes" do
+    room_id = "hidden-session-room-#{System.unique_integer([:positive])}"
+
+    assert {:ok, session} =
+             Sessions.enter(room_id, "hidden_guest", "",
+               presence_key: "presence-#{Ecto.UUID.generate()}"
+             )
+
+    session = connect(session)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    assert :ok =
+             Store.touch(
+               session.session_id,
+               session.identity_key,
+               session.connection_epoch,
+               "hidden",
+               now
+             )
+
+    assert {:ok, deadline} =
+             Store.reconnect(
+               session.session_id,
+               session.identity_key,
+               session.connection_epoch,
+               now
+             )
+
+    assert DateTime.diff(deadline, now) == Store.hidden_grace_seconds()
+  end
+
   test "keeps the session active when a stale connection closes after a restore" do
     room_id = "stale-connection-room-#{System.unique_integer([:positive])}"
     nickname = "restored_guest"

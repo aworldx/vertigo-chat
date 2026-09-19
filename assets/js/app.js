@@ -882,9 +882,7 @@ const chatHooks = {
       window.name = "vertigo-chat"
       this.onVisibilityChange = () => {
         this.reportSessionDebug("visibility_changed")
-        if (document.visibilityState === "visible") {
-          this.touchChatSession()
-        }
+        this.touchChatSession()
       }
       document.addEventListener("visibilitychange", this.onVisibilityChange)
 

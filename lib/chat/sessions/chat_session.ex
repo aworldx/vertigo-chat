@@ -7,6 +7,7 @@ defmodule Chat.Sessions.ChatSession do
   alias Chat.Visits.Visit
 
   @statuses ~w(active reconnecting ended)
+  @visibilities ~w(visible hidden unknown)
 
   @primary_key {:id, :binary_id, autogenerate: true}
 
@@ -20,6 +21,7 @@ defmodule Chat.Sessions.ChatSession do
     field :reconnect_deadline_at, :utc_datetime
     field :ended_at, :utc_datetime
     field :generation, :integer, default: 0
+    field :last_visibility, :string, default: "unknown"
 
     belongs_to :visit, Visit
 
@@ -41,6 +43,7 @@ defmodule Chat.Sessions.ChatSession do
         :resume_secret_hash,
         :status,
         :last_seen_at,
+        :last_visibility,
         :reconnect_deadline_at,
         :generation,
         :visit_id
@@ -56,6 +59,7 @@ defmodule Chat.Sessions.ChatSession do
       :last_seen_at
     ])
     |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:last_visibility, @visibilities)
     |> unique_constraint(:nickname, name: :chat_sessions_active_room_nickname_index)
     |> unique_constraint(:identity_key, name: :chat_sessions_active_room_identity_index)
   end
