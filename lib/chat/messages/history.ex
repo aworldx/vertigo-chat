@@ -105,6 +105,23 @@ defmodule Chat.Messages.History do
 
   def update_reactions(_room_id, _message_id, _reactions), do: :ok
 
+  def delete_moderatable(room_id, message_id)
+      when is_binary(room_id) and is_integer(message_id) do
+    query =
+      from(message in StoredMessage,
+        where:
+          message.room_id == ^room_id and message.id == ^message_id and
+            message.kind in [:text, :gif, :music, :youtube]
+      )
+
+    case Repo.one(query) do
+      nil -> :not_found
+      message -> Repo.delete(message) |> deleted_message_result()
+    end
+  end
+
+  def delete_moderatable(_room_id, _message_id), do: :not_found
+
   defp recent_query(room_id) do
     from(message in StoredMessage,
       where: message.room_id == ^room_id,
@@ -123,6 +140,9 @@ defmodule Chat.Messages.History do
 
     :ok
   end
+
+  defp deleted_message_result({:ok, message}), do: {:ok, to_message(message)}
+  defp deleted_message_result({:error, changeset}), do: {:error, changeset}
 
   defp persist(%{client_id: client_id, author_identity: author_identity} = attrs)
        when is_binary(client_id) and client_id != "" and is_binary(author_identity) do

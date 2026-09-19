@@ -7,6 +7,7 @@ defmodule Chat.Messages do
   persistent history of public room messages.
   """
 
+  alias Chat.Accounts
   alias Chat.Accounts.User
   alias Chat.Appearance
   alias Chat.Gifs
@@ -303,6 +304,30 @@ defmodule Chat.Messages do
 
   def toggle_reaction(_reactor, _reactor_key, _room_id, _message_id, _emoji),
     do: {:error, :invalid_reaction}
+
+  @doc "Deletes a user-authored public message and notifies every room subscriber."
+  def delete_for_everyone(%User{} = user, room_id, message_id)
+      when is_binary(room_id) and is_integer(message_id) do
+    with true <- Accounts.admin?(user),
+         {:ok, message} <- History.delete_moderatable(room_id, message_id) do
+      :ok = Registry.remove(room_id, message_id)
+
+      :ok =
+        Phoenix.PubSub.broadcast(
+          Chat.PubSub,
+          room_topic(room_id),
+          {:message_deleted, message.id}
+        )
+
+      {:ok, message}
+    else
+      false -> {:error, :unauthorized}
+      :not_found -> {:error, :message_unavailable}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def delete_for_everyone(_user, _room_id, _message_id), do: {:error, :unauthorized}
 
   defp welcome_message do
     Map.merge(

@@ -22,6 +22,10 @@ defmodule Chat.Messages.Registry do
     GenServer.call(__MODULE__, {:replace, room_id, messages})
   end
 
+  def remove(room_id, message_id) when is_binary(room_id) and is_integer(message_id) do
+    GenServer.call(__MODULE__, {:remove, room_id, message_id})
+  end
+
   def toggle_reaction(room_id, message_id, reactor, reactor_key, emoji) do
     GenServer.call(
       __MODULE__,
@@ -48,6 +52,11 @@ defmodule Chat.Messages.Registry do
   end
 
   def handle_call({:replace, room_id, messages}, _from, state) do
+    {:reply, :ok, Map.put(state, room_id, messages)}
+  end
+
+  def handle_call({:remove, room_id, message_id}, _from, state) do
+    messages = Enum.reject(Map.get(state, room_id, []), &(&1.id == message_id))
     {:reply, :ok, Map.put(state, room_id, messages)}
   end
 

@@ -28,6 +28,7 @@
           online={@online}
           emojis={@emojis}
           typing={@typing_peers |> Map.values() |> Enum.sort()}
+          can_delete_messages?={Accounts.admin?(@current_user)}
           preserve_message_dom?={@preserve_message_dom?}
         />
       <% else %>

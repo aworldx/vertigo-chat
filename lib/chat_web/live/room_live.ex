@@ -593,6 +593,30 @@ defmodule ChatWeb.RoomLive do
 
   def handle_event("typing", _params, socket), do: {:noreply, socket}
 
+  def handle_event("delete_message", %{"id" => id}, socket) do
+    case parse_message_id(id) do
+      {:ok, message_id} ->
+        case Messages.delete_for_everyone(socket.assigns.current_user, @room_id, message_id) do
+          {:ok, message} ->
+            {:noreply, remove_message(socket, message.id)}
+
+          {:error, :unauthorized} ->
+            {:noreply, put_flash(socket, :error, "Недостаточно прав.")}
+
+          {:error, :message_unavailable} ->
+            {:noreply, put_flash(socket, :error, "Сообщение уже удалено.")}
+
+          {:error, _reason} ->
+            {:noreply, put_flash(socket, :error, "Не удалось удалить сообщение.")}
+        end
+
+      :error ->
+        {:noreply, put_flash(socket, :error, "Не удалось удалить сообщение.")}
+    end
+  end
+
+  def handle_event("delete_message", _params, socket), do: {:noreply, socket}
+
   def handle_event(
         "toggle_reaction",
         %{"message-id" => message_id, "emoji" => emoji},
@@ -1326,6 +1350,10 @@ defmodule ChatWeb.RoomLive do
 
   def handle_info({:message_reacted, message}, socket) do
     {:noreply, insert_message(socket, message)}
+  end
+
+  def handle_info({:message_deleted, message_id}, socket) do
+    {:noreply, remove_message(socket, message_id)}
   end
 
   def handle_info({:bot_status_changed, _status}, socket) do
@@ -2185,6 +2213,24 @@ defmodule ChatWeb.RoomLive do
     end
   end
 
+  defp remove_message(socket, message_id) do
+    message_id = to_string(message_id)
+    message = Enum.find(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+
+    socket =
+      socket
+      |> assign(
+        :all_message_items,
+        Enum.reject(socket.assigns.all_message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(
+        :message_items,
+        Enum.reject(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+      )
+
+    if message, do: stream_delete(socket, :messages, message), else: socket
+  end
+
   defp maybe_notify_about_message(socket, message) do
     if socket.assigns.message_sound_enabled and message.author != socket.assigns.nickname and
          Map.get(message, :recipient) == socket.assigns.nickname do
@@ -2558,6 +2604,15 @@ defmodule ChatWeb.RoomLive do
   defp reject_public_message(socket, _client_id, _reason), do: socket
 
   defp reaction_actor_key(socket), do: socket.assigns.presence_key
+
+  defp parse_message_id(id) when is_binary(id) do
+    case Integer.parse(id) do
+      {message_id, ""} when message_id > 0 -> {:ok, message_id}
+      _invalid -> :error
+    end
+  end
+
+  defp parse_message_id(_id), do: :error
 
   defp message_error(:rate_limited), do: "Слишком часто. Подожди немного перед отправкой."
   defp message_error(:message_too_long), do: "Сообщение не должно превышать 1000 символов."

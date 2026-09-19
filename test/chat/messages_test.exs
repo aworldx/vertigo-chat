@@ -2,9 +2,50 @@
 defmodule Chat.MessagesTest do
   use Chat.DataCase, async: false
 
+  alias Chat.Accounts
   alias Chat.Messages
   alias Chat.Messages.Registry
+  alias Chat.Repo
   alias Chat.Security.Subject
+
+  describe "delete_for_everyone/3" do
+    test "lets an administrator remove a user message from history and every subscriber" do
+      room_id = "moderation-room"
+
+      {:ok, admin} =
+        Accounts.register_user(%{"nickname" => "message_admin", "password" => "secret123"})
+
+      admin = admin |> Ecto.Changeset.change(is_admin: true) |> Repo.update!()
+
+      assert {:ok, message} =
+               Messages.send_public_message("alice", room_id, %{"body" => "удаляемое"})
+
+      :ok = Messages.subscribe(room_id)
+
+      assert {:ok, deleted} = Messages.delete_for_everyone(admin, room_id, message.id)
+      assert deleted.id == message.id
+      assert_receive {:message_deleted, message_id}
+      assert message_id == message.id
+      assert [%{body: "Добро пожаловать в чат!"}] = Messages.list_recent_messages(room_id)
+      assert Registry.list(room_id) == []
+    end
+
+    test "does not let a regular chatlan remove a message" do
+      room_id = "moderation-denied-room"
+
+      {:ok, user} =
+        Accounts.register_user(%{"nickname" => "message_member", "password" => "secret123"})
+
+      user = user |> Ecto.Changeset.change(is_admin: false) |> Repo.update!()
+
+      assert {:ok, message} =
+               Messages.send_public_message("alice", room_id, %{"body" => "остаётся"})
+
+      assert {:error, :unauthorized} = Messages.delete_for_everyone(user, room_id, message.id)
+      assert [%{id: message_id, body: "остаётся"}] = Messages.list_recent_messages(room_id)
+      assert message_id == message.id
+    end
+  end
 
   describe "send_public_message/3" do
     test "broadcasts a trimmed message to the room topic" do

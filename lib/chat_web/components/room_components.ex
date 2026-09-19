@@ -16,6 +16,7 @@ defmodule ChatWeb.RoomComponents do
   attr(:online, :list, required: true)
   attr(:emojis, :list, default: [])
   attr(:typing, :list, default: [])
+  attr(:can_delete_messages?, :boolean, default: false)
   attr(:preserve_message_dom?, :boolean, default: false)
 
   def dialogue_frame(assigns) do
@@ -625,6 +626,19 @@ defmodule ChatWeb.RoomComponents do
                 </p>
               <% end %>
           <% end %>
+          <button
+            :if={@can_delete_messages? && deletable_message?(message)}
+            id={"delete-message-#{dom_id}"}
+            type="button"
+            phx-click="delete_message"
+            phx-value-id={message.id}
+            data-confirm="Удалить это сообщение для всех?"
+            class="absolute right-14 top-1 z-20 flex size-5 items-center justify-center rounded text-zinc-500 transition hover:bg-rose-400/15 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+            aria-label="Удалить сообщение для всех"
+            title="Удалить для всех"
+          >
+            <.icon name="hero-trash" class="size-3.5" />
+          </button>
           <div
             :if={reactable_message?(message) && framed_message?(message, @appearance)}
             class="absolute -bottom-2.5 right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1"
@@ -783,6 +797,10 @@ defmodule ChatWeb.RoomComponents do
   defp typing_label([nickname]), do: "#{nickname} печатает…"
   defp typing_label([first, second]), do: "#{first} и #{second} печатают…"
   defp typing_label(nicknames), do: "#{length(nicknames)} участника печатают…"
+
+  defp deletable_message?(message) do
+    Map.get(message, :kind, :text) in [:text, :gif, :music, :youtube]
+  end
 
   defp reactable_message?(message) do
     Map.get(message, :kind, :text) in [:text, :gif] && message.author != "system"

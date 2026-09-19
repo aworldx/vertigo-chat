@@ -657,6 +657,39 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(first_view, "#message-form")
   end
 
+  test "lets an administrator delete a public message for everyone", %{conn: conn} do
+    assert {:ok, admin} =
+             Accounts.register_user(%{"nickname" => "chat_moderator", "password" => "secret123"})
+
+    admin = admin |> Ecto.Changeset.change(is_admin: true) |> Repo.update!()
+
+    {:ok, admin_view, _html} = live(conn, ~p"/chat")
+    {:ok, member_view, _html} = live(build_conn(), ~p"/chat")
+    enter_chat(admin_view, admin.nickname, "secret123")
+    enter_chat(member_view, "chat_member")
+
+    assert {:ok, message} =
+             Messages.send_public_message("chat_author", "lobby", %{
+               "body" => "удалить для всех"
+             })
+
+    render(admin_view)
+    render(member_view)
+
+    assert has_element?(admin_view, "#delete-message-messages-#{message.id}")
+    refute has_element?(member_view, "#delete-message-messages-#{message.id}")
+
+    admin_view
+    |> element("#delete-message-messages-#{message.id}")
+    |> render_click()
+
+    render(admin_view)
+    render(member_view)
+
+    refute has_element?(admin_view, "#messages-#{message.id}")
+    refute has_element?(member_view, "#messages-#{message.id}")
+  end
+
   test "keeps the typing indicator in the flex flow without changing message rhythm", %{
     conn: conn
   } do
