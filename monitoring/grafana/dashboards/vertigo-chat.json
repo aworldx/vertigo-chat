@@ -466,6 +466,46 @@
       ],
       "title": "Сработавшие правила",
       "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "description": "Фактическая рабочая память Docker-контейнеров (working set): память, которая не считается легко освобождаемым кэшем. Линии показывают все сервисы этого проекта, включая app, admin, Grafana, PostgreSQL и сам cAdvisor. Это не вся RAM VPS: файловый кэш и память ядра показаны отдельно на панели «Память».",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (container_label_com_docker_compose_service) (container_memory_working_set_bytes{job=\"cadvisor\",container_label_com_docker_compose_project=\"vertigo-chat\"})",
+          "legendFormat": "{{container_label_com_docker_compose_service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "RAM Docker-контейнеров",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

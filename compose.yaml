@@ -131,6 +131,22 @@ services:
     volumes:
       - /:/host:ro,rslave
 
+  # Reads Docker cgroups to expose per-container resource usage to Prometheus.
+  # It is reachable only inside the compose network; port 8080 is not published.
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6
+    restart: unless-stopped
+    logging: *default-logging
+    command:
+      - "--docker_only=true"
+      - "--housekeeping_interval=30s"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+
   prometheus:
     image: prom/prometheus:v3.5.0
     restart: unless-stopped
