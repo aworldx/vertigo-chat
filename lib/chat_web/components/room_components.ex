@@ -559,16 +559,21 @@ defmodule ChatWeb.RoomComponents do
                   </button>
                 </div>
                 <figcaption class="flex items-center justify-between gap-3 px-2 py-1.5 text-xs text-zinc-400">
-                  <button
-                    id={"message-author-#{dom_id}"}
-                    type="button"
-                    phx-hook="PrivateNickname"
-                    data-private-nickname={message.author}
-                    class="min-w-0 truncate font-semibold hover:underline"
-                    style={appearance_style(message)}
-                  >
-                    {message.author}
-                  </button>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium text-zinc-100" title={message.body}>
+                      {message.body}
+                    </p>
+                    <button
+                      id={"message-author-#{dom_id}"}
+                      type="button"
+                      phx-hook="PrivateNickname"
+                      data-private-nickname={message.author}
+                      class="font-semibold hover:underline"
+                      style={appearance_style(message)}
+                    >
+                      {message.author}
+                    </button>
+                  </div>
                   <time
                     id={"message-time-#{dom_id}"}
                     datetime={Map.get(message, :sent_at)}

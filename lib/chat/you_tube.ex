@@ -30,13 +30,15 @@ defmodule Chat.YouTube do
   def normalize_link(_link), do: {:error, :invalid_youtube}
 
   @spec prepare_video(String.t()) ::
-          {:ok, %{id: String.t(), source_url: String.t(), duration: pos_integer()}}
+          {:ok,
+           %{id: String.t(), source_url: String.t(), duration: pos_integer(), title: String.t()}}
           | {:error, :invalid_youtube | :video_too_long | :video_unavailable}
   def prepare_video(link) do
     with {:ok, video} <- normalize_link(link),
          {:ok, duration} <- fetch_duration(video.source_url),
          true <- duration <= @max_duration_seconds do
-      {:ok, Map.put(video, :duration, duration)}
+      {:ok,
+       video |> Map.put(:duration, duration) |> Map.put(:title, fetch_title(video.source_url))}
     else
       false -> {:error, :video_too_long}
       {:error, _reason} = error -> error
@@ -151,6 +153,49 @@ defmodule Chat.YouTube do
            ),
          {duration, ""} <- output |> String.trim() |> Float.parse() do
       {:ok, duration}
+    else
+      _unavailable -> {:error, :video_unavailable}
+    end
+  end
+
+  defp fetch_title(source_url) do
+    resolver =
+      Application.get_env(:chat, __MODULE__, [])
+      |> Keyword.get(:title_resolver, &fetch_title_with_yt_dlp/1)
+
+    case resolver.(source_url) do
+      {:ok, title} when is_binary(title) ->
+        title
+        |> String.trim()
+        |> String.slice(0, 160)
+        |> case do
+          "" -> "YouTube-видео"
+          title -> title
+        end
+
+      _result ->
+        "YouTube-видео"
+    end
+  end
+
+  defp fetch_title_with_yt_dlp(source_url) do
+    with path when is_binary(path) <- executable_path(:yt_dlp),
+         {output, 0} <-
+           System.cmd(
+             path,
+             [
+               "--quiet",
+               "--no-warnings",
+               "--no-playlist",
+               "--skip-download",
+               "--print",
+               "%(title)s",
+               source_url
+             ],
+             stderr_to_stdout: true
+           ),
+         title when is_binary(title) and title != "" <- String.trim(output) do
+      {:ok, title}
     else
       _unavailable -> {:error, :video_unavailable}
     end

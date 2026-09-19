@@ -2279,11 +2279,19 @@ defmodule ChatWeb.RoomLive do
     message_id = socket.assigns.youtube_publish_message_id
     message = Enum.find(socket.assigns.message_items, &(to_string(&1.id) == message_id))
 
-    socket
-    |> assign(:youtube_publish_message_id, nil)
-    |> then(fn updated_socket ->
-      if message, do: stream_delete(updated_socket, :messages, message), else: updated_socket
-    end)
+    socket =
+      socket
+      |> assign(
+        :all_message_items,
+        Enum.reject(socket.assigns.all_message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(
+        :message_items,
+        Enum.reject(socket.assigns.message_items, &(to_string(&1.id) == message_id))
+      )
+      |> assign(:youtube_publish_message_id, nil)
+
+    if message, do: stream_delete(socket, :messages, message), else: socket
   end
 
   defp remove_youtube_search_result(%{assigns: %{youtube_search_message_id: nil}} = socket),

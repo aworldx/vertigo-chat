@@ -273,7 +273,8 @@ defmodule Chat.MessagesTest do
       previous_config = Application.get_env(:chat, Chat.YouTube)
 
       Application.put_env(:chat, Chat.YouTube,
-        duration_resolver: fn _source_url -> {:ok, 600} end
+        duration_resolver: fn _source_url -> {:ok, 600} end,
+        title_resolver: fn _source_url -> {:ok, "Never Gonna Give You Up"} end
       )
 
       on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
@@ -296,6 +297,7 @@ defmodule Chat.MessagesTest do
       assert message.media_url == "dQw4w9WgXcQ"
       assert message.media_duration == "10:00"
       assert message.media_source_url == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      assert message.body == "Never Gonna Give You Up"
       assert_receive {:message_created, ^message}
 
       assert [stored] = Messages.list_recent_messages(room_id)

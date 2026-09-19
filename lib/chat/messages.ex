@@ -634,7 +634,7 @@ defmodule Chat.Messages do
         id: System.unique_integer([:positive]),
         kind: :youtube,
         author: author,
-        body: "YouTube-видео",
+        body: video.title,
         media_url: video.id,
         media_duration: format_youtube_duration(video.duration),
         media_source_url: video.source_url,

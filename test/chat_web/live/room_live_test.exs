@@ -525,7 +525,8 @@ defmodule ChatWeb.RoomLiveTest do
         receive do
           :resolve_youtube_duration -> {:ok, 600}
         end
-      end
+      end,
+      title_resolver: fn _source_url -> {:ok, "Тестовое видео"} end
     )
 
     on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
@@ -548,6 +549,8 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "[data-message-kind='youtube'].ml-auto.max-w-sm")
     assert has_element?(view, "[data-video-src='/youtube-proxy/dQw4w9WgXcQ']")
     assert has_element?(view, "[data-lazy-youtube-play]", "Воспроизвести")
+    assert has_element?(view, "[data-message-kind='youtube']", "Тестовое видео")
+    refute has_element?(view, "[data-command-result='youtube']", "Подготавливаю видео")
     refute has_element?(view, "video[src='/youtube-proxy/dQw4w9WgXcQ']")
     assert has_element?(view, "#message-body[value='']")
   end
@@ -570,7 +573,8 @@ defmodule ChatWeb.RoomLiveTest do
         receive do
           :resolve_youtube_search_duration -> {:ok, 120}
         end
-      end
+      end,
+      title_resolver: fn _source_url -> {:ok, "Найденный ролик"} end
     )
 
     on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
