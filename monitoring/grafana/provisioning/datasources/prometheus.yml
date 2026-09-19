@@ -2,7 +2,9 @@ apiVersion: 1
 
 datasources:
   - name: Prometheus
-    uid: prometheus
+    # Grafana keeps this UID once the provisioned source exists. Dashboards use
+    # the same fixed value, so a restart cannot break their panel references.
+    uid: PBFA97CFB590B2093
     type: prometheus
     access: proxy
     url: http://prometheus:9090
