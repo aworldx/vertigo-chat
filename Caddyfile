@@ -4,6 +4,8 @@
 		respond 404
 	}
 	@monitoring path /monitoring /monitoring/*
+	@monitoring_assets path /monitoring/public/*
+	header @monitoring_assets Cache-Control "no-store"
 	handle @monitoring {
 		reverse_proxy grafana:3000
 	}
