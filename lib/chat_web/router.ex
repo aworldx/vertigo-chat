@@ -30,6 +30,7 @@ defmodule ChatWeb.Router do
   scope "/", ChatWeb do
     pipe_through :media
 
+    get "/health", HealthController, :show, log: false
     get "/robots.txt", RobotsController, :show
     get "/sitemap.xml", SitemapController, :show
     get "/gif-proxy", GifProxyController, :show

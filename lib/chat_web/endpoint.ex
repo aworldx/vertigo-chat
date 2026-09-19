@@ -42,7 +42,10 @@ defmodule ChatWeb.Endpoint do
     cookie_key: "request_logger"
 
   plug Plug.RequestId
-  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+
+  plug Plug.Telemetry,
+    event_prefix: [:phoenix, :endpoint],
+    log: {__MODULE__, :log_level, []}
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -53,4 +56,9 @@ defmodule ChatWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug ChatWeb.Router
+
+  # Docker checks this endpoint every 10 seconds. It must stay observable via
+  # container health status without writing tens of thousands of access-log lines.
+  def log_level(%{path_info: ["health"]}), do: false
+  def log_level(_conn), do: :info
 end

@@ -62,7 +62,7 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/"]
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -82,7 +82,7 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/admin"]
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/health"]
       interval: 10s
       timeout: 5s
       retries: 10
