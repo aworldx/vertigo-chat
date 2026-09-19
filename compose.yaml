@@ -148,7 +148,7 @@ services:
         condition: service_healthy
 
   grafana:
-    image: grafana/grafana:12.1.0
+    image: grafana/grafana:12.4
     restart: unless-stopped
     logging: *default-logging
     environment:
