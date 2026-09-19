@@ -56,7 +56,10 @@ const MESSAGE_OUTBOX_KEY = "chat:message-outbox"
 const MESSAGE_OUTBOX_CHANGED_EVENT = "chat:message-outbox-changed"
 const MESSAGE_OUTBOX_RETRY_EVENT = "chat:message-outbox-retry"
 const LONG_POLL_FALLBACK_KEY = "phx:fallback:LongPoll"
-const LONG_POLL_FALLBACK_MS = 8_000
+// A blocked WebSocket should not make the entrance screen look unresponsive.
+// Two seconds still gives a normal connection time to complete, then switches
+// promptly to Phoenix's reliable long-poll transport.
+const LONG_POLL_FALLBACK_MS = 2_000
 const MESSAGE_REHYDRATION_COOLDOWN_MS = 15_000
 const MESSAGE_ACK_TIMEOUT_MS = 10_000
 const MESSAGE_OUTBOX_LIMIT = 50

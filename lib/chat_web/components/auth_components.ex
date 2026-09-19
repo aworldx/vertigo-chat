@@ -50,7 +50,7 @@ defmodule ChatWeb.AuthComponents do
           id="enter-chat"
           type="submit"
           phx-disable-with="Входим…"
-          class="w-full rounded bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200"
+          class="w-full rounded bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 phx-submit-loading:cursor-wait phx-submit-loading:bg-amber-500 phx-submit-loading:opacity-75"
         >
           Войти
         </button>
