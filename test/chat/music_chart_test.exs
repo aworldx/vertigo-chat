@@ -48,6 +48,33 @@ defmodule Chat.MusicChartTest do
     assert {:error, :own_track} = MusicChart.toggle_like(author, track.id)
   end
 
+  test "lets an author rename a track within the existing title limit" do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "track_editor", "password" => "secret123"})
+
+    {:ok, listener} =
+      Accounts.register_user(%{"nickname" => "track_listener", "password" => "secret123"})
+
+    assert {:ok, track} =
+             MusicChart.add_track(author, "Черновое название", mp3_bytes(), "audio/mpeg")
+
+    assert {:ok, updated_track} =
+             MusicChart.update_track_title(author, track.id, "  Готовый трек  ")
+
+    assert updated_track.title == "Готовый трек"
+    assert MusicChart.get_track(track.id).title == "Готовый трек"
+
+    assert {:error, :forbidden} = MusicChart.update_track_title(listener, track.id, "Чужой трек")
+    assert {:error, :invalid_title} = MusicChart.update_track_title(author, track.id, " ")
+
+    assert {:error, :invalid_title} =
+             MusicChart.update_track_title(
+               author,
+               track.id,
+               String.duplicate("я", MusicChart.max_title_length() + 1)
+             )
+  end
+
   test "stores short comments under a track" do
     {:ok, author} =
       Accounts.register_user(%{"nickname" => "comment_track_author", "password" => "secret123"})

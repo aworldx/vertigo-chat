@@ -51,6 +51,29 @@ defmodule Chat.MusicChart do
 
   def add_track(_user, _title, _audio, _content_type), do: {:error, :invalid_audio}
 
+  def update_track_title(%User{} = user, track_id, title)
+      when is_integer(track_id) and track_id > 0 and is_binary(title) do
+    case get_track(track_id) do
+      nil ->
+        {:error, :not_found}
+
+      %Track{user_id: user_id} when user_id != user.id ->
+        {:error, :forbidden}
+
+      %Track{} = track ->
+        case track |> Track.title_changeset(title) |> Repo.update() do
+          {:ok, track} ->
+            broadcast_change()
+            {:ok, track}
+
+          {:error, _changeset} ->
+            {:error, :invalid_title}
+        end
+    end
+  end
+
+  def update_track_title(_user, _track_id, _title), do: {:error, :not_found}
+
   def toggle_like(%User{} = user, track_id) when is_integer(track_id) and track_id > 0 do
     case Repo.get(Track, track_id) do
       nil -> {:error, :not_found}

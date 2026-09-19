@@ -29,4 +29,13 @@ defmodule Chat.MusicChart.Track do
     |> validate_required([:title, :audio, :content_type, :user])
     |> validate_length(:title, max: 120)
   end
+
+  def title_changeset(track, title) do
+    title = String.trim(title)
+
+    track
+    |> cast(%{"title" => title}, [:title])
+    |> validate_required(:title)
+    |> validate_length(:title, max: 120)
+  end
 end

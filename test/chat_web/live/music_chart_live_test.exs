@@ -91,5 +91,28 @@ defmodule ChatWeb.MusicChartLiveTest do
     assert has_element?(view, "#music-track-comments-#{track.id}", "chart_comment_listener")
   end
 
+  test "lets a track author edit its title", %{conn: conn} do
+    {:ok, author} =
+      Accounts.register_user(%{"nickname" => "chart_title_editor", "password" => "secret123"})
+
+    assert {:ok, track} =
+             MusicChart.add_track(author, "Черновое название", mp3_bytes(), "audio/mpeg")
+
+    {:ok, view, _html} =
+      live(init_test_session(conn, account_user_id: author.id), ~p"/music-chart")
+
+    assert has_element?(view, "#edit-music-track-title-#{track.id}")
+    view |> element("#edit-music-track-title-#{track.id}") |> render_click()
+
+    assert has_element?(view, "#music-track-title-#{track.id}.w-full.border-fuchsia-300\\/50")
+
+    view
+    |> form("#edit-music-track-title-#{track.id}", music_track: %{title: "Новое название"})
+    |> render_submit()
+
+    assert has_element?(view, "[data-track-title='Новое название']")
+    assert MusicChart.get_track(track.id).title == "Новое название"
+  end
+
   defp mp3_bytes, do: <<"ID3", 4, 0, 0, 0, 0, 0, 0, 0, 0>>
 end

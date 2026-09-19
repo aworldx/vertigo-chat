@@ -30,6 +30,7 @@ defmodule ChatWeb.MusicChartLive do
      |> assign(:listening_identity_key, listening_identity_key)
      |> assign(:upload_form, to_form(%{}, as: :music_chart))
      |> assign(:comment_form, to_form(%{}, as: :music_comment))
+     |> assign(:editing_track_id, nil)
      |> allow_upload(:music_track,
        accept: ~w(.mp3 .ogg .wav),
        max_entries: 1,
@@ -119,6 +120,60 @@ defmodule ChatWeb.MusicChartLive do
   def handle_event("toggle_music_like", _params, socket) do
     {:noreply, put_flash(socket, :error, "Войди с зарегистрированным ником, чтобы голосовать.")}
   end
+
+  def handle_event(
+        "start_music_title_edit",
+        %{"id" => id},
+        %{assigns: %{current_user: %{id: user_id}}} = socket
+      ) do
+    case Integer.parse(id) do
+      {track_id, ""} ->
+        case MusicChart.get_track(track_id) do
+          %{user_id: ^user_id} ->
+            {:noreply, socket |> assign(:editing_track_id, track_id) |> refresh_tracks()}
+
+          _track ->
+            {:noreply, put_flash(socket, :error, "Можно редактировать только свои треки.")}
+        end
+
+      :error ->
+        {:noreply, put_flash(socket, :error, "Не удалось открыть редактирование трека.")}
+    end
+  end
+
+  def handle_event("start_music_title_edit", _params, socket), do: {:noreply, socket}
+
+  def handle_event("cancel_music_title_edit", _params, socket) do
+    {:noreply, socket |> assign(:editing_track_id, nil) |> refresh_tracks()}
+  end
+
+  def handle_event(
+        "update_music_title",
+        %{"id" => id, "music_track" => %{"title" => title}},
+        %{assigns: %{current_user: user}} = socket
+      ) do
+    with {track_id, ""} <- Integer.parse(id),
+         {:ok, _track} <- MusicChart.update_track_title(user, track_id, title) do
+      {:noreply,
+       socket
+       |> assign(:editing_track_id, nil)
+       |> refresh_tracks()
+       |> put_flash(:info, "Название трека сохранено.")}
+    else
+      {:error, :invalid_title} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Укажи название трека до #{MusicChart.max_title_length()} символов."
+         )}
+
+      _reason ->
+        {:noreply, put_flash(socket, :error, "Не удалось сохранить название трека.")}
+    end
+  end
+
+  def handle_event("update_music_title", _params, socket), do: {:noreply, socket}
 
   def handle_event(
         "add_music_comment",
