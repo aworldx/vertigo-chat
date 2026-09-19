@@ -973,10 +973,9 @@ defmodule ChatWeb.RoomComponents do
               <span
                 :if={Map.get(user, :reconnecting?, false)}
                 class="chat-presence inline-flex items-center gap-1 text-amber-300"
-                aria-label={"#{user.nickname} переподключается"}
+                aria-label={"#{user.nickname}: нет связи"}
               >
-                <.icon name="hero-arrow-path" class="size-3 motion-safe:animate-spin" />
-                Переподключается
+                <.icon name="hero-arrow-path" class="size-3 motion-safe:animate-spin" /> Нет связи
               </span>
               <span
                 :if={Map.get(user, :bot?, false) && Map.get(user, :busy?, false)}
@@ -991,7 +990,7 @@ defmodule ChatWeb.RoomComponents do
                 class="chat-presence inline-flex items-center gap-1 text-amber-300"
                 hidden
               >
-                <.icon name="hero-arrow-path" class="size-3 motion-safe:animate-spin" /> Связь…
+                <.icon name="hero-arrow-path" class="size-3 motion-safe:animate-spin" /> Нет связи
               </span>
             </span>
           </div>

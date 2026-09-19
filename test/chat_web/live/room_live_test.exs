@@ -133,7 +133,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#message-body.w-full.text-base")
     assert has_element?(view, "#send-message")
     assert has_element?(view, "#current-chatlan-online", "В сети")
-    assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Связь…")
+    assert has_element?(view, "#current-chatlan-reconnecting[hidden]", "Нет связи")
     assert has_element?(view, "#online-list [class*='text-emerald-300']", "В сети")
     assert has_element?(view, "#online-list [id^='bot-chatlan-'][aria-label='Чат-бот']")
 

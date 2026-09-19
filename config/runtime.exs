@@ -75,6 +75,10 @@ config :chat, Chat.Bot.Usage,
 
 config :chat, Chat.Music, proxy_file: System.get_env("MUSIC_PROXY_FILE")
 
+config :chat, Chat.Sessions.Store,
+  grace_seconds: positive_integer_env.("CHAT_SESSION_GRACE_SECONDS", 60),
+  hidden_grace_seconds: positive_integer_env.("CHAT_HIDDEN_SESSION_GRACE_SECONDS", 5 * 60)
+
 # Temporary, opt-in diagnostics for chat connection lifecycle. Never log session
 # tokens or other browser credentials here.
 config :chat, :session_debug, System.get_env("CHAT_SESSION_DEBUG") in ~w(true 1)

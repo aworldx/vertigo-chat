@@ -145,7 +145,7 @@ defmodule Chat.SessionsTest do
     assert [] = Store.pending(room_id)
   end
 
-  test "keeps a hidden mobile session reconnectable for thirty minutes" do
+  test "keeps a hidden mobile session reconnectable for five minutes" do
     room_id = "hidden-session-room-#{System.unique_integer([:positive])}"
 
     assert {:ok, session} =

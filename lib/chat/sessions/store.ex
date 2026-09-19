@@ -5,11 +5,12 @@ defmodule Chat.Sessions.Store do
   alias Chat.Repo
   alias Chat.Sessions.ChatSession
 
-  @grace_seconds 60
-  @hidden_grace_seconds 30 * 60
+  @default_grace_seconds 60
+  @default_hidden_grace_seconds 5 * 60
   @heartbeat_timeout_seconds 180
 
-  def hidden_grace_seconds, do: @hidden_grace_seconds
+  def hidden_grace_seconds,
+    do: grace_seconds(:hidden_grace_seconds, @default_hidden_grace_seconds)
 
   def create(attrs) do
     session_id = Map.fetch!(attrs, :id)
@@ -100,10 +101,10 @@ defmodule Chat.Sessions.Store do
 
   def activate(session_id, identity_key, generation, now \\ DateTime.utc_now()) do
     now = truncate(now)
-    cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + @grace_seconds), :second)
+    cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + grace_seconds()), :second)
 
     hidden_cutoff =
-      DateTime.add(now, -(@heartbeat_timeout_seconds + @hidden_grace_seconds), :second)
+      DateTime.add(now, -(@heartbeat_timeout_seconds + hidden_grace_seconds()), :second)
 
     from(session in ChatSession,
       where:
@@ -188,10 +189,10 @@ defmodule Chat.Sessions.Store do
 
   def current?(id, identity, generation) do
     now = DateTime.utc_now() |> truncate()
-    cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + @grace_seconds), :second)
+    cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + grace_seconds()), :second)
 
     hidden_cutoff =
-      DateTime.add(now, -(@heartbeat_timeout_seconds + @hidden_grace_seconds), :second)
+      DateTime.add(now, -(@heartbeat_timeout_seconds + hidden_grace_seconds()), :second)
 
     Repo.exists?(
       from session in ChatSession,
@@ -239,10 +240,10 @@ defmodule Chat.Sessions.Store do
 
   def touch(id, identity, generation, visibility, now) do
     now = truncate(now)
-    cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + @grace_seconds), :second)
+    cutoff = DateTime.add(now, -(@heartbeat_timeout_seconds + grace_seconds()), :second)
 
     hidden_cutoff =
-      DateTime.add(now, -(@heartbeat_timeout_seconds + @hidden_grace_seconds), :second)
+      DateTime.add(now, -(@heartbeat_timeout_seconds + hidden_grace_seconds()), :second)
 
     visibility = normalize_visibility(visibility)
 
@@ -313,8 +314,16 @@ defmodule Chat.Sessions.Store do
 
   defp truncate(datetime), do: DateTime.truncate(datetime, :second)
 
-  defp grace_seconds(%ChatSession{last_visibility: "hidden"}), do: @hidden_grace_seconds
-  defp grace_seconds(_session), do: @grace_seconds
+  defp grace_seconds, do: grace_seconds(:grace_seconds, @default_grace_seconds)
+
+  defp grace_seconds(%ChatSession{last_visibility: "hidden"}), do: hidden_grace_seconds()
+  defp grace_seconds(_session), do: grace_seconds()
+
+  defp grace_seconds(key, default) do
+    :chat
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(key, default)
+  end
 
   defp normalize_visibility(visibility) when visibility in ["visible", "hidden"], do: visibility
   defp normalize_visibility(_visibility), do: "unknown"
