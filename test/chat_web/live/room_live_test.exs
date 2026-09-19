@@ -11,6 +11,7 @@ defmodule ChatWeb.RoomLiveTest do
   alias Chat.Messages
   alias Chat.Messages.Registry, as: MessageRegistry
   alias Chat.Repo
+  alias Chat.Sessions.ChatSession
   alias Chat.Visits
   alias Chat.Visits.Visit
 
@@ -302,6 +303,16 @@ defmodule ChatWeb.RoomLiveTest do
     assert log =~ "session_debug event=heartbeat"
     assert log =~ "nickname=#{nickname}"
     assert log =~ "visibility=hidden"
+
+    capture_log([level: :info], fn ->
+      render_hook(view, "session_debug_client", %{
+        "event" => "visibility_changed",
+        "visibility" => "hidden"
+      })
+    end)
+
+    assert %ChatSession{last_visibility: "hidden"} =
+             Repo.one(from(session in ChatSession, where: session.nickname == ^nickname))
   end
 
   test "restores a guest during page refresh while its previous connection is still online", %{

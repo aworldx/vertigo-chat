@@ -221,13 +221,21 @@ defmodule ChatWeb.RoomLive do
   def handle_event("touch_chat_session", _params, socket), do: {:noreply, socket}
 
   def handle_event("session_debug_client", params, %{assigns: %{joined?: true}} = socket) do
-    case Map.get(params, "event") do
-      event when event in ["mounted", "reconnected", "visibility_changed"] ->
-        log_session_debug("client_#{event}", socket, visibility: visibility_from(params))
+    visibility = visibility_from(params)
 
-      _invalid ->
-        :ok
-    end
+    socket =
+      case Map.get(params, "event") do
+        "visibility_changed" ->
+          log_session_debug("client_visibility_changed", socket, visibility: visibility)
+          renew_chat_session(socket, visibility)
+
+        event when event in ["mounted", "reconnected"] ->
+          log_session_debug("client_#{event}", socket, visibility: visibility)
+          socket
+
+        _invalid ->
+          socket
+      end
 
     {:noreply, socket}
   end
