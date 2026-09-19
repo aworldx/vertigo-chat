@@ -664,6 +664,22 @@ const chatHooks = {
       })
       this.resizeObserver.observe(this.el)
 
+      this.isNearBottom = () =>
+        this.el.scrollHeight - this.el.clientHeight - this.el.scrollTop < 24
+      this.stickToBottom = true
+      this.autoScrolling = false
+      this.onScroll = () => {
+        if (!this.autoScrolling) this.stickToBottom = this.isNearBottom()
+      }
+      this.cancelAutoScroll = () => {
+        cancelAnimationFrame(this.scrollAnimationFrame)
+        this.autoScrolling = false
+        this.stickToBottom = false
+      }
+      this.el.addEventListener("scroll", this.onScroll)
+      this.el.addEventListener("wheel", this.cancelAutoScroll, {passive: true})
+      this.el.addEventListener("touchstart", this.cancelAutoScroll, {passive: true})
+
       this.storeMessageCursor = () => {
         const messageIds = [...this.el.querySelectorAll("[data-message-id]")]
           .map(message => Number.parseInt(message.dataset.messageId, 10))
@@ -692,10 +708,17 @@ const chatHooks = {
 
       this.pendingMessages = this.el.querySelector("#pending-messages")
       this.renderedOutboxClientIds = new Set()
+      this.messageIds = () =>
+        [...this.el.querySelectorAll("[data-message-id]")]
+          .map(message => message.dataset.messageId)
+          .filter(Boolean)
+          .join(",")
+      this.lastMessageIds = this.messageIds()
 
       this.renderOutbox = () => {
         if (!this.pendingMessages) return
 
+        const wasAtBottom = this.stickToBottom && this.isNearBottom()
         const entries = readMessageOutbox()
         const addedEntry = entries.find(entry => !this.renderedOutboxClientIds.has(entry.clientId))
         this.pendingMessages.replaceChildren(...entries.map(entry => this.buildPendingMessage(entry)))
@@ -704,7 +727,7 @@ const chatHooks = {
         // Optimistic entries are inserted directly by this hook, so LiveView's
         // `updated` callback does not run to reveal them. A message just sent by
         // this tab must remain visible even when the confirmed stream is long.
-        if (addedEntry && !this.initializing) {
+        if (addedEntry && wasAtBottom && !this.initializing) {
           this.scrollToBottom({smooth: true})
         }
       }
@@ -742,7 +765,14 @@ const chatHooks = {
       this.renderOutbox()
       this.storeMessageCursor()
     },
+    beforeUpdate() {
+      this.wasAtBottomBeforeUpdate = this.stickToBottom && this.isNearBottom()
+    },
     updated() {
+      const messageIds = this.messageIds()
+      const messagesChanged = messageIds !== this.lastMessageIds
+      this.lastMessageIds = messageIds
+
       this.reconcileOutbox()
       this.renderOutbox()
       this.storeMessageCursor()
@@ -752,7 +782,7 @@ const chatHooks = {
         return
       }
 
-      this.scrollToBottom({smooth: true})
+      if (messagesChanged && this.wasAtBottomBeforeUpdate) this.scrollToBottom({smooth: true})
     },
     disconnected() {
       // Prevent LiveView's reconnect join patch from clearing stream children before
@@ -773,6 +803,9 @@ const chatHooks = {
       window.clearTimeout(this.initialScrollTimer)
       window.clearInterval(this.messageSyncTimer)
       this.resizeObserver?.disconnect()
+      this.el.removeEventListener("scroll", this.onScroll)
+      this.el.removeEventListener("wheel", this.cancelAutoScroll)
+      this.el.removeEventListener("touchstart", this.cancelAutoScroll)
       this.pendingMessages?.removeEventListener("click", this.onPendingClick)
       window.removeEventListener(MESSAGE_OUTBOX_CHANGED_EVENT, this.onOutboxChanged)
     },
@@ -861,23 +894,31 @@ const chatHooks = {
           Math.abs(target - this.el.scrollTop) < 1
       ) {
         this.el.scrollTop = target
+        this.stickToBottom = true
         return
       }
 
-      const start = this.el.scrollTop
-      const distance = target - start
-      const duration = Math.min(600, Math.max(280, Math.abs(distance) * 0.3))
-      const startedAt = performance.now()
+      // Recalculate the target on every frame. A message can grow after it is
+      // inserted (fonts, media or a wrapping indicator), and the viewport then
+      // follows that new space instead of jumping to a stale scroll position.
+      this.autoScrolling = true
 
-      const animate = now => {
-        const progress = Math.min(1, (now - startedAt) / duration)
-        const easedProgress = 1 - Math.pow(1 - progress, 3)
-        this.el.scrollTop = start + distance * easedProgress
+      const follow = () => {
+        const currentTarget = Math.max(0, this.el.scrollHeight - this.el.clientHeight)
+        const distance = currentTarget - this.el.scrollTop
 
-        if (progress < 1) this.scrollAnimationFrame = requestAnimationFrame(animate)
+        if (Math.abs(distance) < 1) {
+          this.el.scrollTop = currentTarget
+          this.autoScrolling = false
+          this.stickToBottom = true
+          return
+        }
+
+        this.el.scrollTop += distance * 0.28
+        this.scrollAnimationFrame = requestAnimationFrame(follow)
       }
 
-      this.scrollAnimationFrame = requestAnimationFrame(animate)
+      this.scrollAnimationFrame = requestAnimationFrame(follow)
     },
   },
   ChatPreferences: {
