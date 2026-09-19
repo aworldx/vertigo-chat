@@ -27,9 +27,9 @@ x-app-environment: &app-environment
   MUSIC_PROXY_FILE: /run/secrets/music_proxies
 
 x-app-image: &app-image
-  build:
-    context: .
-  image: chat-app:latest
+  # Production images are published by GitHub Actions. Keeping the build
+  # directive out of this file makes an accidental VPS-side build impossible.
+  image: ${CHAT_IMAGE:-chat-app}:${CHAT_IMAGE_TAG:-latest}
   environment: *app-environment
   volumes:
     - ${MUSIC_PROXY_HOST_FILE:-./.music_proxies}:/run/secrets/music_proxies:ro

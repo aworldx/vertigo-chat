@@ -103,16 +103,27 @@ PHX_SCHEME=https
 PHX_URL_PORT=443
 ```
 
-To deploy a checked local change, commit it and push it to `origin/main`. The
-production image is assembled on the local development machine for
-`linux/amd64`, then transferred directly to the VPS. The VPS never runs `mix
-deps.get` or `docker compose build`: this keeps a transient Hex/GitHub problem
-from blocking a production deploy.
+To deploy a checked local change, commit it and push it to `origin/main`.
+GitHub Actions builds the `linux/amd64` image natively and publishes it as the
+private image `ghcr.io/aworldx/vertigo-chat:<commit SHA>`. The VPS only pulls
+that finished image: it never runs `mix deps.get` or `docker compose build`.
 
-The local Docker installation must have Buildx available; Docker Desktop
-provides it. The script refuses a dirty working tree or a local revision that
-does not exactly match `origin/main`. It transfers only the resulting image,
-not source files or either production environment file.
+Before the first deploy, create a GitHub token for the package with
+`read:packages` permission and place it only in
+`/opt/apps/vertigo-chat/.env`:
+
+```env
+GHCR_USERNAME=aworldx
+GHCR_PULL_TOKEN=github_pat_or_classic_pat_with_read_packages
+```
+
+Keep the token unquoted and do not copy it into the repository. A fine-grained
+token must also be granted access to this repository's package. Wait for the
+**Publish production image** GitHub Actions workflow for the commit to finish,
+then run the deploy command. The script rejects a dirty tree or a revision
+different from `origin/main`, authenticates the VPS to GHCR, pulls that exact
+SHA (retrying for up to five minutes), migrates, recreates `app` and `admin`,
+and checks the local endpoint.
 
 ```sh
 mix precommit
@@ -123,11 +134,8 @@ git push origin main
 bash script/deploy-production
 ```
 
-The script verifies the fast-forwarded revision, runs `migrate` using the
-transferred image, recreates only `app` and `admin` with `--no-build`, then
-checks the local production endpoint. The firewall allows only SSH, HTTP and
-HTTPS; password authentication is disabled. Do not use `rsync --delete`
-against the production directory.
+The firewall allows only SSH, HTTP and HTTPS; password authentication is
+disabled. Do not use `rsync --delete` against the production directory.
 
 Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
 

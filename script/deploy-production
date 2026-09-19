@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Назначение файла: собирает linux/amd64-образ локально и разворачивает его на production VPS без сборки на сервере.
+# Назначение файла: разворачивает на production VPS готовый linux/amd64-образ,
+# опубликованный GitHub Actions в private GHCR. На VPS сборка не выполняется.
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 remote_host="${CHAT_DEPLOY_HOST:-root@109.248.170.47}"
 remote_dir="${CHAT_DEPLOY_DIR:-/opt/apps/vertigo-chat}"
-image_name="chat-app:latest"
+image_repository="${CHAT_IMAGE:-ghcr.io/aworldx/vertigo-chat}"
 
 cd "$project_dir"
 
@@ -23,24 +24,56 @@ if [[ "$local_revision" != "$remote_revision" ]]; then
   exit 1
 fi
 
-docker buildx version >/dev/null
-docker buildx build --platform linux/amd64 --load --tag "$image_name" .
-docker image save "$image_name" | ssh "$remote_host" 'docker image load'
-
-ssh "$remote_host" bash -s -- "$remote_dir" "$local_revision" <<'REMOTE'
+ssh "$remote_host" bash -s -- "$remote_dir" "$local_revision" "$image_repository" <<'REMOTE'
 set -euo pipefail
 
 deploy_dir="$1"
 expected_revision="$2"
+image_repository="$3"
+
+env_value() {
+  local key="$1"
+  sed -n "s/^${key}=//p" .env | tail -n 1
+}
 
 cd "$deploy_dir"
 test -z "$(git status --porcelain)"
 git pull --ff-only origin main
 test "$(git rev-parse HEAD)" = "$expected_revision"
 
+ghcr_username="$(env_value GHCR_USERNAME)"
+ghcr_token="$(env_value GHCR_PULL_TOKEN)"
+ghcr_username="${ghcr_username:-aworldx}"
+
+if [[ -z "$ghcr_token" ]]; then
+  echo "GHCR_PULL_TOKEN must be set in $deploy_dir/.env" >&2
+  exit 1
+fi
+
+printf '%s' "$ghcr_token" | docker login ghcr.io --username "$ghcr_username" --password-stdin
+unset ghcr_token
+
 mkdir -p logs
 chown 65534:root logs
 chmod 0770 logs
+
+export CHAT_IMAGE="$image_repository"
+export CHAT_IMAGE_TAG="$expected_revision"
+
+# The workflow normally completes before this script is started. Retry briefly
+# so a deploy remains convenient when the image registry is a little behind.
+for attempt in $(seq 1 30); do
+  if docker compose --env-file .env --env-file .env.vps pull migrate app admin; then
+    break
+  fi
+
+  if [[ "$attempt" == "30" ]]; then
+    echo "Image $CHAT_IMAGE:$CHAT_IMAGE_TAG was not available in GHCR after 5 minutes." >&2
+    exit 1
+  fi
+
+  sleep 10
+done
 
 docker compose --env-file .env --env-file .env.vps run --rm --no-deps migrate
 docker compose --env-file .env --env-file .env.vps up -d --no-build --force-recreate --no-deps app admin
