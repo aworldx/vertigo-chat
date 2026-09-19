@@ -499,16 +499,32 @@ defmodule ChatWeb.RoomComponents do
                 ></audio>
               </article>
             <% :youtube -> %>
-              <figure class="overflow-hidden rounded-xl border border-zinc-700 bg-black shadow-sm">
-                <video
-                  id={"youtube-message-player-#{dom_id}"}
-                  controls
-                  preload="metadata"
-                  controlslist="nodownload"
-                  src={YouTube.proxy_url(message.media_url)}
-                  aria-label={"Воспроизвести YouTube-видео от #{message.author}"}
-                  class="aspect-video w-full bg-zinc-950"
-                ></video>
+              <figure
+                id={"youtube-message-#{dom_id}"}
+                phx-hook="LazyYouTubeVideo"
+                phx-update="ignore"
+                data-video-src={YouTube.proxy_url(message.media_url)}
+                class="overflow-hidden rounded-xl border border-zinc-700 bg-black shadow-sm"
+              >
+                <div class="relative">
+                  <video
+                    id={"youtube-message-player-#{dom_id}"}
+                    data-lazy-youtube-video
+                    controls
+                    preload="none"
+                    controlslist="nodownload"
+                    aria-label={"Воспроизвести YouTube-видео от #{message.author}"}
+                    class="aspect-video w-full bg-zinc-950"
+                  ></video>
+                  <button
+                    id={"youtube-message-play-#{dom_id}"}
+                    data-lazy-youtube-play
+                    type="button"
+                    class="absolute inset-0 m-auto flex h-11 w-fit items-center gap-2 self-center rounded-full bg-zinc-100 px-5 text-sm font-semibold text-zinc-950 shadow-lg transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    <.icon name="hero-play" class="size-4" /> Воспроизвести
+                  </button>
+                </div>
                 <figcaption class="flex items-center justify-between gap-3 px-2 py-1.5 text-xs text-zinc-400">
                   <button
                     id={"message-author-#{dom_id}"}

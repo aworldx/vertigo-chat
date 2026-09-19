@@ -995,6 +995,39 @@ const chatHooks = {
       this.el.removeEventListener("ended", this.stopped)
     },
   },
+  LazyYouTubeVideo: {
+    mounted() {
+      this.video = this.el.querySelector("[data-lazy-youtube-video]")
+      this.playButton = this.el.querySelector("[data-lazy-youtube-play]")
+      this.loaded = false
+
+      this.loadVideo = () => {
+        if (this.loaded || !this.video || !this.el.dataset.videoSrc) return
+
+        this.loaded = true
+        this.video.src = this.el.dataset.videoSrc
+        this.video.load()
+      }
+
+      this.playVideo = () => {
+        this.loadVideo()
+        this.playButton.hidden = true
+
+        const playback = this.video.play()
+
+        if (playback) {
+          playback.catch(() => {
+            this.playButton.hidden = false
+          })
+        }
+      }
+
+      this.playButton.addEventListener("click", this.playVideo)
+    },
+    destroyed() {
+      this.playButton?.removeEventListener("click", this.playVideo)
+    },
+  },
 }
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

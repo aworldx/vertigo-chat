@@ -546,7 +546,9 @@ defmodule ChatWeb.RoomLiveTest do
 
     assert has_element?(view, "[data-message-kind='youtube'] [id^='youtube-message-player-']")
     assert has_element?(view, "[data-message-kind='youtube'].ml-auto.max-w-sm")
-    assert has_element?(view, "video[src='/youtube-proxy/dQw4w9WgXcQ']")
+    assert has_element?(view, "[data-video-src='/youtube-proxy/dQw4w9WgXcQ']")
+    assert has_element?(view, "[data-lazy-youtube-play]", "Воспроизвести")
+    refute has_element?(view, "video[src='/youtube-proxy/dQw4w9WgXcQ']")
     assert has_element?(view, "#message-body[value='']")
   end
 
