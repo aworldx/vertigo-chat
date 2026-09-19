@@ -78,8 +78,9 @@ nicknames, cookies, or tokens.
 
 Compose starts Prometheus with 30-day retention and preconfigured scrape targets. Before starting it,
 write the same value as `METRICS_TOKEN` into `METRICS_TOKEN_FILE` without a trailing newline, for
-example `printf %s "$METRICS_TOKEN" > /opt/apps/vertigo-chat/.metrics_token`; keep that file mode
-`0600`. Compose also starts `node-exporter` on the same private network (without a published port) for
+example `printf %s "$METRICS_TOKEN" > /opt/apps/vertigo-chat/.metrics_token`; make it readable by
+Prometheus only: `chown root:65534 /opt/apps/vertigo-chat/.metrics_token && chmod 0640 /opt/apps/vertigo-chat/.metrics_token`.
+Compose also starts `node-exporter` on the same private network (without a published port) for
 VPS CPU, RAM, disk and network metrics. The included Prometheus rules cover failed chat scraping, low
 free disk, sustained CPU use, 5xx growth and reconnect growth. Connect Grafana to
 `http://prometheus:9090` from the private network for 1h/24h/7d charts and add Alertmanager for delivery
