@@ -10,12 +10,12 @@ groups:
           summary: Chat metrics endpoint is unavailable
 
       - alert: VpsDiskNearlyFull
-        expr: node_filesystem_avail_bytes{job="vps",mountpoint="/"} / node_filesystem_size_bytes{job="vps",mountpoint="/"} < 0.15
+        expr: node_filesystem_avail_bytes{job="vps",mountpoint="/"} / node_filesystem_size_bytes{job="vps",mountpoint="/"} < 0.25
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: VPS root disk has less than 15% free space
+          summary: VPS root disk has less than 25% free space
 
       - alert: VpsHighCpu
         expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{job="vps",mode="idle"}[5m])) > 0.9

@@ -86,6 +86,12 @@ free disk, sustained CPU use, 5xx growth and reconnect growth. Connect Grafana t
 `http://prometheus:9090` from the private network for 1h/24h/7d charts and add Alertmanager for delivery
 to Telegram/email; Prometheus and node-exporter are not exposed through Caddy.
 
+For a small VPS, install `ops/systemd/vertigo-chat-docker-prune.service` and
+`ops/systemd/vertigo-chat-docker-prune.timer` into `/etc/systemd/system/` and enable the timer. It runs
+every Sunday around 04:30, removing only Docker build cache and unused images older than seven days.
+It never removes running containers or volumes. The disk alert fires below 25% free space, giving the
+cleanup time to run before storage becomes critical.
+
 Grafana is available to the administrator at `/monitoring/` and requires its separate
 `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`. Its pre-provisioned dashboard is named
 **Vertigo chat — мониторинг**. Generate the password with `openssl rand -base64 36`; Grafana

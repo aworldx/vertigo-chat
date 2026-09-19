@@ -1,0 +1,11 @@
+[Unit]
+Description=Remove old unused Docker cache and images for Vertigo chat
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Keep one week of unused images as a short rollback window.
+# Running containers and named volumes are never pruned.
+ExecStart=/usr/bin/docker builder prune --all --force --filter until=168h
+ExecStart=/usr/bin/docker image prune --all --force --filter until=168h
