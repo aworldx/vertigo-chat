@@ -38,8 +38,12 @@ WORKDIR /app
 RUN mix local.hex --force \
   && mix local.rebar --force
 
-# set build ENV
-ENV MIX_ENV="prod"
+# Set build ENV. The VPS occasionally has short stalls while Hex fetches the
+# package registry; serialize those requests and allow enough time for a
+# complete response so deploys do not fail on a transient registry timeout.
+ENV MIX_ENV="prod" \
+    HEX_HTTP_TIMEOUT="120" \
+    HEX_HTTP_CONCURRENCY="1"
 
 # install mix dependencies
 COPY mix.exs mix.lock ./
