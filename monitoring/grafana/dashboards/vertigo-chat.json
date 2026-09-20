@@ -31,6 +31,48 @@
       },
       "fieldConfig": {
         "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 13,
+      "description": "Маршруты, у которых p95 за последние 5 минут превышает 1 секунду. Таблица показывает только проблемные маршруты; путь и статус не содержат персональных данных. Если список пуст, в этом окне медленных маршрутов нет.",
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "expr": "sort_desc(histogram_quantile(0.95, sum by (route, le) (rate(chat_http_request_duration_milliseconds_bucket[5m]))) > 1000)",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Медленные HTTP-маршруты (p95 > 1 с)",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
           "color": {
             "mode": "thresholds"
           },
@@ -448,7 +490,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 36
       },
       "id": 11,
       "description": "Список активных правил оповещения с их метками и текущим значением. Здесь можно увидеть причину числа в карточке «Активные алерты».",
@@ -483,7 +525,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 45
       },
       "id": 12,
       "options": {
