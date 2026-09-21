@@ -70,6 +70,15 @@ services:
       retries: 10
       start_period: 10s
 
+  youtube-cache-init:
+    image: ${CHAT_IMAGE:-chat-app}:${CHAT_IMAGE_TAG:-latest}
+    user: "0:0"
+    command:
+      ["sh", "-c", "mkdir -p /var/cache/chat-youtube && chown -R 65534:65534 /var/cache/chat-youtube"]
+    restart: "no"
+    volumes:
+      - youtube_cache:/var/cache/chat-youtube
+
   youtube-worker:
     <<: *app-image
     command: ["/app/bin/youtube-worker"]
@@ -84,6 +93,9 @@ services:
       YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
     volumes:
       - youtube_cache:/var/cache/chat-youtube
+    depends_on:
+      youtube-cache-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4001/health"]
       interval: 10s
