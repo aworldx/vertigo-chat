@@ -27,6 +27,7 @@ x-app-environment: &app-environment
   S3_VIRTUAL_HOSTED: ${S3_VIRTUAL_HOSTED:-false}
   MUSIC_PROXY_FILE: /run/secrets/music_proxies
   DISCOURSE_CONNECT_SECRET: ${DISCOURSE_CONNECT_SECRET:-}
+  YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
 
 x-app-image: &app-image
   # Production images are published by GitHub Actions. Keeping the build
@@ -64,6 +65,27 @@ services:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  youtube-worker:
+    <<: *app-image
+    command: ["/app/bin/youtube-worker"]
+    restart: unless-stopped
+    mem_limit: ${YOUTUBE_WORKER_MEM_LIMIT:-768m}
+    cpus: ${YOUTUBE_WORKER_CPUS:-1.0}
+    environment:
+      <<: *app-environment
+      CHAT_RUNTIME_ROLE: youtube_worker
+      YOUTUBE_WORKER_PORT: "4001"
+      YOUTUBE_CACHE_DIR: /var/cache/chat-youtube
+      YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
+    volumes:
+      - youtube_cache:/var/cache/chat-youtube
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4001/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -120,6 +142,8 @@ services:
       - caddy_config:/config
     depends_on:
       app:
+        condition: service_healthy
+      youtube-worker:
         condition: service_healthy
 
   # Exposes host CPU, RAM, disk and network data only to the Docker network.
@@ -189,3 +213,4 @@ volumes:
   caddy_config:
   prometheus_data:
   grafana_data:
+  youtube_cache:

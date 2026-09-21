@@ -1039,8 +1039,12 @@ const chatHooks = {
   },
   LazyYouTubeVideo: {
     mounted() {
+      const maxRetryCount = 120
+
       this.video = this.el.querySelector("[data-lazy-youtube-video]")
       this.playButton = this.el.querySelector("[data-lazy-youtube-play]")
+      this.playButtonLabel = this.el.querySelector("[data-lazy-youtube-play-label]")
+      this.preparingStatus = this.el.querySelector("[data-lazy-youtube-preparing]")
       this.loaded = false
       this.retryCount = 0
       this.retryTimer = null
@@ -1055,22 +1059,40 @@ const chatHooks = {
         this.video.load()
       }
 
+      this.setPreparing = (preparing, label = "Воспроизвести") => {
+        if (!this.playButton) return
+
+        this.playButton.hidden = preparing
+        this.playButton.disabled = false
+        if (this.playButtonLabel) this.playButtonLabel.textContent = label
+        if (this.preparingStatus) this.preparingStatus.hidden = !preparing
+      }
+
       this.playVideo = () => {
+        if (this.wantsPlayback) return
+
         this.wantsPlayback = true
         this.loadVideo()
-        this.playButton.hidden = true
+        this.setPreparing(true, "Подготавливаю…")
 
         const playback = this.video.play()
 
         if (playback) {
-          playback.catch(() => {
-            this.playButton.hidden = false
-          })
+          playback.catch(() => {})
         }
       }
 
       this.retryVideo = () => {
-        if (!this.loaded || this.retryCount >= 30) return
+        if (!this.loaded) return
+
+        if (this.retryCount >= maxRetryCount) {
+          this.wantsPlayback = false
+          this.loaded = false
+          this.retryCount = 0
+          this.setPreparing(false, "Повторить")
+          this.playButton.hidden = false
+          return
+        }
 
         this.retryCount += 1
         this.retryTimer = window.setTimeout(() => {
@@ -1079,12 +1101,20 @@ const chatHooks = {
         }, 1_000)
       }
 
+      this.videoStarted = () => {
+        this.wantsPlayback = false
+        this.setPreparing(false)
+        this.playButton.hidden = true
+      }
+
       this.playButton.addEventListener("click", this.playVideo)
       this.video.addEventListener("error", this.retryVideo)
+      this.video.addEventListener("playing", this.videoStarted)
     },
     destroyed() {
       this.playButton?.removeEventListener("click", this.playVideo)
       this.video?.removeEventListener("error", this.retryVideo)
+      this.video?.removeEventListener("playing", this.videoStarted)
       window.clearTimeout(this.retryTimer)
     },
   },

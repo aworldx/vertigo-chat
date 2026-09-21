@@ -8,8 +8,33 @@ defmodule Chat.Application do
 
   @impl true
   def start(_type, _args) do
-    children = base_children() ++ role_children(Application.get_env(:chat, :runtime_role, :chat))
+    role = Application.get_env(:chat, :runtime_role, :chat)
+    children = children_for(role)
     Supervisor.start_link(children, strategy: :one_for_one, name: Chat.Supervisor)
+  end
+
+  defp children_for(:youtube_worker) do
+    [
+      Chat.YouTube.Cache,
+      youtube_worker_server()
+    ]
+  end
+
+  defp children_for(role), do: base_children() ++ role_children(role) ++ embedded_youtube_worker()
+
+  defp embedded_youtube_worker do
+    if Application.get_env(:chat, :youtube_worker_embedded?, false) do
+      [Chat.YouTube.Cache, youtube_worker_server()]
+    else
+      []
+    end
+  end
+
+  defp youtube_worker_server do
+    {Bandit,
+     plug: Chat.YouTube.Worker,
+     scheme: :http,
+     port: Application.fetch_env!(:chat, :youtube_worker_port)}
   end
 
   defp base_children,
@@ -29,7 +54,6 @@ defmodule Chat.Application do
       Chat.Games.Janitor,
       Chat.Security.RateLimiter,
       Chat.Music.ProxyPool,
-      Chat.YouTube.Cache,
       Chat.Bot.Status,
       {Task.Supervisor, name: Chat.Bot.TaskSupervisor},
       Chat.MediaShares.Registry,

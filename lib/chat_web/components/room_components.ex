@@ -547,6 +547,7 @@ defmodule ChatWeb.RoomComponents do
                     controls
                     preload="none"
                     controlslist="nodownload"
+                    crossorigin="anonymous"
                     aria-label={"Воспроизвести YouTube-видео от #{message.author}"}
                     class="aspect-video w-full bg-zinc-950"
                   ></video>
@@ -556,8 +557,19 @@ defmodule ChatWeb.RoomComponents do
                     type="button"
                     class="absolute inset-0 m-auto flex h-11 w-fit items-center gap-2 self-center rounded-full bg-zinc-100 px-5 text-sm font-semibold text-zinc-950 shadow-lg transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   >
-                    <.icon name="hero-play" class="size-4" /> Воспроизвести
+                    <.icon name="hero-play" class="size-4" />
+                    <span data-lazy-youtube-play-label>Воспроизвести</span>
                   </button>
+                  <div
+                    data-lazy-youtube-preparing
+                    hidden
+                    role="status"
+                    aria-live="polite"
+                    class="pointer-events-none absolute inset-0 m-auto flex h-11 w-fit items-center gap-2 self-center rounded-full bg-zinc-950/90 px-5 text-sm font-medium text-zinc-100 shadow-lg"
+                  >
+                    <.icon name="hero-arrow-path" class="size-4 animate-spin" />
+                    <span>Подготавливаю…</span>
+                  </div>
                 </div>
                 <figcaption class="flex items-center justify-between gap-3 px-2 py-1.5 text-xs text-zinc-400">
                   <div class="min-w-0">

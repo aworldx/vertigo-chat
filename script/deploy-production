@@ -67,7 +67,7 @@ export CHAT_IMAGE_TAG="$expected_revision"
 # The workflow normally completes before this script is started. Retry briefly
 # so a deploy remains convenient when the image registry is a little behind.
 for attempt in $(seq 1 30); do
-  if docker compose --env-file .env --env-file .env.vps pull migrate app admin; then
+  if docker compose --env-file .env --env-file .env.vps pull migrate app admin youtube-worker caddy; then
     break
   fi
 
@@ -80,7 +80,7 @@ for attempt in $(seq 1 30); do
 done
 
 docker compose --env-file .env --env-file .env.vps run --rm --no-deps migrate
-docker compose --env-file .env --env-file .env.vps up -d --no-build --force-recreate --no-deps app admin
+docker compose --env-file .env --env-file .env.vps up -d --no-build --force-recreate --no-deps app admin youtube-worker caddy
 docker compose --env-file .env --env-file .env.vps ps
 curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
 REMOTE

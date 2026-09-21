@@ -34,6 +34,7 @@ config :chat, Chat.Sessions.Reaper, enabled?: false
 config :chat, :metrics_token, "test-metrics-token"
 
 config :chat, Chat.Games.Dictionary, provider: Chat.Games.TestDictionary
+config :chat, :youtube_worker_embedded?, false
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime

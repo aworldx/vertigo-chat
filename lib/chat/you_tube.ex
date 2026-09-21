@@ -61,7 +61,14 @@ defmodule Chat.YouTube do
   def search(_query), do: {:error, :query_required}
 
   @spec proxy_url(String.t()) :: String.t()
-  def proxy_url(video_id) when is_binary(video_id), do: "/youtube-proxy/" <> URI.encode(video_id)
+  def proxy_url(video_id) when is_binary(video_id) do
+    proxy_base_url =
+      Application.get_env(:chat, __MODULE__, [])
+      |> Keyword.get(:proxy_base_url, "")
+      |> String.trim_trailing("/")
+
+    proxy_base_url <> "/youtube-proxy/" <> URI.encode(video_id)
+  end
 
   def download_to_file(video_id, path) when is_binary(video_id) and is_binary(path) do
     with true <- Regex.match?(@video_id_pattern, video_id),

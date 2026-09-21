@@ -12,6 +12,22 @@ positive_integer_env = fn name, default ->
   end
 end
 
+config :chat,
+       :youtube_worker_port,
+       positive_integer_env.("YOUTUBE_WORKER_PORT", 4001)
+
+youtube_cache_dir =
+  if config_env() == :prod,
+    do: "/var/cache/chat-youtube",
+    else: Path.join(System.tmp_dir!(), "chat-youtube-cache")
+
+config :chat, Chat.YouTube,
+  cache_dir: System.get_env("YOUTUBE_CACHE_DIR", youtube_cache_dir),
+  cache_max_bytes: positive_integer_env.("YOUTUBE_CACHE_MAX_BYTES", 2 * 1_024 * 1_024 * 1_024),
+  # One preparation keeps yt-dlp and ffmpeg from competing for the worker's
+  # limited CPU and memory. Requests for other videos wait in Cache's FIFO queue.
+  cache_max_preparations: positive_integer_env.("YOUTUBE_CACHE_MAX_PREPARATIONS", 1)
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration

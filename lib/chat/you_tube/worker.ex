@@ -1,10 +1,19 @@
-# Назначение файла: серверная ретрансляция видео YouTube в браузер чатланина.
-defmodule ChatWeb.YouTubeProxyController do
-  use ChatWeb, :controller
+# Назначение файла: отдельный HTTP-процесс для подготовки и выдачи кэшированных YouTube-видео.
+defmodule Chat.YouTube.Worker do
+  @moduledoc false
+
+  use Plug.Router
 
   alias Chat.YouTube
 
-  def show(conn, %{"id" => video_id}) do
+  plug :match
+  plug :dispatch
+
+  get "/health" do
+    send_resp(conn, :ok, "ok")
+  end
+
+  get "/youtube-proxy/:video_id" do
     case YouTube.Cache.request(video_id) do
       {:ok, %{path: path, size: size}} ->
         send_video(conn, path, size)
@@ -14,13 +23,16 @@ defmodule ChatWeb.YouTubeProxyController do
     end
   end
 
-  def show(conn, _params), do: send_resp(conn, :bad_request, "")
+  match _ do
+    send_resp(conn, :not_found, "")
+  end
 
   defp send_video(conn, path, size) do
     conn =
       conn
       |> put_resp_content_type("video/mp4")
       |> put_resp_header("accept-ranges", "bytes")
+      |> put_resp_header("access-control-allow-origin", "*")
       |> put_resp_header("cache-control", "private, max-age=3600")
 
     case range(conn, size) do

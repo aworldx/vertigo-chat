@@ -10,9 +10,14 @@ defmodule ChatWeb.MediaPolicy do
         {"", ""}
       end
 
+    youtube_worker_origin =
+      Application.get_env(:chat, Chat.YouTube, [])
+      |> Keyword.get(:proxy_base_url)
+      |> origin()
+
     Phoenix.Controller.put_secure_browser_headers(conn, %{
       "content-security-policy" =>
-        "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob:#{media_origin}; media-src 'self' blob:#{media_origin}; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss:#{upload_origin}"
+        "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob:#{media_origin}; media-src 'self' blob:#{media_origin}#{youtube_worker_origin}; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss:#{upload_origin}"
     })
   end
 

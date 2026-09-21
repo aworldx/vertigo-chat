@@ -35,7 +35,6 @@ defmodule ChatWeb.Router do
     get "/sitemap.xml", SitemapController, :show
     get "/gif-proxy", GifProxyController, :show
     get "/music-proxy", MusicProxyController, :show
-    get "/youtube-proxy/:id", YouTubeProxyController, :show
     get "/profiles/:nickname/photo/thumbnail", ProfilePhotoController, :thumbnail
     get "/profiles/:nickname/photo", ProfilePhotoController, :show
     get "/gallery/photos/:id/thumbnail", GalleryPhotoController, :thumbnail

@@ -18,6 +18,10 @@
 	handle @admin {
 		reverse_proxy admin:4000
 	}
+	@youtube path /youtube-proxy/*
+	handle @youtube {
+		reverse_proxy youtube-worker:4001
+	}
 	handle {
 		reverse_proxy app:4000
 	}

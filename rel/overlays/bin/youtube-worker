@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+cd -P -- "$(dirname -- "$0")"
+CHAT_RUNTIME_ROLE=youtube_worker exec ./chat start
