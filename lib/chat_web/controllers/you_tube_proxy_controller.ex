@@ -5,12 +5,12 @@ defmodule ChatWeb.YouTubeProxyController do
   alias Chat.YouTube
 
   def show(conn, %{"id" => video_id}) do
-    case YouTube.Cache.fetch(video_id) do
+    case YouTube.Cache.request(video_id) do
       {:ok, %{path: path, size: size}} ->
         send_video(conn, path, size)
 
-      {:error, :stream_unavailable} ->
-        send_resp(conn, :service_unavailable, "")
+      :pending ->
+        conn |> put_resp_header("retry-after", "1") |> send_resp(:accepted, "")
     end
   end
 

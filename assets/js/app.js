@@ -1042,16 +1042,21 @@ const chatHooks = {
       this.video = this.el.querySelector("[data-lazy-youtube-video]")
       this.playButton = this.el.querySelector("[data-lazy-youtube-play]")
       this.loaded = false
+      this.retryCount = 0
+      this.retryTimer = null
+      this.wantsPlayback = false
 
-      this.loadVideo = () => {
-        if (this.loaded || !this.video || !this.el.dataset.videoSrc) return
+      this.loadVideo = (retry = false) => {
+        if ((!retry && this.loaded) || !this.video || !this.el.dataset.videoSrc) return
 
         this.loaded = true
-        this.video.src = this.el.dataset.videoSrc
+        const separator = this.el.dataset.videoSrc.includes("?") ? "&" : "?"
+        this.video.src = `${this.el.dataset.videoSrc}${separator}attempt=${this.retryCount}`
         this.video.load()
       }
 
       this.playVideo = () => {
+        this.wantsPlayback = true
         this.loadVideo()
         this.playButton.hidden = true
 
@@ -1064,10 +1069,23 @@ const chatHooks = {
         }
       }
 
+      this.retryVideo = () => {
+        if (!this.loaded || this.retryCount >= 30) return
+
+        this.retryCount += 1
+        this.retryTimer = window.setTimeout(() => {
+          this.loadVideo(true)
+          if (this.wantsPlayback) this.video.play().catch(() => {})
+        }, 1_000)
+      }
+
       this.playButton.addEventListener("click", this.playVideo)
+      this.video.addEventListener("error", this.retryVideo)
     },
     destroyed() {
       this.playButton?.removeEventListener("click", this.playVideo)
+      this.video?.removeEventListener("error", this.retryVideo)
+      window.clearTimeout(this.retryTimer)
     },
   },
 }

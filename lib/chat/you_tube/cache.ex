@@ -13,7 +13,7 @@ defmodule Chat.YouTube.Cache do
 
   def start_link(opts \\ []), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
-  def fetch(video_id), do: GenServer.call(__MODULE__, {:fetch, video_id}, :timer.minutes(3))
+  def request(video_id), do: GenServer.call(__MODULE__, {:request, video_id})
   def stats, do: GenServer.call(__MODULE__, :stats)
 
   @impl true
@@ -43,7 +43,7 @@ defmodule Chat.YouTube.Cache do
   end
 
   @impl true
-  def handle_call({:fetch, id}, from, state) do
+  def handle_call({:request, id}, _from, state) do
     case Map.get(state.entries, id) do
       %{path: path} = entry when is_binary(path) ->
         case File.stat(path) do
@@ -54,11 +54,11 @@ defmodule Chat.YouTube.Cache do
              %{state | entries: Map.put(state.entries, id, entry), hits: state.hits + 1}}
 
           _missing ->
-            start_or_queue(id, from, remove_entry(state, id))
+            {:reply, :pending, start_or_queue(id, remove_entry(state, id))}
         end
 
       nil ->
-        start_or_queue(id, from, %{state | misses: state.misses + 1})
+        {:reply, :pending, start_or_queue(id, %{state | misses: state.misses + 1})}
     end
   end
 
@@ -78,7 +78,7 @@ defmodule Chat.YouTube.Cache do
 
   @impl true
   def handle_info({:prepared, id, result, started_at}, state) do
-    %{waiters: waiters, path: path} = Map.fetch!(state.preparing, id)
+    %{path: path} = Map.fetch!(state.preparing, id)
     state = %{state | preparing: Map.delete(state.preparing, id)}
 
     case result do
@@ -88,8 +88,6 @@ defmodule Chat.YouTube.Cache do
         Logger.info(
           "youtube_cache_prepared video_id=#{id} bytes=#{size} duration_ms=#{now_ms() - started_at}"
         )
-
-        Enum.each(waiters, &GenServer.reply(&1, {:ok, Map.take(entry, [:path, :size])}))
 
         state
         |> Map.put(:entries, Map.put(state.entries, id, entry))
@@ -104,7 +102,6 @@ defmodule Chat.YouTube.Cache do
           "youtube_cache_prepare_failed video_id=#{id} reason=#{inspect(reason)} duration_ms=#{now_ms() - started_at}"
         )
 
-        Enum.each(waiters, &GenServer.reply(&1, {:error, :stream_unavailable}))
         state |> Map.update!(:failures, &(&1 + 1)) |> start_queued()
     end
     |> then(&{:noreply, &1})
@@ -115,51 +112,39 @@ defmodule Chat.YouTube.Cache do
     {:noreply, state |> remove_expired() |> trim_cache()}
   end
 
-  defp start_or_queue(id, from, state) do
+  defp start_or_queue(id, state) do
     case Map.get(state.preparing, id) do
-      %{waiters: waiters} = preparation ->
-        {:noreply,
-         %{
-           state
-           | preparing: Map.put(state.preparing, id, %{preparation | waiters: [from | waiters]})
-         }}
+      %{} ->
+        state
 
       nil when map_size(state.preparing) < state.max_preparations ->
-        {:noreply, start_preparation(state, id, [from])}
+        start_preparation(state, id)
 
       nil ->
-        {:noreply, %{state | queued: state.queued ++ [{id, from}]}}
+        if id in state.queued, do: state, else: %{state | queued: state.queued ++ [id]}
     end
   end
 
-  defp start_preparation(state, id, waiters) do
+  defp start_preparation(state, id) do
     path = Path.join(state.directory, "#{id}.mp4")
     started_at = now_ms()
     server = self()
     Task.start(fn -> send(server, {:prepared, id, prepare(id, path), started_at}) end)
-    preparation = %{path: path, waiters: waiters}
+    preparation = %{path: path}
     %{state | preparing: Map.put(state.preparing, id, preparation)}
   end
 
   defp start_queued(state) do
     if map_size(state.preparing) < state.max_preparations and state.queued != [] do
-      {id, from} = hd(state.queued)
+      id = hd(state.queued)
       remaining = tl(state.queued)
 
       case Map.get(state.preparing, id) do
         nil ->
-          start_preparation(%{state | queued: remaining}, id, [from])
+          start_preparation(%{state | queued: remaining}, id)
 
-        preparation ->
-          start_queued(%{
-            state
-            | queued: remaining,
-              preparing:
-                Map.put(state.preparing, id, %{
-                  preparation
-                  | waiters: [from | preparation.waiters]
-                })
-          })
+        %{} ->
+          start_queued(%{state | queued: remaining})
       end
     else
       state
