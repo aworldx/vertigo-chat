@@ -130,6 +130,19 @@ defmodule ChatWeb.AuthComponents do
           autocomplete="new-password"
           placeholder="минимум 6 символов"
         />
+        <.auth_text_input
+          field={@registration_form[:email]}
+          id="registration-email"
+          type="email"
+          label="Email для форума (необязательно)"
+          autocomplete="email"
+          maxlength="254"
+          placeholder="you@example.com"
+        />
+        <p id="registration-email-hint" class="-mt-2 text-xs leading-5 text-zinc-500">
+          Другие пользователи не увидят этот адрес. Он нужен только для форума, уведомлений и
+          восстановления доступа.
+        </p>
 
         <button
           id="register-user"
@@ -160,6 +173,9 @@ defmodule ChatWeb.AuthComponents do
 
       Keyword.has_key?(changeset.errors, :password) ->
         "Пароль должен быть не короче 6 символов."
+
+      Keyword.has_key?(changeset.errors, :email) ->
+        "Введи корректный email, который ещё не используется."
 
       true ->
         "Не удалось зарегистрироваться."

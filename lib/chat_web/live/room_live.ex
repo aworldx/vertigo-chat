@@ -2026,7 +2026,9 @@ defmodule ChatWeb.RoomLive do
     assign(
       socket,
       :registration_form,
-      to_form(%{"nickname" => socket.assigns.nickname, "password" => ""}, as: :registration)
+      to_form(%{"nickname" => socket.assigns.nickname, "password" => "", "email" => ""},
+        as: :registration
+      )
     )
   end
 

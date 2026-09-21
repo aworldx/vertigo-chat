@@ -11,6 +11,7 @@ defmodule Chat.Accounts.User do
 
   schema "registered_users" do
     field(:nickname, :string)
+    field(:email, :string)
     field(:password_hash, :string)
     field(:password, :string, virtual: true)
     field(:theme_id, :string, default: "vertigo")
@@ -36,12 +37,20 @@ defmodule Chat.Accounts.User do
 
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:nickname, :password])
+    |> cast(attrs, [:nickname, :password, :email])
     |> validate_required([:nickname, :password])
     |> validate_format(:nickname, ~r/\A[\p{L}\p{N}_-]{3,24}\z/u)
     |> validate_length(:password, min: 6, max: 128)
     |> unique_constraint(:nickname)
+    |> validate_email()
     |> put_password_hash()
+  end
+
+  def email_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:email])
+    |> validate_required([:email])
+    |> validate_email()
   end
 
   def preferences_changeset(user, attrs) do
@@ -73,4 +82,20 @@ defmodule Chat.Accounts.User do
       password -> put_change(changeset, :password_hash, Password.hash(password))
     end
   end
+
+  defp validate_email(changeset) do
+    changeset
+    |> update_change(:email, &normalize_email/1)
+    |> validate_format(:email, ~r/\A[^\s@]+@[^\s@]+\.[^\s@]+\z/, allow_blank: true)
+    |> unique_constraint(:email, name: :registered_users_lower_email_index)
+  end
+
+  defp normalize_email(email) when is_binary(email) do
+    case email |> String.trim() |> String.downcase() do
+      "" -> nil
+      normalized -> normalized
+    end
+  end
+
+  defp normalize_email(email), do: email
 end

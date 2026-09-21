@@ -53,6 +53,11 @@ backup, migration and rollback instructions are in [docs/s3_media.md](docs/s3_me
 ImageMagick is included in the production image; install it locally (`brew install
 imagemagick` on macOS) to run thumbnail tests.
 
+## Discourse forum
+
+The chat can be the identity provider for a separate Discourse forum. Setup and
+privacy details are in [docs/discourse_forum.md](docs/discourse_forum.md).
+
 ## Docker Compose deployment
 
 Create the production environment file, replace every placeholder, then deploy:

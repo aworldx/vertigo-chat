@@ -46,6 +46,13 @@ defmodule ChatWeb.Layouts do
         class="flex flex-wrap items-center justify-end gap-3 border-b border-zinc-800 bg-zinc-950 px-4 py-2 text-sm text-zinc-300"
       >
         <span id="site-account-nickname">{@current_account_user.nickname}</span>
+        <.link
+          id="site-account-settings"
+          navigate={~p"/account"}
+          class="min-h-11 rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200 focus-visible:outline-2 focus-visible:outline-amber-300"
+        >
+          Настройки аккаунта
+        </.link>
         <.form
           for={to_form(%{})}
           id="site-account-logout"

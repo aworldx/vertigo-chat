@@ -16,7 +16,7 @@ defmodule ChatWeb.LandingLiveTest do
     assert has_element?(view, "#landing-poster[src='/images/vertigo-poster.png']")
     assert has_element?(view, "#entrance-form #entrance-nickname.text-base")
     assert has_element?(view, "#enter-chat[phx-disable-with='Входим…']")
-    assert has_element?(view, "#landing-registration", "ни настоящее имя, ни почта, ни телефон")
+    assert has_element?(view, "#landing-registration", "Почта необязательна для чата")
     assert has_element?(view, "#landing-registration", "С ростом звания")
 
     for {section, path} <- [
@@ -149,14 +149,15 @@ defmodule ChatWeb.LandingLiveTest do
     refute has_element?(room, "#show-registration")
   end
 
-  test "registers using only nickname and password and starts the first chat session", %{
+  test "registers with an optional private forum email and starts the first chat session", %{
     conn: conn
   } do
     {:ok, view, _html} = live(conn, ~p"/")
     view |> element("#landing-register") |> render_click()
     assert has_element?(view, "#registration-form")
     refute has_element?(view, "#entrance-form")
-    refute has_element?(view, "input[type='email'], input[type='tel']")
+    assert has_element?(view, "#registration-email")
+    assert has_element?(view, "#registration-email-hint", "Другие пользователи не увидят")
 
     view
     |> form("#registration-form", registration: %{nickname: "new_landing_user", password: "123"})

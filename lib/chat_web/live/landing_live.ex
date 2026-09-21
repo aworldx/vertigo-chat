@@ -32,7 +32,7 @@ defmodule ChatWeb.LandingLive do
      |> assign(:nickname_form, entrance_form())
      |> assign(
        :registration_form,
-       to_form(%{"nickname" => "", "password" => ""}, as: :registration)
+       to_form(%{"nickname" => "", "password" => "", "email" => ""}, as: :registration)
      )}
   end
 
@@ -69,7 +69,14 @@ defmodule ChatWeb.LandingLive do
          |> assign(:registration_error, AuthComponents.registration_error(reason))
          |> assign(
            :registration_form,
-           to_form(%{"nickname" => params["nickname"], "password" => ""}, as: :registration)
+           to_form(
+             %{
+               "nickname" => params["nickname"],
+               "password" => "",
+               "email" => params["email"] || ""
+             },
+             as: :registration
+           )
          )}
     end
   end

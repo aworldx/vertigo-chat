@@ -75,6 +75,8 @@ config :chat, Chat.Bot.Usage,
 
 config :chat, Chat.Music, proxy_file: System.get_env("MUSIC_PROXY_FILE")
 
+config :chat, Chat.Forum, discourse_connect_secret: System.get_env("DISCOURSE_CONNECT_SECRET")
+
 config :chat, Chat.Sessions.Store,
   grace_seconds: positive_integer_env.("CHAT_SESSION_GRACE_SECONDS", 60),
   hidden_grace_seconds: positive_integer_env.("CHAT_HIDDEN_SESSION_GRACE_SECONDS", 5 * 60)

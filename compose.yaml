@@ -26,6 +26,7 @@ x-app-environment: &app-environment
   S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
   S3_VIRTUAL_HOSTED: ${S3_VIRTUAL_HOSTED:-false}
   MUSIC_PROXY_FILE: /run/secrets/music_proxies
+  DISCOURSE_CONNECT_SECRET: ${DISCOURSE_CONNECT_SECRET:-}
 
 x-app-image: &app-image
   # Production images are published by GitHub Actions. Keeping the build

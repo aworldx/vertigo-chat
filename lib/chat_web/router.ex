@@ -50,10 +50,12 @@ defmodule ChatWeb.Router do
     post "/account/login", AccountController, :login
     post "/account/chat-login", AccountController, :chat_login
     post "/account/logout", AccountController, :logout
+    get "/forum/sso", ForumController, :discourse_connect
 
     live_session :account, on_mount: [{ChatWeb.AccountAuth, :default}] do
       live "/", LandingLive, :show
       live "/about", LandingLive, :show
+      live "/account", AccountLive, :show
       live "/articles", ArticlesLive, :index
       live "/articles/chats-vs-messengers", ArticlesLive, :show
       live "/articles/chat-platforms-russia", ArticlesLive, :history

@@ -118,6 +118,14 @@ defmodule Chat.Accounts do
     |> Repo.update()
   end
 
+  def update_forum_email(%User{} = user, attrs) do
+    user
+    |> User.email_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def change_forum_email(%User{} = user, attrs \\ %{}), do: User.email_changeset(user, attrs)
+
   def user_preferences(%User{} = user) do
     %{
       "theme_id" => Themes.normalize_theme_id(user.theme_id),
