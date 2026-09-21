@@ -8,9 +8,17 @@ defmodule Chat.Application do
 
   @impl true
   def start(_type, _args) do
-    role = Application.get_env(:chat, :runtime_role, :chat)
+    role = runtime_role()
     children = children_for(role)
     Supervisor.start_link(children, strategy: :one_for_one, name: Chat.Supervisor)
+  end
+
+  defp runtime_role do
+    case System.get_env("CHAT_RUNTIME_ROLE") do
+      "youtube_worker" -> :youtube_worker
+      "admin" -> :admin
+      _role -> Application.get_env(:chat, :runtime_role, :chat)
+    end
   end
 
   defp children_for(:youtube_worker) do
