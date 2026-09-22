@@ -5,6 +5,12 @@
 ## Architecture
 
 Project architecture conventions are documented in [docs/architecture.md](docs/architecture.md).
+The accepted [refactoring target](docs/refactoring_target.md) defines the monorepo
+layout, React with strict TypeScript, Clean Architecture/DDD boundaries and
+mandatory static analysis for every service, including the current gaps and
+the order of implementation.
+The [Go + React migration plan](docs/go_react_migration_plan.md) records the
+working branch, completed work, remaining stages and how to resume in a new session.
 
 To start your Phoenix server:
 
@@ -191,6 +197,17 @@ Ready to run in production? Please [check our deployment guides](https://phoenix
 * Docs: https://phoenix.hexdocs.pm
 * Forum: https://elixirforum.com/c/phoenix-forum
 * Source: https://github.com/phoenixframework/phoenix
+
+## React migration preview
+
+The first React screen is available at `/profiles/react`, backed by the public
+`/api/v1/profiles` API. The default `/profiles` route remains on LiveView.
+Run `mix assets.setup` once to install the pinned npm dependencies, then
+`mix assets.build` and `mix phx.server`. React interaction tests run as part of
+`mix precommit` or separately with `npm --prefix assets test`.
+
+See [the migration plan and local checks](docs/react_migration.md) and
+[the API contract](docs/openapi/profiles.yaml).
 
 ## Local YouTube worker (Go)
 

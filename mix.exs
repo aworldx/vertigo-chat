@@ -83,7 +83,11 @@ defmodule Chat.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       coverage: [&clean_coverage/1, "test --cover"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
+      "assets.setup": [
+        "cmd --cd assets npm ci",
+        "tailwind.install --if-missing",
+        "esbuild.install --if-missing"
+      ],
       "assets.build": ["compile", "tailwind chat", "esbuild chat"],
       "assets.deploy": [
         "tailwind chat --minify",
@@ -95,6 +99,7 @@ defmodule Chat.MixProject do
         "deps.unlock --unused",
         "format",
         "cmd script/check-go",
+        "cmd --cd assets npm test",
         "test"
       ]
     ]

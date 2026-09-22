@@ -1,0 +1,32 @@
+<Layouts.app
+  flash={@flash}
+  current_account_user={@current_account_user}
+  return_to={~p"/profiles/react"}
+>
+  <section
+    id="profiles-page"
+    class="chat-shell min-h-screen bg-zinc-950 text-zinc-100"
+    data-chat-theme="vertigo"
+    data-chat-mode="dark"
+  >
+    <header class="flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 sm:px-8">
+      <a
+        href={~p"/chat"}
+        target="vertigo-chat"
+        class="flex min-h-11 items-center gap-3"
+        aria-label="Vertigo — в чат"
+      >
+        <span class="vertigo-mark" aria-hidden="true"></span>
+        <span class="vertigo-wordmark uppercase">Vertigo</span>
+      </a>
+    </header>
+    <div id="react-profiles-root">
+      <p role="status" class="p-8 text-zinc-400">Загружаем анкеты…</p>
+    </div>
+    <noscript>
+      <p class="p-8">
+        <a href={~p"/profiles"} class="text-amber-200 underline">Открыть каталог анкет без React</a>
+      </p>
+    </noscript>
+  </section>
+</Layouts.app>

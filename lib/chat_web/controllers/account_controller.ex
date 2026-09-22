@@ -43,6 +43,7 @@ defmodule ChatWeb.AccountController do
        when path in [
               "/",
               "/profiles",
+              "/profiles/react",
               "/visits",
               "/help",
               "/ranks",

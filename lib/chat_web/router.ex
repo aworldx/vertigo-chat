@@ -16,6 +16,22 @@ defmodule ChatWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :public_api do
+    plug :accepts, ["json"]
+
+    plug :put_secure_browser_headers, %{
+      "cache-control" => "no-store",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
+  scope "/api/v1", ChatWeb.API.V1 do
+    pipe_through :public_api
+
+    get "/profiles", ProfileController, :index
+    get "/profiles/:nickname", ProfileController, :show
+  end
+
   pipeline :internal do
     plug :accepts, ["text"]
     plug ChatWeb.MetricsAuth
@@ -50,6 +66,7 @@ defmodule ChatWeb.Router do
     post "/account/chat-login", AccountController, :chat_login
     post "/account/logout", AccountController, :logout
     get "/forum/sso", ForumController, :discourse_connect
+    get "/profiles/react", ReactProfilesController, :index
 
     live_session :account, on_mount: [{ChatWeb.AccountAuth, :default}] do
       live "/", LandingLive, :show

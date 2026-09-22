@@ -52,6 +52,14 @@
       src={~p"/assets/js/app.js"}
     >
     </script>
+    <script
+      :if={assigns[:react_profiles]}
+      defer
+      phx-track-static
+      type="text/javascript"
+      src={~p"/assets/js/profiles.js"}
+    >
+    </script>
   </head>
   <body>
     {@inner_content}
