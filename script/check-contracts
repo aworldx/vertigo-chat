@@ -1,0 +1,9 @@
+#!/bin/sh
+# Keeps generated browser DTOs in lockstep with the public OpenAPI contract.
+set -eu
+
+repository_root="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+cd "$repository_root"
+
+npm --prefix assets run generate:profiles-types
+git diff --exit-code -- assets/js/shared/generated/profiles.ts
