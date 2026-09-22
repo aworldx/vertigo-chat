@@ -32,7 +32,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # prepare build dir
-WORKDIR /app
+WORKDIR /app/apps/phoenix
 
 # install hex + rebar
 RUN mix local.hex --force \
@@ -46,35 +46,35 @@ ENV MIX_ENV="prod" \
     HEX_HTTP_CONCURRENCY="1"
 
 # install mix dependencies
-COPY mix.exs mix.lock ./
+COPY apps/phoenix/mix.exs apps/phoenix/mix.lock ./
 RUN mix deps.get --only $MIX_ENV
 RUN mkdir config
 
 # copy compile-time config files before we compile dependencies
 # to ensure any relevant config change will trigger the dependencies
 # to be re-compiled.
-COPY config/config.exs config/${MIX_ENV}.exs config/
+COPY apps/phoenix/config/config.exs apps/phoenix/config/${MIX_ENV}.exs config/
 RUN mix deps.compile
 
-COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
+COPY apps/web/package.json apps/web/package-lock.json ../web/
 RUN mix assets.setup
 
-COPY priv priv
+COPY apps/phoenix/priv priv
 
-COPY lib lib
+COPY apps/phoenix/lib lib
 
 # Compile the release
 RUN mix compile
 
-COPY apps/web apps/web
+COPY apps/web ../web
 
 # compile assets
 RUN mix assets.deploy
 
 # Changes to config/runtime.exs don't require recompiling the code
-COPY config/runtime.exs config/
+COPY apps/phoenix/config/runtime.exs config/
 
-COPY rel rel
+COPY apps/phoenix/rel rel
 RUN mix release
 
 # Shared runtime for the three release roles. Keep it lean: role-specific
@@ -98,7 +98,7 @@ WORKDIR "/app"
 # set runner ENV
 ENV MIX_ENV="prod"
 
-COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/chat ./
+COPY --from=builder --chown=nobody:root /app/apps/phoenix/_build/${MIX_ENV}/rel/chat ./
 RUN chown nobody:root /app
 
 FROM runtime AS app
@@ -134,17 +134,19 @@ COPY --from=youtube-builder /usr/local/go /usr/local/go
 COPY --from=golangci/golangci-lint:v2.13.2 /usr/bin/golangci-lint /usr/local/bin/golangci-lint
 COPY --from=hadolint/hadolint:v2.12.0 /bin/hadolint /usr/local/bin/hadolint
 ENV PATH="/usr/local/go/bin:${PATH}" MIX_ENV="test"
-WORKDIR /app
+WORKDIR /app/apps/phoenix
 RUN mix local.hex --force && mix local.rebar --force
-COPY mix.exs mix.lock ./
-COPY config config
+COPY apps/phoenix/mix.exs apps/phoenix/mix.lock ./
+COPY apps/phoenix/config config
 RUN mix deps.get
-COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
-RUN mix assets.setup && npx --prefix apps/web playwright install --with-deps chromium
+COPY apps/web/package.json apps/web/package-lock.json ../web/
+RUN mix assets.setup && npx --prefix ../web playwright install --with-deps chromium
+WORKDIR /app
 COPY . .
-RUN find script -maxdepth 1 -type f ! -name '*.exs' -exec shellcheck {} + \
-  && hadolint --config deploy/.hadolint.yaml deploy/docker/Dockerfile \
-  && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint contracts/openapi/profiles.yaml
+WORKDIR /app/apps/phoenix
+RUN find /app/script -maxdepth 1 -type f ! -name '*.exs' -exec shellcheck {} + \
+  && hadolint --config /app/deploy/.hadolint.yaml /app/deploy/docker/Dockerfile \
+  && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint /app/contracts/openapi/profiles.yaml
 
 # Standalone Go service: no BEAM release, database or application secrets.
 FROM ${RUNNER_IMAGE} AS youtube-worker

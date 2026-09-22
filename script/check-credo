@@ -3,10 +3,11 @@
 set -eu
 
 repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+phoenix_root="$repository_root/apps/phoenix"
 report_file="$(mktemp "${TMPDIR:-/tmp}/chat-credo.XXXXXX")"
 trap 'rm -f "$report_file"' EXIT HUP INT TERM
 
-cd "$repository_root"
+cd "$phoenix_root"
 mix credo --strict --format json > "$report_file" || true
 mix_environment="${MIX_ENV:-dev}"
-elixir -pa "_build/$mix_environment/lib/jason/ebin" script/check_credo_baseline.exs "$report_file"
+elixir -pa "_build/$mix_environment/lib/jason/ebin" "$repository_root/script/check_credo_baseline.exs" "$report_file"

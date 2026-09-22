@@ -15,9 +15,9 @@
 доступны одновременно. Из корня репозитория:
 
 ```sh
-mix assets.setup
-mix assets.build
-PORT=4030 YOUTUBE_WORKER_URL=http://localhost:4021 YOUTUBE_PROXY_BASE_URL=http://localhost:4021 mix phx.server
+cd apps/phoenix && mix assets.setup
+cd apps/phoenix && mix assets.build
+cd apps/phoenix && PORT=4030 YOUTUBE_WORKER_URL=http://localhost:4021 YOUTUBE_PROXY_BASE_URL=http://localhost:4021 mix phx.server
 ```
 
 Открыть в двух вкладках:
@@ -120,7 +120,7 @@ Write-сценарии запускать на независимых одина
 
 ## Автоматизация и принятие этапа
 
-- Запустить текущий `mix precommit`, сборку и применимые проверки из
+- Запустить текущий `cd apps/phoenix && mix precommit`, сборку и применимые проверки из
   [целевой матрицы](refactoring_target.md). Будущие gates не отмечать пройденными,
   пока они не подключены.
 - Добавлять устойчивые browser-сценарии и screenshot-регрессию на критичные

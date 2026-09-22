@@ -86,7 +86,7 @@ defmodule Chat.MixProject do
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       coverage: [&clean_coverage/1, "test --cover"],
       "assets.setup": [
-        "cmd --cd apps/web npm ci",
+        "cmd --cd ../web npm ci",
         "tailwind.install --if-missing",
         "esbuild.install --if-missing"
       ],
@@ -98,18 +98,18 @@ defmodule Chat.MixProject do
       ],
       precommit: [
         "compile --warnings-as-errors",
-        "cmd script/check-credo",
+        "cmd ../../script/check-credo",
         "dialyzer --list-unused-filters",
         "deps.unlock --unused",
         "format",
-        "cmd script/check-go",
-        "cmd script/check-contracts",
-        "cmd script/check-architecture",
-        "cmd --cd apps/web npm run typecheck",
-        "cmd --cd apps/web npm run lint",
-        "cmd --cd apps/web npm run format:check",
-        "cmd --cd apps/web npm test",
-        "cmd --cd apps/web npm run test:browser",
+        "cmd ../../script/check-go",
+        "cmd ../../script/check-contracts",
+        "cmd ../../script/check-architecture",
+        "cmd --cd ../web npm run typecheck",
+        "cmd --cd ../web npm run lint",
+        "cmd --cd ../web npm run format:check",
+        "cmd --cd ../web npm test",
+        "cmd --cd ../web npm run test:browser",
         "test"
       ]
     ]

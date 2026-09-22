@@ -14,8 +14,8 @@ working branch, completed work, remaining stages and how to resume in a new sess
 
 To start your Phoenix server:
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+* Run `cd apps/phoenix && mix setup` to install and setup dependencies
+* Start Phoenix endpoint with `cd apps/phoenix && mix phx.server` or inside IEx with `cd apps/phoenix && iex -S mix phx.server`
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
@@ -38,7 +38,7 @@ For local development, export the file before starting Phoenix:
 set -a
 source .env
 set +a
-mix phx.server
+cd apps/phoenix && mix phx.server
 ```
 
 The daily limit counts the exact `total_tokens` returned by the Responses API for replies and
@@ -172,7 +172,7 @@ role. A targeted update skips migrations, so use it only when the target does
 not require a schema change.
 
 ```sh
-mix precommit
+(cd apps/phoenix && mix precommit)
 git add <files>
 git commit -m "Describe the change"
 git push origin main
@@ -202,9 +202,9 @@ Ready to run in production? Please [check our deployment guides](https://phoenix
 
 The first React screen is available at `/profiles/react`, backed by the public
 `/api/v1/profiles` API. The default `/profiles` route remains on LiveView.
-Run `mix assets.setup` once to install the pinned npm dependencies, then
-`mix assets.build` and `mix phx.server`. React interaction tests run as part of
-`mix precommit` or separately with `npm --prefix apps/web test`.
+Run `cd apps/phoenix && mix assets.setup` once to install the pinned npm dependencies, then
+`cd apps/phoenix && mix assets.build` and `mix phx.server`. React interaction tests run as part of
+`cd apps/phoenix && mix precommit` or separately with `npm --prefix apps/web test`.
 
 See [the migration plan and local checks](docs/react_migration.md) and
 [the API contract](contracts/openapi/profiles.yaml).
@@ -223,7 +223,7 @@ script/youtube-worker
 ```
 
 ```sh
-mix phx.server
+cd apps/phoenix && mix phx.server
 ```
 
 The defaults are chat at http://localhost:4000/chat and the worker at
@@ -231,10 +231,10 @@ http://localhost:4001. For parallel local testing, use:
 
 ```sh
 YOUTUBE_WORKER_PORT=4011 script/youtube-worker
-PORT=4010 YOUTUBE_WORKER_URL=http://localhost:4011 YOUTUBE_PROXY_BASE_URL=http://localhost:4011 mix phx.server
+cd apps/phoenix && PORT=4010 YOUTUBE_WORKER_URL=http://localhost:4011 YOUTUBE_PROXY_BASE_URL=http://localhost:4011 mix phx.server
 ```
 
-`mix precommit` checks Go formatting, runs `go vet` and `go test -race`, then
+`cd apps/phoenix && mix precommit` checks Go formatting, runs `go vet` and `go test -race`, then
 runs the Elixir tests. Run `script/check-go` for the Go checks alone.
 Set `GO=/path/to/go` if the SDK is not in PATH.
 

@@ -3,7 +3,8 @@
 set -eu
 
 repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
-cd "$repository_root"
+phoenix_root="$repository_root/apps/phoenix"
+cd "$phoenix_root"
 
 actual_file="$(mktemp "${TMPDIR:-/tmp}/chat-architecture.XXXXXX")"
 expected_file="$(mktemp "${TMPDIR:-/tmp}/chat-architecture.XXXXXX")"

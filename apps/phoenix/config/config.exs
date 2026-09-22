@@ -50,8 +50,8 @@ config :esbuild,
   version: "0.25.4",
   chat: [
     args:
-      ~w(js/app.js js/profiles.tsx --bundle --target=es2022 --outdir=../../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
-    cd: Path.expand("../apps/web", __DIR__),
+      ~w(js/app.js js/profiles.tsx --bundle --target=es2022 --outdir=../phoenix/priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+    cd: Path.expand("../../web", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
@@ -60,7 +60,7 @@ config :tailwind,
   version: "4.3.0",
   chat: [
     args: ~w(
-      --input=apps/web/css/app.css
+      --input=../web/css/app.css
       --output=priv/static/assets/css/app.css
     ),
     cd: Path.expand("..", __DIR__),

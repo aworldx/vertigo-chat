@@ -51,23 +51,23 @@ Node.js 20.19+ (prefer a supported LTS release) and npm are required for assets.
 Dependencies are pinned in `apps/web/package-lock.json` and installed by:
 
 ```sh
-mix assets.setup
-mix assets.build
-mix phx.server
+cd apps/phoenix && mix assets.setup
+cd apps/phoenix && mix assets.build
+cd apps/phoenix && mix phx.server
 ```
 
 Open `http://localhost:4000/profiles/react`. To run a separate local server:
 
 ```sh
-PORT=4030 YOUTUBE_WORKER_URL=http://localhost:4021 YOUTUBE_PROXY_BASE_URL=http://localhost:4021 mix phx.server
+cd apps/phoenix && PORT=4030 YOUTUBE_WORKER_URL=http://localhost:4021 YOUTUBE_PROXY_BASE_URL=http://localhost:4021 mix phx.server
 ```
 
 Verification commands:
 
 ```sh
 npm --prefix apps/web test
-mix test test/chat_web/controllers/api/v1/profile_controller_test.exs test/chat_web/controllers/react_profiles_controller_test.exs
-mix precommit
+cd apps/phoenix && mix test test/chat_web/controllers/api/v1/profile_controller_test.exs test/chat_web/controllers/react_profiles_controller_test.exs
+cd apps/phoenix && mix precommit
 ```
 
 `mix precommit` includes the React interaction tests, Go checks and Elixir tests.

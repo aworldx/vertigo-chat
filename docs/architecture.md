@@ -25,7 +25,7 @@ Web-слой не должен становиться местом, где жи�
 
 ### Presentation layer
 
-Папка: `lib/chat_web`
+Папка: `apps/phoenix/lib/chat_web`
 
 Сюда относятся:
 
@@ -52,7 +52,7 @@ Web-слой не должен становиться местом, где жи�
 
 ### Application/domain layer
 
-Папка: `lib/chat/*`
+Папка: `apps/phoenix/lib/chat/*`
 
 Каждая крупная область продукта оформляется отдельным контекстом:
 
@@ -88,9 +88,9 @@ Chat.Visits.mark_online(user)
 
 Папки:
 
-- `lib/chat/**` для Ecto-схем;
-- `priv/repo/migrations` для миграций;
-- `priv/repo/seeds.exs` для стартовых данных.
+- `apps/phoenix/lib/chat/**` для Ecto-схем;
+- `apps/phoenix/priv/repo/migrations` для миграций;
+- `apps/phoenix/priv/repo/seeds.exs` для стартовых данных.
 
 Правила:
 

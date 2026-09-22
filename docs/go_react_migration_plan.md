@@ -32,7 +32,7 @@ Phoenix поддерживает ещё не перенесённые сцена
 | React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Строгий TypeScript, browser/visual-сравнение и ручное принятие завершены | Production-переключение запрещено до полного завершения миграции и отдельного явного указания |
 | API анкет | `/api/v1/profiles` и `/api/v1/profiles/:nickname` поверх Elixir-контекстов; публичная проекция; OpenAPI в `contracts/openapi`; сгенерированные типы и тесты | Go-реализация |
 | Основной backend | Phoenix/Elixir, существующие контексты и тесты | Миграция предметных областей на Go ещё не начата |
-| Архитектура | `apps/web`, `services/youtube-worker`, `contracts`, `deploy`; quality gates и матрица проверок работают | Phoenix остаётся в корне до отдельного проверяемого переноса |
+| Архитектура | `apps/phoenix`, `apps/web`, `services/youtube-worker`, `contracts`, `deploy`; quality gates и матрица проверок работают | Первый Go API ещё не создан; Phoenix сохраняется как временный application host |
 
 React/API и документация входят в первый коммит ветки миграции после Go-воркера.
 Старый каталог анкет `/profiles` остаётся основным. Подробности первой итерации:
@@ -67,7 +67,18 @@ legacy-предупреждений Dialyzer; `--list-unused-filters` блоки
 `script/check-go` использует golangci-lint 2.13.2, ShellCheck 0.10.0, Hadolint
 2.12.0 и Redocly 1.34.5 запускаются в закреплённых контейнерах. CI quality
 собирает непроизводственный target `quality`, проверяет инфраструктуру и запускает
-`mix precommit` с изолированной PostgreSQL до production image build.
+`cd apps/phoenix && mix precommit` с изолированной PostgreSQL до production image build.
+Phoenix перенесён в `apps/phoenix`: Mix-проект, конфигурация, исходники, тесты,
+миграции, release overlays и Elixir baselines больше не лежат в корне. Общие
+скрипты остаются в `script`; `script/check` входит в Phoenix перед запуском
+`mix precommit`. Docker и CI собирают проект из `apps/phoenix`, React остаётся
+в `apps/web`, а assets выводятся в `apps/phoenix/priv/static`. Локальные старые
+`_build`, `deps`, `cover` остаются проигнорированными как удаляемый cache.
+Проверка 2026-09-22: `GO=/tmp/chat-go-sdk/go/bin/go`
+`GOCACHE=/tmp/chat-go-cache mix precommit` из `apps/phoenix` прошёл; включены
+Dialyzer/Credo, Go, контракт, strict TypeScript/ESLint/Prettier, 7 interaction-
+тестов, Playwright-сравнение LiveView/React на 390×844, 768×1024, 1440×900 и
+ExUnit. Визуальное сравнение не выявило различий метрик или overflow.
 
 ## Этапы и критерии завершения
 
@@ -114,8 +125,8 @@ legacy-предупреждений Dialyzer; `--list-unused-filters` блоки
 
 - [x] Выделить `apps/web` и перенести воркер в `services/youtube-worker`.
 - [x] Перенести контракты в `contracts`, конфигурацию запуска — в `deploy`.
-- [ ] Переместить Phoenix в `apps/phoenix`, когда его сборку можно отделить;
-      сохранить способ отдачи React и same-origin сессии на переходный период.
+- [x] Переместить Phoenix в `apps/phoenix`; сохранены отдача React и same-origin
+      сессии на переходный период.
 - [x] Обновить пути, локальные команды, Docker, CI и документацию; проверить
       сборки всех затронутых приложений и запуск совместного локального стенда.
 
@@ -124,7 +135,8 @@ legacy-предупреждений Dialyzer; `--list-unused-filters` блоки
 
 ### 4. Переносить React по пользовательским сценариям
 
-- [ ] После ручного принятия переключить анкеты на React с временным fallback.
+- [x] После ручного принятия локально переключить анкеты на React с временным
+      LiveView fallback; production-переключение по-прежнему запрещён.
 - [ ] Перенести один авторизованный сценарий, например редактирование анкеты:
       документировать mutation API, проверить серверную авторизацию, CSRF,
       валидацию и ошибки при существующей cookie-сессии.
@@ -171,10 +183,11 @@ legacy-предупреждений Dialyzer; `--list-unused-filters` блоки
    контекста. Проверить текущую ветку и `git status`; не затирать рабочее дерево.
 2. Сопоставить состояние файлов с таблицей выше. Брать первый незавершённый
    этап, не считать описанную в документации проверку уже внедрённой.
-3. Quality gates завершены для текущих приложений. Следующий миграционный этап —
-   переместить React, Go worker, контракты и deployment-конфигурацию в целевые
-   каталоги без изменения поведения; перед переносом сверять все пути и Docker/CI.
-4. После изменений запускать `mix precommit`, пока он является общей командой.
+3. Quality gates завершены, а целевые каталоги введены. Следующий миграционный
+   этап — один авторизованный UI-сценарий редактирования анкеты: сначала
+   зафиксировать mutation API, авторизацию, CSRF, валидацию и ошибки cookie-сессии.
+4. После изменений запускать `cd apps/phoenix && mix precommit`; для Go ранее
+   использовались `GO=/tmp/chat-go-sdk/go/bin/go` и `GOCACHE=/tmp/chat-go-cache`.
    Для локального Go ранее использовались `GO=/tmp/chat-go-sdk/go/bin/go` и
    `GOCACHE=/tmp/chat-go-cache`; проверить их наличие, не полагаться на `/tmp`.
 5. Для браузера ранее использовался `http://localhost:4030/profiles/react`,

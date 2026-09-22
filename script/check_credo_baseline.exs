@@ -1,5 +1,5 @@
 defmodule CredoBaseline do
-  @baseline_path Path.expand("../.credo-baseline", __DIR__)
+  @baseline_path Path.expand("../apps/phoenix/.credo-baseline", __DIR__)
 
   def verify!(report_path) do
     expected = @baseline_path |> File.read!() |> entries()

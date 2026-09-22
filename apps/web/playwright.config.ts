@@ -12,7 +12,7 @@ export default defineConfig({
   },
   webServer: {
     command:
-      "PORT=4032 YOUTUBE_WORKER_URL=http://127.0.0.1:4021 YOUTUBE_PROXY_BASE_URL=http://127.0.0.1:4021 mix phx.server",
+      "cd apps/phoenix && PORT=4032 YOUTUBE_WORKER_URL=http://127.0.0.1:4021 YOUTUBE_PROXY_BASE_URL=http://127.0.0.1:4021 mix phx.server",
     cwd: "../..",
     reuseExistingServer: true,
     timeout: 120_000,

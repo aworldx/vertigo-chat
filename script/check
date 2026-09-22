@@ -2,6 +2,6 @@
 # Repository-wide quality gate. Service-specific checks remain available separately.
 set -eu
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../apps/phoenix"
 mix precommit
 exec script/check-infrastructure
