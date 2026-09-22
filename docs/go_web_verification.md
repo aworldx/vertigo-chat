@@ -1,113 +1,125 @@
 # Проверка standalone React + Go, 2026-09-22
 
-Проверен срез входа, регистрации и анкет. Главная страница, `/chat`, настройки
-аккаунта и прочие разделы ещё не перенесены. Корень Go-стенда временно
-перенаправляет на `/profiles`; после входа открываются анкеты.
+Проверены главная, guest/registered entrance и формы регистрации, а также
+ранее перенесённые account login/register и анкеты. Go сам отдаёт `/` и
+`/chat`; React-комната пока реализует только базовые сообщения, список online,
+reconnect/outbox и явный выход. Полный UI комнаты, настройки аккаунта и прочие
+разделы ещё предстоит перенести. Ссылки на эти разделы на главной сохранены
+как в legacy; наличие ссылки не означает готовность целевого маршрута.
 
 ## Версии и данные
 
-- Новая версия: незакоммиченная `codex/go-react-migration` поверх
-  `0734268bd59a6a84178d3040fefd805e707ff6cb`.
-- Legacy: тот же SHA, отдельный checkout `/tmp/chat-web-legacy-0734268`.
-  Исходники legacy не изменялись.
-- Два backend используют независимые копии только схемы локальной `chat_test`
-  и одинаковые fixtures из `script/fixtures/go-web.sql`. Production и dev-данные
-  не копируются. Go сам применяет свою миграцию account sessions.
-- 13 пользователей `fixture01`…`fixture13`, пароль `secret123`, одинаковые
-  имя/описание/ранг/счётчики. Гостевые screenshots сняты до UI write-сценариев.
-- Chromium из закреплённого Playwright 1.57.0; locale `ru-RU`, timezone
-  `Europe/Moscow`, dark scheme, device scale 1. Старый и новый сайт открыты
-  в разных browser contexts: cookies изолированы.
+- Новая версия: незакоммиченные изменения `codex/go-react-migration` поверх
+  `d231c59`.
+- Legacy: `0734268bd59a6a84178d3040fefd805e707ff6cb`, отдельный checkout
+  `/tmp/chat-web-legacy-0734268`. Его исходники не изменялись.
+- Независимые БД с копией только схемы локальной `chat_test` и одинаковыми
+  fixtures `script/fixtures/go-web.sql`: 13 пользователей `fixture01`…`fixture13`,
+  пароль `secret123`, одинаковые анкеты, счётчики и ранги. Production/dev-данные
+  не копируются. Go применяет свою миграцию account sessions.
+- Chromium Playwright 1.57.0, locale `ru-RU`, timezone `Europe/Moscow`, dark,
+  scale 1, CPU rasterization (`--disable-gpu`); отдельные browser contexts
+  изолируют cookies обеих версий.
+- Screenshots явно загружают обе font-face через `document.fonts.load`,
+  проверяют loaded, ждут network idle и итоговое содержимое; pointer и scroll
+  приводятся к одному состоянию. Формы снимаются full-page, диалог — в viewport,
+  поскольку его backdrop ограничен экраном. Масок нет.
 
 ## Сравнение
 
-| Сценарий | 390×844 | 768×1024 | 1440×900 |
-| --- | --- | --- | --- |
-| Вход | 0 отличающихся пикселей | 0 | 0 |
-| Регистрация | 0 | 0 | 0 |
-| Каталог анкет | 0 | 0 | 0 |
-| Диалог fixture01 | 0 | 0 | 0 |
+На 390×844, 768×1024 и 1440×900 проверяются 13 состояний:
 
-Отдельно совпали geometry, font-family, font-size, line-height и размеры
-заголовка; горизонтального overflow нет. Порог пиксельной разницы — **0**,
-маски не применяются. Скрипт завершится с ошибкой при любом отличии.
-Пары `old.png` / `new.png`, красные `diff.png` и метрики `report.json`
-находятся в `apps/web/migration-results/go-web/` (локальные артефакты,
-игнорируются git). Они не удаляются обычным Playwright `test:browser`.
+- главная с формой входа и главная с регистрацией;
+- вход: неправильный ник, зарегистрированный ник без пароля, неверный пароль;
+- регистрация: неправильный ник, короткий пароль, неправильный email, занятый ник;
+- account login/register, каталог анкет, диалог fixture01.
 
-Проверка ждёт шрифты, network idle и конкретное содержимое диалога.
-Вход/регистрация/каталог снимаются full-page, модальный диалог — в viewport:
-его backdrop ограничен экраном. Ранний full-page capture включал загрузчик
-и невидимый каталог вне viewport с артефактами Chromium compositing.
-После исправления ожиданий и области захвата все 12 сравнений прошли без
-допусков и изменения продуктовых стилей ради теста.
+Все 39 основных сравнений дали **0 отличающихся пикселей**; geometry, font-family,
+font-size, line-height и размеры заголовка совпали, overflow нет.
+Дополнительно проверяются обе формы у CSS-breakpoints: 430/431, 639/640,
+760/761/767/768, 1000/1001 px (768 уже входит в основную матрицу).
+Восемь дополнительных снимков на 431/639/640/760 px имеют 1–2 отличающихся
+пикселя в афише, максимум один уровень одного цветового канала. Source PNG
+побайтово одинаков, geometry/object-fit/object-position/opacity совпадают;
+разница воспроизводится и с CPU Chromium. Допуск ограничен двумя пикселями
+внутри афиши, только на дополнительных breakpoint-снимках, после проверки
+идентичности PNG и геометрии. Raw diff сохраняется. Более сильная разница,
+третий пиксель и любое изменение вне афиши завершают тест ошибкой; это
+проверено отдельным тестом. Основные 39 снимков требуют точного совпадения.
 
-В pinned legacy root отсутствует подключение существующего
-`account_login.js`, поэтому на `/account/login` остаётся loader. Для сравнения
-исходной формы browser script подключает **неизменённый legacy bundle**
-через `addScriptTag`. Это явное исправление тестового setup, не изменение
-legacy checkout. Standalone React монтирует форму штатно.
+Пары `old.png` / `new.png`, красные `diff.png` и метрики `report.json`:
+`apps/web/migration-results/go-web/` (локальные артефакты, игнорируются git).
 
-## Поведение
+В pinned legacy root отсутствует подключение существующего `account_login.js`.
+Тест подключает неизменённый legacy bundle через `addScriptTag`, чтобы сравнить
+форму, а не loader; standalone React монтирует её штатно.
 
-`verify-go-accounts` и `verify-go-web` проверяют настоящий React UI:
+## Исправления и поведение
 
-- неверный пароль, сетевая ошибка и повтор;
-- регистрацию с кириллицей и появление пользователя;
-- вход fixture-пользователя с прежним PBKDF2 hash;
-- редактирование анкеты, reload, очистку nullable-поля и повторный reload;
-- загрузку валидного PNG, выдачу фото/thumbnail;
-- отклонение mutation без CSRF;
-- logout и синхронизацию второй вкладки через BroadcastChannel;
-- сохранение независимого chat sessionStorage.
+У мобильного описания первого экрана восстановлены пробелы вокруг скрытых
+`br`: JSX удалял переносы/пробелы и склеивал слова. CSS и шрифты не менялись.
+Go теперь возвращает `registration_nickname`, `registration_password` и
+`registration_email` в chat entrance API. Accounts сохраняет совместимость
+старого `invalid_registration` через wrapping application errors. PostgreSQL
+различает unique constraints ника и email; проверен откат quota после обоих
+отказов, включая email с другим регистром. Схема и владелец данных не менялись.
 
-Отдельные Go/PostgreSQL и API-browser проверки охватывают миграцию и её
-повтор, atomic registration/guard, единственного first admin, session
-expiry/revocation, cookie, CSRF и хранение только hash session token.
+Ссылки регистрации во время ожидающего entrance не размонтируют форму.
+`landing-flow.ts`, вызываемый `verify-go-chat`, проверяет нижнюю ссылку,
+переключение форм, Tab, задержанный запрос, disabled/loading, запрет второго
+входа, сетевую ошибку/повтор, вход fixture01, resume с главной и удаление resume
+после явного выхода. Остальные chat-сценарии проверяют гостя, занятый ник,
+сообщения двух вкладок, reload, запрет дублированной вкладки, reconnect/outbox,
+независимость site logout и отказ browser storage.
 
-Исправления относительно текущего кода: `null` теперь очищает поле профиля,
-`user_id` из тела mutation отклоняется, toolbar выхода находится выше fixed
-фона. В SQL reaper задан timestamp type, чтобы PostgreSQL не выводил interval
-для параметра времени. Последний дефект обнаружился при запуске реальной БД.
+`verify-go-accounts` проверяет actual PostgreSQL schema, повторяемые миграции,
+atomic registration/first admin, отказ без частичной записи, sessions/expiry/
+revocation/race. Browser flow покрывает cookie/CSRF, неверный пароль, регистрацию,
+reload, profile edit/очистку nullable-поля/upload, выдачу original/thumbnail,
+logout во второй вкладке и сохранение независимого chat storage.
 
 ## Повторный запуск и ручной стенд
 
 ```sh
-# В legacy checkout сначала установить assets и выполнить mix assets.build.
-# Из корня текущего репозитория:
-LEGACY_ROOT=/tmp/chat-web-legacy-0734268 KEEP_MIGRATION_STAND=1 script/verify-go-web
+# В legacy checkout заранее установить assets и выполнить mix assets.build.
+GO=/tmp/chat-go-sdk/go/bin/go GOCACHE=/tmp/chat-go-cache \
+LEGACY_ROOT=/tmp/chat-web-legacy-0734268 \
+GO_WEB_PORT=4050 LEGACY_WEB_PORT=4051 KEEP_MIGRATION_STAND=1 script/verify-go-web
 ```
 
-По умолчанию Go — `http://127.0.0.1:4043`, legacy —
-`http://127.0.0.1:4044`. Команда остаётся запущенной; Ctrl-C останавливает
-оба процесса и удаляет их disposable databases. Можно задать `GO_WEB_PORT`
-и `LEGACY_WEB_PORT`. Последний успешный автоматический прогон использовал
-4050/4051, чтобы не мешать уже открытому ручному сравнению на 4043/4044.
+Go — `http://127.0.0.1:4050/`, legacy — `http://127.0.0.1:4051/`.
+Проверить главную на узком/широком экране, переключение форм и ошибки входа;
+затем войти гостем либо `fixture01` / `secret123`. Команда должна оставаться
+запущенной; Ctrl-C завершает оба процесса и удаляет только созданные ею БД.
+Старые стенды 4040/4044 не обновлялись этим этапом; проверять health перед
+использованием. В legacy и Go разные БД и cookies, вход выполняется отдельно.
 
-Отдельный ручной Go-стенд оставлен на `http://127.0.0.1:4040/profiles` и
-`/account/login`, с БД `chat_web_go_41857`; её не сбрасываем во время просмотра.
-Пароль fixture-аккаунтов указан выше. Сервер должен оставаться запущенным:
-фоновые процессы тестового shell не гарантируют доступность после его выхода.
+## Проверки этапа
 
-Go API и UI проверяются также командой `script/verify-go-accounts` на 4042;
-она входит в CI quality. Old/new screenshot comparison пока запускается
-локально: CI не поднимает отдельный pinned legacy checkout автоматически.
-Этап не означает ручного принятия пользователем или готовности общего cutover.
+- `script/verify-go-chat`: integration/race и расширенный React entrance/chat flow — passed.
+- `script/verify-go-accounts`: PostgreSQL/race, account API и React UI — passed.
+- `script/check-infrastructure`: passed. Существующие предупреждения:
+  отсутствует license в трёх OpenAPI, realtime Snapshot не используется HTTP
+  операцией, Hadolint замечает соседние RUN.
+- `mix precommit`: passed — Go lint/vet/race/build, Credo/Dialyzer,
+  contracts, TypeScript/ESLint/Prettier, 9 frontend tests, standalone build,
+  3 browser tests и 411 ExUnit.
+- Финальный `verify-go-web`: passed, 57 сравнений (49 exact, 8 с описанным
+  округлением афиши), затем account/profile browser flow. Оба стенда оставлены
+  запущенными на 4050/4051 для ручной проверки.
 
-## Завершённые проверки
+Docker-линтеру был недоступен `proxy.golang.org`. Финальный precommit запускался
+с той же закреплённой `golangci/golangci-lint:v2.13.2`, `GOPROXY=off` и volume
+локального `/tmp/chat-go-modcache`, дополненного из существующего host Go cache.
+Локальный wrapper — `/tmp/chat-migration-tools/golangci-lint`; команда:
+`PATH=/tmp/chat-migration-tools:$PATH GO=/tmp/chat-go-sdk/go/bin/go
+GOCACHE=/tmp/chat-go-cache mix precommit`. Проверки не отключались.
 
-- `GO=/tmp/chat-go-sdk/go/bin/go GOCACHE=/tmp/chat-go-cache mix precommit`
-  из `apps/phoenix`: Go formatting/static/race/build, Credo/Dialyzer,
-  generated contracts, strict TypeScript, ESLint/architecture, Prettier,
-  8 React tests, standalone build, 3 legacy visual tests, 411 ExUnit — passed.
-- `script/verify-go-accounts`: PostgreSQL integration/race, API browser и
-  React UI flow — passed.
-- `LEGACY_ROOT=... GO_WEB_PORT=4050 LEGACY_WEB_PORT=4051 script/verify-go-web`:
-  12 pixel-exact сравнений и UI flow — passed.
-- `script/check-infrastructure`: ShellCheck, Hadolint, Redocly и Compose —
-  passed. Сохраняются информационное замечание о соседних Docker RUN и
-  предупреждения license в двух OpenAPI-контрактах.
-- `docker build --target profiles-api -t chat-go-web-migration-check
-  -f deploy/docker/Dockerfile .`: standalone Go + React image — passed.
+Не запускать несколько `npm run build` параллельно с `verify-go-web`: эти
+команды заменяют общий `apps/web/dist`. Такой прогон однажды снял страницу
+с fallback-шрифтом; он отклонён. Финальная визуальная проверка выполняется
+последовательно после остальных сборок, с явной проверкой font-face.
 
-Коммиты, push, публикация образа и изменения production не выполнялись.
+Сравнение с отдельным pinned legacy checkout запускается локально; оно не
+добавлено в CI автоматически. Этап не означает ручного принятия пользователем
+или готовности полного cutover. Коммиты, push и production не выполнялись.

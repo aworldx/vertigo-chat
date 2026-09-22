@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { verifyLandingFlow } from "./landing-flow"
 import { chromium, expect, type Page } from "@playwright/test"
 const targetOrigin = process.argv[2]
 assert.ok(targetOrigin)
@@ -12,6 +13,7 @@ async function enter(page: Page, nickname: string, password = "") {
   await expect(page.locator("#chat-connection-status")).toContainText("В чате")
 }
 try {
+  await verifyLandingFlow(browser, origin)
   const context = await browser.newContext()
   const first = await context.newPage(),
     second = await context.newPage()

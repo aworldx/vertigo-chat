@@ -44,6 +44,7 @@ func TestAccountsPostgres(t *testing.T) {
 	}
 	accounts := postgres.NewAccounts(pool)
 	t.Run("atomic registration and first admin", func(t *testing.T) { testRegistration(t, pool, accounts) })
+	t.Run("registration conflicts roll back quota", func(t *testing.T) { testRegistrationConflicts(t, pool, accounts) })
 	t.Run("session persistence expiry revocation and race", func(t *testing.T) { testSessions(t, pool, accounts) })
 	// All data in this database is created by this test; leave the schema for the
 	// subsequent real-browser flow, and never touch a developer's normal DB.
@@ -87,17 +88,28 @@ func testRegistration(t *testing.T, pool *pgxpool.Pool, accounts postgres.Accoun
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM profiles`).Scan(&profiles); err != nil || profiles != 2 {
 		t.Fatalf("profile trigger: count=%d error=%v", profiles, err)
 	}
+}
+
+func testRegistrationConflicts(t *testing.T, pool *pgxpool.Pool, accounts postgres.Accounts) {
+	ctx := context.Background()
 	if _, err := accounts.Create(ctx, "третий", "", "hash", "192.0.2.1"); !errors.Is(err, application.ErrRegistrationLimited) {
 		t.Fatalf("rate limit: %v", err)
 	}
-	if _, err := accounts.Create(ctx, "первый", "", "hash", "192.0.2.3"); !errors.Is(err, application.ErrInvalidRegistration) {
+	if _, err := accounts.Create(ctx, "первый", "", "hash", "192.0.2.3"); !errors.Is(err, application.ErrRegistrationNickname) {
 		t.Fatalf("duplicate: %v", err)
 	}
-	if _, err := accounts.Create(ctx, "третий", "", "hash", "192.0.2.3"); err != nil {
+	if _, err := accounts.Create(ctx, "третий", "taken@example.com", "hash", "192.0.2.3"); err != nil {
 		t.Fatalf("failed registration consumed claim: %v", err)
 	}
+	if _, err := accounts.Create(ctx, "четвёртый", "TAKEN@example.com", "hash", "192.0.2.4"); !errors.Is(err, application.ErrRegistrationEmail) {
+		t.Fatalf("case-insensitive email conflict: %v", err)
+	}
+	if _, err := accounts.Create(ctx, "четвёртый", "free@example.com", "hash", "192.0.2.4"); err != nil {
+		t.Fatalf("email conflict consumed claim: %v", err)
+	}
+
 	var count int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM registered_users`).Scan(&count); err != nil || count != 3 {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM registered_users`).Scan(&count); err != nil || count != 4 {
 		t.Fatalf("partial writes: count=%d err=%v", count, err)
 	}
 }

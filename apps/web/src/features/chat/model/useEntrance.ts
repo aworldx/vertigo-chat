@@ -1,7 +1,11 @@
 import { useState, type SubmitEvent } from "react"
 import { enter, cancelEntrance } from "../api/entrance"
 import { checkStorage, saveSession } from "./storage"
-export function useEntrance(registering: boolean, getCsrf: () => Promise<string>) {
+export function useEntrance(
+  registering: boolean,
+  getCsrf: () => Promise<string>,
+  onPendingChange: (pending: boolean) => void,
+) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
   const submit = async (event: SubmitEvent<HTMLFormElement>) => {
@@ -9,6 +13,7 @@ export function useEntrance(registering: boolean, getCsrf: () => Promise<string>
     if (pending) return
     const data = new FormData(event.currentTarget)
     setPending(true)
+    onPendingChange(true)
     setError("")
     try {
       try {
@@ -41,6 +46,7 @@ export function useEntrance(registering: boolean, getCsrf: () => Promise<string>
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось войти.")
       setPending(false)
+      onPendingChange(false)
     }
   }
   return { pending, error, submit }

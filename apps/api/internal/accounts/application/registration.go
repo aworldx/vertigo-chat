@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -11,6 +12,9 @@ import (
 )
 
 var ErrInvalidRegistration = errors.New("invalid registration")
+var ErrRegistrationNickname = fmt.Errorf("%w: nickname", ErrInvalidRegistration)
+var ErrRegistrationPassword = fmt.Errorf("%w: password", ErrInvalidRegistration)
+var ErrRegistrationEmail = fmt.Errorf("%w: email", ErrInvalidRegistration)
 var ErrRegistrationLimited = errors.New("registration limited")
 
 var nicknamePattern = regexp.MustCompile(`^[\p{L}\p{N}_-]{3,24}$`)
@@ -35,8 +39,17 @@ func NewRegistrar(creator AccountCreator, hasher PasswordHasher) Registrar {
 func (r Registrar) Register(ctx context.Context, nickname, email, password, networkIdentity string) (domain.Principal, error) {
 	nickname = strings.TrimSpace(nickname)
 	email = strings.ToLower(strings.TrimSpace(email))
-	if networkIdentity == "" || !nicknamePattern.MatchString(nickname) || utf8.RuneCountInString(password) < 6 || utf8.RuneCountInString(password) > 128 || (email != "" && !validEmail(email)) {
+	if networkIdentity == "" {
 		return domain.Principal{}, ErrInvalidRegistration
+	}
+	if !nicknamePattern.MatchString(nickname) {
+		return domain.Principal{}, ErrRegistrationNickname
+	}
+	if utf8.RuneCountInString(password) < 6 || utf8.RuneCountInString(password) > 128 {
+		return domain.Principal{}, ErrRegistrationPassword
+	}
+	if email != "" && !validEmail(email) {
+		return domain.Principal{}, ErrRegistrationEmail
 	}
 	hash, err := r.hasher.Hash(password)
 	if err != nil {

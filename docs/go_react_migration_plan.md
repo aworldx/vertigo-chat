@@ -29,12 +29,53 @@ legacy-ветке и не является fallback или proxy целевой 
 ## Текущее состояние
 
 Текущий незавершённый срез (2026-09-22): главная React, гостевой/зарегистрированный
-вход и базовая общая комната уже доступны на локальном `http://127.0.0.1:4040/`.
+вход и базовая общая комната доступны на локальном `http://127.0.0.1:4050/`.
 Добавлены public entrance API, Go WebSocket, reconnect, outbox и явный выход.
 `script/verify-go-chat` проверяет их на отдельной временной БД; integration и
 browser-сценарии прошли. Полный перенос интерфейса и возможностей legacy-чата
-ещё не завершён, визуальная проверка главной также требует завершения. Таблица
-и этап 6 ниже описывают ранее принятый срез, а не готовность нового чата.
+ещё не завершён. Главная, обе формы и ошибки входа/регистрации теперь проверены
+относительно pinned legacy; отчёт текущего этапа ниже. Таблица и этап 6
+не означают готовность полного интерфейса чата.
+
+### Продолжение: главная и ошибки входа (2026-09-22)
+
+Текущие изменения поверх `d231c59` в `codex/go-react-migration`, без коммита.
+Завершено сравнение главной с legacy `0734268bd59a6a84178d3040fefd805e707ff6cb`:
+исправлены пробелы около скрытых мобильных переносов; сохранены шрифты,
+композиция, формы и сообщения ошибок. Go теперь различает ошибки ника,
+пароля и email при регистрации; HTTP-контракт обновлён. Конфликты уникальности
+ника/email возвращаются через Accounts application errors; старый auth API
+сохраняет совместимый `invalid_registration`. Изменения схемы не нужны,
+владение Accounts/Entrance и транзакции остаются прежними.
+
+Во время ожидающего входа ссылки регистрации больше не размонтируют форму:
+это предотвращает второй параллельный вход из той же страницы. Browser flow
+проверяет задержанный запрос, одну отправку, сетевой отказ и повтор, Tab,
+переход из нижней ссылки в регистрацию, registered entrance и resume с главной.
+Go/PostgreSQL проверяет отдельные причины отказов и откат registration guard
+после занятого ника или email (включая регистр email).
+
+Проверки: `verify-go-chat`, `verify-go-accounts`, `check-infrastructure` и
+`mix precommit` прошли (411 ExUnit, 9 frontend, 3 browser, Go lint/vet/race/build,
+contracts, strict TS/ESLint/Prettier, Credo/Dialyzer). `verify-go-web` прошёл:
+57 сравнений, 49 pixel-exact; восемь breakpoint-снимков отличаются только
+1–2 пикселями афиши на один уровень цвета, при одинаковых исходных PNG и
+геометрии. Все основные 39 снимков (13 состояний × 3 viewport) pixel-exact.
+Обоснование узкого допуска, команды и снимки:
+[go_web_verification.md](go_web_verification.md).
+
+Стенды оставлены запущенными: Go `http://127.0.0.1:4050/`, legacy
+`http://127.0.0.1:4051/`, `fixture01` / `secret123`; независимые disposable БД.
+Проверить переключение форм/ошибки на узком и широком экране, затем гостевой
+либо зарегистрированный вход. Этап готов к ручной проверке; пользовательское
+принятие ещё не получено. Коммит, push и production не выполнялись.
+
+**Следующий этап — интерфейс общей комнаты React.** Сопоставить legacy shell,
+ленту, composer и online list со сценарием Go, затем расширять public contract
+и переносить оставшиеся действия чата по одному. Базовый transport уже есть;
+не начинать заново Accounts или Phoenix proxy. Presence/reconnect/outbox/leave
+проверены функционально, но это не визуальное принятие всей комнаты, не полный
+перенос её функций и не завершение нагрузочных/отказных проверок.
 
 Исправление локального входа: Chrome открывал `localhost:4040`, тогда как
 `API_PUBLIC_ORIGIN` задан как `http://127.0.0.1:4040`. Строгая проверка Host
@@ -53,7 +94,7 @@ Go vet/lint/race, TypeScript/ESLint/Prettier и контракты) и повт�
 | YouTube worker | Переписан на Go и расположен в `services/youtube-worker`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; golangci-lint, `gofmt`, `go vet`, race-тесты | Полный production Docker build проверяется в CI quality/build pipeline |
 | React-анкеты | Строгий TypeScript; Go отдаёт standalone React, каталог, диалог, редактор и фото; old/new проверены на трёх viewport | Ручное принятие нового standalone delivery; LiveView остаётся только legacy |
 | API анкет | Go public read/write API; текущий пользователь определяется account-cookie и CSRF, media выдаётся Go | Удалить исторический Phoenix proxy код при завершении общего cutover |
-| Accounts и chat-session | React login/register/logout подключены к Go; legacy PBKDF2, cookie/CSRF, редактор, upload и выход во второй вкладке проверены | Главная с гостевым входом, public chat-session API, Presence/WebSocket и React chat UI; настройки аккаунта и административные сценарии |
+| Accounts и chat-session | React login/register/logout и главная подключены к Go; guest/registered entrance, базовый WebSocket/Presence, PBKDF2, cookie/CSRF, editor/upload и выход проверены | Полный React chat UI и его визуальное сравнение; настройки аккаунта и административные сценарии |
 | Архитектура | Standalone web build в `apps/web/src`, Go web delivery, Docker target `profiles-api` содержит React; quality gates работают | Полностью исключить Phoenix из Docker/Compose/CI после переноса остальных контекстов |
 
 React/API и документация входят в первый коммит ветки миграции после Go-воркера.
@@ -177,7 +218,7 @@ login bundle и команды: [go_web_verification.md](go_web_verification.md)
 `verify-go-accounts` проверяет API и UI на своей БД/порту 4042; сравнение
 `verify-go-web` использует ещё две отдельные БД и по умолчанию 4043/4044.
 
-**Главная и чат пока не перенесены.** `/` временно ведёт на `/profiles`;
+**Историческое ограничение standalone-среза до переноса главной:** `/` временно ведёт на `/profiles`;
 `/chat`, `/account` settings, игры, библиотека и остальные разделы пока 404.
 После входа пользователь попадает в анкеты. Это промежуточный local preview,
 не готовность полного cutover. Старую главную можно открыть на legacy-стенде.
@@ -333,7 +374,7 @@ identity-провайдера. Для текущего продукта один
 совместимую проверку `pbkdf2_sha256`, регистрацию и principal с ролями. Старый
 React login/register и профили теперь доставляются Go и используют public auth API.
 Go-owned browser session, public profile writes и полный React flow проверены
-локально. Главная с входом в чат остаётся следующим обязательным шагом.
+локально. Главная и базовый вход в чат перенесены; следующий шаг — полный UI общей комнаты.
 
 Границы сохраняются:
 
@@ -391,7 +432,7 @@ OIDC — отложенное, независимое расширение, а �
 
 ### 6. Realtime, сессии и завершение
 
-Статус 2026-09-22: начат только серверный foundation `apps/api/internal/chatsessions`.
+Первоначальный foundation (историческое описание; public transport уже добавлен): `apps/api/internal/chatsessions`.
 В нём есть token-protected internal `start`, который создаёт visit и
 chat-session в одной PostgreSQL-транзакции и генерирует resume-secret на
 сервере. `leave` транзакционно завершает visit, начисляет chat time
@@ -427,8 +468,9 @@ generation обновляются атомарно, а resume-secret ротир�
 1. Выполнено локально: Go-owned browser account-session и public auth API; удалены
    переменные `ACCOUNTS_GO_API_URL`/`ACCOUNTS_INTERNAL_TOKEN` из Compose.
 2. Выполнено локально: standalone React build и Go static web delivery,
-   вход/регистрация/анкеты на public Go API. Перенос главной ещё не выполнен.
-3. Завершить Go WebSocket/Presence transport и переключить React chat на него.
+   вход/регистрация/анкеты на public Go API. Главная и формы входа проверены, UI комнаты пока частичный.
+3. Довести React UI общей комнаты и оставшиеся действия чата на уже работающем
+   Go WebSocket/Presence transport; сравнить его с legacy на трёх viewport.
    Не создавать новые Phoenix routes, controllers или LiveView для этих шагов.
 4. Перенести остальные public контексты по тому же правилу и удалить Phoenix
    из Docker/Compose/CI target текущей ветки. Сравнение с Phoenix выполняется
@@ -440,8 +482,8 @@ generation обновляются атомарно, а resume-secret ротир�
    контекста. Проверить текущую ветку и `git status`; не затирать рабочее дерево.
 2. Сопоставить состояние файлов с таблицей выше. Брать первый незавершённый
    этап, не считать описанную в документации проверку уже внедрённой.
-3. Следующий этап — главная с guest/registered entrance, public chat-session
-   API и React chat/Go WebSocket transport. Web delivery и account login/register готовы;
+3. Следующий этап — UI общей комнаты и оставшиеся возможности чата. Главная,
+   guest/registered entrance и базовый public Go WebSocket transport уже работают;
    не возобновлять исторический Phoenix proxy rollout. Для проверки Accounts
    применять `script/verify-go-accounts` на изолированной БД. Для миграции
    существующей схемы перед запуском Accounts есть `apps/api/cmd/migrate`;
@@ -450,9 +492,9 @@ generation обновляются атомарно, а resume-secret ротир�
    использовались `GO=/tmp/chat-go-sdk/go/bin/go` и `GOCACHE=/tmp/chat-go-cache`.
    Для локального Go ранее использовались `GO=/tmp/chat-go-sdk/go/bin/go` и
    `GOCACHE=/tmp/chat-go-cache`; проверить их наличие, не полагаться на `/tmp`.
-5. Текущий ручной React+Go preview — `http://127.0.0.1:4040/profiles` и
-   `/account/login`; legacy-сравнение — `http://127.0.0.1:4044/`.
-   Главной на Go пока нет. Проверить процессы/health перед использованием;
+5. Текущий сравнительный Go preview — `http://127.0.0.1:4050/`,
+   legacy — `http://127.0.0.1:4051/`; fixture01 / secret123.
+   Стенд 4040 из прошлой сессии не обновлялся этим этапом. Проверить процессы/health перед использованием;
    старые процессы не обязаны пережить следующую сессию. Команды запуска есть
    в README и отчёте Go web. Стенды используют независимые тестовые БД.
 6. Обновить этот план: завершённые пункты, изменённые команды, результаты

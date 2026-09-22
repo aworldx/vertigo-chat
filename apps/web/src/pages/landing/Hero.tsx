@@ -43,8 +43,8 @@ export function Hero() {
             </h1>
             <p className="landing-hero-description">
               Иногда всё начинается с простого «привет».
-              <br className="hidden sm:block" />
-              Знакомься, играй, делись своим —<br className="hidden sm:block" />и становись частью Vertigo.
+              <br className="hidden sm:block" /> Знакомься, играй, делись своим —<br className="hidden sm:block" /> и
+              становись частью Vertigo.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-5">
               <a id="landing-enter-chat" href="#landing-login" className="landing-button">

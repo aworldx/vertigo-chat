@@ -9,13 +9,14 @@ import { Footer } from "./landing/Footer"
 const getCsrf = async () => (await getSession()).csrf_token
 export function LandingPage() {
   const [registering, setRegistering] = useState(false)
+  const [entering, setEntering] = useState(false)
   const [canResume] = useState(() => readSession() !== null)
   const { session, pending, signOut } = useAccountSession()
   const onRegister = () => {
-    setRegistering(true)
+    if (!entering) setRegistering(true)
   }
   const onLogin = () => {
-    setRegistering(false)
+    if (!entering) setRegistering(false)
   }
   return (
     <main>
@@ -49,6 +50,7 @@ export function LandingPage() {
                 onRegister={onRegister}
                 onLogin={onLogin}
                 getCsrf={getCsrf}
+                onPendingChange={setEntering}
               />
               <noscript>
                 <p className="mt-4 text-sm">Для входа включи JavaScript в браузере.</p>

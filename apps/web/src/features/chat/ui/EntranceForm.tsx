@@ -36,13 +36,15 @@ export function EntranceForm({
   onRegister,
   onLogin,
   getCsrf,
+  onPendingChange,
 }: {
   registering: boolean
   onRegister: () => void
   onLogin: () => void
   getCsrf: () => Promise<string>
+  onPendingChange: (pending: boolean) => void
 }) {
-  const { pending, error, submit } = useEntrance(registering, getCsrf)
+  const { pending, error, submit } = useEntrance(registering, getCsrf, onPendingChange)
   const prefix = registering ? "registration" : "entrance"
   return (
     <>

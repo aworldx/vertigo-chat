@@ -101,6 +101,12 @@ func (a Accounts) Create(ctx context.Context, nickname, email, passwordHash, net
 		err := tx.QueryRow(ctx, query, nickname, email, passwordHash).Scan(&principal.UserID, &principal.Nickname, &principal.Admin, &principal.CanModerateEmojis)
 		var constraint *pgconn.PgError
 		if errors.As(err, &constraint) && constraint.Code == "23505" {
+			switch constraint.ConstraintName {
+			case "registered_users_nickname_index":
+				return application.ErrRegistrationNickname
+			case "registered_users_lower_email_index":
+				return application.ErrRegistrationEmail
+			}
 			return application.ErrInvalidRegistration
 		}
 		return err

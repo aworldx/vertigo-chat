@@ -7,9 +7,13 @@ const errors: Record<string, string> = {
   password_required: "Этот ник зарегистрирован. Введи пароль.",
   not_found: "Такой ник не зарегистрирован.",
   invalid_password: "Неверный пароль.",
+  registration_nickname: "Ник должен быть свободным и состоять из 3–24 букв, цифр, _ или -.",
+  registration_password: "Пароль должен быть не короче 6 символов.",
+  registration_email: "Введи корректный email, который ещё не используется.",
   invalid_registration: "Ник должен быть свободным; пароль — не короче 6 символов. Проверь также email.",
   registration_limited: "С этого адреса уже создавали аккаунт. Повторная регистрация доступна через сутки.",
   forbidden: "Сессия изменилась. Повтори вход.",
+  session_changed: "Сессия изменилась. Повтори вход.",
 }
 export function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -27,7 +31,9 @@ export async function enter(credentials: Credentials, registering: boolean, csrf
   if (!response.ok)
     throw new Error(
       record(body) && typeof body.error === "string"
-        ? (errors[body.error] ?? "Не удалось войти. Попробуй ещё раз.")
+        ? ((registering && body.error === "nickname_online"
+            ? "Этот ник сейчас занят в чате. Выбери другой или зарегистрируй его из своей гостевой сессии."
+            : errors[body.error]) ?? "Не удалось войти. Попробуй ещё раз.")
         : "Не удалось войти. Попробуй ещё раз.",
     )
   if (

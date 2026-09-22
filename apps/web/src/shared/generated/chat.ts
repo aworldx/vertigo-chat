@@ -83,7 +83,7 @@ export interface components {
                 };
             };
         };
-        /** @description Entrance failed; no partial registration, visit or account-cookie rotation is committed. */
+        /** @description Entrance failed; no partial registration, visit or account-cookie rotation is committed. Registration validation returns 422 with registration_nickname (invalid or taken nickname), registration_password (password length), or registration_email (invalid or taken email). Other registration failures use invalid_registration. Occupied chat nicknames return 409 nickname_online; registration quotas return 429 registration_limited. */
         Error: {
             headers: {
                 [name: string]: unknown;

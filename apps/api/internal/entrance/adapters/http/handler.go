@@ -55,7 +55,7 @@ func (h Handler) enter(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := h.service.Enter(r.Context(), application.Input{Nickname: body.Nickname, Password: body.Password, Email: body.Email, NetworkIdentity: host, PreviousAccountToken: previous, Register: r.URL.Path == "/api/v1/chat/register"})
 	if err != nil {
-		writeFailure(w, err)
+		writeFailure(w, err, r.URL.Path == "/api/v1/chat/register")
 		return
 	}
 	if result.AccountToken != "" {
@@ -65,9 +65,13 @@ func (h Handler) enter(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"resume_token": h.encode(result), "nickname": result.Session.Nickname}})
 }
-func writeFailure(w http.ResponseWriter, err error) {
+func writeFailure(w http.ResponseWriter, err error, registering bool) {
 	switch {
 	case errors.Is(err, application.ErrInvalidNickname):
+		if registering {
+			failure(w, 422, "registration_nickname")
+			return
+		}
 		failure(w, 422, "invalid_nickname")
 	case errors.Is(err, application.ErrNicknameOnline):
 		failure(w, 409, "nickname_online")
@@ -77,6 +81,12 @@ func writeFailure(w http.ResponseWriter, err error) {
 		failure(w, 401, "not_found")
 	case errors.Is(err, accounts.ErrInvalidCredentials):
 		failure(w, 401, "invalid_password")
+	case errors.Is(err, accounts.ErrRegistrationNickname):
+		failure(w, 422, "registration_nickname")
+	case errors.Is(err, accounts.ErrRegistrationPassword):
+		failure(w, 422, "registration_password")
+	case errors.Is(err, accounts.ErrRegistrationEmail):
+		failure(w, 422, "registration_email")
 	case errors.Is(err, accounts.ErrInvalidRegistration):
 		failure(w, 422, "invalid_registration")
 	case errors.Is(err, accounts.ErrRegistrationLimited):
