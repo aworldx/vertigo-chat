@@ -50,6 +50,8 @@ defmodule Chat.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.2.0"},
       {:lazy_html, ">= 0.1.0", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.5", runtime: Mix.env() == :dev},
@@ -96,6 +98,8 @@ defmodule Chat.MixProject do
       ],
       precommit: [
         "compile --warnings-as-errors",
+        "credo --strict",
+        "dialyzer",
         "deps.unlock --unused",
         "format",
         "cmd script/check-go",
