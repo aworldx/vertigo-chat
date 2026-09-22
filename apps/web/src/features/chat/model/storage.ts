@@ -22,7 +22,11 @@ export function clearSession() {
   sessionStorage.removeItem(key)
   sessionStorage.removeItem(`${key}.outbox`)
 }
-export type PendingMessage = { client_id: string; body: string; state: "sending" | "retrying" | "failed" }
+export type PendingMessage = {
+  client_id: string
+  body: string
+  state: "sending" | "retrying" | "confirmed" | "blocked" | "failed"
+}
 export function readOutbox(): PendingMessage[] {
   try {
     const value: unknown = JSON.parse(sessionStorage.getItem(`${key}.outbox`) ?? "[]")
@@ -32,7 +36,11 @@ export function readOutbox(): PendingMessage[] {
             record(item) &&
             typeof item.client_id === "string" &&
             typeof item.body === "string" &&
-            (item.state === "sending" || item.state === "retrying" || item.state === "failed"),
+            (item.state === "sending" ||
+              item.state === "retrying" ||
+              item.state === "failed" ||
+              item.state === "confirmed" ||
+              item.state === "blocked"),
         )
       : []
   } catch {

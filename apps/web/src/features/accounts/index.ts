@@ -4,3 +4,5 @@ export { useAccountSession } from "./model/useAccountSession"
 export type { Session } from "./api/accounts"
 
 export { getSession } from "./api/accounts"
+
+export { InlineLogin } from "./ui/InlineLogin"

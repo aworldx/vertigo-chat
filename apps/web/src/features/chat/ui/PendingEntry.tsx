@@ -11,6 +11,7 @@ export function PendingEntry({
   onCancel: (id: string) => void
 }) {
   const failed = message.state === "failed"
+  const blocked = message.state === "blocked"
   return (
     <article
       id={`pending-message-${message.client_id}`}
@@ -24,24 +25,29 @@ export function PendingEntry({
       <p className="chat-message-body break-words pr-12 text-sm leading-5 text-zinc-200">{message.body}</p>
       <div
         className={
-          failed
+          failed || blocked
             ? "mt-1 flex items-center gap-2 text-[11px] text-zinc-500"
             : "absolute right-2 top-1 text-[11px] text-zinc-500"
         }
       >
         <span
           aria-hidden="true"
-          className={`inline-flex min-w-3 justify-center font-bold leading-none ${failed ? "text-red-400" : "text-zinc-500"}`}
+          className={`inline-flex min-w-3 justify-center font-bold leading-none ${failed || blocked ? "text-red-400" : "text-zinc-500"}`}
         >
-          {failed ? "!" : "✓"}
+          {failed || blocked ? "!" : message.state === "confirmed" ? "✓✓" : "✓"}
         </span>
         <span className="sr-only">
-          {failed
-            ? "Не отправлено"
-            : message.state === "retrying"
-              ? "Сохранено на устройстве — ждёт восстановления связи"
-              : "Сохранено на устройстве — отправляется на сервер"}
+          {blocked
+            ? "Заблокировано лимитом — сообщение видно только вам"
+            : message.state === "confirmed"
+              ? "Принято сервером — ожидает публикации в истории"
+              : failed
+                ? "Не отправлено"
+                : message.state === "retrying"
+                  ? "Сохранено на устройстве — ждёт восстановления связи"
+                  : "Сохранено на устройстве — отправляется на сервер"}
         </span>
+        {blocked && <span className="text-red-300">Заблокировано лимитом</span>}
         {failed && (
           <>
             <button

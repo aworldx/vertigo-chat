@@ -15,15 +15,19 @@ import (
 
 type Handler struct {
 	service   application.Service
+	upgrade   Upgrade
 	authorize func(http.ResponseWriter, *http.Request) (string, bool)
 	setCookie func(http.ResponseWriter, string, time.Time)
 	encode    func(application.Result) string
 }
 
 func NewHandler(service application.Service, authorize func(http.ResponseWriter, *http.Request) (string, bool), setCookie func(http.ResponseWriter, string, time.Time), encode func(application.Result) string) Handler {
-	return Handler{service, authorize, setCookie, encode}
+	return Handler{service: service, authorize: authorize, setCookie: setCookie, encode: encode}
 }
 func (h Handler) Register(mux *http.ServeMux) {
+	if h.upgrade != nil {
+		mux.HandleFunc("POST /api/v1/chat/upgrade", h.upgradeAccount)
+	}
 	mux.HandleFunc("POST /api/v1/chat/enter", h.enter)
 	mux.HandleFunc("POST /api/v1/chat/register", h.enter)
 }

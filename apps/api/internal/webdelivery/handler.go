@@ -16,7 +16,7 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write(index)
 	}
-	for _, route := range []string{"/account/login", "/account/register", "/profiles", "/chat", "/{$}"} {
+	for _, route := range []string{"/account/login", "/account/register", "/profiles", "/music-chart", "/chat", "/{$}"} {
 		mux.HandleFunc("GET "+route, canonicalPage(origin, page))
 	}
 	files := http.FileServer(http.FS(assets))
@@ -31,7 +31,7 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 		w.Header().Set("Cache-Control", "no-cache")
 		files.ServeHTTP(w, r)
 	}
-	for _, prefix := range []string{"/assets/", "/fonts/", "/images/", "/icons/"} {
+	for _, prefix := range []string{"/assets/", "/fonts/", "/images/", "/icons/", "/sounds/"} {
 		mux.HandleFunc("GET "+prefix, serve)
 	}
 	return nil

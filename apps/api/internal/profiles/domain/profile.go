@@ -11,6 +11,7 @@ type Profile struct {
 	HasThumbnail       bool
 	PublicMessageCount int
 	ChatSeconds        int
+	Karma              int
 }
 
 type Page struct {

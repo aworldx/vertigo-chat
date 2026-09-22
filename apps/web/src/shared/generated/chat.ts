@@ -4,6 +4,75 @@
  */
 
 export interface paths {
+    "/api/v1/chat/emojis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List approved public emoji images */
+        get: operations["listChatEmojis"];
+        put?: never;
+        /** Submit a registered account's emoji for moderation */
+        post: operations["submitChatEmoji"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register the current guest, preserving its session and visit */
+        post: operations["upgradeChatGuest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit feedback with per-actor limits */
+        post: operations["submitChatFeedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/media/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search media for an active chat session */
+        get: operations["searchChatMedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/enter": {
         parameters: {
             query?: never;
@@ -38,10 +107,122 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/music-chart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public chart sorted by votes; account cookie identifies own tracks and votes */
+        get: operations["listMusicChart"];
+        put?: never;
+        /** Upload one of five tracks allowed per account */
+        post: operations["uploadChartTrack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/music-chart/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename an owned track */
+        patch: operations["renameChartTrack"];
+        trace?: never;
+    };
+    "/api/v1/music-chart/{id}/like": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set vote idempotently; own-track votes are forbidden */
+        put: operations["setChartVote"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/music-chart/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a comment */
+        post: operations["addChartComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/music-chart/tracks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Play chart audio with byte ranges; existing object-storage tracks redirect to the public media origin */
+        get: operations["playChartTrack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ChartComment: {
+            /** Format: int64 */
+            id: number;
+            author: string;
+            body: string;
+        };
+        ChartTrack: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            author: string;
+            own: boolean;
+            likes_count: number;
+            liked: boolean;
+            comments: components["schemas"]["ChartComment"][];
+        };
+        MediaItem: {
+            /** @enum {string} */
+            kind: "gif" | "music" | "youtube";
+            title: string;
+            url: string;
+            preview: string;
+            artist: string;
+            duration: string;
+            source: string;
+        };
         Credentials: {
             nickname: string;
             password: string;
@@ -52,6 +233,10 @@ export interface components {
             nickname: string;
         };
         Message: {
+            media_url?: string;
+            artist?: string;
+            duration?: string;
+            source_url?: string;
             id: number;
             client_id: string;
             kind: string;
@@ -59,6 +244,11 @@ export interface components {
             body: string;
             /** Format: date-time */
             sent_at: string;
+            recipient: string;
+            reactions: {
+                [key: string]: number;
+            };
+            reacted: string[];
             appearance: components["schemas"]["MessageAppearance"];
             /** @enum {string} */
             font_id: "theme" | "sans" | "display" | "serif";
@@ -78,10 +268,46 @@ export interface components {
             nickname: string;
             /** @enum {string} */
             status: "active" | "reconnecting";
+            /** @description Currently playing audio title; absent when stopped. */
+            listening_track?: string;
+            bot: boolean;
+            bot_busy?: boolean;
+            /** @description Authenticated account identity for this chat session. */
+            registered: boolean;
+            /** @description This is the session receiving the snapshot; never inferred from a nickname. */
+            self: boolean;
+            preferences: components["schemas"]["Preferences"];
+            rank: components["schemas"]["Rank"] | null;
         };
         Snapshot: {
+            preferences: components["schemas"]["Preferences"];
+            admin: boolean;
+            typing: string[];
             messages: components["schemas"]["Message"][];
             peers: components["schemas"]["Peer"][];
+        };
+        Rank: {
+            title: string;
+            icon_url: string;
+        };
+        Preferences: {
+            /** @enum {string} */
+            theme_id: "vertigo" | "dark" | "night_sky" | "newspaper";
+            /** @enum {string} */
+            font_id: "theme" | "sans" | "display" | "serif";
+            /** @enum {string} */
+            font_style: "normal" | "italic";
+            message_sound_enabled: boolean;
+            appearance: components["schemas"]["MessageAppearance"] & {
+                message_frame: boolean;
+            };
+        };
+        Emoji: {
+            id: number;
+            code: string;
+            width: number;
+            height: number;
+            terms: string[];
         };
     };
     responses: {
@@ -121,6 +347,139 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listChatEmojis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved emojis sorted by code */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Emoji"][];
+                    };
+                };
+            };
+            503: components["responses"]["Error"];
+        };
+    };
+    submitChatEmoji: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    code: string;
+                    /** Format: binary */
+                    image: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Pending moderation */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    upgradeChatGuest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    nickname: string;
+                    password: string;
+                    email?: string;
+                    resume_token: string;
+                    generation: number;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Entrance"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    submitChatFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Feedback saved */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    searchChatMedia: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path: {
+                kind: "gif" | "music" | "youtube";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Search results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MediaItem"][];
+                    };
+                };
+            };
+            403: components["responses"]["Error"];
+            502: components["responses"]["Error"];
+        };
+    };
     enterChat: {
         parameters: {
             query?: never;
@@ -158,6 +517,346 @@ export interface operations {
             422: components["responses"]["Error"];
             429: components["responses"]["Error"];
             503: components["responses"]["Error"];
+        };
+    };
+    listMusicChart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tracks with comments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["ChartTrack"][];
+                    };
+                };
+            };
+            /** @description Storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    uploadChartTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    title?: string;
+                    /**
+                     * Format: binary
+                     * @description MP3, OGG or WAV; maximum 20000000 bytes
+                     */
+                    audio: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Track created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Registered account required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ownership or CSRF rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input or quota exceeded */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    renameChartTrack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Mutation applied */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Registered account required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ownership or CSRF rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input or quota exceeded */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setChartVote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    active: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Mutation applied */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Registered account required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ownership or CSRF rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input or quota exceeded */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    addChartComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Mutation applied */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Registered account required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ownership or CSRF rejected */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input or quota exceeded */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    playChartTrack: {
+        parameters: {
+            query?: never;
+            header?: {
+                Range?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audio bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requested byte range */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Object-storage audio location */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Track not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid byte range */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Audio unavailable */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
 }

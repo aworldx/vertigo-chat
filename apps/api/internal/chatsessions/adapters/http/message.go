@@ -1,7 +1,9 @@
 package http
 
 import (
+	roomapp "chat/api/internal/rooms/application"
 	rooms "chat/api/internal/rooms/domain"
+	"regexp"
 	"time"
 )
 
@@ -14,6 +16,13 @@ type messageAppearance struct {
 	Light messageColors `json:"light"`
 }
 type messageDTO struct {
+	MediaURL   string            `json:"media_url"`
+	Artist     string            `json:"artist"`
+	Duration   string            `json:"duration"`
+	SourceURL  string            `json:"source_url"`
+	Reactions  map[string]int    `json:"reactions"`
+	Reacted    []string          `json:"reacted"`
+	Recipient  string            `json:"recipient"`
 	ID         int64             `json:"id"`
 	ClientID   string            `json:"client_id"`
 	Kind       string            `json:"kind"`
@@ -25,8 +34,25 @@ type messageDTO struct {
 	FontStyle  string            `json:"font_style"`
 }
 
-func encodeMessage(message rooms.Message) messageDTO {
-	return messageDTO{
+var storedVideoID = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
+
+func encodeMessage(message rooms.Message, viewer ...string) messageDTO {
+	if message.Kind == "youtube" && storedVideoID.MatchString(message.MediaURL) {
+		message.MediaURL = "/youtube-proxy/" + message.MediaURL
+	}
+	reactions := make(map[string]int)
+	reacted := make([]string, 0)
+	for _, emoji := range roomapp.ReactionEmojis {
+		actors := message.Reactions[emoji]
+		reactions[emoji] = len(actors)
+		for _, actor := range actors {
+			if len(viewer) > 0 && actor == viewer[0] {
+				reacted = append(reacted, emoji)
+				break
+			}
+		}
+	}
+	return messageDTO{MediaURL: message.MediaURL, Artist: message.Artist, Duration: message.Duration, SourceURL: message.SourceURL, Reactions: reactions, Reacted: reacted, Recipient: message.Recipient,
 		ID: message.ID, ClientID: message.ClientID, Kind: message.Kind,
 		Author: message.Author, Body: message.Body, SentAt: message.SentAt,
 		Appearance: messageAppearance{

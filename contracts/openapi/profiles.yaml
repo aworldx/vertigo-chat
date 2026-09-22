@@ -6,6 +6,16 @@ info:
 servers:
   - url: /
 paths:
+  /api/v1/chat/profiles/{nickname}:
+    get:
+      operationId: getRoomProfile
+      summary: Get a public room profile including karma
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ProfileNickname'
+      responses:
+        '200': {description: Public room profile, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
+        '404': {description: Profile not found, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
   /api/v1/account/profile:
     get:
       operationId: getAccountProfile
@@ -189,6 +199,7 @@ components:
       required: [nickname, name, gender, birth_date, about, photo_url, thumbnail_url, rank, progress]
       properties:
         nickname: {type: string}
+        karma: {type: integer, description: Present in the room profile projection.}
         name: {type: [string, 'null']}
         gender: {type: [string, 'null'], enum: [male, female, other, null]}
         birth_date: {type: [string, 'null'], format: date}

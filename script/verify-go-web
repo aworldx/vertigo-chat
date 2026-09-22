@@ -4,7 +4,7 @@ set -eu
 repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
 go_command="${GO:-go}"
 verification_suite="${WEB_VERIFICATION_SUITE:-web}"
-case "$verification_suite" in web|chat-feed) ;; *) echo "Unknown WEB_VERIFICATION_SUITE" >&2; exit 1 ;; esac
+case "$verification_suite" in web|chat-feed|chat-online|chat-room) ;; *) echo "Unknown WEB_VERIFICATION_SUITE" >&2; exit 1 ;; esac
 source_url="${ACCOUNTS_LEGACY_DATABASE_URL:-postgresql://localhost/chat_test}"
 legacy_root="${LEGACY_ROOT:?Set LEGACY_ROOT to the pinned legacy checkout with built assets}"
 legacy_sha="$(git -C "$legacy_root" rev-parse HEAD)"
@@ -65,8 +65,12 @@ until curl --fail --silent "$go_origin/health" >/dev/null 2>&1 && curl --fail --
 done
 printf 'legacy_sha=%s\ngo_pid=%s\nlegacy_pid=%s\ngo_database=%s\nlegacy_database=%s\n' "$legacy_sha" "$api_pid" "$legacy_pid" "$go_database" "$legacy_database" > "$work_dir/state.txt"
 cd "$repository_root/apps/web"
-LEGACY_SHA="$legacy_sha" node --import=tsx "browser/$verification_suite-verification.ts" "$go_origin" "$legacy_origin"
+verification_status=0
+GO_ROOM_DATABASE="$go_database" LEGACY_ROOM_DATABASE="$legacy_database" LEGACY_SHA="$legacy_sha" node --import=tsx "browser/$verification_suite-verification.ts" "$go_origin" "$legacy_origin" || verification_status=$?
 if [ "${KEEP_MIGRATION_STAND:-0}" = 1 ]; then
+  printf 'Verification exit status: %s\n' "$verification_status"
   printf 'Local comparison: Go %s and legacy %s\nState directory: %s\nKeep this process running; Ctrl-C stops both servers and removes their disposable databases.\n' "$go_origin" "$legacy_origin" "$work_dir"
   wait "$api_pid" "$legacy_pid"
 fi
+
+exit "$verification_status"

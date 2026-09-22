@@ -1,25 +1,14 @@
-import type { CSSProperties } from "react"
+import { useState } from "react"
+import { appearanceStyle, MessageTime } from "./MessagePresentation"
+import { MediaBody } from "./MediaBody"
+import { Icon } from "../../../shared/ui/Icon"
+import type { Emoji } from "../api/emojis"
+import type { Peer } from "../api/protocol"
 import type { Message } from "../api/protocol"
 
-function appearanceStyle(appearance: Message["appearance"]): CSSProperties & Record<`--${string}`, string> {
-  return {
-    "--nick-dark": appearance.dark.nickname_color,
-    "--text-dark": appearance.dark.text_color,
-    "--nick-light": appearance.light.nickname_color,
-    "--text-light": appearance.light.text_color,
-  }
-}
-function MessageTime({ message, className }: { message: Message; className: string }) {
-  return (
-    <time id={`message-time-${String(message.id)}`} dateTime={message.sent_at} className={className}>
-      {new Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(
-        new Date(message.sent_at),
-      )}
-    </time>
-  )
-}
-function MessageBody({ body }: { body: string }) {
-  return body.split(/((?:https?:\/\/|www\.)[^\s<>"']+)/giu).map((part, index) =>
+function MessageBody({ body, emojis }: { body: string; emojis: Emoji[] }) {
+  const codes = new Map(emojis.map((e) => [e.code, e]))
+  return body.split(/((?:https?:\/\/|www\.)[^\s<>"']+|:[\p{Ll}\p{Nd}_]{2,30}:)/giu).map((part, index) =>
     /^(?:https?:\/\/|www\.)/iu.test(part) ? (
       <a
         key={index}
@@ -30,6 +19,13 @@ function MessageBody({ body }: { body: string }) {
       >
         {part}
       </a>
+    ) : codes.has(part) ? (
+      <img
+        key={index}
+        src={`/emojis/${String(codes.get(part)?.id)}`}
+        alt={part}
+        className="inline-block h-auto w-auto max-h-8 max-w-8 align-text-bottom"
+      />
     ) : (
       part
     ),
@@ -39,12 +35,27 @@ export function MessageEntry({
   message,
   nickname,
   onAddress,
+  frame = true,
+  emojis = [],
+  peers = [],
+  onReaction,
+  onDelete,
 }: {
+  onReaction?: ((id: number, emoji: string, active: boolean) => void) | undefined
+  onDelete?: ((id: number) => void) | undefined
+  frame?: boolean
+  emojis?: Emoji[]
+  peers?: Peer[]
   message: Message
   nickname: string
   onAddress: (nickname: string) => void
 }) {
+  const [reactionsOpen, setReactionsOpen] = useState(false)
+  const privateMessage = message.kind === "private"
+  const addressed = message.recipient === nickname
+  const mediaLayout = message.kind === "music" || message.kind === "youtube"
   const system = message.kind === "system"
+  if (privateMessage) frame = true
   const published = message.kind === "text" && message.author === nickname && message.client_id !== ""
   return (
     <div
@@ -52,21 +63,50 @@ export function MessageEntry({
       data-message-id={message.id}
       data-client-id={message.client_id}
       data-message-kind={message.kind}
+      data-private={privateMessage}
+      data-addressed-to-me={addressed}
       data-message-font={message.font_id}
       data-message-font-style={message.font_style}
-      data-message-frame="true"
-      className={`chat-message-entry group/message relative transition-colors ${system ? "px-3 py-0.5 text-center" : "rounded border border-zinc-800 bg-zinc-900 px-3 pb-2 pt-5 shadow-sm"}`}
+      data-message-frame={frame}
+      className={`chat-message-entry group/message relative transition-colors ${system ? "px-3 py-0.5 text-center" : message.kind === "music" ? `ml-auto w-full max-w-xl ${frame ? "border-zinc-700 bg-zinc-950/90 px-3 py-2.5" : "px-1"}` : message.kind === "youtube" ? "ml-auto w-full max-w-sm" : frame ? `rounded border px-3 pb-2 pt-5 shadow-sm ${addressed ? "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30" : privateMessage ? "border-sky-400/50 bg-sky-400/10" : "border-zinc-800 bg-zinc-900"}` : addressed ? "px-1 rounded bg-amber-300/20" : "px-1"} ${message.kind === "gif" ? "ml-auto w-fit max-w-full" : ""}`}
     >
       {system ? (
         <p className="inline-flex items-center gap-2 text-xs leading-4 text-zinc-500">
           <span>{message.body}</span>
           <MessageTime message={message} className="text-[10px] text-zinc-600" />
         </p>
+      ) : mediaLayout ? (
+        <MediaBody message={message} onAddress={onAddress} />
+      ) : !frame && message.kind === "gif" ? (
+        <MediaBody message={message} onAddress={onAddress} frame={false} />
+      ) : !frame ? (
+        <p className="break-words text-sm leading-5" data-compact-message>
+          <button
+            type="button"
+            onDoubleClick={() => {
+              onAddress(`^${message.author}`)
+            }}
+            onClick={() => {
+              onAddress(message.author)
+            }}
+            className="chat-message-author font-semibold hover:underline"
+            style={appearanceStyle(message.appearance)}
+          >
+            {message.author}:
+          </button>
+          <span className="chat-message-body" style={appearanceStyle(message.appearance)}>
+            {" "}
+            <MessageBody body={message.body} emojis={emojis} />
+          </span>
+        </p>
       ) : (
         <>
           <button
             id={`message-author-${String(message.id)}`}
             type="button"
+            onDoubleClick={() => {
+              onAddress(`^${message.author}`)
+            }}
             onClick={() => {
               onAddress(message.author)
             }}
@@ -89,14 +129,96 @@ export function MessageEntry({
               <span aria-hidden="true">✓✓</span>
             </span>
           )}
-          <p
-            className="chat-message-body break-words pr-12 text-sm leading-5"
-            style={appearanceStyle(message.appearance)}
-          >
-            <MessageBody body={message.body} />
-          </p>
+          {privateMessage && (
+            <p className="mb-0.5 pr-12 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+              {message.recipient === nickname ? "Лично вам" : `Лично для ${message.recipient}`}
+            </p>
+          )}
+          {["music", "gif", "youtube"].includes(message.kind) ? (
+            <MediaBody message={message} onAddress={onAddress} />
+          ) : (
+            <p
+              className="chat-message-body break-words pr-12 text-sm leading-5"
+              style={appearanceStyle(message.appearance)}
+            >
+              <AddressedBody body={message.body} emojis={emojis} peers={peers} />
+            </p>
+          )}
         </>
       )}
+      {!system && !privateMessage && frame && (
+        <div className="absolute -bottom-2.5 right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1">
+          {Object.entries(message.reactions)
+            .filter(([, count]) => count > 0)
+            .map(([emoji, count]) => (
+              <button
+                key={emoji}
+                type="button"
+                aria-pressed={message.reacted.includes(emoji)}
+                disabled={message.author === nickname}
+                onClick={() => onReaction?.(message.id, emoji, !message.reacted.includes(emoji))}
+                className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs aria-pressed:border-amber-300"
+              >
+                {emoji} {count}
+              </button>
+            ))}
+          {onReaction && message.author !== nickname && (
+            <button
+              type="button"
+              aria-label="Добавить реакцию"
+              onClick={() => {
+                setReactionsOpen(!reactionsOpen)
+              }}
+              className="flex size-5 cursor-pointer items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200"
+            >
+              <Icon name="face-smile" className="size-3" />
+            </button>
+          )}
+          {reactionsOpen &&
+            ["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                aria-label={emoji}
+                onClick={() => {
+                  onReaction?.(message.id, emoji, !message.reacted.includes(emoji))
+                  setReactionsOpen(false)
+                }}
+              >
+                {emoji}
+              </button>
+            ))}
+          {onDelete && (
+            <button
+              type="button"
+              aria-label="Удалить сообщение"
+              onClick={() => {
+                if (window.confirm("Удалить это сообщение для всех?")) onDelete(message.id)
+              }}
+              className="text-xs text-red-300 opacity-0 group-hover/message:opacity-100 focus:opacity-100"
+            >
+              Удалить
+            </button>
+          )}
+        </div>
+      )}
     </div>
+  )
+}
+
+function AddressedBody({ body, emojis, peers }: { body: string; emojis: Emoji[]; peers: Peer[] }) {
+  const match = Array.from(body.matchAll(/[\p{L}\p{N}_-]+,/gu)).find((value) =>
+    peers.some((peer) => peer.nickname === value[0].slice(0, -1)),
+  )
+  const peer = peers.find((value) => value.nickname === match?.[0].slice(0, -1))
+  if (!match || !peer) return <MessageBody body={body} emojis={emojis} />
+  return (
+    <>
+      <MessageBody body={body.slice(0, match.index)} emojis={emojis} />
+      <strong className="chat-message-recipient font-semibold" style={appearanceStyle(peer.preferences.appearance)}>
+        {match[0]}
+      </strong>
+      <MessageBody body={body.slice(match.index + match[0].length)} emojis={emojis} />
+    </>
   )
 }

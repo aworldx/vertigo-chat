@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -65,13 +66,18 @@ func TestPublicChatPostgres(t *testing.T) {
 	auth.Register(mux)
 	entrancehttp.NewHandler(entrance.NewService(entranceWork(pool)), auth.AuthorizeMutation, auth.SetSessionCookie, func(result entrance.Result) string {
 		return chatshttp.EncodeResume(chatshttp.Resume{SessionID: result.Session.ID, IdentityKey: result.Session.IdentityKey, Secret: result.ResumeSecret})
-	}).Register(mux)
+	}).WithUpgrade(upgradeChatAccount(pool)).Register(mux)
 	lifecycle := chats.NewService(chatspg.NewStore(pool), chatsessionsPolicy())
-	chatshttp.NewSocket(lifecycle, chatspg.NewStore(pool), rooms.NewService(roompg.NewStore(pool)), sendRoomMessage(pool), server.URL).Register(mux)
+	chatshttp.NewSocket(lifecycle, chatspg.NewStore(pool), rooms.NewService(roompg.NewStore(pool)), sendRoomMessage(pool), server.URL).WithExperience(roomExperience(pool)).Register(mux)
 	jar, _ := cookiejar.New(nil)
 	fixture := chatFixture{pool: pool, server: server, client: &http.Client{Jar: jar, Timeout: 5 * time.Second}}
 	t.Run("guest protection and atomic registration", fixture.registration)
 	t.Run("socket resume fencing outbox and terminal leave", fixture.socket)
+	t.Run("presence classification reconnect and departure", fixture.presence)
+	t.Run("guest upgrade preserves visit and rotates credentials", fixture.upgrade)
+	t.Run("shared bot budget and summary", fixture.botBudget)
+	t.Run("chart ownership quotas votes and comments", fixture.chart)
+	t.Run("Karmik duplicate protection and two changes per day", fixture.karmikQuota)
 }
 func (f *chatFixture) refresh(t *testing.T) {
 	t.Helper()
@@ -139,7 +145,16 @@ func (f *chatFixture) registration(t *testing.T) {
 	}
 }
 
+type serverPeer struct {
+	ID         string
+	Nickname   string
+	Status     string
+	Registered bool
+	Self       bool
+}
 type serverFrame struct {
+	Snapshot struct{ Peers []serverPeer }
+
 	Type       string
 	Generation int
 	Message    struct {
@@ -258,4 +273,101 @@ func (f *chatFixture) checkMessageClock(t *testing.T, sentAt time.Time) {
 		t.Fatalf("entrance timestamp is not UTC: %v", enteredAt)
 	}
 
+}
+
+func (f *chatFixture) presence(t *testing.T) {
+	registered := f.post(t, "/api/v1/chat/enter", `{"nickname":"fixture02","password":"secret123"}`, 200)
+	observer, initial := f.connect(t, registered)
+	if p := findPeer(initial, "fixture02"); p == nil || !p.Self || !p.Registered || p.Status != "active" {
+		t.Fatalf("registered self missing: %+v", initial.Snapshot.Peers)
+	}
+	guest := f.post(t, "/api/v1/chat/enter", `{"nickname":"presence-guest","password":""}`, 200)
+	guestConn, ready := f.connect(t, guest)
+	if p := findPeer(ready, "fixture02"); p == nil || p.Self || !p.Registered {
+		t.Fatalf("registered observer incorrectly classified: %+v", ready.Snapshot.Peers)
+	}
+	p := f.awaitPeer(t, observer, "presence-guest", "active")
+	if p.Self || p.Registered {
+		t.Fatalf("guest incorrectly classified: %+v", p)
+	}
+	id := p.ID
+	if err := guestConn.CloseNow(); err != nil {
+		t.Fatal(err)
+	}
+	f.awaitPeer(t, observer, "presence-guest", "reconnecting")
+	restored, _ := f.connect(t, guest)
+	p = f.awaitPeer(t, observer, "presence-guest", "active")
+	if p.ID != id {
+		t.Fatal("reconnect replaced the presence identity")
+	}
+	f.send(t, restored, map[string]string{"type": "leave"})
+	f.frame(t, restored, "left")
+	f.awaitPeer(t, observer, "presence-guest", "")
+	f.send(t, observer, map[string]string{"type": "leave"})
+	f.frame(t, observer, "left")
+}
+func findPeer(frame serverFrame, nickname string) *serverPeer {
+	for _, peer := range frame.Snapshot.Peers {
+		if peer.Nickname == nickname {
+			return &peer
+		}
+	}
+	return nil
+}
+func (f *chatFixture) awaitPeer(t *testing.T, conn *websocket.Conn, nickname, status string) serverPeer {
+	t.Helper()
+	for range 5 {
+		frame := f.frame(t, conn, "snapshot")
+		p := findPeer(frame, nickname)
+		if p == nil && status == "" {
+			return serverPeer{}
+		}
+		if p != nil && p.Status == status {
+			return *p
+		}
+	}
+	t.Fatalf("presence %s never reached %s", nickname, status)
+	return serverPeer{}
+}
+
+func (f *chatFixture) upgrade(t *testing.T) {
+	ctx := context.Background()
+	if _, err := f.pool.Exec(ctx, `DELETE FROM security_registration_guards`); err != nil {
+		t.Fatal(err)
+	}
+	token := f.post(t, "/api/v1/chat/enter", `{"nickname":"upgrade-guest"}`, 200)
+	conn, ready := f.connect(t, token)
+	credential, err := chatshttp.DecodeResume(token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var visit int64
+	if err := f.pool.QueryRow(ctx, `SELECT visit_id FROM chat_sessions WHERE id=$1`, credential.SessionID).Scan(&visit); err != nil {
+		t.Fatal(err)
+	}
+	f.send(t, conn, map[string]any{"type": "preferences", "preferences": map[string]any{"theme_id": "newspaper", "font_id": "serif"}})
+	f.frame(t, conn, "preferences")
+	newToken := f.post(t, "/api/v1/chat/upgrade", fmt.Sprintf(`{"nickname":"upgrade-guest","password":"secret123","resume_token":%q,"generation":%d}`, token, ready.Generation), 200)
+	next, err := chatshttp.DecodeResume(newToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next.SessionID != credential.SessionID || next.Secret == credential.Secret || !strings.HasPrefix(next.IdentityKey, "user:") {
+		t.Fatal("upgrade lost identity continuity")
+	}
+	var nextVisit int64
+	var font string
+	if err := f.pool.QueryRow(ctx, `SELECT visit_id FROM chat_sessions WHERE id=$1`, next.SessionID).Scan(&nextVisit); err != nil || visit != nextVisit {
+		t.Fatal("visit changed", err)
+	}
+	if err := f.pool.QueryRow(ctx, `SELECT font_id FROM registered_users WHERE nickname='upgrade-guest'`).Scan(&font); err != nil || font != "serif" {
+		t.Fatal("preferences not copied", font, err)
+	}
+	session, err := chats.NewService(chatspg.NewStore(f.pool), chatsessionsPolicy()).Restore(ctx, credential.SessionID, credential.IdentityKey, credential.Secret, time.Now())
+	if err == nil {
+		t.Fatal("old credential accepted", session)
+	}
+	newer, _ := f.connect(t, newToken)
+	f.send(t, newer, map[string]string{"type": "leave"})
+	f.frame(t, newer, "left")
 }

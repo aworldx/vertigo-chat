@@ -16,6 +16,10 @@ import (
 	chatsessionshttp "chat/api/internal/chatsessions/adapters/http"
 	chatsessionspostgres "chat/api/internal/chatsessions/adapters/postgres"
 	chatsessionsapplication "chat/api/internal/chatsessions/application"
+	emojihttp "chat/api/internal/emojis/adapters/http"
+	emojiimages "chat/api/internal/emojis/adapters/images"
+	emojipg "chat/api/internal/emojis/adapters/postgres"
+	emojis "chat/api/internal/emojis/application"
 	entrancehttp "chat/api/internal/entrance/adapters/http"
 	entranceapp "chat/api/internal/entrance/application"
 	profileshttp "chat/api/internal/profiles/adapters/http"
@@ -48,6 +52,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	emojihttp.NewHandler(emojis.NewService(emojipg.NewStore(pool)), os.Getenv("S3_PUBLIC_BASE_URL")).Register(mux)
 	profiles := postgres.NewCatalogue(pool)
 	if os.Getenv("S3_ENABLED") == "true" {
 		media, err := postgres.NewS3Media(postgres.S3Config{
@@ -76,8 +81,16 @@ func main() {
 		os.Exit(1)
 	}
 	auth.Register(mux)
+	registerFeedback(mux, pool, auth)
+	if err := registerMusicChart(mux, pool, auth); err != nil {
+		slog.Error("configure chart media", "error", err)
+		os.Exit(1)
+	}
+	registerMedia(ctx, mux, pool)
+	emojihttp.NewUploadHandler(emojis.NewUploader(emojipg.NewStore(pool), emojiimages.Inspector{}), auth.AccountIdentity).Register(mux)
 	profileshttp.NewMutationHandler(application.NewEditor(profiles), application.NewPhotoEditor(profiles), application.NewAccountCatalog(profiles), auth.AccountIdentity).Register(mux)
 	go pruneAccountSessions(ctx, accounts)
+	go runKarmik(ctx, pool)
 	chatSessions := chatsessionsapplication.NewService(chatsessionspostgres.NewStore(pool), chatsessionsPolicy())
 	chatsessionshttp.NewHandler(
 		chatSessions,
@@ -85,8 +98,8 @@ func main() {
 	).Register(mux)
 	entrancehttp.NewHandler(entranceapp.NewService(entranceWork(pool)), auth.AuthorizeMutation, auth.SetSessionCookie, func(result entranceapp.Result) string {
 		return chatsessionshttp.EncodeResume(chatsessionshttp.Resume{SessionID: result.Session.ID, IdentityKey: result.Session.IdentityKey, Secret: result.ResumeSecret})
-	}).Register(mux)
-	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).Register(mux)
+	}).WithUpgrade(upgradeChatAccount(pool)).Register(mux)
+	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).WithExperience(roomExperience(pool)).Register(mux)
 	go reapChatSessions(ctx, chatSessions)
 	server := &http.Server{Addr: env("API_ADDR", "127.0.0.1:4020"), Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {

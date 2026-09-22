@@ -53,3 +53,6 @@ npm-debug.log
 /apps/web/dist/
 
 /apps/web/migration-results/
+
+# Local authenticated music proxies (credentials).
+/music-proxies.txt

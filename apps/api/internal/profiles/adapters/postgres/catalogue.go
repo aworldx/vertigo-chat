@@ -156,13 +156,13 @@ func (c Catalogue) GetByUserID(ctx context.Context, userID int64) (domain.Profil
 
 const profileSQL = `SELECT u.nickname, p.name, p.birth_date::text, p.gender, p.about,
  (p.photo IS NOT NULL OR p.photo_key IS NOT NULL), (p.thumbnail IS NOT NULL OR p.thumbnail_key IS NOT NULL),
- u.public_message_count, u.chat_seconds FROM profiles p JOIN registered_users u ON u.id = p.user_id`
+ u.public_message_count, u.chat_seconds, u.karma FROM profiles p JOIN registered_users u ON u.id = p.user_id`
 
 func collect(rows pgx.Rows) ([]domain.Profile, error) {
 	profiles := make([]domain.Profile, 0)
 	for rows.Next() {
 		var profile domain.Profile
-		if err := rows.Scan(&profile.Nickname, &profile.Name, &profile.BirthDate, &profile.Gender, &profile.About, &profile.HasPhoto, &profile.HasThumbnail, &profile.PublicMessageCount, &profile.ChatSeconds); err != nil {
+		if err := rows.Scan(&profile.Nickname, &profile.Name, &profile.BirthDate, &profile.Gender, &profile.About, &profile.HasPhoto, &profile.HasThumbnail, &profile.PublicMessageCount, &profile.ChatSeconds, &profile.Karma); err != nil {
 			return nil, fmt.Errorf("scan profile: %w", err)
 		}
 		profiles = append(profiles, profile)

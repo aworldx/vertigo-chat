@@ -152,3 +152,9 @@ function isNullableString(value: unknown): value is string | null {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
+
+export async function getRoomProfile(nickname: string, signal: AbortSignal): Promise<GetProfileResponse> {
+  const body = await request(`/api/v1/chat/profiles/${encodeURIComponent(nickname)}`, signal)
+  if (!isGetProfileResponse(body)) throw new APIError("Сервер вернул некорректную анкету.", "invalid_response")
+  return body
+}

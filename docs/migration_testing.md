@@ -19,6 +19,19 @@
 сравнение с одинаковой высотой окружающего frame; полный shell/composer ещё
 не принят. Условия и снимки: [go_chat_feed_verification.md](go_chat_feed_verification.md).
 
+Для базовых гостевых строк online list доступен `WEB_VERIFICATION_SUITE=chat-online`.
+Он сравнивает строки на tablet/desktop без изменения CSS окружения, проверяет
+скрытие на 390/767 px, публичное обращение и реальный reconnect/leave.
+Область сравнения ограничена гостевыми строками; зарегистрированные настройки,
+бот и полная комната ещё не приняты. [Отчёт](go_chat_online_verification.md).
+
+Для полной композиции комнаты добавлен `WEB_VERIFICATION_SUITE=chat-room`:
+одинаковые данные в двух disposable БД, одинаковая позиция прокрутки, никаких
+CSS overrides или масок. Room/composer/emoji/settings/registration/feedback/profile
+снимаются на 390/768/1440 px. [Текущий отчёт](go_chat_room_verification.md).
+Для сетевой проверки передачи файла явно включается `RUN_CHAT_P2P=1` в
+`script/verify-go-chat`; стандартный прогон сообщает об её отсутствии.
+
 ## Поднять обе версии локально
 
 Для текущего standalone-среза собрать assets в отдельном legacy checkout,

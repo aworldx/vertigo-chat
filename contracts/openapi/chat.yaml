@@ -5,6 +5,106 @@ info:
   description: Same-origin atomic chat entrance. WebSocket commands and lifecycle are specified in docs/go_chat_protocol.md.
 servers: [{url: /}]
 paths:
+  /api/v1/chat/emojis:
+    get:
+      operationId: listChatEmojis
+      summary: List approved public emoji images
+      security: []
+      responses:
+        '200':
+          description: Approved emojis sorted by code
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {$ref: '#/components/schemas/Emoji'}}
+        '503': {$ref: '#/components/responses/Error'}
+    post:
+      operationId: submitChatEmoji
+      summary: Submit a registered account's emoji for moderation
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [code, image]
+              properties:
+                code: {type: string, pattern: '^:[\p{Ll}\p{Nd}_]{2,30}:$'}
+                image: {type: string, format: binary}
+      responses:
+        '201': {description: Pending moderation}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+  /api/v1/chat/upgrade:
+    post:
+      operationId: upgradeChatGuest
+      summary: Register the current guest, preserving its session and visit
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [nickname, password, resume_token, generation]
+              properties:
+                nickname: {type: string}
+                password: {type: string, writeOnly: true}
+                email: {type: string}
+                resume_token: {type: string, writeOnly: true}
+                generation: {type: integer}
+      responses:
+        '200': {$ref: '#/components/responses/Entrance'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /api/v1/chat/feedback:
+    post:
+      operationId: submitChatFeedback
+      summary: Submit feedback with per-actor limits
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [body]
+              properties:
+                name: {type: string, minLength: 2, maxLength: 40}
+                body: {type: string, minLength: 3, maxLength: 2000}
+      responses:
+        '201': {description: Feedback saved}
+        '403': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+  /api/v1/chat/media/{kind}:
+    get:
+      operationId: searchChatMedia
+      summary: Search media for an active chat session
+      security: [{chatSession: [], chatGeneration: []}]
+      parameters:
+        - {name: kind, in: path, required: true, schema: {type: string, enum: [gif, music, youtube]}}
+        - {name: q, in: query, required: true, schema: {type: string, minLength: 1, maxLength: 120}}
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {$ref: '#/components/schemas/MediaItem'}}
+        '403': {$ref: '#/components/responses/Error'}
+        '502': {$ref: '#/components/responses/Error'}
   /api/v1/chat/enter:
     post:
       operationId: enterChat
@@ -36,8 +136,129 @@ paths:
         '422': {$ref: '#/components/responses/Error'}
         '429': {$ref: '#/components/responses/Error'}
         '503': {$ref: '#/components/responses/Error'}
+  /api/v1/music-chart:
+    get:
+      operationId: listMusicChart
+      summary: Public chart sorted by votes; account cookie identifies own tracks and votes
+      security: []
+      responses:
+        '200':
+          description: Tracks with comments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: {type: array, items: {$ref: '#/components/schemas/ChartTrack'}}
+        '503': {description: Storage unavailable}
+    post:
+      operationId: uploadChartTrack
+      summary: Upload one of five tracks allowed per account
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio]
+              properties:
+                title: {type: string, maxLength: 120}
+                audio: {type: string, format: binary, description: 'MP3, OGG or WAV; maximum 20000000 bytes'}
+      responses:
+        '201': {description: Track created}
+        '401': {description: Registered account required}
+        '403': {description: Ownership or CSRF rejected}
+        '404': {description: Track not found}
+        '422': {description: Invalid input or quota exceeded}
+        '503': {description: Storage unavailable}
+  /api/v1/music-chart/{id}:
+    patch:
+      operationId: renameChartTrack
+      summary: Rename an owned track
+      security: [{accountSession: [], csrfToken: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: {type: string, minLength: 1, maxLength: 120}
+      responses:
+        '204': {description: Mutation applied}
+        '401': {description: Registered account required}
+        '403': {description: Ownership or CSRF rejected}
+        '404': {description: Track not found}
+        '422': {description: Invalid input or quota exceeded}
+        '503': {description: Storage unavailable}
+  /api/v1/music-chart/{id}/like:
+    put:
+      operationId: setChartVote
+      summary: Set vote idempotently; own-track votes are forbidden
+      security: [{accountSession: [], csrfToken: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              properties:
+                active: {type: boolean}
+      responses:
+        '204': {description: Mutation applied}
+        '401': {description: Registered account required}
+        '403': {description: Ownership or CSRF rejected}
+        '404': {description: Track not found}
+        '422': {description: Invalid input or quota exceeded}
+        '503': {description: Storage unavailable}
+  /api/v1/music-chart/{id}/comments:
+    post:
+      operationId: addChartComment
+      summary: Add a comment
+      security: [{accountSession: [], csrfToken: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: {type: string, minLength: 1, maxLength: 280}
+      responses:
+        '204': {description: Mutation applied}
+        '401': {description: Registered account required}
+        '403': {description: Ownership or CSRF rejected}
+        '404': {description: Track not found}
+        '422': {description: Invalid input or quota exceeded}
+        '503': {description: Storage unavailable}
+  /music-chart/tracks/{id}:
+    get:
+      operationId: playChartTrack
+      summary: Play chart audio with byte ranges; existing object-storage tracks redirect to the public media origin
+      security: []
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+        - {name: Range, in: header, schema: {type: string}}
+      responses:
+        '200': {description: Audio bytes}
+        '206': {description: Requested byte range}
+        '302': {description: Object-storage audio location}
+        '404': {description: Track not found}
+        '416': {description: Invalid byte range}
+        '502': {description: Audio unavailable}
+        '503': {description: Storage unavailable}
 components:
   securitySchemes:
+    chatSession: {type: apiKey, in: header, name: X-Chat-Session}
+    chatGeneration: {type: apiKey, in: header, name: X-Chat-Generation}
     accountSession: {type: apiKey, in: cookie, name: __Host-chat_account}
     csrfToken: {type: apiKey, in: header, name: X-CSRF-Token}
   requestBodies:
@@ -71,6 +292,35 @@ components:
             properties:
               error: {type: string}
   schemas:
+    ChartComment:
+      type: object
+      required: [id, author, body]
+      properties:
+        id: {type: integer, format: int64}
+        author: {type: string}
+        body: {type: string, maxLength: 280}
+    ChartTrack:
+      type: object
+      required: [id, title, author, own, likes_count, liked, comments]
+      properties:
+        id: {type: integer, format: int64}
+        title: {type: string, maxLength: 120}
+        author: {type: string}
+        own: {type: boolean}
+        likes_count: {type: integer, minimum: 0}
+        liked: {type: boolean}
+        comments: {type: array, items: {$ref: '#/components/schemas/ChartComment'}}
+    MediaItem:
+      type: object
+      required: [kind, title, url, preview, artist, duration, source]
+      properties:
+        kind: {type: string, enum: [gif, music, youtube]}
+        title: {type: string}
+        url: {type: string}
+        preview: {type: string}
+        artist: {type: string}
+        duration: {type: string}
+        source: {type: string}
     Credentials:
       type: object
       additionalProperties: false
@@ -87,14 +337,21 @@ components:
         nickname: {type: string}
     Message:
       type: object
-      required: [id, client_id, kind, author, body, sent_at, appearance, font_id, font_style]
+      required: [id, client_id, kind, author, body, sent_at, appearance, font_id, font_style, reactions, reacted, recipient]
       properties:
+        media_url: {type: string}
+        artist: {type: string}
+        duration: {type: string}
+        source_url: {type: string}
         id: {type: integer}
         client_id: {type: string}
         kind: {type: string}
         author: {type: string}
         body: {type: string}
         sent_at: {type: string, format: date-time}
+        recipient: {type: string}
+        reactions: {type: object, additionalProperties: {type: integer, minimum: 0}}
+        reacted: {type: array, items: {type: string}}
         appearance: {$ref: '#/components/schemas/MessageAppearance'}
         font_id: {type: string, enum: [theme, sans, display, serif]}
         font_style: {type: string, enum: [normal, italic]}
@@ -112,14 +369,56 @@ components:
         light: {$ref: '#/components/schemas/MessageColors'}
     Peer:
       type: object
-      required: [id, nickname, status]
+      required: [id, nickname, status, registered, self, preferences, rank, bot]
       properties:
         id: {type: string}
         nickname: {type: string}
         status: {type: string, enum: [active, reconnecting]}
+        listening_track: {type: string, maxLength: 200, description: Currently playing audio title; absent when stopped.}
+        bot: {type: boolean}
+        bot_busy: {type: boolean}
+        registered: {type: boolean, description: Authenticated account identity for this chat session.}
+        self: {type: boolean, description: This is the session receiving the snapshot; never inferred from a nickname.}
+        preferences: {$ref: '#/components/schemas/Preferences'}
+        rank: {oneOf: [{$ref: '#/components/schemas/Rank'}, {type: 'null'}]}
     Snapshot:
       type: object
-      required: [messages, peers]
+      required: [messages, peers, preferences, admin, typing]
       properties:
+        preferences: {$ref: '#/components/schemas/Preferences'}
+        admin: {type: boolean}
+        typing: {type: array, items: {type: string}}
         messages: {type: array, items: {$ref: '#/components/schemas/Message'}}
         peers: {type: array, items: {$ref: '#/components/schemas/Peer'}}
+
+    Rank:
+      type: object
+      required: [title, icon_url]
+      properties:
+        title: {type: string}
+        icon_url: {type: string}
+    Preferences:
+      type: object
+      required: [theme_id, appearance, font_id, font_style, message_sound_enabled]
+      properties:
+        theme_id: {type: string, enum: [vertigo, dark, night_sky, newspaper]}
+        font_id: {type: string, enum: [theme, sans, display, serif]}
+        font_style: {type: string, enum: [normal, italic]}
+        message_sound_enabled: {type: boolean}
+        appearance:
+          allOf:
+            - {$ref: '#/components/schemas/MessageAppearance'}
+            - type: object
+              required: [message_frame]
+              properties:
+                message_frame: {type: boolean}
+
+    Emoji:
+      type: object
+      required: [id, code, width, height, terms]
+      properties:
+        id: {type: integer}
+        code: {type: string}
+        width: {type: integer}
+        height: {type: integer}
+        terms: {type: array, items: {type: string}}

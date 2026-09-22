@@ -44,7 +44,7 @@ Message presentation (2026-09-22): every `Message` in `ready`, `snapshot` and
 `font_id` (`theme|sans|display|serif`) and `font_style` (`normal|italic`). These
 are read from the existing `room_messages` columns; malformed legacy values
 fall back to the existing Phoenix defaults. Domain values are mapped to explicit
-wire DTOs. New sends still use the default appearance until settings migrate.
+wire DTOs. New sends snapshot the author’s saved appearance and font preferences.
 The viewer's frame preference is separate and is not a message attribute.
 `sent_at` is an instant; writes to legacy timestamp-without-time-zone columns
 use UTC explicitly, independently of the PostgreSQL session timezone.
@@ -53,3 +53,73 @@ The React feed renders confirmed IDs without replacing surviving DOM nodes.
 Resize/mutation observers follow the bottom only while the reader is there;
 reading older messages survives snapshots and new sends. Failed outbox entries
 can be retried with the same client ID or explicitly removed from tab storage.
+
+Presence presentation (2026-09-22): each Peer includes `registered` (the
+authenticated account identity of the durable chat session) and `self` (session
+ID matches the viewer). Identity keys and user IDs are never exposed. Peers
+include active and reconnecting sessions, in nickname order; ended sessions
+are absent. React shows exactly one presence label per row. During local
+transport loss only the viewer's row shows reconnecting immediately; other
+rows retain their last server snapshot until reconnection. Public/private addressing, registered appearance/ranks, profile actions and bot
+activity are included. Peers expose listening title and bot busy state.
+
+Room settings: snapshots include viewer `preferences` and `admin`; peers include
+public preferences and rank. `{type:"preferences",preferences}` is a fenced
+mutation, answered with `{type:"preferences",preferences}` only after commit.
+Accounts owns registered preferences; Chatlans owns guest preferences. New
+messages copy normalized current preferences at send time; retries retain the
+original durable appearance. No Phoenix writes or proxy are involved.
+
+## Расширение комнаты (локальный этап 2026-09-22)
+
+- Snapshot содержит `preferences`, `admin`, `typing`; peer — `bot`, `rank`,
+  `preferences`. Message содержит `recipient`, aggregate `reactions` и viewer-only
+  `reacted` (идентификаторы голосовавших не выдаются), media metadata.
+- `preferences {preferences}` возвращает одноимённый ответ после fenced transaction.
+- `reaction {message_id,emoji,active}` задаёт состояние идемпотентно. Автор не
+  реагирует на собственное сообщение; разрешены шесть серверных emoji.
+- `delete {message_id}` требует registered admin; системные записи не удаляются.
+- `send` с префиксом `^nickname, body` проходит отдельную private ветку. Ошибка
+  никогда не превращает private текст в публичный. ACK и адресный `private`
+  frame используют отрицательный временный ID. Reload удаляет private feed.
+- `typing {active}` проверяет generation; индикатор истекает через пять секунд.
+- `media {client_id,media}` принимает только разрешённые provider URL и сохраняет
+  существующие `media_*` поля Rooms. Поиск — authenticated HTTP по контракту.
+- `signal {target,body}` передаёт SDP offer/answer только между активными
+  участниками одной комнаты. Offer разрешён зарегистрированному участнику;
+  sender берётся из server session, не из клиентского payload. Bytes файлов
+  передаются отдельно по WebRTC, в PostgreSQL их нет.
+- `/chat/upgrade` аутентифицирует resume-secret и generation внутри транзакции,
+  сохраняет visit и preferences, ротирует identity/secret/account cookie.
+
+Hub private/signaling пока локален одному API-процессу. Multi-instance routing,
+устойчивая private дедупликация после restart и нагрузочная проверка остаются
+отдельными условиями production cutover.
+
+Responses adapter следует [официальной документации генерации текста](https://developers.openai.com/api/docs/guides/text):
+чтение вложенных `output[].content[]`, явные instructions, `store:false` и
+хешированный safety identifier. Живой запрос на пользовательском ключе при этой
+миграции не выполнялся.
+
+
+## Доставка, listening и файлы
+
+ACK подтверждает приём, snapshot — появление в опубликованной истории:
+`sending` (одна серая) → `confirmed` (две серых) → published (две голубых).
+При quota error outbox становится `blocked`; reload не повторяет blocked,
+confirmed или failed сообщения. Private остаётся ephemeral и sender/recipient only.
+`listening {body,active}` меняет название трека у текущего fenced peer;
+`bot_busy` отражает общий token budget и provider Retry-After.
+
+File signals: `announce`, `request`, `offer`, `answer`, `relay_request`,
+`relay_chunk {index,total,data}`, `relay_ack {index}`. Announce доступен только
+registered, owner определяется session. Registry проверяет room/owner/requester,
+TTL 15 минут, длину/порядок блоков и дубли. Новый request сбрасывает принятые
+индексы для повторной передачи. Клиент ждёт ACK перед следующим блоком;
+relay chunk максимум 18000 bytes/24000 base64 characters. Изображения до 5 MB,
+аудио до 50 MB, MIME сверяется с сигнатурой. MSE queue начинает MP3 playback
+до завершения файла; неподдерживаемый формат собирается в Blob по окончании.
+
+Поиск медиа использует authenticated HTTP и ограниченную очередь сервера,
+список прокси читается только сервером. Хит-парад использует отдельные Go HTTP
+контракты с account-cookie/CSRF, owner checks и существующими таблицами.

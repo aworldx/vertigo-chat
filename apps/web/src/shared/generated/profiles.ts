@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/chat/profiles/{nickname}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a public room profile including karma */
+        get: operations["getRoomProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/profile": {
         parameters: {
             query?: never;
@@ -126,6 +143,8 @@ export interface components {
         };
         Profile: {
             nickname: string;
+            /** @description Present in the room profile projection. */
+            karma?: number;
             name: string | null;
             /** @enum {string|null} */
             gender: "male" | "female" | "other" | null;
@@ -165,6 +184,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getRoomProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                nickname: components["parameters"]["ProfileNickname"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public room profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+            /** @description Profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getAccountProfile: {
         parameters: {
             query?: never;

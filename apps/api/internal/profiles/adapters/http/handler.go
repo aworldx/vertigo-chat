@@ -19,6 +19,7 @@ func NewHandler(catalog application.Catalog) Handler { return Handler{catalog: c
 func (h Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/profiles", h.list)
 	mux.HandleFunc("GET /api/v1/profiles/{nickname}", h.show)
+	mux.HandleFunc("GET /api/v1/chat/profiles/{nickname}", h.showChat)
 }
 
 type MediaHandler struct{ media application.MediaService }
@@ -111,21 +112,8 @@ func profileDTO(p domain.Profile) map[string]any {
 	if p.HasThumbnail {
 		thumbnailURL = "/profiles/" + p.Nickname + "/photo/thumbnail"
 	}
-	title, icon := rank(p.PublicMessageCount, p.ChatSeconds)
+	title, icon := application.Rank(p.PublicMessageCount, p.ChatSeconds)
 	return map[string]any{"nickname": p.Nickname, "name": p.Name, "birth_date": p.BirthDate, "gender": p.Gender, "about": p.About, "photo_url": photoURL, "thumbnail_url": thumbnailURL, "rank": map[string]string{"title": title, "icon_url": "/images/ranks/" + icon + ".svg"}, "progress": map[string]int{"public_messages": max(p.PublicMessageCount, 0), "chat_hours": max(p.ChatSeconds, 0) / 3600}}
-}
-func rank(messages, seconds int) (string, string) {
-	ranks := []struct {
-		title, icon     string
-		messages, hours int
-	}{{"Зритель первого ряда", "ticket", 0, 0}, {"Киноман", "users-group", 50, 5}, {"Статист", "armchair", 200, 20}, {"Исполнитель эпизода", "movie", 600, 60}, {"Актёр второго плана", "star", 1500, 150}, {"Звезда экрана", "device-tv", 3500, 350}, {"Сценарист", "file-text", 7000, 700}, {"Продюсер", "cash", 12000, 1200}, {"Режиссёр-постановщик", "camera", 20000, 2000}, {"Режиссер", "theater", 35000, 3500}}
-	current := ranks[0]
-	for _, candidate := range ranks {
-		if messages >= candidate.messages && seconds >= candidate.hours*3600 {
-			current = candidate
-		}
-	}
-	return current.title, current.icon
 }
 func writeCatalogError(w http.ResponseWriter, err error) {
 	if errors.Is(err, application.ErrNotFound) {
@@ -143,4 +131,15 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("X-Robots-Tag", "noindex")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
+}
+
+func (h Handler) showChat(w http.ResponseWriter, r *http.Request) {
+	profile, err := h.catalog.Get(r.Context(), r.PathValue("nickname"))
+	if err != nil {
+		writeCatalogError(w, err)
+		return
+	}
+	dto := profileDTO(profile)
+	dto["karma"] = profile.Karma
+	writeJSON(w, 200, map[string]any{"data": dto})
 }

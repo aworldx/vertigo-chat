@@ -76,8 +76,21 @@ func sendRoomMessage(pool *pgxpool.Pool) chathttp.SendMessage {
 			if err := lifecycle.Touch(ctx, session.ID, session.IdentityKey, session.Generation, "visible", time.Now()); err != nil {
 				return err
 			}
-			var err error
-			message, err = roomapp.NewService(roompg.NewStore(tx)).Send(ctx, roomdomain.Author{RoomID: session.RoomID, Identity: session.IdentityKey, Nickname: session.Nickname}, clientID, body)
+			preferences, err := preferencesService(tx).Get(ctx, session.IdentityKey)
+			if err != nil {
+				return err
+			}
+			peers, err := chatspg.NewStore(tx).Presence(ctx, session.RoomID)
+			if err != nil {
+				return err
+			}
+			names := []string{"Хичкок"}
+			for _, peer := range peers {
+				names = append(names, peer.Nickname)
+			}
+			recipient := roomapp.Recipient(body, names)
+			appearance := roomdomain.Appearance{Dark: roomdomain.Colors{Nickname: preferences.Appearance.Dark.Nickname, Text: preferences.Appearance.Dark.Text}, Light: roomdomain.Colors{Nickname: preferences.Appearance.Light.Nickname, Text: preferences.Appearance.Light.Text}}
+			message, err = roomapp.NewService(roompg.NewStore(tx)).Send(ctx, roomdomain.Author{Recipient: recipient, RoomID: session.RoomID, Identity: session.IdentityKey, Nickname: session.Nickname, Appearance: &appearance, FontID: preferences.Font, FontStyle: preferences.Style}, clientID, body)
 			if err == nil && message.Inserted && strings.HasPrefix(session.IdentityKey, "user:") {
 				userID, parseErr := strconv.ParseInt(strings.TrimPrefix(session.IdentityKey, "user:"), 10, 64)
 				if parseErr != nil {

@@ -9,6 +9,9 @@ import { decodeFrame } from "../src/features/chat/api/protocol"
 test("chat boundary rejects invalid dates, colors and typography before rendering", () => {
   const message = {
     id: 1,
+    recipient: "",
+    reactions: {},
+    reacted: [],
     client_id: "outbox",
     kind: "text",
     author: "гость",
@@ -40,6 +43,9 @@ test("message text stays inert while HTTP links stop at quotes", () => {
       onAddress: () => undefined,
       message: {
         id: 1,
+        recipient: "",
+        reactions: {},
+        reacted: [],
         client_id: "",
         kind: "text",
         author: "guest",

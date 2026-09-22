@@ -1,3 +1,4 @@
+import { MusicChartPage } from "../pages/MusicChartPage"
 import React from "react"
 import { createRoot } from "react-dom/client"
 import { LoginPage } from "../pages/LoginPage"
@@ -7,10 +8,12 @@ import { ChatPage } from "../pages/ChatPage"
 const container = document.getElementById("root")
 const path = window.location.pathname
 const login = path.startsWith("/account/")
-document.title = `${login ? "Вход" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
+document.title = `${login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
 if (container)
   createRoot(container).render(
-    login ? (
+    path === "/music-chart" ? (
+      <MusicChartPage />
+    ) : login ? (
       <LoginPage registering={path === "/account/register"} />
     ) : path === "/profiles" ? (
       <ProfilesPage />
