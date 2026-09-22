@@ -17,8 +17,8 @@ quality:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
-    - docker build --target quality --tag chat-quality:$CI_COMMIT_SHA .
-    - docker compose --env-file config/quality.env config --quiet
+    - docker build --file deploy/docker/Dockerfile --target quality --tag chat-quality:$CI_COMMIT_SHA .
+    - docker compose -f deploy/compose.yaml --env-file deploy/quality.env config --quiet
     - docker network create quality-network
     - docker run --detach --name quality-postgres --network quality-network -e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB postgres:17-alpine
     - until docker exec quality-postgres pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"; do sleep 1; done
@@ -52,5 +52,5 @@ build_production_image:
           --tag "$CI_REGISTRY_IMAGE:$target-$CI_COMMIT_SHA" \
           --tag "$CI_REGISTRY_IMAGE:$target-main" \
           --push \
-          .
+          -f deploy/docker/Dockerfile .
       done

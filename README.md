@@ -70,7 +70,7 @@ Create the production environment file, replace every placeholder, then deploy:
 
 ```sh
 cp .env.example .env
-docker compose up --build -d
+docker compose -f deploy/compose.yaml up --build -d
 ```
 
 The `migrate` service applies all pending database migrations before `app` starts. Caddy waits for
@@ -97,8 +97,8 @@ free disk, sustained CPU use, 5xx growth and reconnect growth. Connect Grafana t
 `http://prometheus:9090` from the private network for 1h/24h/7d charts and add Alertmanager for delivery
 to Telegram/email; Prometheus and node-exporter are not exposed through Caddy.
 
-For a small VPS, install `ops/systemd/vertigo-chat-docker-prune.service` and
-`ops/systemd/vertigo-chat-docker-prune.timer` into `/etc/systemd/system/` and enable the timer. It runs
+For a small VPS, install `deploy/systemd/vertigo-chat-docker-prune.service` and
+`deploy/systemd/vertigo-chat-docker-prune.timer` into `/etc/systemd/system/` and enable the timer. It runs
 every Sunday around 04:30, removing only Docker build cache and unused images older than seven days.
 It never removes running containers or volumes. The disk alert fires below 25% free space, giving the
 cleanup time to run before storage becomes critical.
@@ -204,14 +204,14 @@ The first React screen is available at `/profiles/react`, backed by the public
 `/api/v1/profiles` API. The default `/profiles` route remains on LiveView.
 Run `mix assets.setup` once to install the pinned npm dependencies, then
 `mix assets.build` and `mix phx.server`. React interaction tests run as part of
-`mix precommit` or separately with `npm --prefix assets test`.
+`mix precommit` or separately with `npm --prefix apps/web test`.
 
 See [the migration plan and local checks](docs/react_migration.md) and
-[the API contract](docs/openapi/profiles.yaml).
+[the API contract](contracts/openapi/profiles.yaml).
 
 ## Local YouTube worker (Go)
 
-YouTube search, metadata, downloads and the MP4 cache run in `youtube-worker/`.
+YouTube search, metadata, downloads and the MP4 cache run in `services/youtube-worker/`.
 Phoenix communicates with it over HTTP using Req. The worker needs Go 1.25+,
 `yt-dlp`, Node.js (YouTube JavaScript challenges), and `ffmpeg` in PATH.
 The Go service uses the standard library only; yt-dlp and ffmpeg remain external tools.

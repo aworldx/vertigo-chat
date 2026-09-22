@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint js/profiles.tsx js/profiles test browser playwright.config.ts",
     "format:check": "prettier --check js/profiles.tsx js/profiles test browser playwright.config.ts package.json tsconfig.json eslint.config.js",
-    "generate:profiles-types": "openapi-typescript ../docs/openapi/profiles.yaml -o js/shared/generated/profiles.ts"
+    "generate:profiles-types": "openapi-typescript ../../contracts/openapi/profiles.yaml -o js/shared/generated/profiles.ts"
   },
   "dependencies": {
     "react": "19.3.0",

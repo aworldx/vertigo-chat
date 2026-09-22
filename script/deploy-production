@@ -79,7 +79,7 @@ export CHAT_YOUTUBE_WORKER_IMAGE="$image_repository"
 export CHAT_YOUTUBE_WORKER_IMAGE_TAG="youtube-worker-${expected_revision}"
 
 compose() {
-  docker compose --env-file .env --env-file .env.vps "$@"
+  docker compose -f deploy/compose.yaml --env-file .env --env-file .env.vps "$@"
 }
 
 wait_for_health() {

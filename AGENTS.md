@@ -29,7 +29,7 @@
 - Давайте формам, кнопкам, hook-элементам и stream-контейнерам стабильные уникальные `id`.
 - Используйте `push_navigate`/`push_patch`, а не устаревшие `live_redirect`/`live_patch`; избегайте LiveComponent без необходимости.
 - Для динамических коллекций применяйте LiveView streams. Контейнер обязан иметь `id` и `phx-update="stream"`; при изменении assign, влияющего на stream-элемент, вставляйте элемент в stream повторно.
-- Не управляйте DOM из hook без `phx-update="ignore"`. JS храните в `assets/js` или colocated hooks — не в inline `<script>`.
+- Не управляйте DOM из hook без `phx-update="ignore"`. JS храните в `apps/web/js` или colocated hooks — не в inline `<script>`.
 
 ## Elixir, Ecto и тесты
 
@@ -43,6 +43,6 @@
 ## UI и CSS
 
 - Используйте Tailwind и собственные CSS-правила; не используйте daisyUI и `@apply`.
-- Сохраняйте Tailwind v4 `@import "tailwindcss" source(none)` и `@source` в `assets/css/app.css`.
+- Сохраняйте Tailwind v4 `@import "tailwindcss" source(none)` и `@source` в `apps/web/css/app.css`.
 - Не подключайте vendor-скрипты или стили напрямую из layout; импортируйте их в `app.js`/`app.css`.
 - Поддерживайте адаптивность, выверенные отступы, типографику, состояния hover/loading и доступность.

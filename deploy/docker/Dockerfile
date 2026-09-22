@@ -56,7 +56,7 @@ RUN mkdir config
 COPY config/config.exs config/${MIX_ENV}.exs config/
 RUN mix deps.compile
 
-COPY assets/package.json assets/package-lock.json ./assets/
+COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
 RUN mix assets.setup
 
 COPY priv priv
@@ -66,7 +66,7 @@ COPY lib lib
 # Compile the release
 RUN mix compile
 
-COPY assets assets
+COPY apps/web apps/web
 
 # compile assets
 RUN mix assets.deploy
@@ -121,7 +121,7 @@ CMD ["/app/bin/server"]
 
 FROM golang:1.27.1-trixie AS youtube-builder
 WORKDIR /src
-COPY youtube-worker/ ./
+COPY services/youtube-worker/ ./
 RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /youtube-worker .
 
 # CI executes the same repository checks in this pinned toolchain image. It is
@@ -139,12 +139,12 @@ RUN mix local.hex --force && mix local.rebar --force
 COPY mix.exs mix.lock ./
 COPY config config
 RUN mix deps.get
-COPY assets/package.json assets/package-lock.json ./assets/
-RUN mix assets.setup && npx --prefix assets playwright install --with-deps chromium
+COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
+RUN mix assets.setup && npx --prefix apps/web playwright install --with-deps chromium
 COPY . .
 RUN find script -maxdepth 1 -type f ! -name '*.exs' -exec shellcheck {} + \
-  && hadolint --config .hadolint.yaml Dockerfile \
-  && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint docs/openapi/profiles.yaml
+  && hadolint --config deploy/.hadolint.yaml deploy/docker/Dockerfile \
+  && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint contracts/openapi/profiles.yaml
 
 # Standalone Go service: no BEAM release, database or application secrets.
 FROM ${RUNNER_IMAGE} AS youtube-worker

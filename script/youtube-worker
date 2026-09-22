@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build outside the source tree, then exec so signals reach the Go worker.
 set -eu
-cd "$(dirname "$0")/../youtube-worker"
+cd "$(dirname "$0")/../services/youtube-worker"
 mkdir -p ../tmp
-"${GO:-go}" build -trimpath -o ../tmp/youtube-worker .
-exec ../tmp/youtube-worker
+"${GO:-go}" build -trimpath -o ../../tmp/youtube-worker .
+exec ../../tmp/youtube-worker

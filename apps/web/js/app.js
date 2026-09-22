@@ -5,12 +5,12 @@
 
 // You can include dependencies in two ways.
 //
-// The simplest option is to put them in assets/vendor and
+// The simplest option is to put them in apps/web/vendor and
 // import them using relative paths:
 //
 //     import "../vendor/some-package.js"
 //
-// Alternatively, you can `npm install some-package --prefix assets` and import
+// Alternatively, you can `npm install some-package --prefix apps/web` and import
 // them using a path starting with the package name:
 //
 //     import "some-package"

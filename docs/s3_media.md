@@ -31,7 +31,7 @@ S3_VIRTUAL_HOSTED=true
 включены vHosted-адресация и CORS с origin `https://vertigo-chat.ru`, методом
 `PUT` и заголовком `content-type`.
 
-`compose.yaml` передаёт настройки в app, admin и migrate. Без `S3_ENABLED=true`
+`deploy/compose.yaml` передаёт настройки в app, admin и migrate. Без `S3_ENABLED=true`
 новые загрузки используют прежнее хранение в БД. После переноса нельзя просто
 отключить S3: записи уже ссылаются на объекты, и для их чтения нужны настройки
 публичного адреса. Для отката используйте порядок ниже.
@@ -72,8 +72,8 @@ ImageMagick входит в Docker-образ; его потребление р�
 6. Запустить миграции схемы новой сборкой, затем перенос:
 
 ```sh
-docker compose --env-file .env --env-file .env.vps run --rm --no-deps migrate
-docker compose --env-file .env --env-file .env.vps run --rm --no-deps app \
+docker compose -f deploy/compose.yaml --env-file .env --env-file .env.vps run --rm --no-deps migrate
+docker compose -f deploy/compose.yaml --env-file .env --env-file .env.vps run --rm --no-deps app \
   /app/bin/chat eval 'Chat.Release.migrate_media()'
 ```
 

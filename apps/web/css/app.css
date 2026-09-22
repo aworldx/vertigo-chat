@@ -8,7 +8,7 @@
 @import "./landing.css";
 @source "../css";
 @source "../js";
-@source "../../lib/chat_web";
+@source "../../../lib/chat_web";
 
 @font-face {
   font-family: "Vertigo Display";
@@ -37,7 +37,7 @@
   width: 1.25rem;
 }
 /* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
-@source "../../_build/dev/phoenix-colocated/chat/*/";
+@source "../../../_build/dev/phoenix-colocated/chat/*/";
 
 /* Add variants based on LiveView classes */
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);

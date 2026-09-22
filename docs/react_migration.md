@@ -26,7 +26,7 @@ email, password hash, session identity, raw image bytes or storage keys.
 | `/api/v1/profiles/:nickname` | Public, read-only profile details |
 | `/profiles/:nickname/photo` | Existing photo delivery endpoint |
 
-The API contract is in [openapi/profiles.yaml](openapi/profiles.yaml).
+The API contract is in [../contracts/openapi/profiles.yaml](../contracts/openapi/profiles.yaml).
 Controller tests cover pagination, search, errors, public fields and photo URLs.
 The original context and LiveView tests remain in place.
 
@@ -48,7 +48,7 @@ modal displays full-size photos. Network errors have an explicit retry action.
 ## Local development and verification
 
 Node.js 20.19+ (prefer a supported LTS release) and npm are required for assets.
-Dependencies are pinned in `assets/package-lock.json` and installed by:
+Dependencies are pinned in `apps/web/package-lock.json` and installed by:
 
 ```sh
 mix assets.setup
@@ -65,7 +65,7 @@ PORT=4030 YOUTUBE_WORKER_URL=http://localhost:4021 YOUTUBE_PROXY_BASE_URL=http:/
 Verification commands:
 
 ```sh
-npm --prefix assets test
+npm --prefix apps/web test
 mix test test/chat_web/controllers/api/v1/profile_controller_test.exs test/chat_web/controllers/react_profiles_controller_test.exs
 mix precommit
 ```

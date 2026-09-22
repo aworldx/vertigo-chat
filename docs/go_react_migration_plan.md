@@ -28,15 +28,15 @@ Phoenix поддерживает ещё не перенесённые сцена
 
 | Часть | Сделано | Ещё не сделано |
 | --- | --- | --- |
-| YouTube worker | Переписан на Go, коммит `c2b233c`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; `gofmt`, `go vet`, race-тесты; локальная проверка в браузере | golangci-lint, проверка архитектурных границ и перенос в целевой каталог; полный Docker build требует отдельной проверки |
+| YouTube worker | Переписан на Go и расположен в `services/youtube-worker`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; golangci-lint, `gofmt`, `go vet`, race-тесты | Полный production Docker build проверяется в CI quality/build pipeline |
 | React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Строгий TypeScript, browser/visual-сравнение и ручное принятие завершены | Production-переключение запрещено до полного завершения миграции и отдельного явного указания |
-| API анкет | `/api/v1/profiles` и `/api/v1/profiles/:nickname` поверх Elixir-контекстов; публичная проекция; OpenAPI; тесты | Генерация типов и автоматическая проверка контракта; Go-реализация |
+| API анкет | `/api/v1/profiles` и `/api/v1/profiles/:nickname` поверх Elixir-контекстов; публичная проекция; OpenAPI в `contracts/openapi`; сгенерированные типы и тесты | Go-реализация |
 | Основной backend | Phoenix/Elixir, существующие контексты и тесты | Миграция предметных областей на Go ещё не начата |
-| Архитектура | Зафиксированы целевая монорепа, DDD/Clean Architecture и матрица проверок | Большинство новых статических проверок пока требования, а не работающие gates |
+| Архитектура | `apps/web`, `services/youtube-worker`, `contracts`, `deploy`; quality gates и матрица проверок работают | Phoenix остаётся в корне до отдельного проверяемого переноса |
 
 React/API и документация входят в первый коммит ветки миграции после Go-воркера.
 Старый каталог анкет `/profiles` остаётся основным. Подробности первой итерации:
-[react_migration.md](react_migration.md), [OpenAPI](openapi/profiles.yaml).
+[react_migration.md](react_migration.md), [OpenAPI](../contracts/openapi/profiles.yaml).
 
 Последняя проверка 2026-09-22: `GO=/tmp/chat-go-sdk/go/bin/go`
 `GOCACHE=/tmp/chat-go-cache script/check` завершился успешно — Go formatting/vet/race,
@@ -50,7 +50,7 @@ strict TypeScript, ESLint, Prettier, 7 React interaction-тестов и 408 ExU
 нет. Кнопки увеличения и закрытия фотографии разнесены в противоположные углы
 в React и LiveView fallback; на профиле `guest-gSmK` их области не пересекаются.
 Для повторяемой проверки добавлен Playwright: он поднимает Phoenix на 4032,
-сохраняет пары снимков в `assets/test-results/` и сравнивает метрики old/new на
+сохраняет пары снимков в `apps/web/test-results/` и сравнивает метрики old/new на
 трёх viewport; `npm run browsers:install` один раз устанавливает Chromium.
 Временный стенд на 4031 запущен для ручного принятия пользователя.
 Пользователь вручную принял React-анкеты 2026-09-22; временный LiveView fallback
@@ -112,11 +112,11 @@ legacy-предупреждений Dialyzer; `--list-unused-filters` блоки
 
 ### 3. Организовать целевые каталоги
 
-- [ ] Выделить `apps/web` и перенести воркер в `services/youtube-worker`.
-- [ ] Перенести контракты в `contracts`, конфигурацию запуска — в `deploy`.
+- [x] Выделить `apps/web` и перенести воркер в `services/youtube-worker`.
+- [x] Перенести контракты в `contracts`, конфигурацию запуска — в `deploy`.
 - [ ] Переместить Phoenix в `apps/phoenix`, когда его сборку можно отделить;
       сохранить способ отдачи React и same-origin сессии на переходный период.
-- [ ] Обновить пути, локальные команды, Docker, CI и документацию; проверить
+- [x] Обновить пути, локальные команды, Docker, CI и документацию; проверить
       сборки всех затронутых приложений и запуск совместного локального стенда.
 
 Готовность: новое расположение работает без изменения поведения продукта.

@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(
-  { ignores: ["js/shared/generated/**", "node_modules/**", "../priv/**"] },
+  { ignores: ["js/shared/generated/**", "node_modules/**", "../../priv/**"] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
