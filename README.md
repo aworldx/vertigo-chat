@@ -141,10 +141,10 @@ PHX_URL_PORT=443
 ```
 
 To deploy a checked local change, commit it and push it to both `origin/main`
-and `gitlab/main`. GitLab CI builds the `linux/amd64` image natively and
-publishes it as `registry.gitlab.com/aworldx1/vertigo-chat:<commit SHA>`. The
-VPS only pulls that finished image: it never runs `mix deps.get` or `docker
-compose build`.
+and `gitlab/main`. GitLab CI builds three `linux/amd64` images natively:
+`app`, `admin` and `youtube-worker`. They are published as
+`registry.gitlab.com/aworldx1/vertigo-chat-<role>:<commit SHA>`. The VPS only
+pulls finished images: it never runs `mix deps.get` or `docker compose build`.
 
 For a private GitLab image, create a GitLab project deploy token with only
 `read_registry` permission and place it only in
@@ -159,8 +159,10 @@ Keep the token unquoted and do not copy it into the repository. If the GitLab
 image is public, omit both variables and the script pulls it anonymously. Wait
 for the **build_production_image** GitLab pipeline for the commit to finish,
 then run the deploy command. The script rejects a dirty tree or a revision
-different from `origin/main`, pulls that exact SHA (retrying for up to five
-minutes), migrates, recreates `app` and `admin`, and checks the local endpoint.
+different from `origin/main`, pulls that exact SHA, and waits for each updated
+container to become healthy. With no argument it migrates and updates every
+role. A targeted update skips migrations, so use it only when the target does
+not require a schema change.
 
 ```sh
 mix precommit
@@ -169,6 +171,11 @@ git commit -m "Describe the change"
 git push origin main
 
 bash script/deploy-production
+
+# Independently update one role after its image has been built.
+bash script/deploy-production admin
+bash script/deploy-production app
+bash script/deploy-production youtube-worker
 ```
 
 The firewall allows only SSH, HTTP and HTTPS; password authentication is

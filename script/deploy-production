@@ -7,6 +7,15 @@ project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 remote_host="${CHAT_DEPLOY_HOST:-root@109.248.170.47}"
 remote_dir="${CHAT_DEPLOY_DIR:-/opt/apps/vertigo-chat}"
 image_repository="${CHAT_IMAGE:-registry.gitlab.com/aworldx1/vertigo-chat}"
+deploy_target="${1:-all}"
+
+case "$deploy_target" in
+  all|app|admin|youtube-worker) ;;
+  *)
+    echo "Usage: $0 [all|app|admin|youtube-worker]" >&2
+    exit 2
+    ;;
+esac
 
 cd "$project_dir"
 
@@ -24,12 +33,13 @@ if [[ "$local_revision" != "$remote_revision" ]]; then
   exit 1
 fi
 
-ssh "$remote_host" bash -s -- "$remote_dir" "$local_revision" "$image_repository" <<'REMOTE'
+ssh "$remote_host" bash -s -- "$remote_dir" "$local_revision" "$image_repository" "$deploy_target" <<'REMOTE'
 set -euo pipefail
 
 deploy_dir="$1"
 expected_revision="$2"
 image_repository="$3"
+deploy_target="$4"
 registry_host="${CHAT_REGISTRY_HOST:-registry.gitlab.com}"
 
 env_value() {
@@ -61,27 +71,69 @@ mkdir -p logs
 chown 65534:root logs
 chmod 0770 logs
 
-export CHAT_IMAGE="$image_repository"
 export CHAT_IMAGE_TAG="$expected_revision"
+export CHAT_APP_IMAGE="${image_repository}-app"
+export CHAT_ADMIN_IMAGE="${image_repository}-admin"
+export CHAT_YOUTUBE_WORKER_IMAGE="${image_repository}-youtube-worker"
 
-# The workflow normally completes before this script is started. Retry briefly
-# so a deploy remains convenient when the image registry is a little behind.
-for attempt in $(seq 1 30); do
-  if docker compose --env-file .env --env-file .env.vps pull migrate app admin youtube-cache-init youtube-worker caddy; then
-    break
+compose() {
+  docker compose --env-file .env --env-file .env.vps "$@"
+}
+
+wait_for_health() {
+  local service="$1"
+  local container_id status
+
+  container_id="$(compose ps -q "$service")"
+  if [[ -z "$container_id" ]]; then
+    echo "Container for $service was not created." >&2
+    return 1
   fi
 
-  if [[ "$attempt" == "30" ]]; then
-    echo "Image $CHAT_IMAGE:$CHAT_IMAGE_TAG was not available in GHCR after 5 minutes." >&2
-    exit 1
-  fi
+  for _attempt in $(seq 1 30); do
+    status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id")"
+    if [[ "$status" == "healthy" || "$status" == "running" ]]; then
+      return 0
+    fi
 
-  sleep 10
-done
+    sleep 2
+  done
 
-docker compose --env-file .env --env-file .env.vps run --rm --no-deps migrate
-docker compose --env-file .env --env-file .env.vps run --rm --no-deps youtube-cache-init
-docker compose --env-file .env --env-file .env.vps up -d --no-build --force-recreate --no-deps app admin youtube-worker caddy
-docker compose --env-file .env --env-file .env.vps ps
-curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
+  echo "$service did not become healthy." >&2
+  compose logs --tail 100 "$service" >&2
+  return 1
+}
+
+case "$deploy_target" in
+  all)
+    compose pull migrate app admin youtube-cache-init youtube-worker caddy
+    compose run --rm --no-deps migrate
+    compose run --rm --no-deps youtube-cache-init
+    compose up -d --no-build --force-recreate --no-deps app admin youtube-worker caddy
+    wait_for_health app
+    wait_for_health admin
+    wait_for_health youtube-worker
+    curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
+    ;;
+  app)
+    compose pull migrate app
+    compose run --rm --no-deps migrate
+    compose up -d --no-build --force-recreate --no-deps app
+    wait_for_health app
+    curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
+    ;;
+  admin)
+    compose pull admin
+    compose up -d --no-build --force-recreate --no-deps admin
+    wait_for_health admin
+    ;;
+  youtube-worker)
+    compose pull youtube-cache-init youtube-worker
+    compose run --rm --no-deps youtube-cache-init
+    compose up -d --no-build --force-recreate --no-deps youtube-worker
+    wait_for_health youtube-worker
+    ;;
+esac
+
+compose ps
 REMOTE

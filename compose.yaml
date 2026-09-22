@@ -30,13 +30,19 @@ x-app-environment: &app-environment
   YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
 
 x-app-image: &app-image
-  # Production images are published by GitHub Actions. Keeping the build
+  # Production images are published by GitLab CI. Keeping the build
   # directive out of this file makes an accidental VPS-side build impossible.
-  image: ${CHAT_IMAGE:-chat-app}:${CHAT_IMAGE_TAG:-latest}
+  image: ${CHAT_APP_IMAGE:-chat-app}:${CHAT_IMAGE_TAG:-latest}
   environment: *app-environment
   volumes:
     - ${MUSIC_PROXY_HOST_FILE:-./.music_proxies}:/run/secrets/music_proxies:ro
     - ${CHAT_LOG_DIR:-./logs}:/var/log/chat
+
+x-admin-image: &admin-image
+  image: ${CHAT_ADMIN_IMAGE:-chat-admin}:${CHAT_IMAGE_TAG:-latest}
+
+x-youtube-worker-image: &youtube-worker-image
+  image: ${CHAT_YOUTUBE_WORKER_IMAGE:-chat-youtube-worker}:${CHAT_IMAGE_TAG:-latest}
 
 x-logging: &default-logging
   driver: local
@@ -71,7 +77,7 @@ services:
       start_period: 10s
 
   youtube-cache-init:
-    image: ${CHAT_IMAGE:-chat-app}:${CHAT_IMAGE_TAG:-latest}
+    <<: *youtube-worker-image
     user: "0:0"
     command:
       ["sh", "-c", "mkdir -p /var/cache/chat-youtube && chown -R 65534:65534 /var/cache/chat-youtube"]
@@ -80,8 +86,7 @@ services:
       - youtube_cache:/var/cache/chat-youtube
 
   youtube-worker:
-    <<: *app-image
-    command: ["/app/bin/youtube-worker"]
+    <<: *youtube-worker-image
     restart: unless-stopped
     mem_limit: ${YOUTUBE_WORKER_MEM_LIMIT:-768m}
     cpus: ${YOUTUBE_WORKER_CPUS:-1.0}
@@ -104,12 +109,14 @@ services:
       start_period: 10s
 
   admin:
-    <<: *app-image
+    <<: *admin-image
     restart: unless-stopped
     environment:
       <<: *app-environment
       CHAT_RUNTIME_ROLE: admin
       CHAT_LOG_PATH: /var/log/chat/admin.log
+    volumes:
+      - ${CHAT_LOG_DIR:-./logs}:/var/log/chat
     logging: *default-logging
     depends_on:
       postgres:

@@ -76,13 +76,12 @@ COPY config/runtime.exs config/
 COPY rel rel
 RUN mix release
 
-# start a new build stage so that the final image will only contain
-# the compiled release and other runtime necessities
-FROM ${RUNNER_IMAGE} AS final
+# Shared runtime for the three release roles. Keep it lean: role-specific
+# multimedia tools are installed only in the image that needs them.
+FROM ${RUNNER_IMAGE} AS runtime
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates curl imagemagick ffmpeg nodejs python3-pip \
-  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
+  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates curl \
   && rm -rf /var/lib/apt/lists/*
 
 # Set the locale
@@ -94,19 +93,43 @@ ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
 WORKDIR "/app"
-RUN chown nobody /app
 
 # set runner ENV
 ENV MIX_ENV="prod"
 
-# Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/chat ./
+RUN chown nobody:root /app
+
+FROM runtime AS app
+
+# The public chat creates profile-photo thumbnails.
+USER root
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends imagemagick \
+  && rm -rf /var/lib/apt/lists/*
 
 USER nobody
-
-# If using an environment that doesn't automatically reap zombie processes, it is
-# advised to add an init process such as tini via `apt-get install`
-# above and adding an entrypoint. See https://github.com/krallin/tini for details
-# ENTRYPOINT ["/tini", "--"]
-
 CMD ["/app/bin/server"]
+
+FROM runtime AS admin
+
+# The isolated admin endpoint serves Phoenix and database requests only.
+# It deliberately excludes ImageMagick and the YouTube toolchain.
+USER nobody
+CMD ["/app/bin/server"]
+
+FROM runtime AS youtube-worker
+
+# Video preparation is isolated from web traffic, so only this image includes
+# Python, yt-dlp, ffmpeg and Node.js.
+USER root
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg nodejs python3-pip \
+  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
+  && rm -rf /var/lib/apt/lists/*
+
+USER nobody
+CMD ["/app/bin/youtube-worker"]
+
+# Keep `docker build .` suitable for the public chat in local development.
+FROM app AS final
