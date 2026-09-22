@@ -46,6 +46,22 @@ defmodule ChatWeb.AccountControllerTest do
     end
   end
 
+  test "account registration creates a site cookie without a chat session", %{conn: conn} do
+    response =
+      post(conn, ~p"/account/register", %{
+        "registration" => %{
+          "nickname" => "new_site_member",
+          "password" => "secret123",
+          "email" => "new@example.test"
+        }
+      })
+
+    assert redirected_to(response) == ~p"/library"
+    assert is_integer(get_session(response, :account_user_id))
+    assert Repo.aggregate(ChatSession, :count) == 0
+    assert Repo.aggregate(Visit, :count) == 0
+  end
+
   test "login return destination rejects external and unsupported paths", %{conn: conn} do
     for path <- ["https://example.com", "//example.com", "/chat", "/games/unknown"] do
       response = post(conn, ~p"/account/login", %{"return_to" => path})

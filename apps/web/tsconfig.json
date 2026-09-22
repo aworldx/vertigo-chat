@@ -13,6 +13,7 @@
   },
   "include": [
     "js/profiles.tsx",
+    "js/account_login.tsx",
     "js/profiles/**/*.ts",
     "js/profiles/**/*.tsx",
     "js/shared/generated/**/*.ts",

@@ -82,6 +82,8 @@ defmodule ChatWeb.Router do
     pipe_through :browser
 
     post "/account/login", AccountController, :login
+    post "/account/register", AccountController, :register
+    get "/account/login", AccountLoginController, :index
     post "/account/chat-login", AccountController, :chat_login
     post "/account/logout", AccountController, :logout
     get "/forum/sso", ForumController, :discourse_connect

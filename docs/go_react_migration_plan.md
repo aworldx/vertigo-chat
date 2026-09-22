@@ -9,21 +9,21 @@
 
 ## Цель и ограничения
 
-Постепенно заменить интерфейс на React + строгий TypeScript, а основной бэкенд
-на Go, сохраняя работающий продукт на каждом шаге. Всё остаётся в одной монорепе.
-Phoenix поддерживает ещё не перенесённые сценарии до их проверенной замены.
+Полностью заменить UI на React + строгий TypeScript, а backend на Go. Всё
+остаётся в одной монорепе. Phoenix сохраняется целиком только в отдельной
+legacy-ветке и не является fallback или proxy целевой реализации.
 
 - Работать в отдельной ветке миграции `codex/go-react-migration` до полного
   завершения миграции; не переносить изменения в main автоматически.
-- Пользователь разрешил локально переключить `/profiles` на React при сохранении
-  LiveView fallback; это не разрешение на production.
+- Пользователь выбрал полный cutover в этой ветке: не создавать feature flags,
+  обратимые Phoenix proxy, LiveView fallback или новые Phoenix write-path.
 - До полного завершения миграции не делать production rollout: не выполнять
   push, публикацию образов, деплой или изменения production. Разрешены только
   коммиты в текущую ветку и проверка локальных стендов.
 - Сохранять внешний вид, особенно шрифты, отступы и поведение диалогов.
   Смена технологии сама по себе не является задачей редизайна.
-- Не переписывать UI и backend одного сценария одновременно: сначала закрепить
-  контракт, затем перенести UI, затем заменить backend за тем же контрактом.
+- Для каждого сценария сначала закрепить Go HTTP/WebSocket контракт, затем
+  перенести React UI и browser-тесты. Phoenix-код в этой ветке не расширять.
 - Один владелец записи и миграций на область данных; без dual write.
 
 ## Текущее состояние
@@ -31,10 +31,10 @@ Phoenix поддерживает ещё не перенесённые сцена
 | Часть | Сделано | Ещё не сделано |
 | --- | --- | --- |
 | YouTube worker | Переписан на Go и расположен в `services/youtube-worker`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; golangci-lint, `gofmt`, `go vet`, race-тесты | Полный production Docker build проверяется в CI quality/build pipeline |
-| React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Строгий TypeScript, browser/visual-сравнение и ручное принятие завершены | Production-переключение запрещено до полного завершения всей миграции |
-| API анкет | `apps/api` реализует Go read/write-модель анкет с domain/application/PostgreSQL/HTTP слоями, healthcheck, unit/race-тестами и тем же публичным контрактом. Phoenix имеет обратимые opt-in proxy: `PROFILES_GO_API_URL` для public JSON и media read, `PROFILES_GO_WRITE_API_URL` + `PROFILE_INTERNAL_TOKEN` для единого write-пути. React edit/upload и выдача original/thumbnail через cookie+CSRF Phoenix и Go подтверждены browser-сценарием | Включить оба proxy только после ручного принятия локального стенда; production-включение запрещено до полного завершения всей миграции |
-| Основной backend | Phoenix/Elixir, существующие контексты и тесты | Миграция предметных областей на Go ещё не начата |
-| Архитектура | `apps/phoenix`, `apps/web`, `apps/api`, `services/youtube-worker`, `contracts`, `deploy`; quality gates и матрица проверок работают. Docker target и Compose service `profiles-api` готовы и проверены локальной сборкой | Phoenix сохраняется временным application host; production rollout не выполнялся |
+| React-анкеты | Строгий TypeScript, browser/visual-сравнение и ручное принятие React UI завершены | Перенести доставку UI из Phoenix в Go web delivery; LiveView остаётся legacy |
+| API анкет | `apps/api` реализует Go read/write-модель анкет с domain/application/PostgreSQL/HTTP слоями, healthcheck и проверками | Убрать Phoenix public/proxy delivery и сделать Go единственным public API |
+| Accounts и chat-session | Go Accounts совместим с legacy PBKDF2; Go lifecycle покрывает start, restore, activate, touch, reconnect, reaper, leave и guest→registered identity | Перенести Go-owned browser account-session, public auth API, Presence/WebSocket и React chat UI |
+| Архитектура | `apps/web`, `apps/api`, `services/youtube-worker`, `contracts`, `deploy`; quality gates работают | Go должен стать web/application host; Phoenix исключается из целевой delivery цепочки |
 
 React/API и документация входят в первый коммит ветки миграции после Go-воркера.
 Старый каталог анкет `/profiles` остаётся основным. Подробности первой итерации:
@@ -106,8 +106,9 @@ ExUnit. Визуальное сравнение не выявило различ
       и desktop; исправить различия шрифтов/стилей и передать оба локальных URL
       пользователю вместе с результатами сравнения.
 
-Готовность достигнута: проверки подключены к общей локальной команде, проходят,
-а React-анкеты вручную приняты пользователем. Временный LiveView fallback сохраняется.
+Готовность React-анкет достигнута: проверки подключены к общей локальной команде,
+проходят, а React UI вручную принят пользователем. LiveView остаётся только в
+legacy-ветке.
 
 ### 2. Общие проверки репозитория
 
@@ -211,21 +212,118 @@ ExUnit. Визуальное сравнение не выявило различ
 Готовность каждого контекста: совместимое поведение, доменные/интеграционные
 тесты, статические проверки, диагностика ошибок и проверенный локальный откат.
 
+### 5.1. Миграция аутентификации и авторизации
+
+Цель — перенести `Accounts` в Go без преждевременного внедрения отдельного
+identity-провайдера. Для текущего продукта один сайт, локальные аккаунты,
+простые роли и tab-scoped chat-session; самостоятельный IdP добавит отдельную
+операционную систему и миграцию credential без подтверждённой потребности.
+
+Статус 2026-09-22: `apps/api` предоставляет Go Accounts application layer и
+совместимую проверку `pbkdf2_sha256`, регистрацию и principal с ролями. Старый
+React login существует, но пока доставляется Phoenix и потому не является
+целевой реализацией. Следующий обязательный шаг — Go-owned browser session,
+public auth API и Go web delivery React.
+
+Границы сохраняются:
+
+- `account-session` подтверждает пользователя для сайта и остаётся
+  same-origin HTTP-only cookie с CSRF-защитой. Браузер не хранит access/refresh
+  token в `localStorage` или `sessionStorage`.
+- `chat-session` и гостевая identity не являются account-session. Их lifecycle,
+  resume-secret, Presence и правило одной активной вкладки остаются отдельным
+  контекстом согласно [session_lifecycle.md](session_lifecycle.md).
+- `Accounts` владеет зарегистрированными пользователями, password credentials,
+  site-session и назначением ролей. Предметные контексты владеют своими
+  проверками ownership: наличие роли не заменяет проверку `user_id` при
+  изменении анкеты, альбома, сообщения или другого ресурса.
+- Роли `admin` и `emoji_moderator` — малый RBAC-набор. UI может скрывать
+  недоступное действие, но Go application layer обязан проверять право в каждом
+  write-сценарии. Не вводить policy-engine или relation-based authorization до
+  появления реальной модели прав на уровне объектов.
+
+Порядок работ:
+
+- [ ] Описать публичный Go application API `Accounts` и `Principal`: регистрация,
+      password login, logout, получение текущего пользователя, назначение и
+      проверка ролей. Не передавать HTTP cookie, JWT или SQL-модель в domain.
+- [ ] Создать Go context `internal/accounts/{domain,application,adapters}` и
+      перенести password verifier с совместимостью с существующим форматом
+      `pbkdf2_sha256`. Новый хэш-формат и обновление credential допустимы только
+      после успешной проверки старого пароля и с явной стратегией rollback.
+- [ ] Зафиксировать владельца таблиц `registered_users` и account-session до
+      cutover; не допускать постоянной dual-write/dual-auth схемы. Сначала Go
+      читает и проходит contract-тесты, затем один выбранный маршрут получает
+      Go как единственного владельца записи.
+- [ ] Реализовать Go-owned opaque account-session: HTTP-only Secure cookie,
+      CSRF, logout/revocation и current principal. Не использовать Phoenix BFF.
+- [ ] Покрыть browser и integration-тестами регистрацию, неверный пароль,
+      logout во второй вкладке, истечение/подделку cookie, CSRF, обычную роль,
+      обе административные роли, ownership и сохранение независимого
+      chat-session. Запустить `mix precommit` и Go race/static checks.
+- [ ] Проверить целевой Go+React flow локально. Phoenix запускается лишь из
+      legacy-ветки для сравнения, но не подключается к новому стенду.
+
+OIDC — отложенное, независимое расширение, а не условие переноса `Accounts`:
+
+- [ ] Возвращаться к нему только при подтверждённом кейсе: социальный вход,
+      корпоративное SSO, мобильный/сторонний клиент или несколько приложений.
+- [ ] Тогда реализовать OIDC **client** за портом `IdentityProvider`: Authorization
+      Code + PKCE, проверка `state`, `nonce`, issuer, audience, expiry и подписи
+      ID token по JWKS; связать стабильный `issuer + sub` с локальным user id.
+- [ ] Не делать это собственным OIDC provider и не внедрять ZITADEL/Ory без
+      отдельного решения по эксплуатации, ключам, резервному копированию,
+      миграции существующих credentials и требуемым SSO-сценариям.
+
+Готовность: Go владеет `Accounts`, прежние password-login, cookie/CSRF и роли
+совместимы, ownership не ослаблен, chat-session не затронута, а OIDC может быть
+добавлен без смены публичных product-сценариев.
+
 ### 6. Realtime, сессии и завершение
+
+Статус 2026-09-22: начат только серверный foundation `apps/api/internal/chatsessions`.
+В нём есть token-protected internal `start`, который создаёт visit и
+chat-session в одной PostgreSQL-транзакции и генерирует resume-secret на
+сервере. `leave` транзакционно завершает visit, начисляет chat time
+зарегистрированному пользователю и сохраняет departure-message; также есть
+restore, `connection-lost`, activate и heartbeat touch для session/visit, с
+generation fencing; Go учитывает visible/hidden heartbeat windows, reconnect
+grace и терминальность явного выхода. Окна берутся из тех же
+`CHAT_SESSION_GRACE_SECONDS` и `CHAT_HIDDEN_SESSION_GRACE_SECONDS`, что и у
+Phoenix остаётся legacy-реализацией в отдельной ветке. В целевой ветке не
+допускаются Phoenix fallback, feature flags или proxy для lifecycle: Go будет
+единственным владельцем lifecycle, Presence, visits и сообщений, а React —
+единственным UI. Go reaper запускается штатно вместе с Go-сервисом.
+Переход guest → registered user также перенесён в Go: identity, visit и
+generation обновляются атомарно, а resume-secret ротируется.
 
 - [ ] Инвентаризировать все оставшиеся обязанности Phoenix, включая фоновые
       задачи, админку, интеграции и эксплуатационные команды.
 - [ ] Описать и протестировать протокол realtime: auth, reconnect, порядок
       событий, дедупликацию, курсоры, presence и ошибки соединения.
-- [ ] Использовать [session_lifecycle.md](session_lifecycle.md) и
-      [chat_antipatterns.md](chat_antipatterns.md); перенести backend и UI
-      отдельными совместимыми шагами.
+- [ ] Реализовать Go Presence/WebSocket transport, server-issued connection id,
+      room snapshot/catch-up и публикацию событий после commit.
+- [ ] Перенести React главную, вход/регистрацию, storage/outbox и страницу
+      чата на public Go API/WebSocket, сохранив tab-scoped sessionStorage.
 - [ ] Проверить нагрузку и отказные сценарии; удалить временные маршруты и
       Phoenix только после замены всех его обязанностей.
 
 Готовность: пользовательские сценарии полностью обслуживаются Go + React,
 документация и локальный стенд актуальны. Production-переход планируется
 отдельно и требует явного разрешения пользователя.
+
+## Ближайший порядок полного cutover
+
+1. Ввести Go-owned browser account-session и public auth API; удалить
+   `ACCOUNTS_GO_API_URL`/`ACCOUNTS_INTERNAL_TOKEN` proxy-схему из целевого
+   deployment.
+2. Вынести React build и static web delivery из Phoenix в Go deployment;
+   перенести главную, вход и регистрацию на public Go API.
+3. Завершить Go WebSocket/Presence transport и переключить React chat на него.
+   Не создавать новые Phoenix routes, controllers или LiveView для этих шагов.
+4. Перенести остальные public контексты по тому же правилу и удалить Phoenix
+   из Docker/Compose/CI target текущей ветки. Сравнение с Phoenix выполняется
+   только отдельным legacy checkout.
 
 ## Как продолжать в следующей сессии
 

@@ -6,6 +6,7 @@ defmodule Chat.Accounts do
 
   import Ecto.Query
 
+  alias Chat.Accounts.GoAPI
   alias Chat.Accounts.Password
   alias Chat.Accounts.User
   alias Chat.Appearance
@@ -28,12 +29,12 @@ defmodule Chat.Accounts do
 
     changeset = User.registration_changeset(%User{}, attrs)
 
-    cond do
-      not changeset.valid? ->
-        {:error, changeset}
-
-      true ->
-        register_valid_user(changeset, subject)
+    if changeset.valid? do
+      if GoAPI.enabled?(),
+        do: register_through_go(attrs, subject),
+        else: register_valid_user(changeset, subject)
+    else
+      {:error, changeset}
     end
   end
 
@@ -79,11 +80,22 @@ defmodule Chat.Accounts do
     end
   end
 
-  def admin?(%User{is_admin: true}), do: true
+  def admin?(%User{id: user_id, is_admin: is_admin}) do
+    if GoAPI.enabled?(), do: GoAPI.has_role?(user_id, "admin"), else: is_admin
+  end
+
   def admin?(_user), do: false
 
-  def emoji_moderator?(%User{is_admin: true}), do: true
-  def emoji_moderator?(%User{can_moderate_emojis: true}), do: true
+  def emoji_moderator?(%User{
+        id: user_id,
+        is_admin: is_admin,
+        can_moderate_emojis: can_moderate_emojis
+      }) do
+    if GoAPI.enabled?(),
+      do: GoAPI.has_role?(user_id, "emoji_moderator"),
+      else: is_admin or can_moderate_emojis
+  end
+
   def emoji_moderator?(_user), do: false
 
   def authenticate(nickname, password) do
@@ -93,6 +105,7 @@ defmodule Chat.Accounts do
     cond do
       is_nil(nickname) -> {:error, :invalid_nickname}
       password == "" -> {:error, :missing_password}
+      GoAPI.enabled?() -> authenticate_through_go(nickname, password)
       true -> verify_registered_user(nickname, password)
     end
   end
@@ -146,6 +159,16 @@ defmodule Chat.Accounts do
     end
   end
 
+  defp authenticate_through_go(nickname, password) do
+    with {:ok, user_id} <- GoAPI.authenticate(nickname, password),
+         %User{is_game_guest: false} = user <- get_user(user_id) do
+      {:ok, user}
+    else
+      nil -> {:error, :not_found}
+      {:error, _reason} = error -> error
+    end
+  end
+
   defp register_valid_user(changeset, subject) do
     Repo.transaction(fn ->
       changeset =
@@ -161,6 +184,17 @@ defmodule Chat.Accounts do
         {:error, failed_changeset} -> Repo.rollback(failed_changeset)
       end
     end)
+  end
+
+  defp register_through_go(attrs, subject) do
+    with :ok <- Security.claim_registration(subject),
+         {:ok, user_id} <- GoAPI.register(attrs),
+         %User{is_game_guest: false} = user <- get_user(user_id) do
+      {:ok, user}
+    else
+      nil -> {:error, :unavailable}
+      {:error, _reason} = error -> error
+    end
   end
 
   defp create_game_guest(nickname, guest_identity_id) do

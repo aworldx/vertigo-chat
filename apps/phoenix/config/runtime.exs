@@ -26,6 +26,11 @@ config :chat, Chat.Profiles.GoMutationAPI,
   base_url: System.get_env("PROFILES_GO_WRITE_API_URL"),
   token: System.get_env("PROFILE_INTERNAL_TOKEN")
 
+# Phoenix owns the browser cookie and CSRF boundary while Go verifies credentials.
+config :chat, Chat.Accounts.GoAPI,
+  base_url: System.get_env("ACCOUNTS_GO_API_URL"),
+  token: System.get_env("ACCOUNTS_INTERNAL_TOKEN")
+
 if config_env() == :dev do
   config :chat, Chat.YouTube,
     proxy_base_url: System.get_env("YOUTUBE_PROXY_BASE_URL", "http://localhost:4001")

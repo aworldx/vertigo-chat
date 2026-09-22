@@ -6,6 +6,8 @@ services:
       PROFILES_GO_API_URL: http://profiles-api:4020
       PROFILES_GO_WRITE_API_URL: http://profiles-api:4020
       PROFILE_INTERNAL_TOKEN: ${PROFILE_INTERNAL_TOKEN:?PROFILE_INTERNAL_TOKEN must be set when enabling Go profile writes}
+      ACCOUNTS_GO_API_URL: http://profiles-api:4020
+      ACCOUNTS_INTERNAL_TOKEN: ${ACCOUNTS_INTERNAL_TOKEN:?ACCOUNTS_INTERNAL_TOKEN must be set when enabling Go Accounts}
     depends_on:
       profiles-api:
         condition: service_healthy

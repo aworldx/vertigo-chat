@@ -55,7 +55,6 @@ Credo.Check.Readability.ModuleDoc	test/support/session_node.ex	3	Chat.SessionNod
 Credo.Check.Readability.WithSingleClause	lib/chat/games.ex	38	Chat.Games.create
 Credo.Check.Readability.WithSingleClause	lib/chat/messages.ex	499	Chat.Messages.persist_and_broadcast
 Credo.Check.Readability.WithSingleClause	lib/chat/you_tube.ex	208	Chat.YouTube.search_on_worker
-Credo.Check.Refactor.CondStatements	lib/chat/accounts.ex	31	Chat.Accounts.register_user
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/checkers.ex	182	Chat.Checkers.validate_step
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/commands.ex	34	Chat.Commands.parse_command
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/gallery.ex	115	Chat.Gallery.insert_with_quota
