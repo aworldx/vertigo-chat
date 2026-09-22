@@ -12,23 +12,16 @@ positive_integer_env = fn name, default ->
   end
 end
 
-config :chat,
-       :youtube_worker_port,
-       positive_integer_env.("YOUTUBE_WORKER_PORT", 4001)
-
-youtube_cache_dir =
-  if config_env() == :prod,
-    do: "/var/cache/chat-youtube",
-    else: Path.join(System.tmp_dir!(), "chat-youtube-cache")
-
 config :chat, Chat.YouTube,
-  cache_dir: System.get_env("YOUTUBE_CACHE_DIR", youtube_cache_dir),
-  cache_max_bytes: positive_integer_env.("YOUTUBE_CACHE_MAX_BYTES", 2 * 1_024 * 1_024 * 1_024),
-  worker_url: System.get_env("YOUTUBE_WORKER_URL"),
-  worker_receive_timeout: positive_integer_env.("YOUTUBE_WORKER_RECEIVE_TIMEOUT_MS", 30_000),
-  # One preparation keeps yt-dlp and ffmpeg from competing for the worker's
-  # limited CPU and memory. Requests for other videos wait in Cache's FIFO queue.
-  cache_max_preparations: positive_integer_env.("YOUTUBE_CACHE_MAX_PREPARATIONS", 1)
+  worker_url:
+    System.get_env("YOUTUBE_WORKER_URL") ||
+      if(config_env() == :dev, do: "http://localhost:4001", else: nil),
+  worker_receive_timeout: positive_integer_env.("YOUTUBE_WORKER_RECEIVE_TIMEOUT_MS", 30_000)
+
+if config_env() == :dev do
+  config :chat, Chat.YouTube,
+    proxy_base_url: System.get_env("YOUTUBE_PROXY_BASE_URL", "http://localhost:4001")
+end
 
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the

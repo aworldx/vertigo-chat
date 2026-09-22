@@ -191,3 +191,62 @@ Ready to run in production? Please [check our deployment guides](https://phoenix
 * Docs: https://phoenix.hexdocs.pm
 * Forum: https://elixirforum.com/c/phoenix-forum
 * Source: https://github.com/phoenixframework/phoenix
+
+## Local YouTube worker (Go)
+
+YouTube search, metadata, downloads and the MP4 cache run in `youtube-worker/`.
+Phoenix communicates with it over HTTP using Req. The worker needs Go 1.25+,
+`yt-dlp`, Node.js (YouTube JavaScript challenges), and `ffmpeg` in PATH.
+The Go service uses the standard library only; yt-dlp and ffmpeg remain external tools.
+
+Start two terminals from the repository root:
+
+```sh
+script/youtube-worker
+```
+
+```sh
+mix phx.server
+```
+
+The defaults are chat at http://localhost:4000/chat and the worker at
+http://localhost:4001. For parallel local testing, use:
+
+```sh
+YOUTUBE_WORKER_PORT=4011 script/youtube-worker
+PORT=4010 YOUTUBE_WORKER_URL=http://localhost:4011 YOUTUBE_PROXY_BASE_URL=http://localhost:4011 mix phx.server
+```
+
+`mix precommit` checks Go formatting, runs `go vet` and `go test -race`, then
+runs the Elixir tests. Run `script/check-go` for the Go checks alone.
+Set `GO=/path/to/go` if the SDK is not in PATH.
+
+Worker configuration:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `YOUTUBE_WORKER_HOST` | `127.0.0.1` (`0.0.0.0` in Docker) | Bind address |
+| `YOUTUBE_WORKER_PORT` | `4001` | HTTP port |
+| `YOUTUBE_CACHE_DIR` | OS temp directory + `chat-youtube-cache` | Persistent MP4 cache |
+| `YOUTUBE_CACHE_MAX_BYTES` | `2147483648` | Cache size limit |
+| `YOUTUBE_CACHE_MAX_PREPARATIONS` | `1` | Concurrent video downloads |
+| `YOUTUBE_REQUEST_TIMEOUT_MS` | `25000` | Search/metadata timeout |
+| `YOUTUBE_DOWNLOAD_TIMEOUT_MS` | `120000` | Download/merge timeout |
+| `YOUTUBE_YT_DLP_PATH` | `yt-dlp` | Downloader executable |
+| `YOUTUBE_FFMPEG_PATH` | `ffmpeg` | MP4 processing executable |
+
+The cache deduplicates downloads, queues up to 128 pending videos, expires entries
+idle for six hours and evicts least recently used files to stay within its limit.
+Failed downloads have a 30-second retry cooldown. Ready MP4s survive restarts;
+interrupted temporary downloads are cleaned up at startup. Use one worker process
+per cache directory. Metadata operations are limited to four concurrent requests.
+
+HTTP contract: `GET /health`, `POST /youtube/search` (`query`),
+`POST /youtube/prepare` (`source_url`), `GET|HEAD /youtube-proxy/:video_id`.
+The proxy returns `202` with `Retry-After: 1` while downloading, then serves MP4
+with byte ranges. Only YouTube IDs are accepted; live, unknown-duration and
+longer-than-20-minute videos are rejected. Search uses yt-dlp's flat playlist
+metadata and returns up to five eligible results.
+
+The `youtube-worker` Docker target builds the Go binary independently of the
+Phoenix release. It does not receive application/database secrets in Compose.

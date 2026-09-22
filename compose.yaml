@@ -28,7 +28,6 @@ x-app-environment: &app-environment
   MUSIC_PROXY_FILE: /run/secrets/music_proxies
   DISCOURSE_CONNECT_SECRET: ${DISCOURSE_CONNECT_SECRET:-}
   YOUTUBE_WORKER_URL: http://youtube-worker:4001
-  YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
 
 x-app-image: &app-image
   # Production images are published by GitLab CI. Keeping the build
@@ -92,11 +91,11 @@ services:
     mem_limit: ${YOUTUBE_WORKER_MEM_LIMIT:-768m}
     cpus: ${YOUTUBE_WORKER_CPUS:-1.0}
     environment:
-      <<: *app-environment
-      CHAT_RUNTIME_ROLE: youtube_worker
+      YOUTUBE_WORKER_HOST: "0.0.0.0"
       YOUTUBE_WORKER_PORT: "4001"
       YOUTUBE_CACHE_DIR: /var/cache/chat-youtube
       YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
+      YOUTUBE_CACHE_MAX_BYTES: ${YOUTUBE_CACHE_MAX_BYTES:-2147483648}
     volumes:
       - youtube_cache:/var/cache/chat-youtube
     depends_on:

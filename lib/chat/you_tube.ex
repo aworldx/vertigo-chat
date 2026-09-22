@@ -41,8 +41,8 @@ defmodule Chat.YouTube do
     end
   end
 
-  @doc false
-  def prepare_video_locally(link) do
+  # Injectable resolvers keep context/LiveView tests independent of external media tools.
+  defp prepare_with_resolvers(link) do
     with {:ok, video} <- normalize_link(link),
          {:ok, duration} <- fetch_duration(video.source_url),
          true <- duration <= @max_duration_seconds do
@@ -69,8 +69,7 @@ defmodule Chat.YouTube do
 
   def search(_query), do: {:error, :query_required}
 
-  @doc false
-  def search_locally(query) when is_binary(query) do
+  defp search_with_resolvers(query) when is_binary(query) do
     query = String.trim(query)
 
     cond do
@@ -80,7 +79,7 @@ defmodule Chat.YouTube do
     end
   end
 
-  def search_locally(_query), do: {:error, :query_required}
+  defp search_with_resolvers(_query), do: {:error, :query_required}
 
   @spec proxy_url(String.t()) :: String.t()
   def proxy_url(video_id) when is_binary(video_id) do
@@ -91,25 +90,6 @@ defmodule Chat.YouTube do
 
     proxy_base_url <> "/youtube-proxy/" <> URI.encode(video_id)
   end
-
-  def download_to_file(video_id, path) when is_binary(video_id) and is_binary(path) do
-    with true <- Regex.match?(@video_id_pattern, video_id),
-         yt_dlp when is_binary(yt_dlp) <- executable_path(:yt_dlp),
-         ffmpeg when is_binary(ffmpeg) <- executable_path(:ffmpeg) do
-      downloader = Application.get_env(:chat, __MODULE__, []) |> Keyword.get(:download_fun)
-
-      result =
-        if is_function(downloader, 2),
-          do: downloader.(video_id, path),
-          else: download_with_yt_dlp(yt_dlp, ffmpeg, video_id, path)
-
-      if result == :ok, do: :ok, else: {:error, :download_failed}
-    else
-      _unavailable -> {:error, :stream_unavailable}
-    end
-  end
-
-  def download_to_file(_video_id, _path), do: {:error, :stream_unavailable}
 
   defp video_id(%URI{path: "/watch", query: query}, host) when host in @youtube_hosts do
     case URI.decode_query(query || "") do
@@ -129,34 +109,10 @@ defmodule Chat.YouTube do
 
   defp video_id(_uri, _host), do: {:error, :invalid_youtube}
 
-  defp executable_path(:yt_dlp) do
-    config = Application.get_env(:chat, __MODULE__, [])
-    configured_path = Keyword.get(config, :yt_dlp_path)
-
-    Enum.find(
-      [configured_path, System.find_executable("yt-dlp"), "/opt/homebrew/bin/yt-dlp"],
-      fn path ->
-        is_binary(path) and File.regular?(path)
-      end
-    )
-  end
-
-  defp executable_path(:ffmpeg) do
-    config = Application.get_env(:chat, __MODULE__, [])
-    configured_path = Keyword.get(config, :ffmpeg_path)
-
-    Enum.find(
-      [configured_path, System.find_executable("ffmpeg"), "/opt/homebrew/bin/ffmpeg"],
-      fn path ->
-        is_binary(path) and File.regular?(path)
-      end
-    )
-  end
-
   defp fetch_duration(source_url) do
     resolver =
       Application.get_env(:chat, __MODULE__, [])
-      |> Keyword.get(:duration_resolver, &fetch_duration_with_yt_dlp/1)
+      |> Keyword.get(:duration_resolver, fn _ -> {:error, :video_unavailable} end)
 
     case resolver.(source_url) do
       {:ok, duration} when is_number(duration) and duration > 0 -> {:ok, trunc(duration)}
@@ -164,33 +120,10 @@ defmodule Chat.YouTube do
     end
   end
 
-  defp fetch_duration_with_yt_dlp(source_url) do
-    with path when is_binary(path) <- executable_path(:yt_dlp),
-         {output, 0} <-
-           System.cmd(
-             path,
-             [
-               "--quiet",
-               "--no-warnings",
-               "--no-playlist",
-               "--skip-download",
-               "--print",
-               "%(duration)s",
-               source_url
-             ],
-             stderr_to_stdout: true
-           ),
-         {duration, ""} <- output |> String.trim() |> Float.parse() do
-      {:ok, duration}
-    else
-      _unavailable -> {:error, :video_unavailable}
-    end
-  end
-
   defp fetch_title(source_url) do
     resolver =
       Application.get_env(:chat, __MODULE__, [])
-      |> Keyword.get(:title_resolver, &fetch_title_with_yt_dlp/1)
+      |> Keyword.get(:title_resolver, fn _ -> {:error, :video_unavailable} end)
 
     case resolver.(source_url) do
       {:ok, title} when is_binary(title) ->
@@ -207,33 +140,10 @@ defmodule Chat.YouTube do
     end
   end
 
-  defp fetch_title_with_yt_dlp(source_url) do
-    with path when is_binary(path) <- executable_path(:yt_dlp),
-         {output, 0} <-
-           System.cmd(
-             path,
-             [
-               "--quiet",
-               "--no-warnings",
-               "--no-playlist",
-               "--skip-download",
-               "--print",
-               "%(title)s",
-               source_url
-             ],
-             stderr_to_stdout: true
-           ),
-         title when is_binary(title) and title != "" <- String.trim(output) do
-      {:ok, title}
-    else
-      _unavailable -> {:error, :video_unavailable}
-    end
-  end
-
   defp search_videos(query) do
     resolver =
       Application.get_env(:chat, __MODULE__, [])
-      |> Keyword.get(:search_resolver, &search_with_yt_dlp/1)
+      |> Keyword.get(:search_resolver, fn _ -> {:error, :video_unavailable} end)
 
     case resolver.(query) do
       {:ok, videos} when is_list(videos) ->
@@ -270,30 +180,9 @@ defmodule Chat.YouTube do
 
   defp search_entry(_entry), do: []
 
-  defp search_with_yt_dlp(query) do
-    with path when is_binary(path) <- executable_path(:yt_dlp),
-         {output, 0} <-
-           System.cmd(
-             path,
-             [
-               "--quiet",
-               "--no-warnings",
-               "--no-playlist",
-               "--dump-single-json",
-               "ytsearch#{@max_search_results}:#{query}"
-             ],
-             stderr_to_stdout: true
-           ),
-         {:ok, %{"entries" => entries}} <- Jason.decode(output) do
-      {:ok, entries}
-    else
-      _error -> {:error, :video_unavailable}
-    end
-  end
-
   defp prepare_on_worker(source_url) do
     if local_resolvers_configured?() do
-      prepare_video_locally(source_url)
+      prepare_with_resolvers(source_url)
       |> case do
         {:ok, %{duration: duration, title: title}} -> {:ok, %{duration: duration, title: title}}
         {:error, _reason} = error -> error
@@ -314,7 +203,7 @@ defmodule Chat.YouTube do
 
   defp search_on_worker(query) do
     if local_resolvers_configured?() do
-      search_locally(query)
+      search_with_resolvers(query)
     else
       with {:ok, %{"videos" => videos}} <- worker_request("/youtube/search", %{"query" => query}) do
         normalize_worker_search_results(videos)
@@ -379,27 +268,4 @@ defmodule Chat.YouTube do
     is_function(config[:duration_resolver], 1) or is_function(config[:title_resolver], 1) or
       is_function(config[:search_resolver], 1)
   end
-
-  defp download_with_yt_dlp(yt_dlp, ffmpeg, video_id, path) do
-    temporary_path = path <> ".part"
-    File.rm(temporary_path)
-
-    command =
-      shell_command(yt_dlp, ffmpeg, video_id, temporary_path) <>
-        " && mv " <> shell_escape(temporary_path) <> " " <> shell_escape(path)
-
-    case System.cmd("/bin/sh", ["-c", command], stderr_to_stdout: true) do
-      {_output, 0} -> :ok
-      _error -> {:error, :download_failed}
-    end
-  end
-
-  defp shell_command(yt_dlp, ffmpeg, video_id, output_path) do
-    "#{shell_escape(yt_dlp)} --quiet --no-warnings --no-playlist --no-part " <>
-      "--format 'bestvideo[vcodec^=avc1][height<=360]+bestaudio[acodec^=mp4a]/best[ext=mp4][height<=360]' " <>
-      "--output - 'https://www.youtube.com/watch?v=#{video_id}' | " <>
-      "#{shell_escape(ffmpeg)} -hide_banner -loglevel error -i pipe:0 -c copy -bsf:a aac_adtstoasc -movflags +faststart -f mp4 #{shell_escape(output_path)}"
-  end
-
-  defp shell_escape(value), do: "'" <> String.replace(value, "'", "'\\\"'\\\"'") <> "'"
 end

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Go quality gate used by mix precommit and available independently.
+set -eu
+cd "$(dirname "$0")/../youtube-worker"
+go_command="${GO:-go}"
+if ! command -v "$go_command" >/dev/null 2>&1; then
+  echo "Go is required for precommit. Install Go 1.25+ or set GO=/path/to/go." >&2
+  exit 1
+fi
+gofmt_command="$("$go_command" env GOROOT)/bin/gofmt"
+unformatted="$("$gofmt_command" -l .)"
+if [ -n "$unformatted" ]; then
+  echo "Go files need formatting (run gofmt -w youtube-worker/*.go):" >&2
+  printf '%s\n' "$unformatted" >&2
+  exit 1
+fi
+"$go_command" vet ./...
+"$go_command" test -race ./...

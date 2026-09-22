@@ -100,15 +100,6 @@ ENV MIX_ENV="prod"
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/chat ./
 RUN chown nobody:root /app
 
-FROM runtime AS youtube-client
-
-# Only the isolated worker runs yt-dlp and validates YouTube metadata.
-USER root
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends nodejs python3-pip \
-  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
-  && rm -rf /var/lib/apt/lists/*
-
 FROM runtime AS app
 
 # The public chat creates profile-photo thumbnails.
@@ -127,15 +118,19 @@ FROM runtime AS admin
 USER nobody
 CMD ["/app/bin/server"]
 
-FROM youtube-client AS youtube-worker
+FROM golang:1.27.1-trixie AS youtube-builder
+WORKDIR /src
+COPY youtube-worker/ ./
+RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /youtube-worker .
 
-# Video preparation is isolated from web traffic, so only this image includes
-# ffmpeg and the cache/streaming runtime.
-USER root
+# Standalone Go service: no BEAM release, database or application secrets.
+FROM ${RUNNER_IMAGE} AS youtube-worker
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg \
+  && apt-get install -y --no-install-recommends ca-certificates curl nodejs python3-pip ffmpeg \
+  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
   && rm -rf /var/lib/apt/lists/*
-
+COPY --from=youtube-builder /youtube-worker /app/bin/youtube-worker
+ENV YOUTUBE_WORKER_HOST=0.0.0.0 YOUTUBE_CACHE_DIR=/var/cache/chat-youtube
 USER nobody
 CMD ["/app/bin/youtube-worker"]
 

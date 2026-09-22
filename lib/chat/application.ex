@@ -15,35 +15,12 @@ defmodule Chat.Application do
 
   defp runtime_role do
     case System.get_env("CHAT_RUNTIME_ROLE") do
-      "youtube_worker" -> :youtube_worker
       "admin" -> :admin
       _role -> Application.get_env(:chat, :runtime_role, :chat)
     end
   end
 
-  defp children_for(:youtube_worker) do
-    [
-      Chat.YouTube.Cache,
-      youtube_worker_server()
-    ]
-  end
-
-  defp children_for(role), do: base_children() ++ role_children(role) ++ embedded_youtube_worker()
-
-  defp embedded_youtube_worker do
-    if Application.get_env(:chat, :youtube_worker_embedded?, false) do
-      [Chat.YouTube.Cache, youtube_worker_server()]
-    else
-      []
-    end
-  end
-
-  defp youtube_worker_server do
-    {Bandit,
-     plug: Chat.YouTube.Worker,
-     scheme: :http,
-     port: Application.fetch_env!(:chat, :youtube_worker_port)}
-  end
+  defp children_for(role), do: base_children() ++ role_children(role)
 
   defp base_children,
     do: [ChatWeb.Telemetry, Chat.Repo, Chat.LogFileHandler, {Phoenix.PubSub, name: Chat.PubSub}]
