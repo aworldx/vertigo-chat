@@ -8,6 +8,15 @@ export type Frame =
   | { type: "ack"; message: Message }
   | { type: "left" }
   | { type: "error"; code: string; client_id: string }
+function colors(value: unknown) {
+  return (
+    record(value) &&
+    typeof value.nickname_color === "string" &&
+    /^#[0-9a-f]{6}$/u.test(value.nickname_color) &&
+    typeof value.text_color === "string" &&
+    /^#[0-9a-f]{6}$/u.test(value.text_color)
+  )
+}
 function message(value: unknown): value is Message {
   return (
     record(value) &&
@@ -17,7 +26,13 @@ function message(value: unknown): value is Message {
     typeof value.kind === "string" &&
     typeof value.author === "string" &&
     typeof value.body === "string" &&
-    typeof value.sent_at === "string"
+    typeof value.sent_at === "string" &&
+    Number.isFinite(Date.parse(value.sent_at)) &&
+    record(value.appearance) &&
+    colors(value.appearance.dark) &&
+    colors(value.appearance.light) &&
+    ["theme", "sans", "display", "serif"].includes(String(value.font_id)) &&
+    (value.font_style === "normal" || value.font_style === "italic")
   )
 }
 function snapshot(value: unknown): value is Snapshot {

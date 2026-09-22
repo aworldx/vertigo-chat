@@ -195,6 +195,16 @@ export class ChatConnection {
     const item = outbox.find((item) => item.client_id === clientID)
     if (item && this.state.status === "ready") this.write({ type: "send", ...item })
   }
+  cancelMessage(clientID: string) {
+    const outbox = this.state.outbox.filter((item) => item.client_id !== clientID || item.state !== "failed")
+    try {
+      saveOutbox(outbox)
+    } catch {
+      this.update({ error: "Не удалось изменить очередь. Разреши хранение данных вкладки." })
+      return
+    }
+    this.update({ outbox, error: "" })
+  }
   leave() {
     clearSession()
     this.leaving = true

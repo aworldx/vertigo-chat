@@ -40,7 +40,13 @@ func TestPublicChatPostgres(t *testing.T) {
 		t.Skip("set GO_CHAT_TEST_DATABASE_URL to a disposable legacy-schema database")
 	}
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, url)
+	config, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Legacy utc_datetime columns have no zone. Never depend on the DB's zone.
+	config.ConnConfig.RuntimeParams["timezone"] = "Asia/Kathmandu"
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,8 +143,17 @@ type serverFrame struct {
 	Type       string
 	Generation int
 	Message    struct {
-		ID   int64
-		Body string
+		ID         int64
+		Body       string
+		SentAt     time.Time `json:"sent_at"`
+		Appearance struct {
+			Dark struct {
+				Nickname string `json:"nickname_color"`
+				Text     string `json:"text_color"`
+			}
+		}
+		FontID    string `json:"font_id"`
+		FontStyle string `json:"font_style"`
 	}
 }
 
@@ -182,13 +197,7 @@ func (f *chatFixture) frame(t *testing.T, conn *websocket.Conn, kind string) ser
 func (f *chatFixture) socket(t *testing.T) {
 	token := f.post(t, "/api/v1/chat/enter", `{"nickname":"fixture01","password":"secret123"}`, 200)
 	conn, first := f.connect(t, token)
-	f.send(t, conn, map[string]string{"type": "send", "client_id": "test-outbox", "body": "привет"})
-	ack := f.frame(t, conn, "ack")
-	f.send(t, conn, map[string]string{"type": "send", "client_id": "test-outbox", "body": "different retry"})
-	again := f.frame(t, conn, "ack")
-	if ack.Message.ID != again.Message.ID || again.Message.Body != "привет" {
-		t.Fatalf("duplicate outbox changed history: %+v %+v", ack, again)
-	}
+	f.messagePresentation(t, conn)
 	newer, second := f.connect(t, token)
 	if second.Generation <= first.Generation {
 		t.Fatal("restore did not fence old connection")
@@ -210,4 +219,43 @@ func (f *chatFixture) socket(t *testing.T) {
 	if _, err := lifecycle.Restore(context.Background(), resume.SessionID, resume.IdentityKey, resume.Secret, time.Now()); err == nil {
 		t.Fatal("ended session restored")
 	}
+}
+
+func (f *chatFixture) messagePresentation(t *testing.T, conn *websocket.Conn) {
+	t.Helper()
+	f.send(t, conn, map[string]string{"type": "send", "client_id": "test-outbox", "body": "привет"})
+	ack := f.frame(t, conn, "ack")
+	f.checkMessageClock(t, ack.Message.SentAt)
+
+	if ack.Message.Appearance.Dark.Nickname != "#fcd34d" || ack.Message.Appearance.Dark.Text != "#e4e4e7" || ack.Message.FontID != "theme" || ack.Message.FontStyle != "normal" {
+		t.Fatalf("default message presentation: %+v", ack.Message)
+	}
+	// A replay must return the persisted presentation, not reset it to send defaults.
+	if _, err := f.pool.Exec(context.Background(), `UPDATE room_messages SET appearance='{"dark":{"nickname_color":"#ABCDEF","text_color":"#123456"}}',font_id='serif',font_style='italic' WHERE id=$1`, ack.Message.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	f.send(t, conn, map[string]string{"type": "send", "client_id": "test-outbox", "body": "different retry"})
+	again := f.frame(t, conn, "ack")
+	if ack.Message.ID != again.Message.ID || again.Message.Body != "привет" {
+		t.Fatalf("duplicate outbox changed history: %+v %+v", ack, again)
+	}
+	if again.Message.Appearance.Dark.Nickname != "#abcdef" || again.Message.Appearance.Dark.Text != "#123456" || again.Message.FontID != "serif" || again.Message.FontStyle != "italic" {
+		t.Fatalf("stored presentation on replay: %+v", again.Message)
+	}
+}
+
+func (f *chatFixture) checkMessageClock(t *testing.T, sentAt time.Time) {
+	t.Helper()
+	if elapsed := time.Since(sentAt); elapsed < -time.Second || elapsed > 10*time.Second {
+		t.Fatalf("message timestamp is not UTC: %v", sentAt)
+	}
+	var enteredAt time.Time
+	if err := f.pool.QueryRow(context.Background(), `SELECT entered_at FROM visits WHERE nickname='fixture01' ORDER BY id DESC LIMIT 1`).Scan(&enteredAt); err != nil {
+		t.Fatal(err)
+	}
+	if elapsed := time.Since(enteredAt); elapsed < -time.Second || elapsed > 10*time.Second {
+		t.Fatalf("entrance timestamp is not UTC: %v", enteredAt)
+	}
+
 }

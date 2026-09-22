@@ -3,6 +3,8 @@
 set -eu
 repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
 go_command="${GO:-go}"
+verification_suite="${WEB_VERIFICATION_SUITE:-web}"
+case "$verification_suite" in web|chat-feed) ;; *) echo "Unknown WEB_VERIFICATION_SUITE" >&2; exit 1 ;; esac
 source_url="${ACCOUNTS_LEGACY_DATABASE_URL:-postgresql://localhost/chat_test}"
 legacy_root="${LEGACY_ROOT:?Set LEGACY_ROOT to the pinned legacy checkout with built assets}"
 legacy_sha="$(git -C "$legacy_root" rev-parse HEAD)"
@@ -34,12 +36,16 @@ pg_dump --data-only --no-owner --no-privileges --table=public.schema_migrations 
 for database in "$go_url" "$legacy_url"; do
   psql "$database" -v ON_ERROR_STOP=1 -q -f "$work_dir/schema.sql" > "$work_dir/schema.log"
   psql "$database" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/go-web.sql"
+  if [ "$verification_suite" = chat-feed ]; then
+    psql "$database" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/chat-feed.sql"
+  fi
 done
 npm --prefix "$repository_root/apps/web" run build
+cp -R "$repository_root/apps/web/dist" "$work_dir/web"
 cd "$repository_root/apps/api"
 DATABASE_URL="$go_url" "$go_command" run ./cmd/migrate
 "$go_command" build -o "$work_dir/api" ./cmd/api
-DATABASE_URL="$go_url" API_ADDR="127.0.0.1:$go_port" API_PUBLIC_ORIGIN="$go_origin" WEB_ASSETS_DIR="$repository_root/apps/web/dist" "$work_dir/api" > "$work_dir/go.log" 2>&1 &
+DATABASE_URL="$go_url" API_ADDR="127.0.0.1:$go_port" API_PUBLIC_ORIGIN="$go_origin" WEB_ASSETS_DIR="$work_dir/web" "$work_dir/api" > "$work_dir/go.log" 2>&1 &
 api_pid=$!
 cd "$legacy_root/apps/phoenix"
 LEGACY_DATABASE_URL="$legacy_url" PORT="$legacy_port" mix run --no-start --no-halt -e '
@@ -59,7 +65,7 @@ until curl --fail --silent "$go_origin/health" >/dev/null 2>&1 && curl --fail --
 done
 printf 'legacy_sha=%s\ngo_pid=%s\nlegacy_pid=%s\ngo_database=%s\nlegacy_database=%s\n' "$legacy_sha" "$api_pid" "$legacy_pid" "$go_database" "$legacy_database" > "$work_dir/state.txt"
 cd "$repository_root/apps/web"
-LEGACY_SHA="$legacy_sha" node --import=tsx browser/web-verification.ts "$go_origin" "$legacy_origin"
+LEGACY_SHA="$legacy_sha" node --import=tsx "browser/$verification_suite-verification.ts" "$go_origin" "$legacy_origin"
 if [ "${KEEP_MIGRATION_STAND:-0}" = 1 ]; then
   printf 'Local comparison: Go %s and legacy %s\nState directory: %s\nKeep this process running; Ctrl-C stops both servers and removes their disposable databases.\n' "$go_origin" "$legacy_origin" "$work_dir"
   wait "$api_pid" "$legacy_pid"

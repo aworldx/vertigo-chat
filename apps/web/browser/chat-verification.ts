@@ -72,6 +72,53 @@ try {
   await expect(second).toHaveURL(`${origin}/`)
   await context.close()
 
+  const delivery = await browser.newContext()
+  let rejected = false
+  await delivery.routeWebSocket("**/api/v1/chat/socket", (socket) => {
+    const server = socket.connectToServer()
+    socket.onMessage((raw) => {
+      if (typeof raw === "string") {
+        const value: unknown = JSON.parse(raw)
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          "type" in value &&
+          value.type === "send" &&
+          "client_id" in value &&
+          !rejected
+        ) {
+          rejected = true
+          socket.send(JSON.stringify({ type: "error", code: "message_rejected", client_id: value.client_id }))
+          return
+        }
+      }
+      server.send(raw)
+    })
+  })
+  const deliveryPage = await delivery.newPage()
+  await enter(deliveryPage, "delivery-guest")
+  await deliveryPage.locator("#message-body").fill("Повтор после отказа")
+  await deliveryPage.locator("#send-message").click()
+  const failed = deliveryPage.locator('[data-delivery-state="failed"]')
+  await expect(failed).toContainText("Не отправлено")
+  await failed.getByRole("button", { name: "Повторить" }).click()
+  await expect(
+    deliveryPage.locator('#messages [data-message-kind="text"]').filter({ hasText: "Повтор после отказа" }),
+  ).toHaveCount(1)
+  await expect(deliveryPage.locator("#pending-messages")).toBeEmpty()
+  rejected = false
+  await deliveryPage.locator("#message-body").fill("Удаление из очереди")
+  await deliveryPage.locator("#send-message").click()
+  await expect(failed).toContainText("Удаление из очереди")
+  await failed.getByRole("button", { name: "Удалить" }).click()
+  await expect(deliveryPage.locator("#pending-messages")).toBeEmpty()
+  await deliveryPage.reload()
+  await expect(deliveryPage.locator("#chat-connection-status")).toContainText("В чате")
+  await expect(deliveryPage.locator("#messages")).not.toContainText("Удаление из очереди")
+  await deliveryPage.locator("#leave-chat").click()
+  await expect(deliveryPage).toHaveURL(`${origin}/`)
+  await delivery.close()
+
   const registered = await browser.newContext()
   const page = await registered.newPage()
   await page.goto(`${origin}/`)

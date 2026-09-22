@@ -1,12 +1,10 @@
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
+import { MessageFeed } from "./MessageFeed"
 import { useRoom } from "../model/useRoom"
 export function Room() {
   const { state, connection } = useRoom()
   const [draft, setDraft] = useState("")
-  const list = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    list.current?.scrollTo({ top: list.current.scrollHeight })
-  }, [state.snapshot.messages, state.outbox])
+  const input = useRef<HTMLInputElement>(null)
   const joined = state.status === "ready" || state.status === "reconnecting"
   return (
     <section
@@ -44,66 +42,28 @@ export function Room() {
             id="dialogue-frame"
             className="relative flex min-h-0 flex-col border-b border-zinc-800 bg-zinc-950 md:border-b-0 md:border-r"
           >
-            <p id="chat-connection-status" role="status" className="px-4 py-2 text-xs text-zinc-400">
+            <p
+              id="chat-connection-status"
+              role="status"
+              className={state.status === "ready" ? "sr-only" : "px-4 py-2 text-xs text-zinc-400"}
+            >
               {state.nickname} · {state.status === "ready" ? "В чате" : "Восстанавливаем связь…"}
             </p>
-            <div
-              id="messages"
-              ref={list}
-              role="log"
-              aria-label="Сообщения чата"
-              className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3"
-            >
-              {state.snapshot.messages.map((message) => (
-                <div
-                  key={message.id}
-                  id={`message-${String(message.id)}`}
-                  data-message-kind={message.kind}
-                  data-client-id={message.client_id}
-                  className={
-                    message.kind === "system"
-                      ? "chat-message-entry px-3 py-0.5 text-center text-xs text-zinc-500"
-                      : "chat-message-entry px-1 text-sm leading-6"
-                  }
-                >
-                  {message.kind !== "system" && (
-                    <>
-                      <strong className="text-amber-200">{message.author}</strong>
-                      {": "}
-                    </>
-                  )}
-                  <span className="whitespace-pre-wrap break-words">{message.body}</span>
-                </div>
-              ))}
-              {state.outbox.map((message) => (
-                <div
-                  key={message.client_id}
-                  data-client-id={message.client_id}
-                  data-delivery-state={message.state}
-                  className="px-1 text-sm text-zinc-400"
-                >
-                  <strong>{state.nickname}</strong>: {message.body}{" "}
-                  <span>
-                    {message.state === "failed"
-                      ? "Не отправлено"
-                      : message.state === "retrying"
-                        ? "Повторяем…"
-                        : "Отправляем…"}
-                  </span>
-                  {message.state === "failed" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        connection.retryMessage(message.client_id)
-                      }}
-                      className="ml-2 text-amber-200"
-                    >
-                      Повторить
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+            <MessageFeed
+              messages={state.snapshot.messages}
+              outbox={state.outbox}
+              nickname={state.nickname}
+              onAddress={(nickname) => {
+                setDraft(`${nickname}, `)
+                input.current?.focus()
+              }}
+              onRetry={(id) => {
+                connection.retryMessage(id)
+              }}
+              onCancel={(id) => {
+                connection.cancelMessage(id)
+              }}
+            />
           </main>
         ) : (
           <main
@@ -166,6 +126,7 @@ export function Room() {
             </label>
             <input
               id="message-body"
+              ref={input}
               name="body"
               value={draft}
               onChange={(event) => {

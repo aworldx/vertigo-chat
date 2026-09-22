@@ -87,7 +87,7 @@ components:
         nickname: {type: string}
     Message:
       type: object
-      required: [id, client_id, kind, author, body, sent_at]
+      required: [id, client_id, kind, author, body, sent_at, appearance, font_id, font_style]
       properties:
         id: {type: integer}
         client_id: {type: string}
@@ -95,6 +95,21 @@ components:
         author: {type: string}
         body: {type: string}
         sent_at: {type: string, format: date-time}
+        appearance: {$ref: '#/components/schemas/MessageAppearance'}
+        font_id: {type: string, enum: [theme, sans, display, serif]}
+        font_style: {type: string, enum: [normal, italic]}
+    MessageColors:
+      type: object
+      required: [nickname_color, text_color]
+      properties:
+        nickname_color: {type: string, pattern: '^#[0-9a-f]{6}$'}
+        text_color: {type: string, pattern: '^#[0-9a-f]{6}$'}
+    MessageAppearance:
+      type: object
+      required: [dark, light]
+      properties:
+        dark: {$ref: '#/components/schemas/MessageColors'}
+        light: {$ref: '#/components/schemas/MessageColors'}
     Peer:
       type: object
       required: [id, nickname, status]

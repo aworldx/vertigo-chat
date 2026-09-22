@@ -59,6 +59,19 @@ export interface components {
             body: string;
             /** Format: date-time */
             sent_at: string;
+            appearance: components["schemas"]["MessageAppearance"];
+            /** @enum {string} */
+            font_id: "theme" | "sans" | "display" | "serif";
+            /** @enum {string} */
+            font_style: "normal" | "italic";
+        };
+        MessageColors: {
+            nickname_color: string;
+            text_color: string;
+        };
+        MessageAppearance: {
+            dark: components["schemas"]["MessageColors"];
+            light: components["schemas"]["MessageColors"];
         };
         Peer: {
             id: string;

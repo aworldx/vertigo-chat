@@ -35,16 +35,16 @@ func (s Store) Start(ctx context.Context, session domain.Session, resumeSecret s
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	const visitQuery = `INSERT INTO visits (nickname, identity_key, session_id, user_id, entered_at, inserted_at, updated_at)
-	VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW()) RETURNING id`
+	VALUES ($1, $2, $3, $4, (NOW() AT TIME ZONE 'UTC'), (NOW() AT TIME ZONE 'UTC'), (NOW() AT TIME ZONE 'UTC')) RETURNING id`
 	if err := tx.QueryRow(ctx, visitQuery, session.Nickname, session.IdentityKey, session.ID, userID).Scan(&session.VisitID); err != nil {
 		return domain.Session{}, startError("create visit", err)
 	}
 	const sessionQuery = `INSERT INTO chat_sessions (id, room_id, identity_key, nickname, resume_secret_hash, status, last_seen_at, generation, visit_id, inserted_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5, 'active', NOW(), 0, $6, NOW(), NOW()) RETURNING generation`
+	VALUES ($1, $2, $3, $4, $5, 'active', (NOW() AT TIME ZONE 'UTC'), 0, $6, (NOW() AT TIME ZONE 'UTC'), (NOW() AT TIME ZONE 'UTC')) RETURNING generation`
 	if err := tx.QueryRow(ctx, sessionQuery, session.ID, session.RoomID, session.IdentityKey, session.Nickname, hashSecret(resumeSecret), session.VisitID).Scan(&session.Generation); err != nil {
 		return domain.Session{}, startError("create chat session", err)
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO room_messages (room_id,kind,author,body,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES ($1,'system','system',$2,'vertigo','{}','{}','theme','normal',NOW(),NOW(),NOW())`, session.RoomID, "в чат заходит "+session.Nickname); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO room_messages (room_id,kind,author,body,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES ($1,'system','system',$2,'vertigo','{}','{}','theme','normal',(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'))`, session.RoomID, "в чат заходит "+session.Nickname); err != nil {
 		return domain.Session{}, fmt.Errorf("persist entrance: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {

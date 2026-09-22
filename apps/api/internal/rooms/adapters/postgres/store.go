@@ -3,7 +3,10 @@ package postgres
 import (
 	"chat/api/internal/rooms/domain"
 	"context"
+	"encoding/json"
 	"github.com/jackc/pgx/v5"
+	"regexp"
+	"strings"
 )
 
 type Database interface {
@@ -14,13 +17,14 @@ type Store struct{ db Database }
 
 func NewStore(db Database) Store { return Store{db} }
 
-const columns = `id,COALESCE(client_id,''),kind,author,body,sent_at`
+const columns = `id,COALESCE(client_id,''),kind,author,body,sent_at,appearance,font_id,font_style`
 
 func (s Store) Send(ctx context.Context, author domain.Author, clientID, body string) (domain.Message, error) {
 	var message domain.Message
+	var appearance []byte
 
 	var limited bool
-	err := s.db.QueryRow(ctx, `SELECT NOT EXISTS(SELECT 1 FROM room_messages WHERE room_id=$1 AND author_identity=$2 AND client_id=$3) AND (count(*) FILTER (WHERE sent_at>NOW()-interval '2 seconds')>=3 OR count(*)>=12) FROM room_messages WHERE room_id=$1 AND author_identity=$2 AND kind='text' AND sent_at>NOW()-interval '1 minute'`, author.RoomID, author.Identity, clientID).Scan(&limited)
+	err := s.db.QueryRow(ctx, `SELECT NOT EXISTS(SELECT 1 FROM room_messages WHERE room_id=$1 AND author_identity=$2 AND client_id=$3) AND (count(*) FILTER (WHERE sent_at>(NOW() AT TIME ZONE 'UTC')-interval '2 seconds')>=3 OR count(*)>=12) FROM room_messages WHERE room_id=$1 AND author_identity=$2 AND kind='text' AND sent_at>(NOW() AT TIME ZONE 'UTC')-interval '1 minute'`, author.RoomID, author.Identity, clientID).Scan(&limited)
 	if err != nil {
 		return message, err
 	}
@@ -28,7 +32,9 @@ func (s Store) Send(ctx context.Context, author domain.Author, clientID, body st
 		return message, domain.ErrRateLimited
 	}
 	// Conflict returns the original body. Replayed outbox IDs never edit history.
-	err = s.db.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,client_id,author_identity,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES($1,'text',$2,$3,$4,$5,'vertigo','{}','{}','theme','normal',NOW(),NOW(),NOW()) ON CONFLICT(room_id,author_identity,client_id) WHERE client_id IS NOT NULL DO UPDATE SET client_id=room_messages.client_id RETURNING `+columns+`,(xmax=0)`, author.RoomID, author.Nickname, body, clientID, author.Identity).Scan(&message.ID, &message.ClientID, &message.Kind, &message.Author, &message.Body, &message.SentAt, &message.Inserted)
+	err = s.db.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,client_id,author_identity,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES($1,'text',$2,$3,$4,$5,'vertigo','{}','{}','theme','normal',(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC')) ON CONFLICT(room_id,author_identity,client_id) WHERE client_id IS NOT NULL DO UPDATE SET client_id=room_messages.client_id RETURNING `+columns+`,(xmax=0)`, author.RoomID, author.Nickname, body, clientID, author.Identity).Scan(&message.ID, &message.ClientID, &message.Kind, &message.Author, &message.Body, &message.SentAt, &appearance, &message.FontID, &message.FontStyle, &message.Inserted)
+	message.Appearance = decodeAppearance(appearance)
+	normalizeTypography(&message)
 	return message, err
 }
 func (s Store) Recent(ctx context.Context, roomID string) ([]domain.Message, error) {
@@ -40,10 +46,49 @@ func (s Store) Recent(ctx context.Context, roomID string) ([]domain.Message, err
 	messages := make([]domain.Message, 0, 30)
 	for rows.Next() {
 		var m domain.Message
-		if err := rows.Scan(&m.ID, &m.ClientID, &m.Kind, &m.Author, &m.Body, &m.SentAt); err != nil {
+		var appearance []byte
+		if err := rows.Scan(&m.ID, &m.ClientID, &m.Kind, &m.Author, &m.Body, &m.SentAt, &appearance, &m.FontID, &m.FontStyle); err != nil {
 			return nil, err
 		}
+		m.Appearance = decodeAppearance(appearance)
+		normalizeTypography(&m)
 		messages = append(messages, m)
 	}
 	return messages, rows.Err()
+}
+
+var colorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+func decodeAppearance(raw []byte) domain.Appearance {
+	var stored map[string]map[string]string
+	// message_frame is a viewer preference, not a property of the message.
+	var fields map[string]json.RawMessage
+	_ = json.Unmarshal(raw, &fields)
+	stored = make(map[string]map[string]string)
+	for _, mode := range []string{"dark", "light"} {
+		var colors map[string]string
+		_ = json.Unmarshal(fields[mode], &colors)
+		stored[mode] = colors
+	}
+	color := func(mode, field, fallback string) string {
+		value := stored[mode][field]
+		if colorPattern.MatchString(value) {
+			return strings.ToLower(value)
+		}
+		return fallback
+	}
+	return domain.Appearance{
+		Dark:  domain.Colors{Nickname: color("dark", "nickname_color", "#fcd34d"), Text: color("dark", "text_color", "#e4e4e7")},
+		Light: domain.Colors{Nickname: color("light", "nickname_color", "#9a3412"), Text: color("light", "text_color", "#1f2937")},
+	}
+}
+func normalizeTypography(message *domain.Message) {
+	switch message.FontID {
+	case "sans", "display", "serif":
+	default:
+		message.FontID = "theme"
+	}
+	if message.FontStyle != "italic" {
+		message.FontStyle = "normal"
+	}
 }

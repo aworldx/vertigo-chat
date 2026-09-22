@@ -38,3 +38,18 @@ Explicit leave clears the tab credential/outbox before requesting termination.
 Resume after a terminal server response clears stale credentials; network errors
 retain them for retry. Guest and registered nickname reservations use the same
 transaction lock as account registration.
+
+Message presentation (2026-09-22): every `Message` in `ready`, `snapshot` and
+`ack` includes normalized `appearance.dark/light.{nickname_color,text_color}`,
+`font_id` (`theme|sans|display|serif`) and `font_style` (`normal|italic`). These
+are read from the existing `room_messages` columns; malformed legacy values
+fall back to the existing Phoenix defaults. Domain values are mapped to explicit
+wire DTOs. New sends still use the default appearance until settings migrate.
+The viewer's frame preference is separate and is not a message attribute.
+`sent_at` is an instant; writes to legacy timestamp-without-time-zone columns
+use UTC explicitly, independently of the PostgreSQL session timezone.
+
+The React feed renders confirmed IDs without replacing surviving DOM nodes.
+Resize/mutation observers follow the bottom only while the reader is there;
+reading older messages survives snapshots and new sends. Failed outbox entries
+can be retried with the same client ID or explicitly removed from tab storage.

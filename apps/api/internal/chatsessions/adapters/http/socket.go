@@ -50,8 +50,8 @@ type peer struct {
 	Status   domain.Status `json:"status"`
 }
 type snapshot struct {
-	Messages []rooms.Message `json:"messages"`
-	Peers    []peer          `json:"peers"`
+	Messages []messageDTO `json:"messages"`
+	Peers    []peer       `json:"peers"`
 }
 
 func (h Socket) serve(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +156,7 @@ func (h Socket) command(ctx context.Context, conn *websocket.Conn, session domai
 		if err != nil {
 			return socketWrite(ctx, conn, map[string]string{"type": "error", "code": "message_rejected", "client_id": cmd.ClientID}) == nil
 		}
-		return socketWrite(ctx, conn, map[string]any{"type": "ack", "message": message}) == nil
+		return socketWrite(ctx, conn, map[string]any{"type": "ack", "message": encodeMessage(message)}) == nil
 	case "leave":
 		if _, err := h.service.End(ctx, session.ID, session.IdentityKey, session.Generation, time.Now()); err != nil {
 			return false
@@ -185,7 +185,11 @@ func (h Socket) snapshot(ctx context.Context, session domain.Session) (snapshot,
 		return snapshot{}, domain.ErrInvalidSession
 	}
 	messages, err := h.history.Recent(ctx, session.RoomID)
-	return snapshot{messages, peers}, err
+	encoded := make([]messageDTO, 0, len(messages))
+	for _, message := range messages {
+		encoded = append(encoded, encodeMessage(message))
+	}
+	return snapshot{encoded, peers}, err
 }
 func socketWrite(ctx context.Context, conn *websocket.Conn, value any) error {
 	write, done := context.WithTimeout(ctx, 5*time.Second)
