@@ -13,11 +13,13 @@
 на Go, сохраняя работающий продукт на каждом шаге. Всё остаётся в одной монорепе.
 Phoenix поддерживает ещё не перенесённые сценарии до их проверенной замены.
 
-- Работать в отдельной ветке миграции; не переносить изменения в main автоматически.
+- Работать в отдельной ветке миграции `codex/go-react-migration` до полного
+  завершения миграции; не переносить изменения в main автоматически.
 - Пользователь разрешил локально переключить `/profiles` на React при сохранении
-  LiveView fallback; это не разрешение на production, push или commit без нового указания.
-- Не делать push, публикацию образов, деплой и изменения production без нового
-  явного указания. Пользователь сначала проверяет локальный стенд вручную.
+  LiveView fallback; это не разрешение на production.
+- До полного завершения миграции не делать production rollout: не выполнять
+  push, публикацию образов, деплой или изменения production. Разрешены только
+  коммиты в текущую ветку и проверка локальных стендов.
 - Сохранять внешний вид, особенно шрифты, отступы и поведение диалогов.
   Смена технологии сама по себе не является задачей редизайна.
 - Не переписывать UI и backend одного сценария одновременно: сначала закрепить
@@ -29,8 +31,8 @@ Phoenix поддерживает ещё не перенесённые сцена
 | Часть | Сделано | Ещё не сделано |
 | --- | --- | --- |
 | YouTube worker | Переписан на Go и расположен в `services/youtube-worker`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; golangci-lint, `gofmt`, `go vet`, race-тесты | Полный production Docker build проверяется в CI quality/build pipeline |
-| React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Строгий TypeScript, browser/visual-сравнение и ручное принятие завершены | Production-переключение запрещено до полного завершения миграции и отдельного явного указания |
-| API анкет | `apps/api` реализует Go read/write-модель анкет с domain/application/PostgreSQL/HTTP слоями, healthcheck, unit/race-тестами и тем же публичным контрактом. Phoenix имеет обратимые opt-in proxy: `PROFILES_GO_API_URL` для public JSON и media read, `PROFILES_GO_WRITE_API_URL` + `PROFILE_INTERNAL_TOKEN` для единого write-пути. React edit/upload и выдача original/thumbnail через cookie+CSRF Phoenix и Go подтверждены browser-сценарием | Включить оба proxy только после ручного принятия локального стенда; production-включение запрещено без отдельного указания |
+| React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Строгий TypeScript, browser/visual-сравнение и ручное принятие завершены | Production-переключение запрещено до полного завершения всей миграции |
+| API анкет | `apps/api` реализует Go read/write-модель анкет с domain/application/PostgreSQL/HTTP слоями, healthcheck, unit/race-тестами и тем же публичным контрактом. Phoenix имеет обратимые opt-in proxy: `PROFILES_GO_API_URL` для public JSON и media read, `PROFILES_GO_WRITE_API_URL` + `PROFILE_INTERNAL_TOKEN` для единого write-пути. React edit/upload и выдача original/thumbnail через cookie+CSRF Phoenix и Go подтверждены browser-сценарием | Включить оба proxy только после ручного принятия локального стенда; production-включение запрещено до полного завершения всей миграции |
 | Основной backend | Phoenix/Elixir, существующие контексты и тесты | Миграция предметных областей на Go ещё не начата |
 | Архитектура | `apps/phoenix`, `apps/web`, `apps/api`, `services/youtube-worker`, `contracts`, `deploy`; quality gates и матрица проверок работают. Docker target и Compose service `profiles-api` готовы и проверены локальной сборкой | Phoenix сохраняется временным application host; production rollout не выполнялся |
 
@@ -42,6 +44,12 @@ React/API и документация входят в первый коммит 
 `GOCACHE=/tmp/chat-go-cache script/check` завершился успешно — Go formatting/vet/race,
 strict TypeScript, ESLint, Prettier, 7 React interaction-тестов и 408 ExUnit-тестов.
 Первый прогон выявил флак `Chat.LogFileHandlerTest`, второй прошёл полностью.
+После коммита `bcf7e9e` локальный opt-in сценарий
+`DATABASE_URL=... GO=... script/verify-go-profile-write` снова прошёл: cookie+CSRF
+Phoenix направил text edit и PNG upload единственному Go writer, а реальный
+React browser подтвердил итоговую проекцию и выдачу media. Production flags не
+включались. Инвентаризация оставшихся экранов находится в
+[migration_inventory.md](migration_inventory.md); следующий UI-срез — ранги.
 Локальная browser-проверка на `http://localhost:4031/profiles/live` и
 `http://localhost:4031/profiles/react` подтвердила загрузку каталога, поиск с URL
 `q`, пагинацию, открытие профиля по URL `profile`, Escape и возврат фокуса.
@@ -149,8 +157,10 @@ ExUnit. Визуальное сравнение не выявило различ
       её не возвращали искусственно для screenshot-сравнения; React editor
       сохраняет её типографику, сетку, focus/loading states и stable IDs, а
       browser-сценарий подтверждает edit, upload и последующую выдачу фото.
-- [ ] Составить инвентаризацию оставшихся экранов и зависимостей; переносить
-      по одному. Библиотека и галерея — кандидаты, порядок уточнить по связности.
+- [x] Составить [инвентаризацию](migration_inventory.md) оставшихся экранов и
+      зависимостей; переносить по одному. Следующий изолированный React-срез —
+      read-only ранги и справка, затем библиотека и галерея как отдельные
+      write-контексты.
 - [ ] Чат, presence и восстановление сессии оставить до отдельного realtime-этапа.
 
 Готовность каждого среза: старые возможности сохранены, API описан, проверки
@@ -242,8 +252,8 @@ ExUnit. Визуальное сравнение не выявило различ
    `-f deploy/compose.profiles-go.yaml` и передавать непустой
    `PROFILE_INTERNAL_TOKEN`; базовый compose не менять. Следующий этап — поднять совместный локальный стенд
    с Go read/write flags, повторить browser-сравнение авторизованного просмотра
-   с историческим базовым снимком на изолированной БД и только затем готовить
-   отдельное предложение о production rollout.
+   с историческим базовым снимком на изолированной БД. Не готовить production
+   rollout до полного завершения всей миграции.
 4. После изменений запускать `cd apps/phoenix && mix precommit`; для Go ранее
    использовались `GO=/tmp/chat-go-sdk/go/bin/go` и `GOCACHE=/tmp/chat-go-cache`.
    Для локального Go ранее использовались `GO=/tmp/chat-go-sdk/go/bin/go` и
