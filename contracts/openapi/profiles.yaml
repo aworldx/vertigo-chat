@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Vertigo public profile API
   version: 1.0.0
-  description: Public fields already displayed by the profile catalogue. Read-only, no authentication required.
+  description: Public fields already displayed by the profile catalogue. Public catalogue plus account-owned mutations protected by Go cookie sessions and CSRF.
 servers:
   - url: /
 paths:
@@ -16,6 +16,8 @@ paths:
           description: Current profile
           content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}
         '401': {description: Authentication required, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '403': {description: Invalid CSRF or origin, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '503': {description: Session storage unavailable, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
     patch:
       operationId: updateAccountProfile
       summary: Update the authenticated account profile using same-origin cookie session and CSRF token
@@ -33,6 +35,8 @@ paths:
       responses:
         '200': {description: Updated profile, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
         '401': {description: Authentication required, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '403': {description: Invalid CSRF or origin, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '503': {description: Session storage unavailable, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
         '422': {description: Validation error, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
   /api/v1/account/profile/photo:
     put:
@@ -52,6 +56,8 @@ paths:
       responses:
         '200': {description: Updated profile, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
         '401': {description: Authentication required, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '403': {description: Invalid CSRF or origin, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '503': {description: Session storage unavailable, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
         '422': {description: Invalid photo, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
   /profiles/{nickname}/photo:
     get:
@@ -68,7 +74,7 @@ paths:
             image/png: {schema: {$ref: '#/components/schemas/BinaryImage'}}
             image/webp: {schema: {$ref: '#/components/schemas/BinaryImage'}}
         '404': {description: The profile has no photo or does not exist.}
-        '502': {description: Go profile service is unavailable when its read proxy is enabled.}
+        '502': {description: Profile media storage is unavailable.}
   /profiles/{nickname}/photo/thumbnail:
     get:
       operationId: getProfilePhotoThumbnail
@@ -82,7 +88,7 @@ paths:
           content:
             image/webp: {schema: {$ref: '#/components/schemas/BinaryImage'}}
         '404': {description: The profile has no thumbnail or does not exist.}
-        '502': {description: Go profile service is unavailable when its read proxy is enabled.}
+        '502': {description: Profile media storage is unavailable.}
   /api/v1/profiles:
     get:
       operationId: listProfiles
@@ -160,7 +166,7 @@ components:
       required: true
       schema: {type: string}
   securitySchemes:
-    accountSession: {type: apiKey, in: cookie, name: _chat_key}
+    accountSession: {type: apiKey, in: cookie, name: __Host-chat_account}
     csrfToken: {type: apiKey, in: header, name: x-csrf-token}
   schemas:
     BinaryImage: {type: string, format: binary}

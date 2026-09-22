@@ -14,11 +14,10 @@
   "include": [
     "js/profiles.tsx",
     "js/account_login.tsx",
-    "js/profiles/**/*.ts",
-    "js/profiles/**/*.tsx",
-    "js/shared/generated/**/*.ts",
     "test/**/*.tsx",
     "browser/**/*.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ]
 }

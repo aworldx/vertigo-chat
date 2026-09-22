@@ -1,0 +1,105 @@
+openapi: 3.1.0
+info:
+  title: Vertigo public chat entrance
+  version: 1.0.0
+  description: Same-origin atomic chat entrance. WebSocket commands and lifecycle are specified in docs/go_chat_protocol.md.
+servers: [{url: /}]
+paths:
+  /api/v1/chat/enter:
+    post:
+      operationId: enterChat
+      summary: Enter as a guest or authenticate a registered nickname
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody: {$ref: '#/components/requestBodies/Entrance'}
+      responses:
+        '200': {$ref: '#/components/responses/Entrance'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '415': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /api/v1/chat/register:
+    post:
+      operationId: registerAndEnterChat
+      summary: Atomically register, sign in and enter chat
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody: {$ref: '#/components/requestBodies/Entrance'}
+      responses:
+        '200': {$ref: '#/components/responses/Entrance'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '415': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    accountSession: {type: apiKey, in: cookie, name: __Host-chat_account}
+    csrfToken: {type: apiKey, in: header, name: X-CSRF-Token}
+  requestBodies:
+    Entrance:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Credentials'}
+  responses:
+    Entrance:
+      description: Store resume_token in this tab before navigating to /chat. Registered entrance also rotates the site cookie.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data: {$ref: '#/components/schemas/Entrance'}
+    Error:
+      description: Entrance failed; no partial registration, visit or account-cookie rotation is committed.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error: {type: string}
+  schemas:
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [nickname, password]
+      properties:
+        nickname: {type: string, minLength: 3, maxLength: 24}
+        password: {type: string, maxLength: 128, writeOnly: true}
+        email: {type: string}
+    Entrance:
+      type: object
+      required: [resume_token, nickname]
+      properties:
+        resume_token: {type: string}
+        nickname: {type: string}
+    Message:
+      type: object
+      required: [id, client_id, kind, author, body, sent_at]
+      properties:
+        id: {type: integer}
+        client_id: {type: string}
+        kind: {type: string}
+        author: {type: string}
+        body: {type: string}
+        sent_at: {type: string, format: date-time}
+    Peer:
+      type: object
+      required: [id, nickname, status]
+      properties:
+        id: {type: string}
+        nickname: {type: string}
+        status: {type: string, enum: [active, reconnecting]}
+    Snapshot:
+      type: object
+      required: [messages, peers]
+      properties:
+        messages: {type: array, items: {$ref: '#/components/schemas/Message'}}
+        peers: {type: array, items: {$ref: '#/components/schemas/Peer'}}

@@ -27,6 +27,8 @@ func NewMediaHandler(media application.MediaService) MediaHandler { return Media
 
 func (h MediaHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/profiles/{nickname}/photo", h.photo)
+	mux.HandleFunc("GET /profiles/{nickname}/photo", h.photo)
+	mux.HandleFunc("GET /profiles/{nickname}/photo/thumbnail", h.thumbnail)
 	mux.HandleFunc("GET /api/v1/profiles/{nickname}/photo/thumbnail", h.thumbnail)
 }
 

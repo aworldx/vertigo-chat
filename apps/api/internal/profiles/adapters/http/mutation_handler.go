@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
 
 	"chat/api/internal/profiles/application"
 	"chat/api/internal/profiles/domain"
@@ -14,18 +13,18 @@ import (
 type MutationHandler struct {
 	editor      application.Editor
 	photoEditor application.PhotoEditor
-	token       string
+	account     application.AccountCatalog
+	identity    func(*http.Request, bool) (int64, int)
 }
 
-func NewMutationHandler(editor application.Editor, photoEditor application.PhotoEditor, token string) MutationHandler {
-	return MutationHandler{editor: editor, photoEditor: photoEditor, token: token}
+func NewMutationHandler(editor application.Editor, photoEditor application.PhotoEditor, account application.AccountCatalog, identity func(*http.Request, bool) (int64, int)) MutationHandler {
+	return MutationHandler{editor: editor, photoEditor: photoEditor, account: account, identity: identity}
 }
 
 func (h MutationHandler) Register(mux *http.ServeMux) {
-	if h.token != "" {
-		mux.HandleFunc("PATCH /internal/v1/profiles/{userID}", h.update)
-		mux.HandleFunc("PUT /internal/v1/profiles/{userID}/photo", h.updatePhoto)
-	}
+	mux.HandleFunc("GET /api/v1/account/profile", h.current)
+	mux.HandleFunc("PATCH /api/v1/account/profile", h.update)
+	mux.HandleFunc("PUT /api/v1/account/profile/photo", h.updatePhoto)
 }
 
 func (h MutationHandler) updatePhoto(w http.ResponseWriter, r *http.Request) {
@@ -38,6 +37,7 @@ func (h MutationHandler) updatePhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_photo", "Фото должно быть JPG, PNG или WebP и не больше 1,5 МБ.")
 		return
 	}
+	defer func() { _ = r.MultipartForm.RemoveAll() }()
 	file, header, err := r.FormFile("photo")
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "invalid_photo", "Выбери подходящее фото.")
@@ -65,17 +65,36 @@ func (h MutationHandler) updatePhoto(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"data": profileDTO(profile)})
 }
 
-func (h MutationHandler) authenticate(w http.ResponseWriter, r *http.Request) (int64, bool) {
-	if r.Header.Get("X-Internal-Profile-Token") != h.token {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "Войди, чтобы редактировать анкету.")
-		return 0, false
+func (h MutationHandler) current(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.authenticate(w, r)
+	if !ok {
+		return
 	}
-	userID, err := strconv.ParseInt(r.PathValue("userID"), 10, 64)
+	profile, err := h.account.Get(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "invalid_profile", "Проверь поля анкеты.")
-		return 0, false
+		writeCatalogError(w, err)
+		return
 	}
-	return userID, true
+	writeJSON(w, http.StatusOK, map[string]any{"data": profileDTO(profile)})
+}
+
+func (h MutationHandler) authenticate(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	userID, status := h.identity(r, r.Method != http.MethodGet)
+	if status == 0 && userID > 0 {
+		return userID, true
+	}
+	if status == 0 {
+		status = http.StatusUnauthorized
+	}
+	code := "unauthorized"
+	if status == http.StatusForbidden {
+		code = "forbidden"
+	}
+	if status == http.StatusServiceUnavailable {
+		code = "unavailable"
+	}
+	writeError(w, status, code, "Не удалось подтвердить сессию. Войди на сайт ещё раз.")
+	return 0, false
 }
 
 func (h MutationHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -110,10 +129,10 @@ func decodeUpdate(w http.ResponseWriter, r *http.Request) (domain.UpdateInput, e
 	decoder.DisallowUnknownFields()
 	var body struct {
 		Profile struct {
-			Name      *json.RawMessage `json:"name"`
-			BirthDate *json.RawMessage `json:"birth_date"`
-			Gender    *json.RawMessage `json:"gender"`
-			About     *json.RawMessage `json:"about"`
+			Name      json.RawMessage `json:"name"`
+			BirthDate json.RawMessage `json:"birth_date"`
+			Gender    json.RawMessage `json:"gender"`
+			About     json.RawMessage `json:"about"`
 		} `json:"profile"`
 	}
 	if err := decoder.Decode(&body); err != nil {
@@ -141,15 +160,15 @@ func decodeUpdate(w http.ResponseWriter, r *http.Request) (domain.UpdateInput, e
 	return domain.UpdateInput{Name: name, BirthDate: birthDate, Gender: gender, About: about}, nil
 }
 
-func decodeField(raw *json.RawMessage) (domain.StringField, error) {
+func decodeField(raw json.RawMessage) (domain.StringField, error) {
 	if raw == nil {
 		return domain.StringField{}, nil
 	}
-	if string(*raw) == "null" {
+	if string(raw) == "null" {
 		return domain.StringField{Set: true}, nil
 	}
 	var value string
-	if err := json.Unmarshal(*raw, &value); err != nil {
+	if err := json.Unmarshal(raw, &value); err != nil {
 		return domain.StringField{}, err
 	}
 	return domain.StringField{Set: true, Value: &value}, nil

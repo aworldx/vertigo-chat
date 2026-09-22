@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { afterEach, beforeEach, test } from "node:test"
 import { JSDOM } from "jsdom"
-import type { ListProfilesResponse, Profile } from "../js/profiles/api/profiles"
+import type { ListProfilesResponse, Profile } from "../src/features/profiles"
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", { url: "http://localhost/profiles/react" })
 Object.assign(globalThis, {
@@ -21,7 +21,7 @@ dom.window.HTMLDialogElement.prototype.close = function () {
 }
 const React = (await import("react")).default
 const { render, fireEvent, screen, waitFor, cleanup, act } = await import("@testing-library/react")
-const { default: ProfilesApp } = await import("../js/profiles/ProfilesApp")
+const { default: ProfilesApp } = await import("../src/features/profiles")
 const originalFetch = globalThis.fetch
 const profile = (nickname: string): Profile => ({
   nickname,

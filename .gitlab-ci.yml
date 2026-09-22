@@ -23,6 +23,7 @@ quality:
     - docker run --detach --name quality-postgres --network quality-network -e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB postgres:17-alpine
     - until docker exec quality-postgres pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"; do sleep 1; done
     - docker run --rm --network quality-network -e POSTGRES_HOST=quality-postgres chat-quality:$CI_COMMIT_SHA mix precommit
+    - docker run --rm --network quality-network -e ACCOUNTS_LEGACY_DATABASE_URL=postgres://quality:quality@quality-postgres/chat_test --entrypoint /app/script/verify-go-accounts chat-quality:$CI_COMMIT_SHA
   after_script:
     - docker logs quality-postgres || true
     - docker rm --force quality-postgres || true

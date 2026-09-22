@@ -109,6 +109,7 @@ defmodule Chat.MixProject do
         "cmd --cd ../web npm run lint",
         "cmd --cd ../web npm run format:check",
         "cmd --cd ../web npm test",
+        "cmd --cd ../web npm run build",
         "cmd --cd ../web npm run test:browser",
         "test"
       ]

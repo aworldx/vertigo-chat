@@ -16,9 +16,14 @@ import (
 	chatsessionshttp "chat/api/internal/chatsessions/adapters/http"
 	chatsessionspostgres "chat/api/internal/chatsessions/adapters/postgres"
 	chatsessionsapplication "chat/api/internal/chatsessions/application"
+	entrancehttp "chat/api/internal/entrance/adapters/http"
+	entranceapp "chat/api/internal/entrance/application"
 	profileshttp "chat/api/internal/profiles/adapters/http"
 	"chat/api/internal/profiles/adapters/postgres"
 	"chat/api/internal/profiles/application"
+	roomspg "chat/api/internal/rooms/adapters/postgres"
+	roomsapp "chat/api/internal/rooms/application"
+	"chat/api/internal/webdelivery"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -37,6 +42,12 @@ func main() {
 		os.Exit(1)
 	}
 	mux := http.NewServeMux()
+	if directory := os.Getenv("WEB_ASSETS_DIR"); directory != "" {
+		if err := webdelivery.Register(mux, os.DirFS(directory), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")); err != nil {
+			slog.Error("load React build", "error", err)
+			os.Exit(1)
+		}
+	}
 	profiles := postgres.NewCatalogue(pool)
 	if os.Getenv("S3_ENABLED") == "true" {
 		media, err := postgres.NewS3Media(postgres.S3Config{
@@ -53,18 +64,29 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	profileshttp.NewHandler(application.NewCatalog(profiles)).Register(mux)
 	profileshttp.NewMediaHandler(application.NewMediaService(profiles)).Register(mux)
-	profileshttp.NewMutationHandler(application.NewEditor(profiles), application.NewPhotoEditor(profiles), os.Getenv("PROFILE_INTERNAL_TOKEN")).Register(mux)
 	accounts := accountspostgres.NewAccounts(pool)
-	accountshttp.NewHandler(
+	auth, err := accountshttp.NewHandler(
 		accountsapplication.NewAuthenticator(accounts, accountspostgres.PBKDF2Verifier{}),
-		accountsapplication.NewRegistrar(accounts, accountspostgres.PBKDF2Verifier{}),
-		os.Getenv("ACCOUNTS_INTERNAL_TOKEN"),
-	).Register(mux)
+		accountsapplication.NewRegistrar(registrationCreator{pool}, accountspostgres.PBKDF2Verifier{}),
+		accountsapplication.NewSessions(accounts),
+		env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020"),
+	)
+	if err != nil {
+		slog.Error("configure public accounts", "error", err)
+		os.Exit(1)
+	}
+	auth.Register(mux)
+	profileshttp.NewMutationHandler(application.NewEditor(profiles), application.NewPhotoEditor(profiles), application.NewAccountCatalog(profiles), auth.AccountIdentity).Register(mux)
+	go pruneAccountSessions(ctx, accounts)
 	chatSessions := chatsessionsapplication.NewService(chatsessionspostgres.NewStore(pool), chatsessionsPolicy())
 	chatsessionshttp.NewHandler(
 		chatSessions,
 		os.Getenv("CHAT_SESSIONS_INTERNAL_TOKEN"),
 	).Register(mux)
+	entrancehttp.NewHandler(entranceapp.NewService(entranceWork(pool)), auth.AuthorizeMutation, auth.SetSessionCookie, func(result entranceapp.Result) string {
+		return chatsessionshttp.EncodeResume(chatsessionshttp.Resume{SessionID: result.Session.ID, IdentityKey: result.Session.IdentityKey, Secret: result.ResumeSecret})
+	}).Register(mux)
+	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).Register(mux)
 	go reapChatSessions(ctx, chatSessions)
 	server := &http.Server{Addr: env("API_ADDR", "127.0.0.1:4020"), Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {
@@ -111,6 +133,21 @@ func reapChatSessions(ctx context.Context, service chatsessionsapplication.Servi
 		case now := <-ticker.C:
 			if err := service.Reap(ctx, now.UTC()); err != nil && ctx.Err() == nil {
 				slog.Error("reap chat sessions", "error", err)
+			}
+		}
+	}
+}
+
+func pruneAccountSessions(ctx context.Context, accounts accountspostgres.Accounts) {
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			if err := accounts.PruneSessions(ctx, now.UTC()); err != nil && ctx.Err() == nil {
+				slog.Error("prune account sessions", "error", err)
 			}
 		}
 	}

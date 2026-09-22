@@ -13,14 +13,20 @@ import (
 	"chat/api/internal/chatsessions/domain"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var ErrInvalidSession = errors.New("invalid chat session")
+var ErrInvalidSession = domain.ErrInvalidSession
 
-type Store struct{ pool *pgxpool.Pool }
+type Database interface {
+	Begin(context.Context) (pgx.Tx, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+}
+type Store struct{ pool Database }
 
-func NewStore(pool *pgxpool.Pool) Store { return Store{pool: pool} }
+func NewStore(pool Database) Store { return Store{pool: pool} }
 
 func (s Store) Start(ctx context.Context, session domain.Session, resumeSecret string, userID *int64) (domain.Session, error) {
 	tx, err := s.pool.Begin(ctx)
@@ -37,6 +43,9 @@ func (s Store) Start(ctx context.Context, session domain.Session, resumeSecret s
 	VALUES ($1, $2, $3, $4, $5, 'active', NOW(), 0, $6, NOW(), NOW()) RETURNING generation`
 	if err := tx.QueryRow(ctx, sessionQuery, session.ID, session.RoomID, session.IdentityKey, session.Nickname, hashSecret(resumeSecret), session.VisitID).Scan(&session.Generation); err != nil {
 		return domain.Session{}, startError("create chat session", err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO room_messages (room_id,kind,author,body,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES ($1,'system','system',$2,'vertigo','{}','{}','theme','normal',NOW(),NOW(),NOW())`, session.RoomID, "в чат заходит "+session.Nickname); err != nil {
+		return domain.Session{}, fmt.Errorf("persist entrance: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return domain.Session{}, fmt.Errorf("commit chat session start: %w", err)
@@ -65,7 +74,7 @@ func (s Store) Restore(ctx context.Context, sessionID, identityKey, resumeSecret
 }
 
 func (s Store) Reconnect(ctx context.Context, sessionID, identityKey string, generation int, now time.Time, grace time.Duration, hiddenGrace time.Duration) (domain.Session, error) {
-	const query = `UPDATE chat_sessions SET status = 'reconnecting', reconnect_deadline_at = $4 +
+	const query = `UPDATE chat_sessions SET status = 'reconnecting', reconnect_deadline_at = $4::timestamp +
 	CASE WHEN last_visibility = 'hidden' THEN ($6 * interval '1 second') ELSE ($5 * interval '1 second') END, updated_at = $4
 	WHERE id = $1 AND identity_key = $2 AND generation = $3 AND status = 'active'
 	RETURNING id, room_id, identity_key, nickname, status, generation, visit_id, reconnect_deadline_at`
@@ -140,7 +149,7 @@ func (s Store) RegisterIdentity(ctx context.Context, sessionID, identityKey stri
 func (s Store) MarkStale(ctx context.Context, now time.Time, heartbeat time.Duration, grace time.Duration, hiddenGrace time.Duration) ([]domain.Session, error) {
 	const query = `UPDATE chat_sessions SET status = 'reconnecting', reconnect_deadline_at = last_seen_at +
 	CASE WHEN last_visibility = 'hidden' THEN (($4 + $2) * interval '1 second') ELSE (($3 + $2) * interval '1 second') END, updated_at = $1
-	WHERE status = 'active' AND last_seen_at <= $1 - ($2 * interval '1 second')
+	WHERE status = 'active' AND last_seen_at <= $1::timestamp - ($2 * interval '1 second')
 	RETURNING id, room_id, identity_key, nickname, status, generation, visit_id, reconnect_deadline_at`
 	return s.sessions(ctx, "mark stale chat sessions", query, now.UTC(), int64(heartbeat/time.Second), int64(grace/time.Second), int64(hiddenGrace/time.Second))
 }
@@ -206,7 +215,7 @@ func (s Store) End(ctx context.Context, sessionID, identityKey string, generatio
 		return domain.Session{}, transitionError("finish visit", err)
 	}
 	if userID != nil {
-		const rankQuery = `UPDATE registered_users SET chat_seconds = chat_seconds + GREATEST(EXTRACT(EPOCH FROM ($2 - $1))::integer, 0) WHERE id = $3`
+		const rankQuery = `UPDATE registered_users SET chat_seconds = chat_seconds + GREATEST(EXTRACT(EPOCH FROM ($2::timestamp - $1::timestamp))::integer, 0) WHERE id = $3`
 		if _, err := tx.Exec(ctx, rankQuery, enteredAt, now.UTC(), *userID); err != nil {
 			return domain.Session{}, fmt.Errorf("increment chat time: %w", err)
 		}

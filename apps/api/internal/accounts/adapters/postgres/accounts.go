@@ -12,15 +12,21 @@ import (
 	"strconv"
 	"strings"
 
+	"chat/api/internal/accounts/application"
 	"chat/api/internal/accounts/domain"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Accounts struct{ pool *pgxpool.Pool }
+type Database interface {
+	Begin(context.Context) (pgx.Tx, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+}
+type Accounts struct{ pool Database }
 
-func NewAccounts(pool *pgxpool.Pool) Accounts { return Accounts{pool: pool} }
+func NewAccounts(pool Database) Accounts { return Accounts{pool: pool} }
 
 func (a Accounts) FindByNickname(ctx context.Context, nickname string) (domain.Principal, string, error) {
 	const query = `SELECT id, nickname, is_admin, can_moderate_emojis, password_hash
@@ -34,7 +40,7 @@ func (a Accounts) FindPrincipal(ctx context.Context, userID int64) (domain.Princ
 	var principal domain.Principal
 	if err := a.pool.QueryRow(ctx, query, userID).Scan(&principal.UserID, &principal.Nickname, &principal.Admin, &principal.CanModerateEmojis); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.Principal{}, pgx.ErrNoRows
+			return domain.Principal{}, application.ErrAccountNotFound
 		}
 		return domain.Principal{}, fmt.Errorf("find principal: %w", err)
 	}
@@ -46,7 +52,7 @@ func (a Accounts) scanCredential(ctx context.Context, query, value string) (doma
 	var hash string
 	if err := a.pool.QueryRow(ctx, query, value).Scan(&principal.UserID, &principal.Nickname, &principal.Admin, &principal.CanModerateEmojis, &hash); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.Principal{}, "", pgx.ErrNoRows
+			return domain.Principal{}, "", application.ErrAccountNotFound
 		}
 		return domain.Principal{}, "", fmt.Errorf("find credentials: %w", err)
 	}
@@ -71,12 +77,35 @@ func (PBKDF2Verifier) Hash(password string) (string, error) {
 	}, "$"), nil
 }
 
-func (a Accounts) Create(ctx context.Context, nickname, email, passwordHash string) (domain.Principal, error) {
+func (a Accounts) Create(ctx context.Context, nickname, email, passwordHash, networkIdentity string) (domain.Principal, error) {
 	const query = `INSERT INTO registered_users (nickname, email, password_hash, is_admin, can_moderate_emojis, is_game_guest, theme_id, appearance, font_id, font_style, message_sound_enabled, public_message_count, chat_seconds, karma, inserted_at, updated_at)
 	VALUES ($1, NULLIF($2, ''), $3, NOT EXISTS (SELECT 1 FROM registered_users WHERE NOT is_game_guest), false, false, 'vertigo', '{}'::jsonb, 'theme', 'normal', false, 0, 0, 0, NOW(), NOW())
 	RETURNING id, nickname, is_admin, can_moderate_emojis`
+	fingerprint, err := registrationFingerprint(networkIdentity)
+	if err != nil {
+		return domain.Principal{}, err
+	}
 	var principal domain.Principal
-	if err := a.pool.QueryRow(ctx, query, nickname, email, passwordHash).Scan(&principal.UserID, &principal.Nickname, &principal.Admin, &principal.CanModerateEmojis); err != nil {
+	err = pgx.BeginFunc(ctx, a.pool, func(tx pgx.Tx) error {
+		// Serialize first-account election, including the empty-table case.
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(674923002)`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO security_registration_guards(fingerprint, day, inserted_at, updated_at) VALUES ($1, (now() AT TIME ZONE 'UTC')::date, now(), now())`, fingerprint); err != nil {
+			var constraint *pgconn.PgError
+			if errors.As(err, &constraint) && constraint.Code == "23505" {
+				return application.ErrRegistrationLimited
+			}
+			return err
+		}
+		err := tx.QueryRow(ctx, query, nickname, email, passwordHash).Scan(&principal.UserID, &principal.Nickname, &principal.Admin, &principal.CanModerateEmojis)
+		var constraint *pgconn.PgError
+		if errors.As(err, &constraint) && constraint.Code == "23505" {
+			return application.ErrInvalidRegistration
+		}
+		return err
+	})
+	if err != nil {
 		return domain.Principal{}, fmt.Errorf("create account: %w", err)
 	}
 	return principal, nil

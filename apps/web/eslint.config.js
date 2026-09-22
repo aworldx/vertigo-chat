@@ -5,11 +5,11 @@ import reactHooks from "eslint-plugin-react-hooks"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(
-  { ignores: ["js/shared/generated/**", "node_modules/**", "../../priv/**"] },
+  { ignores: ["src/shared/generated/**", "node_modules/**", "../../priv/**"] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
-    files: ["js/**/*.{ts,tsx}", "test/**/*.tsx", "browser/**/*.ts", "playwright.config.ts"],
+    files: ["src/**/*.{ts,tsx}", "js/**/*.{ts,tsx}", "test/**/*.tsx", "browser/**/*.ts", "playwright.config.ts"],
     languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
     settings: { "import/resolver": { typescript: true } },
     plugins: { import: importPlugin, "jsx-a11y": jsxA11y, "react-hooks": reactHooks },
@@ -26,14 +26,17 @@ export default tseslint.config(
         "error",
         {
           patterns: [
-            { group: ["./profiles/ProfilesApp"], message: "Import the profiles feature through its public index.ts." },
+            {
+              group: ["../src/features/profiles/ProfilesApp"],
+              message: "Import the profiles feature through its public index.ts.",
+            },
           ],
         },
       ],
     },
   },
   {
-    files: ["js/profiles/{api,model,ui}/**/*.{ts,tsx}"],
+    files: ["src/features/*/{api,model,ui}/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",

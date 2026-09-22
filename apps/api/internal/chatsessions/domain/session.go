@@ -1,7 +1,12 @@
 // Package domain defines the transport-independent chat-session state machine.
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var ErrInvalidSession = errors.New("invalid chat session")
 
 type Status string
 
@@ -23,7 +28,7 @@ type Session struct {
 }
 
 // Start describes a pre-authorized entrance. Authentication and nickname
-// normalization stay at the BFF boundary; this context owns the durable visit
+// normalization belong to the entrance application; this context owns the durable visit
 // and session created for that accepted entrance.
 type Start struct {
 	RoomID      string

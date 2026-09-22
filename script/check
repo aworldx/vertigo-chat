@@ -4,4 +4,5 @@ set -eu
 
 cd "$(dirname "$0")/../apps/phoenix"
 mix precommit
-exec script/check-infrastructure
+../../script/verify-go-accounts
+exec ../../script/check-infrastructure

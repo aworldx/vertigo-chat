@@ -19,7 +19,7 @@ legacy-ветке и не является fallback или proxy целевой 
   обратимые Phoenix proxy, LiveView fallback или новые Phoenix write-path.
 - До полного завершения миграции не делать production rollout: не выполнять
   push, публикацию образов, деплой или изменения production. Разрешены только
-  коммиты в текущую ветку и проверка локальных стендов.
+  проверки локальных стендов. Коммиты — только после нового указания пользователя.
 - Сохранять внешний вид, особенно шрифты, отступы и поведение диалогов.
   Смена технологии сама по себе не является задачей редизайна.
 - Для каждого сценария сначала закрепить Go HTTP/WebSocket контракт, затем
@@ -28,13 +28,33 @@ legacy-ветке и не является fallback или proxy целевой 
 
 ## Текущее состояние
 
+Текущий незавершённый срез (2026-09-22): главная React, гостевой/зарегистрированный
+вход и базовая общая комната уже доступны на локальном `http://127.0.0.1:4040/`.
+Добавлены public entrance API, Go WebSocket, reconnect, outbox и явный выход.
+`script/verify-go-chat` проверяет их на отдельной временной БД; integration и
+browser-сценарии прошли. Полный перенос интерфейса и возможностей legacy-чата
+ещё не завершён, визуальная проверка главной также требует завершения. Таблица
+и этап 6 ниже описывают ранее принятый срез, а не готовность нового чата.
+
+Исправление локального входа: Chrome открывал `localhost:4040`, тогда как
+`API_PUBLIC_ORIGIN` задан как `http://127.0.0.1:4040`. Строгая проверка Host
+отклоняла даже GET account-session и показывала «Сессия изменилась».
+Go теперь перенаправляет навигацию по локальным страницам с loopback-алиаса
+на настроенный origin с тем же портом; проверки API/CSRF/WebSocket сохранены.
+Обычный Chrome проверен вручную: перенаправление и гостевой вход работают.
+Есть регрессионные тесты для loopback, другого порта, production и API.
+Production, схема БД и пользовательские данные этим исправлением не менялись.
+После исправления прошли `mix precommit` (411 ExUnit, 8 React, 3 browser,
+Go vet/lint/race, TypeScript/ESLint/Prettier и контракты) и повторный
+`script/verify-go-chat`, включая навигацию с localhost и гостевой вход.
+
 | Часть | Сделано | Ещё не сделано |
 | --- | --- | --- |
 | YouTube worker | Переписан на Go и расположен в `services/youtube-worker`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; golangci-lint, `gofmt`, `go vet`, race-тесты | Полный production Docker build проверяется в CI quality/build pipeline |
-| React-анкеты | Строгий TypeScript, browser/visual-сравнение и ручное принятие React UI завершены | Перенести доставку UI из Phoenix в Go web delivery; LiveView остаётся legacy |
-| API анкет | `apps/api` реализует Go read/write-модель анкет с domain/application/PostgreSQL/HTTP слоями, healthcheck и проверками | Убрать Phoenix public/proxy delivery и сделать Go единственным public API |
-| Accounts и chat-session | Go Accounts совместим с legacy PBKDF2; Go lifecycle покрывает start, restore, activate, touch, reconnect, reaper, leave и guest→registered identity | Перенести Go-owned browser account-session, public auth API, Presence/WebSocket и React chat UI |
-| Архитектура | `apps/web`, `apps/api`, `services/youtube-worker`, `contracts`, `deploy`; quality gates работают | Go должен стать web/application host; Phoenix исключается из целевой delivery цепочки |
+| React-анкеты | Строгий TypeScript; Go отдаёт standalone React, каталог, диалог, редактор и фото; old/new проверены на трёх viewport | Ручное принятие нового standalone delivery; LiveView остаётся только legacy |
+| API анкет | Go public read/write API; текущий пользователь определяется account-cookie и CSRF, media выдаётся Go | Удалить исторический Phoenix proxy код при завершении общего cutover |
+| Accounts и chat-session | React login/register/logout подключены к Go; legacy PBKDF2, cookie/CSRF, редактор, upload и выход во второй вкладке проверены | Главная с гостевым входом, public chat-session API, Presence/WebSocket и React chat UI; настройки аккаунта и административные сценарии |
+| Архитектура | Standalone web build в `apps/web/src`, Go web delivery, Docker target `profiles-api` содержит React; quality gates работают | Полностью исключить Phoenix из Docker/Compose/CI после переноса остальных контекстов |
 
 React/API и документация входят в первый коммит ветки миграции после Go-воркера.
 Старый каталог анкет `/profiles` остаётся основным. Подробности первой итерации:
@@ -87,6 +107,96 @@ Phoenix перенесён в `apps/phoenix`: Mix-проект, конфигур
 Dialyzer/Credo, Go, контракт, strict TypeScript/ESLint/Prettier, 7 interaction-
 тестов, Playwright-сравнение LiveView/React на 390×844, 768×1024, 1440×900 и
 ExUnit. Визуальное сравнение не выявило различий метрик или overflow.
+
+## Текущий незакоммиченный срез Accounts (2026-09-22)
+
+Реализован public Go API `/api/v1/auth/{session,login,register,logout}` вместо
+внутреннего Accounts proxy. Контракт: [accounts.yaml](../contracts/openapi/accounts.yaml).
+Phoenix использует подписанную cookie и при выходе удаляет `account_user_id` из
+новой cookie; серверного отзыва сохранённой старой cookie в legacy нет.
+Текущая Go-реализация следует прежнему пункту плана об opaque session и добавляет
+серверный отзыв, для которого предусмотрена новая таблица `account_sessions`.
+Это дополнительное свойство, а не обязательное условие React/Go. После вопроса
+пользователя о различиях рекомендовано сохранить серверные сессии из действующего плана: они позволяют отозвать старую cookie при выходе.
+Это архитектурное решение миграции; production rollout по-прежнему не разрешён.
+
+База и существующие данные сохраняются. `registered_users`, password hashes и
+`security_registration_guards` используются в прежней схеме. Лишняя новая
+таблица registration claims удалена; Go воспроизводит Erlang fingerprint для
+IPv4/IPv6 и UTC day, сохраняя ранее записанные ограничения. Регистрация и claim
+атомарны; конкурентное создание первого аккаунта выдаёт admin только одному.
+
+На изолированной копии **только схемы** `chat_test` проверены миграция Go,
+повторный запуск, регистрация, profile trigger, rollback лимита, конкурентные
+сессии, expiry/revocation и реальный Chromium flow: cookie/CSRF, вход, reload,
+выход во второй вкладке и сохранение tab-scoped storage. Команда:
+`GO=/tmp/chat-go-sdk/go/bin/go GOCACHE=/tmp/chat-go-cache script/verify-go-accounts`.
+Она создаёт и удаляет `chat_accounts_test_*`; исходную БД не изменяет.
+Новые browser-проверки написаны на строгом TypeScript и включены в lint/typecheck.
+
+`ACCOUNTS_GO_API_URL`/`ACCOUNTS_INTERNAL_TOKEN` удалены из Compose; legacy Phoenix
+код не расширялся. На первом API-срезе UI ещё не подключался; следующий
+standalone-срез описан ниже. Его предыдущий `mix precommit` прошёл: Go static/race/build,
+Credo/Dialyzer, generated contracts, strict TypeScript/ESLint/Prettier,
+8 React tests, 3 browser-сравнения анкет и 411 ExUnit tests. Отдельный
+`script/check-infrastructure` прошёл (Redocly предупреждает об отсутствии
+license в обоих контрактах; Hadolint сообщает о соседних RUN).
+`script/check` исправлен на запуск infrastructure из правильного каталога и
+теперь также запускает `verify-go-accounts`; сценарий добавлен в CI quality.
+При переключении UI пользователи войдут заново: Go не принимает старую Phoenix
+cookie, но использует прежние password hashes. Go migrations добавляют только
+`account_sessions` и служебный `go_schema_migrations`; существующие таблицы не
+пересоздаются. Команда `cmd/migrate` применяется отдельно перед запуском API.
+Go public API проверен при прямом соединении; X-Forwarded-For не доверяется.
+Перед реальным reverse proxy нужен явный доверенный peer adapter, иначе
+регистрации будут иметь общий IP прокси. Полный Docker build и CI job локально
+не запускались.
+Изменения не коммитились, production не затрагивался.
+
+## Незакоммиченный standalone web-срез (2026-09-22)
+
+Go самостоятельно отдаёт React на `/account/login`, `/account/register` и
+`/profiles`, включая login/register/logout, каталог, диалог, редактирование
+своей анкеты и фото. `WEB_ASSETS_DIR` указывает на `apps/web/dist`; сборка
+через npm/esbuild/Tailwind не требует Phoenix. Статические шрифты/изображения
+скопированы без изменения; общие правила CSS выделены в `site.css`.
+React разделён на `app → pages → features → shared`; проверка направления
+импортов и публичных entrypoint включена в npm lint. Accounts feature не
+зависит от Profiles: их связывает page. DTO генерируются из OpenAPI.
+
+Go public `/api/v1/account/profile` и `/api/v1/account/profile/photo` проверяют
+account-session и CSRF; входной `user_id` не принимается. Фото совместимы
+с прежними публичными URL. Phoenix не участвует в целевом auth/write flow.
+Исправлены очистка полей через JSON `null`, перекрытие кнопки выхода фоном
+и тип timestamp в SQL reaper, найденный на реальной локальной PostgreSQL.
+
+12 снимков login/register/catalogue/dialog на 390×844, 768×1024 и 1440×900
+совпали побайтово по пикселям с legacy SHA
+`0734268bd59a6a84178d3040fefd805e707ff6cb`. Подробности, исключение legacy
+login bundle и команды: [go_web_verification.md](go_web_verification.md).
+`verify-go-accounts` проверяет API и UI на своей БД/порту 4042; сравнение
+`verify-go-web` использует ещё две отдельные БД и по умолчанию 4043/4044.
+
+**Главная и чат пока не перенесены.** `/` временно ведёт на `/profiles`;
+`/chat`, `/account` settings, игры, библиотека и остальные разделы пока 404.
+После входа пользователь попадает в анкеты. Это промежуточный local preview,
+не готовность полного cutover. Старую главную можно открыть на legacy-стенде.
+Полноценный перенос главной требует её guest/registered entrance, сохранения
+tab-scoped resume-secret и рабочего React chat через public Go transport.
+
+Для ручной проверки запущен Go на `http://127.0.0.1:4040`, тестовый аккаунт
+`fixture01` / `secret123`. База `chat_web_go_41857` изолирована от dev/production;
+не сбрасывать её во время ручной проверки. API запущен отдельным foreground
+процессом; прежний background-сервер завершался вместе с тестовым shell.
+`KEEP_MIGRATION_STAND=1` теперь удерживает родительский процесс; команда должна
+оставаться запущенной. Не считать старые URL живыми без проверки health.
+
+Проверки этого среза прошли: `mix precommit` (Go static/race/build,
+Credo/Dialyzer, контракты, strict TS/ESLint/Prettier, 8 React tests, standalone
+build, 3 прежних Playwright comparisons, 411 ExUnit), `verify-go-accounts`,
+`verify-go-web` и `check-infrastructure`. Docker target `profiles-api` успешно
+собран в локальный образ `chat-go-web-migration-check`, без публикации.
+Полный production Compose/CI rollout не выполнялся. Изменения не коммитились.
 
 ## Этапы и критерии завершения
 
@@ -221,9 +331,9 @@ identity-провайдера. Для текущего продукта один
 
 Статус 2026-09-22: `apps/api` предоставляет Go Accounts application layer и
 совместимую проверку `pbkdf2_sha256`, регистрацию и principal с ролями. Старый
-React login существует, но пока доставляется Phoenix и потому не является
-целевой реализацией. Следующий обязательный шаг — Go-owned browser session,
-public auth API и Go web delivery React.
+React login/register и профили теперь доставляются Go и используют public auth API.
+Go-owned browser session, public profile writes и полный React flow проверены
+локально. Главная с входом в чат остаётся следующим обязательным шагом.
 
 Границы сохраняются:
 
@@ -247,7 +357,7 @@ public auth API и Go web delivery React.
 - [ ] Описать публичный Go application API `Accounts` и `Principal`: регистрация,
       password login, logout, получение текущего пользователя, назначение и
       проверка ролей. Не передавать HTTP cookie, JWT или SQL-модель в domain.
-- [ ] Создать Go context `internal/accounts/{domain,application,adapters}` и
+- [x] Создать Go context `internal/accounts/{domain,application,adapters}` и
       перенести password verifier с совместимостью с существующим форматом
       `pbkdf2_sha256`. Новый хэш-формат и обновление credential допустимы только
       после успешной проверки старого пароля и с явной стратегией rollback.
@@ -255,13 +365,13 @@ public auth API и Go web delivery React.
       cutover; не допускать постоянной dual-write/dual-auth схемы. Сначала Go
       читает и проходит contract-тесты, затем один выбранный маршрут получает
       Go как единственного владельца записи.
-- [ ] Реализовать Go-owned opaque account-session: HTTP-only Secure cookie,
+- [x] Реализовать Go-owned opaque account-session: HTTP-only Secure cookie,
       CSRF, logout/revocation и current principal. Не использовать Phoenix BFF.
 - [ ] Покрыть browser и integration-тестами регистрацию, неверный пароль,
       logout во второй вкладке, истечение/подделку cookie, CSRF, обычную роль,
       обе административные роли, ownership и сохранение независимого
       chat-session. Запустить `mix precommit` и Go race/static checks.
-- [ ] Проверить целевой Go+React flow локально. Phoenix запускается лишь из
+- [x] Проверить целевой Go+React account/profile flow локально. Phoenix запускается лишь из
       legacy-ветки для сравнения, но не подключается к новому стенду.
 
 OIDC — отложенное, независимое расширение, а не условие переноса `Accounts`:
@@ -314,11 +424,10 @@ generation обновляются атомарно, а resume-secret ротир�
 
 ## Ближайший порядок полного cutover
 
-1. Ввести Go-owned browser account-session и public auth API; удалить
-   `ACCOUNTS_GO_API_URL`/`ACCOUNTS_INTERNAL_TOKEN` proxy-схему из целевого
-   deployment.
-2. Вынести React build и static web delivery из Phoenix в Go deployment;
-   перенести главную, вход и регистрацию на public Go API.
+1. Выполнено локально: Go-owned browser account-session и public auth API; удалены
+   переменные `ACCOUNTS_GO_API_URL`/`ACCOUNTS_INTERNAL_TOKEN` из Compose.
+2. Выполнено локально: standalone React build и Go static web delivery,
+   вход/регистрация/анкеты на public Go API. Перенос главной ещё не выполнен.
 3. Завершить Go WebSocket/Presence transport и переключить React chat на него.
    Не создавать новые Phoenix routes, controllers или LiveView для этих шагов.
 4. Перенести остальные public контексты по тому же правилу и удалить Phoenix
@@ -331,35 +440,21 @@ generation обновляются атомарно, а resume-secret ротир�
    контекста. Проверить текущую ветку и `git status`; не затирать рабочее дерево.
 2. Сопоставить состояние файлов с таблицей выше. Брать первый незавершённый
    этап, не считать описанную в документации проверку уже внедрённой.
-3. Read-контракт и обратимый Phoenix → Go proxy проверены на локальном стенде:
-   `DATABASE_URL=... GO=... script/verify-go-profile-contracts` (оба API уже
-   запущены) либо `script/verify-go-profile-proxy` (поднимает оба временно).
-   Go уже имеет закрытый token-protected mutation endpoint для partial field
-   updates и фото с ImageMagick WebP thumbnail, с атомарным ownership по
-   `user_id`. Go S3 adapter повторяет SigV4, object keys и public-read verify;
-   его local HTTP integration test проверяет подпись, upload и exact-byte read.
-   При opt-in write flag Phoenix JSON editor использует Go как единственного
-   writer. `script/verify-go-profile-write` создаёт и удаляет временный
-   локальный аккаунт, проходит через cookie+CSRF Phoenix и подтверждает update
-   в Go на итоговой проекции. Browser-часть этого скрипта подтверждает React
-   editor text edit и валидный PNG upload через Go, а также выдачу исходного
-   PNG и WebP thumbnail через Go. Недостижимая RoomLive
-   форма, upload и handlers удалены; его edit control ведёт в React `/profiles`.
-   Docker target и Compose service `profiles-api` готовы, но все Go proxy flags
-   по умолчанию выключены. Для совместного Compose-стенда подключать
-   `-f deploy/compose.profiles-go.yaml` и передавать непустой
-   `PROFILE_INTERNAL_TOKEN`; базовый compose не менять. Следующий этап — поднять совместный локальный стенд
-   с Go read/write flags, повторить browser-сравнение авторизованного просмотра
-   с историческим базовым снимком на изолированной БД. Не готовить production
-   rollout до полного завершения всей миграции.
+3. Следующий этап — главная с guest/registered entrance, public chat-session
+   API и React chat/Go WebSocket transport. Web delivery и account login/register готовы;
+   не возобновлять исторический Phoenix proxy rollout. Для проверки Accounts
+   применять `script/verify-go-accounts` на изолированной БД. Для миграции
+   существующей схемы перед запуском Accounts есть `apps/api/cmd/migrate`;
+   production-запуск этой команды не разрешён.
 4. После изменений запускать `cd apps/phoenix && mix precommit`; для Go ранее
    использовались `GO=/tmp/chat-go-sdk/go/bin/go` и `GOCACHE=/tmp/chat-go-cache`.
    Для локального Go ранее использовались `GO=/tmp/chat-go-sdk/go/bin/go` и
    `GOCACHE=/tmp/chat-go-cache`; проверить их наличие, не полагаться на `/tmp`.
-5. Для браузера ранее использовался `http://localhost:4030/profiles/react`,
-   YouTube worker — порт 4021. Проверить процессы/health перед использованием;
+5. Текущий ручной React+Go preview — `http://127.0.0.1:4040/profiles` и
+   `/account/login`; legacy-сравнение — `http://127.0.0.1:4044/`.
+   Главной на Go пока нет. Проверить процессы/health перед использованием;
    старые процессы не обязаны пережить следующую сессию. Команды запуска есть
-   в документации миграции и README. Локальные стенды используют общую dev-БД.
+   в README и отчёте Go web. Стенды используют независимые тестовые БД.
 6. Обновить этот план: завершённые пункты, изменённые команды, результаты
    проверок, отчёт сравнения старой/новой версии и точный следующий шаг.
    Не отмечать этап готовым только по коду,

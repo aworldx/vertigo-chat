@@ -83,7 +83,7 @@ func (c Catalogue) UpdateByUserID(ctx context.Context, userID int64, input domai
 	if result.RowsAffected() != 1 {
 		return domain.Profile{}, application.ErrNotFound
 	}
-	return c.getByUserID(ctx, userID)
+	return c.GetByUserID(ctx, userID)
 }
 
 func (c Catalogue) UpdatePhotoByUserID(ctx context.Context, userID int64, input domain.PhotoInput) (domain.Profile, error) {
@@ -104,7 +104,7 @@ func (c Catalogue) UpdatePhotoByUserID(ctx context.Context, userID int64, input 
 	if result.RowsAffected() != 1 {
 		return domain.Profile{}, application.ErrNotFound
 	}
-	return c.getByUserID(ctx, userID)
+	return c.GetByUserID(ctx, userID)
 }
 
 func (c Catalogue) MediaByNickname(ctx context.Context, nickname string, thumbnail bool) (domain.Media, error) {
@@ -138,7 +138,7 @@ func (c Catalogue) MediaByNickname(ctx context.Context, nickname string, thumbna
 	return domain.Media{Bytes: loaded, ContentType: *contentType}, nil
 }
 
-func (c Catalogue) getByUserID(ctx context.Context, userID int64) (domain.Profile, error) {
+func (c Catalogue) GetByUserID(ctx context.Context, userID int64) (domain.Profile, error) {
 	rows, err := c.pool.Query(ctx, profileSQL+` WHERE u.id = $1`, userID)
 	if err != nil {
 		return domain.Profile{}, fmt.Errorf("get profile by user: %w", err)

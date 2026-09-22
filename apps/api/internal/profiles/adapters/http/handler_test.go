@@ -82,12 +82,11 @@ func TestListRejectsNestedQueryParameters(t *testing.T) {
 	}
 }
 
-func TestMutationRequiresInternalTokenAndPreservesAbsentFields(t *testing.T) {
+func TestMutationUsesSessionActorAndPreservesAbsentFields(t *testing.T) {
 	updater := &updaterStub{}
 	mux := http.NewServeMux()
-	NewMutationHandler(application.NewEditor(updater), application.NewPhotoEditor(updater), "test-token").Register(mux)
-	request := httptest.NewRequest(http.MethodPatch, "/internal/v1/profiles/7", bytes.NewBufferString(`{"profile":{"name":"Алиса"}}`))
-	request.Header.Set("X-Internal-Profile-Token", "test-token")
+	NewMutationHandler(application.NewEditor(updater), application.NewPhotoEditor(updater), application.NewAccountCatalog(updater), func(*http.Request, bool) (int64, int) { return 7, 0 }).Register(mux)
+	request := httptest.NewRequest(http.MethodPatch, "/api/v1/account/profile", bytes.NewBufferString(`{"profile":{"name":"Алиса"}}`))
 	response := httptest.NewRecorder()
 	mux.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
@@ -101,9 +100,9 @@ func TestMutationRequiresInternalTokenAndPreservesAbsentFields(t *testing.T) {
 func TestMutationRejectsUntrustedCall(t *testing.T) {
 	mux := http.NewServeMux()
 	updater := &updaterStub{}
-	NewMutationHandler(application.NewEditor(updater), application.NewPhotoEditor(updater), "test-token").Register(mux)
+	NewMutationHandler(application.NewEditor(updater), application.NewPhotoEditor(updater), application.NewAccountCatalog(updater), func(*http.Request, bool) (int64, int) { return 0, http.StatusUnauthorized }).Register(mux)
 	response := httptest.NewRecorder()
-	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/internal/v1/profiles/7", nil))
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/v1/account/profile", nil))
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d", response.Code)
 	}
@@ -134,5 +133,25 @@ func TestMediaReturnsNotFoundWithoutLeakingStorageErrors(t *testing.T) {
 		if nickname == "broken" && response.Code != http.StatusBadGateway {
 			t.Fatalf("broken status = %d", response.Code)
 		}
+	}
+}
+
+func (s *updaterStub) GetByUserID(context.Context, int64) (domain.Profile, error) {
+	return domain.Profile{Nickname: "owner"}, nil
+}
+
+func TestMutationClearsExplicitNullAndRejectsCallerIdentity(t *testing.T) {
+	updater := &updaterStub{}
+	mux := http.NewServeMux()
+	NewMutationHandler(application.NewEditor(updater), application.NewPhotoEditor(updater), application.NewAccountCatalog(updater), func(*http.Request, bool) (int64, int) { return 7, 0 }).Register(mux)
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/v1/account/profile", bytes.NewBufferString(`{"profile":{"name":null}}`)))
+	if response.Code != http.StatusOK || !updater.input.Name.Set || updater.input.Name.Value != nil {
+		t.Fatal("explicit null did not clear field")
+	}
+	response = httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/v1/account/profile", bytes.NewBufferString(`{"user_id":8,"profile":{"name":"other"}}`)))
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatal("accepted caller-supplied identity")
 	}
 }

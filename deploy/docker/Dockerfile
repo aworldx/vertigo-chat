@@ -124,16 +124,24 @@ WORKDIR /src
 COPY services/youtube-worker/ ./
 RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /youtube-worker .
 
+FROM node:24.8.0-trixie-slim AS web-builder
+WORKDIR /src
+COPY apps/web/package.json apps/web/package-lock.json ./
+RUN npm ci
+COPY apps/web/ ./
+RUN npm run build
+
 FROM golang:1.27.1-trixie AS profiles-api-builder
 WORKDIR /src
 COPY apps/api/ ./
-RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /profiles-api ./cmd/api
+RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /profiles-api ./cmd/api \
+  && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /accounts-migrate ./cmd/migrate
 
 # CI executes the same repository checks in this pinned toolchain image. It is
 # deliberately not used by production targets.
 FROM ${BUILDER_IMAGE} AS quality
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends build-essential git nodejs npm shellcheck \
+  && apt-get install -y --no-install-recommends build-essential git nodejs npm shellcheck postgresql-client \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=youtube-builder /usr/local/go /usr/local/go
 COPY --from=golangci/golangci-lint:v2.13.2 /usr/bin/golangci-lint /usr/local/bin/golangci-lint
@@ -149,9 +157,9 @@ RUN mix assets.setup && npx --prefix ../web playwright install --with-deps chrom
 WORKDIR /app
 COPY . .
 WORKDIR /app/apps/phoenix
-RUN find /app/script -maxdepth 1 -type f ! -name '*.exs' -exec shellcheck {} + \
+RUN find /app/script -maxdepth 1 -type f ! -name '*.exs' ! -name '*.mjs' -exec shellcheck {} + \
   && hadolint --config /app/deploy/.hadolint.yaml /app/deploy/docker/Dockerfile \
-  && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint /app/contracts/openapi/profiles.yaml
+  && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint /app/contracts/openapi/*.yaml
 
 # Standalone Go service: no BEAM release, database or application secrets.
 FROM ${RUNNER_IMAGE} AS youtube-worker
@@ -169,7 +177,9 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl imagemagick \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=profiles-api-builder /profiles-api /app/bin/profiles-api
-ENV API_ADDR=0.0.0.0:4020
+COPY --from=profiles-api-builder /accounts-migrate /app/bin/accounts-migrate
+COPY --from=web-builder /src/dist /app/web
+ENV API_ADDR=0.0.0.0:4020 WEB_ASSETS_DIR=/app/web
 USER nobody
 CMD ["/app/bin/profiles-api"]
 

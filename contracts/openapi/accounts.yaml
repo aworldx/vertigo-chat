@@ -1,0 +1,154 @@
+openapi: 3.1.0
+info:
+  title: Vertigo public Accounts API
+  version: 1.0.0
+  description: >-
+    Go-owned same-origin account sessions. Obtain an anonymous cookie and CSRF
+    token with GET session before login or registration. Send X-CSRF-Token on
+    every mutation. Successful authentication rotates both cookie and CSRF token.
+    The opaque cookie is HttpOnly, SameSite=Lax, Path=/ and Secure on HTTPS;
+    __Host-chat_account is its HTTPS name, chat_account is the loopback HTTP name.
+    The browser stores no credential in localStorage or sessionStorage.
+    Anonymous sessions expire after one hour, authenticated sessions after 30 days
+    without sliding renewal. Logout revokes the current session across all tabs;
+    independent browser sessions and tab-scoped chat sessions are unaffected.
+servers:
+  - url: /
+paths:
+  /api/v1/auth/session:
+    get:
+      operationId: getAccountSession
+      summary: Read the current principal and CSRF token, or start an anonymous session
+      security: []
+      responses:
+        '200': {$ref: '#/components/responses/Session'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /api/v1/auth/login:
+    post:
+      operationId: loginAccount
+      summary: Authenticate a password and rotate the account session
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Credentials'}
+      responses:
+        '200': {$ref: '#/components/responses/Session'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '415': {$ref: '#/components/responses/JSONRequired'}
+        '422': {$ref: '#/components/responses/InvalidInput'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /api/v1/auth/register:
+    post:
+      operationId: registerAccount
+      summary: Create an account and sign in
+      description: >-
+        At most one successful registration per UTC day and trusted peer IP.
+        Forwarded headers are ignored. A failed registration does not consume the
+        daily claim. First registered user is admin; concurrent registrations
+        cannot create multiple first admins. Nickname and email must be unique.
+        Registration and the rate-limit claim commit together; if session issuance
+        then fails, the account exists and the user can recover by logging in.
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [nickname, password]
+              properties:
+                nickname: {type: string, minLength: 3, maxLength: 24}
+                password: {type: string, minLength: 6, maxLength: 128, writeOnly: true}
+                email: {type: string, description: Optional email; blank is allowed.}
+      responses:
+        '200': {$ref: '#/components/responses/Session'}
+        '400': {$ref: '#/components/responses/InvalidInput'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '415': {$ref: '#/components/responses/JSONRequired'}
+        '422': {$ref: '#/components/responses/InvalidInput'}
+        '429': {$ref: '#/components/responses/Limited'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /api/v1/auth/logout:
+    post:
+      operationId: logoutAccount
+      summary: Revoke the current account session and clear its cookie
+      security: [{accountSession: [], csrfToken: []}]
+      responses:
+        '204': {description: Session revoked; cookie deleted. Cache-Control is no-store.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+components:
+  securitySchemes:
+    accountSession: {type: apiKey, in: cookie, name: __Host-chat_account}
+    csrfToken: {type: apiKey, in: header, name: X-CSRF-Token}
+  schemas:
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [nickname, password]
+      properties:
+        nickname: {type: string}
+        password: {type: string, writeOnly: true}
+    Principal:
+      type: object
+      additionalProperties: false
+      required: [user_id, nickname, roles]
+      properties:
+        user_id: {type: integer, format: int64, minimum: 1}
+        nickname: {type: string}
+        roles:
+          type: array
+          uniqueItems: true
+          items: {type: string, enum: [admin, emoji_moderator]}
+    Session:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [principal, csrf_token]
+          properties:
+            principal:
+              oneOf:
+                - {$ref: '#/components/schemas/Principal'}
+                - {type: 'null'}
+            csrf_token: {type: string}
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: [unauthorized, forbidden, invalid_input, invalid_registration, invalid_peer, json_required, registration_limited, unavailable]
+  responses:
+    Session:
+      description: Current principal (null for anonymous) and CSRF token. Cache-Control is no-store.
+      content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}
+    Unauthorized:
+      description: Invalid credentials or expired, forged or revoked session. Cache-Control is no-store.
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    Forbidden:
+      description: Missing or invalid CSRF token, Host, Origin or Fetch Metadata. Cache-Control is no-store.
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    JSONRequired:
+      description: Content-Type must be application/json. Cache-Control is no-store.
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    InvalidInput:
+      description: Invalid fields, duplicate identity or malformed JSON. Cache-Control is no-store.
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    Limited:
+      description: Registration already claimed for this peer and UTC day. Cache-Control is no-store.
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    Unavailable:
+      description: Account storage unavailable. Cache-Control is no-store.
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}

@@ -49,3 +49,7 @@ npm-debug.log
 
 # macOS Finder metadata.
 .DS_Store
+
+/apps/web/dist/
+
+/apps/web/migration-results/

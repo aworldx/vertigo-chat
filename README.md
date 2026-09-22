@@ -79,10 +79,9 @@ start without its provider credentials. Keep values containing `$` in single quo
 Compose does not interpret part of the secret as another variable. The PostgreSQL password is also
 embedded into `DATABASE_URL`, so use URL-safe characters or percent-encode reserved characters.
 
-For the local, opt-in profiles migration stand only, add
-`-f deploy/compose.profiles-go.yaml` and set a non-empty `PROFILE_INTERNAL_TOKEN`.
-That override points Phoenix to the internal `profiles-api` service for profile read/write paths;
-it is deliberately not part of the default deployment command.
+The old `compose.profiles-go.yaml` Phoenix proxy override is historical and no
+longer matches the public Go write API. Do not use it for this migration stage;
+use the standalone preview below. Production cutover is not ready or authorized.
 
 ### Monitoring
 
@@ -205,14 +204,37 @@ Ready to run in production? Please [check our deployment guides](https://phoenix
 
 ## React migration preview
 
-The first React screen is available at `/profiles/react`, backed by the public
-`/api/v1/profiles` API. The default `/profiles` route remains on LiveView.
-Run `cd apps/phoenix && mix assets.setup` once to install the pinned npm dependencies, then
-`cd apps/phoenix && mix assets.build` and `mix phx.server`. React interaction tests run as part of
-`cd apps/phoenix && mix precommit` or separately with `npm --prefix apps/web test`.
+Go now serves the standalone React build at `/account/login`, `/account/register`
+and `/profiles`. The home page and chat have **not** been migrated yet: `/`
+temporarily redirects to `/profiles`, and `/chat`, `/account` settings and other
+sections are not served. This is a partial local preview.
 
-See [the migration plan and local checks](docs/react_migration.md) and
-[the API contract](contracts/openapi/profiles.yaml).
+With an isolated local database containing the legacy schema:
+
+```sh
+npm --prefix apps/web ci
+npm --prefix apps/web run build
+cd apps/api
+DATABASE_URL=postgresql://localhost/chat_go_preview go run ./cmd/migrate
+DATABASE_URL=postgresql://localhost/chat_go_preview API_ADDR=127.0.0.1:4040 API_PUBLIC_ORIGIN=http://127.0.0.1:4040 WEB_ASSETS_DIR=../web/dist go run ./cmd/api
+```
+
+Keep the final command running while using `http://127.0.0.1:4040/account/login`.
+Use the exact configured hostname (`127.0.0.1`, not `localhost`) for same-origin
+authentication. Do not run both backends as writers against one database.
+
+`script/verify-go-accounts` automatically creates a disposable database from
+the schema of `chat_test` and verifies the API and React auth/profile flow on 4042.
+For old/new screenshots, build a separate pinned legacy checkout and run
+`LEGACY_ROOT=/path/to/legacy script/verify-go-web`; it uses separate databases
+and ports 4043/4044. Set `KEEP_MIGRATION_STAND=1` to keep that command running
+for manual inspection; Ctrl-C cleans up its servers and disposable databases.
+Fixture credentials are `fixture01` / `secret123`.
+
+See [the current migration plan](docs/go_react_migration_plan.md),
+[comparison report](docs/go_web_verification.md), and
+[API contract](contracts/openapi/profiles.yaml). React checks and the standalone
+build are included in `cd apps/phoenix && mix precommit`.
 
 ## Local YouTube worker (Go)
 

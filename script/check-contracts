@@ -5,13 +5,14 @@ set -eu
 repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
 cd "$repository_root"
 
-generated_file="apps/web/js/shared/generated/profiles.ts"
-original_file="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-types.XXXXXX")"
+original_file="$(mktemp "${TMPDIR:-/tmp}/chat-contract-types.XXXXXX")"
 trap 'rm -f "$original_file"' EXIT HUP INT TERM
-cp "$generated_file" "$original_file"
-npm --prefix apps/web run generate:profiles-types
-
-if ! cmp -s "$original_file" "$generated_file"; then
-  echo "Generated profile DTOs are stale; run npm --prefix apps/web run generate:profiles-types." >&2
-  exit 1
-fi
+for contract in profiles accounts chat; do
+  generated_file="apps/web/src/shared/generated/$contract.ts"
+  cp "$generated_file" "$original_file"
+  npm --prefix apps/web run "generate:$contract-types"
+  if ! cmp -s "$original_file" "$generated_file"; then
+    echo "Generated $contract DTOs are stale; run npm --prefix apps/web run generate:$contract-types." >&2
+    exit 1
+  fi
+done
