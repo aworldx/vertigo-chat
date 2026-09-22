@@ -1,0 +1,12 @@
+#!/bin/sh
+# Blocks Credo regressions while keeping the explicitly recorded legacy debt visible.
+set -eu
+
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+report_file="$(mktemp "${TMPDIR:-/tmp}/chat-credo.XXXXXX")"
+trap 'rm -f "$report_file"' EXIT HUP INT TERM
+
+cd "$repository_root"
+mix credo --strict --format json > "$report_file" || true
+mix_environment="${MIX_ENV:-dev}"
+elixir -pa "_build/$mix_environment/lib/jason/ebin" script/check_credo_baseline.exs "$report_file"

@@ -15,4 +15,15 @@ if [ -n "$unformatted" ]; then
   exit 1
 fi
 "$go_command" vet ./...
+if command -v golangci-lint >/dev/null 2>&1; then
+  golangci-lint run
+elif command -v docker >/dev/null 2>&1; then
+  docker run --rm -v "$(pwd):/app" -w /app golangci/golangci-lint:v2.13.2 golangci-lint run
+else
+  echo "golangci-lint v2.13.2 or Docker is required for Go quality checks." >&2
+  exit 1
+fi
 "$go_command" test -race ./...
+build_artifact="$(mktemp "${TMPDIR:-/tmp}/chat-youtube-worker.XXXXXX")"
+trap 'rm -f "$build_artifact"' EXIT HUP INT TERM
+"$go_command" build -o "$build_artifact" .

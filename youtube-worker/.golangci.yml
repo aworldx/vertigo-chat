@@ -1,0 +1,28 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - depguard
+    - errcheck
+    - gocyclo
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+  settings:
+    gocyclo:
+      min-complexity: 15
+    depguard:
+      rules:
+        domain:
+          files:
+            - "**/internal/**/domain/**/*.go"
+          allow:
+            - $gostd
+        application:
+          files:
+            - "**/internal/**/application/**/*.go"
+          allow:
+            - $gostd
+            - "${base-path}/internal/**/domain"

@@ -2,8 +2,16 @@
 # Keeps generated browser DTOs in lockstep with the public OpenAPI contract.
 set -eu
 
-repository_root="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
 cd "$repository_root"
 
+generated_file="assets/js/shared/generated/profiles.ts"
+original_file="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-types.XXXXXX")"
+trap 'rm -f "$original_file"' EXIT HUP INT TERM
+cp "$generated_file" "$original_file"
 npm --prefix assets run generate:profiles-types
-git diff --exit-code -- assets/js/shared/generated/profiles.ts
+
+if ! cmp -s "$original_file" "$generated_file"; then
+  echo "Generated profile DTOs are stale; run npm --prefix assets run generate:profiles-types." >&2
+  exit 1
+fi

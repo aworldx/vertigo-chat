@@ -19,7 +19,7 @@ import (
 const maxDuration = 20 * 60
 
 var validID = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
-var unavailable = errors.New("video_unavailable")
+var errUnavailable = errors.New("video_unavailable")
 
 type video struct {
 	ID        string `json:"id"`
@@ -103,20 +103,20 @@ func (d downloader) json(ctx context.Context, target any, args ...string) error 
 	// Keep diagnostics out of JSON and never buffer unbounded subprocess output.
 	output, err := cmd.StdoutPipe()
 	if err != nil {
-		return unavailable
+		return errUnavailable
 	}
 	if err = cmd.Start(); err != nil {
-		return unavailable
+		return errUnavailable
 	}
 	data, readErr := io.ReadAll(io.LimitReader(output, 8*1024*1024+1))
 	if readErr != nil || len(data) > 8*1024*1024 {
 		_ = cmd.Cancel()
 	}
 	if err = cmd.Wait(); err != nil || readErr != nil || len(data) > 8*1024*1024 {
-		return unavailable
+		return errUnavailable
 	}
 	if json.Unmarshal(data, target) != nil {
-		return unavailable
+		return errUnavailable
 	}
 	return nil
 }
@@ -148,7 +148,7 @@ func (d downloader) Prepare(ctx context.Context, id string) (video, error) {
 		return video{}, err
 	}
 	if entry.IsLive || entry.LiveStatus == "is_upcoming" || entry.Duration < 1 {
-		return video{}, unavailable
+		return video{}, errUnavailable
 	}
 	if entry.Duration > maxDuration {
 		return video{}, errors.New("video_too_long")
@@ -164,7 +164,7 @@ func (d downloader) Download(ctx context.Context, id, path string) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 	input := filepath.Join(dir, "source.mp4")
 	args := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--no-part", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", "node", "--ffmpeg-location", d.ffmpeg,
 		"--max-filesize", fmt.Sprint(d.maxBytes), "--format", "bestvideo[vcodec^=avc1][height<=360]+bestaudio[acodec^=mp4a]/best[ext=mp4][height<=360]", "--merge-output-format", "mp4", "--output", input, "--", sourceURL(id)}

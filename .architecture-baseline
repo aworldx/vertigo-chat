@@ -1,0 +1,3 @@
+# The Phoenix endpoint is wired in the OTP composition root. It is the sole
+# temporary Chat -> ChatWeb exception while Phoenix owns the application host.
+lib/chat/application.ex

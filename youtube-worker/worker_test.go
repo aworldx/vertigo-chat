@@ -171,7 +171,7 @@ func TestCacheRecoveryEvictionAndOpenReaders(t *testing.T) {
 	if err != nil || f == nil {
 		t.Fatalf("cache recovery: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	c.mu.Lock()
 	c.entries[id] = cacheEntry{10, time.Now().Add(-time.Minute)}
 	other := "dQw4w9WgXcQ"

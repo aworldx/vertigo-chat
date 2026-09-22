@@ -1,0 +1,18 @@
+#!/bin/sh
+# Enforces architecture rules that are not expressible in language linters yet.
+set -eu
+
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+cd "$repository_root"
+
+actual_file="$(mktemp "${TMPDIR:-/tmp}/chat-architecture.XXXXXX")"
+expected_file="$(mktemp "${TMPDIR:-/tmp}/chat-architecture.XXXXXX")"
+trap 'rm -f "$actual_file" "$expected_file"' EXIT HUP INT TERM
+
+rg -l '\bChatWeb\b' lib/chat --glob '*.ex' | sort > "$actual_file" || true
+grep -v '^#' .architecture-baseline | sed '/^$/d' | sort > "$expected_file"
+
+if ! diff -u "$expected_file" "$actual_file"; then
+  echo "Chat must not depend on ChatWeb outside the documented composition-root exception." >&2
+  exit 1
+fi

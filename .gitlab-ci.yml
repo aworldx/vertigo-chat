@@ -1,5 +1,31 @@
 stages:
+  - quality
   - build
+
+quality:
+  stage: quality
+  image: docker:27-cli
+  services:
+    - name: docker:27-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    POSTGRES_USER: quality
+    POSTGRES_PASSWORD: quality
+    POSTGRES_DB: chat_test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - docker build --target quality --tag chat-quality:$CI_COMMIT_SHA .
+    - docker compose --env-file config/quality.env config --quiet
+    - docker network create quality-network
+    - docker run --detach --name quality-postgres --network quality-network -e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB postgres:17-alpine
+    - until docker exec quality-postgres pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"; do sleep 1; done
+    - docker run --rm --network quality-network -e POSTGRES_HOST=quality-postgres chat-quality:$CI_COMMIT_SHA mix precommit
+  after_script:
+    - docker logs quality-postgres || true
+    - docker rm --force quality-postgres || true
 
 build_production_image:
   stage: build
@@ -11,6 +37,8 @@ build_production_image:
     DOCKER_TLS_CERTDIR: ""
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  needs:
+    - quality
   script:
     - printf '%s' "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
     - docker buildx create --name production-builder --use

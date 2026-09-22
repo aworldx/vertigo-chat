@@ -3,4 +3,5 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-exec mix precommit
+mix precommit
+exec script/check-infrastructure

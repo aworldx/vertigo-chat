@@ -124,11 +124,33 @@ WORKDIR /src
 COPY youtube-worker/ ./
 RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /youtube-worker .
 
+# CI executes the same repository checks in this pinned toolchain image. It is
+# deliberately not used by production targets.
+FROM ${BUILDER_IMAGE} AS quality
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends build-essential git nodejs npm shellcheck \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=youtube-builder /usr/local/go /usr/local/go
+COPY --from=golangci/golangci-lint:v2.13.2 /usr/bin/golangci-lint /usr/local/bin/golangci-lint
+COPY --from=hadolint/hadolint:v2.12.0 /bin/hadolint /usr/local/bin/hadolint
+ENV PATH="/usr/local/go/bin:${PATH}" MIX_ENV="test"
+WORKDIR /app
+RUN mix local.hex --force && mix local.rebar --force
+COPY mix.exs mix.lock ./
+COPY config config
+RUN mix deps.get
+COPY assets/package.json assets/package-lock.json ./assets/
+RUN mix assets.setup && npx --prefix assets playwright install --with-deps chromium
+COPY . .
+RUN find script -maxdepth 1 -type f ! -name '*.exs' -exec shellcheck {} + \
+  && hadolint --config .hadolint.yaml Dockerfile \
+  && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint docs/openapi/profiles.yaml
+
 # Standalone Go service: no BEAM release, database or application secrets.
 FROM ${RUNNER_IMAGE} AS youtube-worker
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl nodejs python3-pip ffmpeg \
-  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
+  && pip3 install --break-system-packages --no-cache-dir 'yt-dlp[default]==2026.8.19' \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=youtube-builder /youtube-worker /app/bin/youtube-worker
 ENV YOUTUBE_WORKER_HOST=0.0.0.0 YOUTUBE_CACHE_DIR=/var/cache/chat-youtube

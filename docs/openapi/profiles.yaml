@@ -10,6 +10,7 @@ paths:
     get:
       operationId: listProfiles
       summary: Search profiles by nickname or name, ordered by nickname
+      security: []
       parameters:
         - name: q
           in: query
@@ -52,6 +53,7 @@ paths:
     get:
       operationId: getProfile
       summary: Get a public profile by its exact, URL-encoded nickname
+      security: []
       parameters:
         - name: nickname
           in: path
@@ -84,9 +86,9 @@ components:
         name: {type: [string, 'null']}
         gender: {type: [string, 'null'], enum: [male, female, other, null]}
         birth_date: {type: [string, 'null'], format: date}
-        about: {type: [string, 'null'], description: Plain text; render as text, never HTML.}
-        photo_url: {type: [string, 'null'], description: Relative URL of the existing photo endpoint or null.}
-        thumbnail_url: {type: [string, 'null'], description: Relative thumbnail URL, falling back to photo_url.}
+        about: {type: [string, 'null'], description: "Plain text; render as text, never HTML."}
+        photo_url: {type: [string, 'null'], description: "Relative URL of the existing photo endpoint or null."}
+        thumbnail_url: {type: [string, 'null'], description: "Relative thumbnail URL, falling back to photo_url."}
         rank:
           type: object
           additionalProperties: false
@@ -112,4 +114,4 @@ components:
           required: [code, message]
           properties:
             code: {type: string, enum: [invalid_params, not_found]}
-            message: {type: string, description: User-facing Russian message. Branch on code, not message.}
+            message: {type: string, description: "User-facing Russian message. Branch on code, not message."}

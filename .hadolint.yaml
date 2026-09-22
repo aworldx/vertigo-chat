@@ -1,0 +1,9 @@
+failure-threshold: warning
+ignored:
+  # Debian tags are fixed through build arguments to keep builders and runners aligned.
+  - DL3006
+  # The package indexes are removed in the same RUN instruction after every apt install.
+  - DL3009
+  # Packages come from the immutable Debian base-image snapshot selected by DEBIAN_VERSION.
+  # Pinning package build numbers here would make the image architecture-specific.
+  - DL3008

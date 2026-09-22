@@ -49,11 +49,11 @@ export interface components {
             gender: "male" | "female" | "other" | null;
             /** Format: date */
             birth_date: string | null;
-            /** @description Plain text; render as text */
+            /** @description Plain text; render as text, never HTML. */
             about: string | null;
             /** @description Relative URL of the existing photo endpoint or null. */
             photo_url: string | null;
-            /** @description Relative thumbnail URL */
+            /** @description Relative thumbnail URL, falling back to photo_url. */
             thumbnail_url: string | null;
             rank: {
                 title: string;
@@ -68,7 +68,7 @@ export interface components {
             error: {
                 /** @enum {string} */
                 code: "invalid_params" | "not_found";
-                /** @description User-facing Russian message. Branch on code */
+                /** @description User-facing Russian message. Branch on code, not message. */
                 message: string;
             };
         };

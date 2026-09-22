@@ -92,7 +92,7 @@ func (c *cache) request(id string) (*os.File, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.ctx.Err() != nil {
-		return nil, unavailable
+		return nil, errUnavailable
 	}
 	if entry, ok := c.entries[id]; ok {
 		f, err := os.Open(c.path(id))

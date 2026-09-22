@@ -173,11 +173,11 @@ lock-файлом. Общие runtime-пакеты выделяем только
 
 | Область | Фактическое состояние |
 | --- | --- |
-| React | JSX, interaction-тесты и esbuild; строгий TypeScript, ESLint и Prettier ещё не подключены. `assets/tsconfig.json` предназначен для подсказок LiveView и не является quality gate |
-| Go worker | `script/check-go` проверяет `gofmt`, `go vet`, `go test -race`; golangci-lint и проверка архитектурных границ ещё не подключены |
-| Elixir | `mix precommit`: компиляция с warnings-as-errors, форматирование, Go/React/ExUnit-тесты; Credo и Dialyzer ещё не подключены |
-| CI | Есть сборка и публикация образов из default branch; общего обязательного этапа quality для merge requests пока нет |
-| Контракты / инфраструктура | OpenAPI описан; отдельные автоматические lint/compatibility/architecture gates ещё предстоит добавить |
+| React | Строгие TypeScript, ESLint (включая cycles и границы entry point), Prettier, interaction- и browser/screenshot-тесты входят в `mix precommit` |
+| Go worker | `script/check-go` выполняет `gofmt`, `go vet`, golangci-lint 2.13.2 (`staticcheck`, `errcheck`, `ineffassign`, `unused`, `govet`, `depguard`, `gocyclo`), race-тесты и сборку; `depguard` заранее закрепляет направление для будущих Go слоёв |
+| Elixir | `mix precommit`: компиляция с warnings-as-errors, форматирование, Go/React/ExUnit-тесты, Dialyzer и строгий Credo через `script/check-credo`; 100 legacy-замечаний зафиксированы в проверяемом baseline, новые нарушения блокируют проверку |
+| CI | Quality target с закреплёнными инструментами запускается для merge requests и default branch перед production image build; тесты используют изолированную PostgreSQL |
+| Контракты / инфраструктура | Генерация DTO проверяется без зависимости от Git, Redocly 1.34.5 lint проверяет OpenAPI; ShellCheck 0.10.0, Hadolint 2.12.0 и `docker compose config` с test-значениями входят в `script/check` |
 
 Порядок работ:
 

@@ -144,10 +144,10 @@ func (s *server) handler() http.Handler {
 			w.WriteHeader(202)
 			return
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		info, err := f.Stat()
 		if err != nil {
-			sendError(w, unavailable)
+			sendError(w, errUnavailable)
 			return
 		}
 		w.Header().Set("Content-Type", "video/mp4")
