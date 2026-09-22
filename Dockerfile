@@ -100,7 +100,17 @@ ENV MIX_ENV="prod"
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/chat ./
 RUN chown nobody:root /app
 
-FROM runtime AS app
+FROM runtime AS youtube-client
+
+# Search and metadata validation run in the public chat process. They need
+# yt-dlp, but not ffmpeg or the video cache used by the worker.
+USER root
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends nodejs python3-pip \
+  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM youtube-client AS app
 
 # The public chat creates profile-photo thumbnails.
 USER root
@@ -118,14 +128,13 @@ FROM runtime AS admin
 USER nobody
 CMD ["/app/bin/server"]
 
-FROM runtime AS youtube-worker
+FROM youtube-client AS youtube-worker
 
 # Video preparation is isolated from web traffic, so only this image includes
-# Python, yt-dlp, ffmpeg and Node.js.
+# ffmpeg and the cache/streaming runtime.
 USER root
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg nodejs python3-pip \
-  && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
+  && apt-get install -y --no-install-recommends ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 USER nobody
