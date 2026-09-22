@@ -4,6 +4,43 @@
  */
 
 export interface paths {
+    "/api/v1/account/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the authenticated user's private forum email */
+        get: operations["getAccountSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/settings/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save only the authenticated user's private forum email
+         * @description Trims and lowercases email. Blank email cannot clear an existing address. Requires a valid address of at most 254 characters, unique without case. No mail is sent. Cache-Control is no-store. User IDs and extra fields are rejected; the actor comes exclusively from the account cookie.
+         */
+        put: operations["updateForumEmail"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/session": {
         parameters: {
             query?: never;
@@ -101,6 +138,19 @@ export interface components {
         };
     };
     responses: {
+        /** @description Private account settings; Cache-Control is no-store */
+        Settings: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    data: {
+                        email: string | null;
+                    };
+                };
+            };
+        };
         /** @description Current principal (null for anonymous) and CSRF token. Cache-Control is no-store. */
         Session: {
             headers: {
@@ -172,6 +222,55 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getAccountSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Settings"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    updateForumEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["Settings"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            415: components["responses"]["JSONRequired"];
+            /** @description Email validation or malformed payload */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        error: "email_required" | "email_invalid" | "email_too_long" | "email_taken" | "invalid_input";
+                    };
+                };
+            };
+            503: components["responses"]["Unavailable"];
+        };
+    };
     getAccountSession: {
         parameters: {
             query?: never;

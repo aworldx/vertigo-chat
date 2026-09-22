@@ -6,3 +6,5 @@ export type { Session } from "./api/accounts"
 export { getSession } from "./api/accounts"
 
 export { InlineLogin } from "./ui/InlineLogin"
+
+export { EmailSettings } from "./ui/EmailSettings"

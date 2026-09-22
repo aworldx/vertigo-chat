@@ -46,6 +46,7 @@ func TestAccountsPostgres(t *testing.T) {
 	t.Run("atomic registration and first admin", func(t *testing.T) { testRegistration(t, pool, accounts) })
 	t.Run("registration conflicts roll back quota", func(t *testing.T) { testRegistrationConflicts(t, pool, accounts) })
 	t.Run("session persistence expiry revocation and race", func(t *testing.T) { testSessions(t, pool, accounts) })
+	t.Run("private settings ownership and uniqueness", func(t *testing.T) { testPrivateSettings(t, pool, accounts) })
 	// All data in this database is created by this test; leave the schema for the
 	// subsequent real-browser flow, and never touch a developer's normal DB.
 	if _, err := pool.Exec(ctx, `TRUNCATE registered_users, security_registration_guards RESTART IDENTITY CASCADE`); err != nil {

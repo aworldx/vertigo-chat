@@ -37,6 +37,12 @@ CSS overrides или масок. Room/composer/emoji/settings/registration/feedb
 640/1024 px. Без масок и допуска, с проверкой метрик/шрифтов и ошибки API.
 [Отчёт](go_help_verification.md).
 
+Для приватных настроек аккаунта доступен
+`WEB_VERIFICATION_SUITE=account-settings`: форма, focus, три ошибки,
+сохранение и reload, 35 full-page пар на 390/639/640/768/1440 px.
+Сетевые/CSRF/двухвкладочные сценарии входят в `verify-go-accounts`.
+[Отчёт](go_account_settings_verification.md).
+
 ## Поднять обе версии локально
 
 Для текущего standalone-среза собрать assets в отдельном legacy checkout,

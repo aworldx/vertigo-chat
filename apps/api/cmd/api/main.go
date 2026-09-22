@@ -81,6 +81,7 @@ func main() {
 		os.Exit(1)
 	}
 	auth.Register(mux)
+	accountshttp.NewSettingsHandler(accountsapplication.NewSettings(accounts), auth.AccountIdentity).Register(mux)
 	registerFeedback(mux, pool, auth)
 	if err := registerMusicChart(mux, pool, auth); err != nil {
 		slog.Error("configure chart media", "error", err)

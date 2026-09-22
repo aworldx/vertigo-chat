@@ -15,6 +15,53 @@ info:
 servers:
   - url: /
 paths:
+  /api/v1/account/settings:
+    get:
+      operationId: getAccountSettings
+      summary: Read the authenticated user's private forum email
+      security: [{accountSession: []}]
+      responses:
+        '200': {$ref: '#/components/responses/Settings'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /api/v1/account/settings/email:
+    put:
+      operationId: updateForumEmail
+      summary: Save only the authenticated user's private forum email
+      description: >-
+        Trims and lowercases email. Blank email cannot clear an existing address.
+        Requires a valid address of at most 254 characters, unique without case.
+        No mail is sent. Cache-Control is no-store. User IDs and extra fields
+        are rejected; the actor comes exclusively from the account cookie.
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email]
+              properties:
+                email: {type: string, maxLength: 254}
+      responses:
+        '200': {$ref: '#/components/responses/Settings'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '415': {$ref: '#/components/responses/JSONRequired'}
+        '422':
+          description: Email validation or malformed payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: string
+                    enum: [email_required, email_invalid, email_too_long, email_taken, invalid_input]
+        '503': {$ref: '#/components/responses/Unavailable'}
   /api/v1/auth/session:
     get:
       operationId: getAccountSession
@@ -131,6 +178,19 @@ components:
           type: string
           enum: [unauthorized, forbidden, invalid_input, invalid_registration, invalid_peer, json_required, registration_limited, unavailable]
   responses:
+    Settings:
+      description: Private account settings; Cache-Control is no-store
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data]
+            properties:
+              data:
+                type: object
+                required: [email]
+                properties:
+                  email: {type: [string, 'null']}
     Session:
       description: Current principal (null for anonymous) and CSRF token. Cache-Control is no-store.
       content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}
