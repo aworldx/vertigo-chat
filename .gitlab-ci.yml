@@ -21,8 +21,8 @@ build_production_image:
           --target "$target" \
           --cache-from type=registry,ref=$CI_REGISTRY_IMAGE:buildcache \
           --cache-to type=registry,ref=$CI_REGISTRY_IMAGE:buildcache,mode=max \
-          --tag "$CI_REGISTRY_IMAGE-$target:$CI_COMMIT_SHA" \
-          --tag "$CI_REGISTRY_IMAGE-$target:main" \
+          --tag "$CI_REGISTRY_IMAGE:$target-$CI_COMMIT_SHA" \
+          --tag "$CI_REGISTRY_IMAGE:$target-main" \
           --push \
           .
       done

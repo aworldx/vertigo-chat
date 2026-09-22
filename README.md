@@ -142,9 +142,10 @@ PHX_URL_PORT=443
 
 To deploy a checked local change, commit it and push it to both `origin/main`
 and `gitlab/main`. GitLab CI builds three `linux/amd64` images natively:
-`app`, `admin` and `youtube-worker`. They are published as
-`registry.gitlab.com/aworldx1/vertigo-chat-<role>:<commit SHA>`. The VPS only
-pulls finished images: it never runs `mix deps.get` or `docker compose build`.
+`app`, `admin` and `youtube-worker`. They are published under the project's
+registry path as `registry.gitlab.com/aworldx1/vertigo-chat:<role>-<commit
+SHA>`. The VPS only pulls finished images: it never runs `mix deps.get` or
+`docker compose build`.
 
 For a private GitLab image, create a GitLab project deploy token with only
 `read_registry` permission and place it only in

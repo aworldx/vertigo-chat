@@ -71,10 +71,12 @@ mkdir -p logs
 chown 65534:root logs
 chmod 0770 logs
 
-export CHAT_IMAGE_TAG="$expected_revision"
-export CHAT_APP_IMAGE="${image_repository}-app"
-export CHAT_ADMIN_IMAGE="${image_repository}-admin"
-export CHAT_YOUTUBE_WORKER_IMAGE="${image_repository}-youtube-worker"
+export CHAT_APP_IMAGE="$image_repository"
+export CHAT_APP_IMAGE_TAG="app-${expected_revision}"
+export CHAT_ADMIN_IMAGE="$image_repository"
+export CHAT_ADMIN_IMAGE_TAG="admin-${expected_revision}"
+export CHAT_YOUTUBE_WORKER_IMAGE="$image_repository"
+export CHAT_YOUTUBE_WORKER_IMAGE_TAG="youtube-worker-${expected_revision}"
 
 compose() {
   docker compose --env-file .env --env-file .env.vps "$@"

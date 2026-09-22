@@ -32,17 +32,17 @@ x-app-environment: &app-environment
 x-app-image: &app-image
   # Production images are published by GitLab CI. Keeping the build
   # directive out of this file makes an accidental VPS-side build impossible.
-  image: ${CHAT_APP_IMAGE:-chat-app}:${CHAT_IMAGE_TAG:-latest}
+  image: ${CHAT_APP_IMAGE:-chat-app}:${CHAT_APP_IMAGE_TAG:-latest}
   environment: *app-environment
   volumes:
     - ${MUSIC_PROXY_HOST_FILE:-./.music_proxies}:/run/secrets/music_proxies:ro
     - ${CHAT_LOG_DIR:-./logs}:/var/log/chat
 
 x-admin-image: &admin-image
-  image: ${CHAT_ADMIN_IMAGE:-chat-admin}:${CHAT_IMAGE_TAG:-latest}
+  image: ${CHAT_ADMIN_IMAGE:-chat-admin}:${CHAT_ADMIN_IMAGE_TAG:-latest}
 
 x-youtube-worker-image: &youtube-worker-image
-  image: ${CHAT_YOUTUBE_WORKER_IMAGE:-chat-youtube-worker}:${CHAT_IMAGE_TAG:-latest}
+  image: ${CHAT_YOUTUBE_WORKER_IMAGE:-chat-youtube-worker}:${CHAT_YOUTUBE_WORKER_IMAGE_TAG:-latest}
 
 x-logging: &default-logging
   driver: local
