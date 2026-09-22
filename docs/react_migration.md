@@ -19,8 +19,9 @@ email, password hash, session identity, raw image bytes or storage keys.
 
 | Route | Responsibility |
 | --- | --- |
-| `/profiles` | Existing LiveView catalogue; existing navigation still points here |
-| `/profiles/react` | Standalone React catalogue for comparison and manual testing |
+| `/profiles` | React catalogue; current local migration route, not production approval |
+| `/profiles/live` | Temporary LiveView fallback for local comparison |
+| `/profiles/react` | Temporary React comparison alias |
 | `/api/v1/profiles?q=...&page=...` | Public, read-only search and pagination |
 | `/api/v1/profiles/:nickname` | Public, read-only profile details |
 | `/profiles/:nickname/photo` | Existing photo delivery endpoint |
@@ -77,6 +78,12 @@ Manual checks: search by nickname and Cyrillic name; empty results; switch pages
 open an actual profile and its photo; close each dialog with Escape; navigate
 back/forward; open a direct `?profile=nickname` link; check a missing profile;
 repeat at a narrow viewport. Account settings and logout should still work.
+
+Follow the [migration testing procedure](migration_testing.md) for side-by-side
+local comparison with `/profiles`: identical data, browser and viewport, loaded
+fonts, matching interaction states and old/new screenshots. Preserve typography
+and styling. Use an independent reference build when changing shared CSS or
+layouts so a regression cannot silently affect both versions being compared.
 
 ## Subsequent iterations
 

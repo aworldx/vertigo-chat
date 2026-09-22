@@ -16,7 +16,7 @@ defmodule ChatWeb.ProfilesLiveTest do
     {:ok, beta_profile} = Profiles.get_by_nickname(beta.nickname)
     {:ok, _profile} = Profiles.update_profile(beta, beta_profile, %{"name" => "Алиса"})
 
-    {:ok, view, _html} = live(conn, ~p"/profiles")
+    {:ok, view, _html} = live(conn, ~p"/profiles/live")
 
     assert has_element?(view, "#profile-search")
     assert has_element?(view, "[data-profile-nickname='#{alpha.nickname}']")
@@ -36,7 +36,7 @@ defmodule ChatWeb.ProfilesLiveTest do
       {:ok, _user} = Accounts.register_user(%{"nickname" => nickname, "password" => "secret123"})
     end
 
-    {:ok, view, _html} = live(conn, ~p"/profiles")
+    {:ok, view, _html} = live(conn, ~p"/profiles/live")
 
     assert has_element?(view, "#profiles-next")
     refute has_element?(view, "[data-profile-nickname='user_13']")
@@ -70,7 +70,7 @@ defmodule ChatWeb.ProfilesLiveTest do
                "image/png"
              )
 
-    {:ok, view, _html} = live(conn, ~p"/profiles")
+    {:ok, view, _html} = live(conn, ~p"/profiles/live")
 
     view
     |> element("[data-profile-nickname='profile_viewer']")

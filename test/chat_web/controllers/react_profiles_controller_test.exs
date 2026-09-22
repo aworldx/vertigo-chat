@@ -2,12 +2,12 @@ defmodule ChatWeb.ReactProfilesControllerTest do
   use ChatWeb.ConnCase, async: true
 
   test "serves a standalone React entry without starting the LiveView client", %{conn: conn} do
-    body = conn |> get(~p"/profiles/react") |> html_response(200)
+    body = conn |> get(~p"/profiles") |> html_response(200)
     assert body =~ ~s(id="react-profiles-root")
     assert body =~ ~s(src="/assets/js/profiles.js")
     refute body =~ ~s(src="/assets/js/app.js")
     assert body =~ ~s(name="robots" content="noindex, follow")
-    assert body =~ ~s(href="/profiles")
+    assert body =~ ~s(href="/profiles/live")
   end
 
   test "preserves account navigation and logout return destination", %{conn: conn} do
@@ -18,7 +18,7 @@ defmodule ChatWeb.ReactProfilesControllerTest do
     body = conn |> get(~p"/profiles/react") |> html_response(200)
     assert body =~ ~s(id="site-account-nickname")
     assert body =~ "react_account"
-    assert body =~ ~s(value="/profiles/react")
+    assert body =~ ~s(value="/profiles")
 
     response = post(conn, ~p"/account/logout", %{"return_to" => "/profiles/react"})
     assert redirected_to(response) == "/profiles/react"

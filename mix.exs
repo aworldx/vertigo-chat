@@ -99,6 +99,9 @@ defmodule Chat.MixProject do
         "deps.unlock --unused",
         "format",
         "cmd script/check-go",
+        "cmd --cd assets npm run typecheck",
+        "cmd --cd assets npm run lint",
+        "cmd --cd assets npm run format:check",
         "cmd --cd assets npm test",
         "test"
       ]

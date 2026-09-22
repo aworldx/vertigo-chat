@@ -66,6 +66,7 @@ defmodule ChatWeb.Router do
     post "/account/chat-login", AccountController, :chat_login
     post "/account/logout", AccountController, :logout
     get "/forum/sso", ForumController, :discourse_connect
+    get "/profiles", ReactProfilesController, :index
     get "/profiles/react", ReactProfilesController, :index
 
     live_session :account, on_mount: [{ChatWeb.AccountAuth, :default}] do
@@ -85,7 +86,7 @@ defmodule ChatWeb.Router do
       post "/admin/emoji-tags", AdminController, :create_emoji_tag
       post "/admin/emoji-tags/:id", AdminController, :update_emoji_tag
       delete "/admin/emoji-tags/:id", AdminController, :delete_emoji_tag
-      live "/profiles", ProfilesLive, :index
+      live "/profiles/live", ProfilesLive, :index
       live "/gallery", GalleryLive, :index
       live "/music-chart", MusicChartLive, :index
       live "/visits", VisitsLive, :index

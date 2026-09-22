@@ -1,7 +1,7 @@
 <Layouts.app
   flash={@flash}
   current_account_user={@current_account_user}
-  return_to={~p"/profiles/react"}
+  return_to={~p"/profiles"}
 >
   <section
     id="profiles-page"
@@ -25,7 +25,7 @@
     </div>
     <noscript>
       <p class="p-8">
-        <a href={~p"/profiles"} class="text-amber-200 underline">Открыть каталог анкет без React</a>
+        <a href={~p"/profiles/live"} class="text-amber-200 underline">Открыть каталог анкет без React</a>
       </p>
     </noscript>
   </section>

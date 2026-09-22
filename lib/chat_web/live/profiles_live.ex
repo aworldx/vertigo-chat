@@ -41,7 +41,7 @@ defmodule ChatWeb.ProfilesLive do
   @impl true
   def handle_event("search", %{"search" => %{"query" => query}}, socket) do
     query = String.trim(query)
-    {:noreply, push_patch(socket, to: ~p"/profiles?#{%{q: query}}")}
+    {:noreply, push_patch(socket, to: ~p"/profiles/live?#{%{q: query}}")}
   end
 
   def handle_event("open_profile", %{"nickname" => nickname}, socket) do
