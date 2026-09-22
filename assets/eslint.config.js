@@ -9,7 +9,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
-    files: ["js/**/*.{ts,tsx}", "test/**/*.tsx"],
+    files: ["js/**/*.{ts,tsx}", "test/**/*.tsx", "browser/**/*.ts", "playwright.config.ts"],
     languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
     settings: { "import/resolver": { typescript: true } },
     plugins: { import: importPlugin, "jsx-a11y": jsxA11y, "react-hooks": reactHooks },

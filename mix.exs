@@ -103,6 +103,7 @@ defmodule Chat.MixProject do
         "cmd --cd assets npm run lint",
         "cmd --cd assets npm run format:check",
         "cmd --cd assets npm test",
+        "cmd --cd assets npm run test:browser",
         "test"
       ]
     ]

@@ -16,6 +16,8 @@
     "js/profiles/**/*.ts",
     "js/profiles/**/*.tsx",
     "js/shared/generated/**/*.ts",
-    "test/**/*.tsx"
+    "test/**/*.tsx",
+    "browser/**/*.ts",
+    "playwright.config.ts"
   ]
 }
