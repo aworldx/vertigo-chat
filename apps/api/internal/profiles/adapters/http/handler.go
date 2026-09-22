@@ -17,6 +17,7 @@ type Handler struct{ catalog application.Catalog }
 func NewHandler(catalog application.Catalog) Handler { return Handler{catalog: catalog} }
 
 func (h Handler) Register(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/ranks", h.ranks)
 	mux.HandleFunc("GET /api/v1/profiles", h.list)
 	mux.HandleFunc("GET /api/v1/profiles/{nickname}", h.show)
 	mux.HandleFunc("GET /api/v1/chat/profiles/{nickname}", h.showChat)
@@ -142,4 +143,20 @@ func (h Handler) showChat(w http.ResponseWriter, r *http.Request) {
 	dto := profileDTO(profile)
 	dto["karma"] = profile.Karma
 	writeJSON(w, 200, map[string]any{"data": dto})
+}
+
+func (h Handler) ranks(w http.ResponseWriter, _ *http.Request) {
+	type rankDTO struct {
+		Title         string `json:"title"`
+		IconURL       string `json:"icon_url"`
+		Messages      int    `json:"messages"`
+		Hours         int    `json:"hours"`
+		FeatureUnlock string `json:"feature_unlock"`
+	}
+	definitions := application.RankDefinitions()
+	data := make([]rankDTO, 0, len(definitions))
+	for _, rank := range definitions {
+		data = append(data, rankDTO{rank.Title, "/images/ranks/" + rank.Icon + ".svg", rank.Messages, rank.Hours, rank.FeatureUnlock})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"data": data})
 }

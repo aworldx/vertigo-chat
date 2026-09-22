@@ -32,6 +32,11 @@ CSS overrides или масок. Room/composer/emoji/settings/registration/feedb
 Для сетевой проверки передачи файла явно включается `RUN_CHAT_P2P=1` в
 `script/verify-go-chat`; стандартный прогон сообщает об её отсутствии.
 
+Для раздела помощи доступен `WEB_VERIFICATION_SUITE=help`: оба маршрута
+`/help` и `/ranks`, команды и десять званий на 390/768/1440 и границах
+640/1024 px. Без масок и допуска, с проверкой метрик/шрифтов и ошибки API.
+[Отчёт](go_help_verification.md).
+
 ## Поднять обе версии локально
 
 Для текущего standalone-среза собрать assets в отдельном legacy checkout,

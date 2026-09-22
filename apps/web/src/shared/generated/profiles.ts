@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/ranks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public rank thresholds and feature unlocks */
+        get: operations["listRanks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/profiles/{nickname}": {
         parameters: {
             query?: never;
@@ -184,6 +201,41 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listRanks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ordered rank definitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            title: string;
+                            icon_url: string;
+                            messages: number;
+                            hours: number;
+                            feature_unlock: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getRoomProfile: {
         parameters: {
             query?: never;

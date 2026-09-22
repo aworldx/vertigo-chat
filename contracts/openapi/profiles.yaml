@@ -6,6 +6,32 @@ info:
 servers:
   - url: /
 paths:
+  /api/v1/ranks:
+    get:
+      operationId: listRanks
+      summary: Public rank thresholds and feature unlocks
+      security: []
+      responses:
+        '200':
+          description: Ordered rank definitions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [title, icon_url, messages, hours, feature_unlock]
+                      properties:
+                        title: {type: string}
+                        icon_url: {type: string}
+                        messages: {type: integer, minimum: 0}
+                        hours: {type: integer, minimum: 0}
+                        feature_unlock: {type: string}
+        '500': {description: Internal server error}
   /api/v1/chat/profiles/{nickname}:
     get:
       operationId: getRoomProfile

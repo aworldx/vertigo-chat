@@ -4,7 +4,7 @@ set -eu
 repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
 go_command="${GO:-go}"
 verification_suite="${WEB_VERIFICATION_SUITE:-web}"
-case "$verification_suite" in web|chat-feed|chat-online|chat-room) ;; *) echo "Unknown WEB_VERIFICATION_SUITE" >&2; exit 1 ;; esac
+case "$verification_suite" in web|chat-feed|chat-online|chat-room|help) ;; *) echo "Unknown WEB_VERIFICATION_SUITE" >&2; exit 1 ;; esac
 source_url="${ACCOUNTS_LEGACY_DATABASE_URL:-postgresql://localhost/chat_test}"
 legacy_root="${LEGACY_ROOT:?Set LEGACY_ROOT to the pinned legacy checkout with built assets}"
 legacy_sha="$(git -C "$legacy_root" rev-parse HEAD)"
