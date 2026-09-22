@@ -2,7 +2,11 @@ import type { SyntheticEvent } from "react"
 import type { ListProfilesResponse, Profile } from "../api/profiles"
 import type { ProfilesRoute } from "../model/route"
 import { routeURL } from "../model/route"
-import { birthDate, buttonClass, ErrorNotice, Icon, Photo, Rank, genderLabel } from "./Primitives"
+import { birthDate, ErrorNotice, Icon, Photo, Rank, genderLabel } from "./Primitives"
+
+const paginationLinkClass =
+  "rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-amber-300 hover:text-amber-300"
+const pageLinkClass = "flex size-10 items-center justify-center rounded-lg border text-sm transition"
 
 export function Search({
   input,
@@ -63,9 +67,7 @@ function Card({ profile, open }: { profile: Profile; open: () => void }) {
       </div>
       <div className="p-5">
         <h2 className="truncate text-2xl">{profile.nickname}</h2>
-        <div className="mt-2">
-          <Rank rank={profile.rank} className="text-xs" />
-        </div>
+        <Rank rank={profile.rank} className="mt-2 truncate text-xs" />
         <p className="mt-1 truncate text-sm text-amber-200/80">{profile.name || "Имя не указано"}</p>
         <p className="mt-4 text-xs text-zinc-500">
           {genderLabel(profile.gender)}
@@ -138,7 +140,7 @@ export function Catalogue({
         <nav
           id="profiles-pagination"
           aria-label="Страницы анкет"
-          className="mt-10 flex flex-wrap items-center justify-center gap-2"
+          className="mt-10 flex items-center justify-center gap-2"
         >
           {meta.page > 1 && (
             <a
@@ -148,7 +150,7 @@ export function Catalogue({
                 event.preventDefault()
                 goTo({ ...route, page: meta.page - 1 })
               }}
-              className={buttonClass}
+              className={paginationLinkClass}
             >
               Назад
             </a>
@@ -163,7 +165,11 @@ export function Catalogue({
                 goTo({ ...route, page })
               }}
               aria-current={meta.page === page ? "page" : undefined}
-              className={`${buttonClass} ${meta.page === page ? "border-rose-300 bg-rose-300/15 text-rose-100" : ""}`}
+              className={`${pageLinkClass} ${
+                meta.page === page
+                  ? "border-rose-300 bg-rose-300/15 text-rose-100"
+                  : "border-zinc-700 text-zinc-400 hover:border-amber-300 hover:text-amber-300"
+              }`}
             >
               {page}
             </a>
@@ -176,7 +182,7 @@ export function Catalogue({
                 event.preventDefault()
                 goTo({ ...route, page: meta.page + 1 })
               }}
-              className={buttonClass}
+              className={paginationLinkClass}
             >
               Далее
             </a>

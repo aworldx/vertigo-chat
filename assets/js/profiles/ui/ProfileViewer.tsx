@@ -55,7 +55,7 @@ export function ProfileViewer({ nickname, onDismiss }: { nickname: string; onDis
                       nickname={nickname}
                       className="h-full min-h-64 w-full object-cover"
                     />
-                    <span className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full border border-white/15 bg-zinc-950/65 text-zinc-100">
+                    <span className="absolute left-4 top-4 flex size-10 items-center justify-center rounded-full border border-white/15 bg-zinc-950/65 text-zinc-100">
                       <Icon name="expand" className="size-5" />
                     </span>
                   </button>
