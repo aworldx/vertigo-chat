@@ -29,7 +29,7 @@ Phoenix поддерживает ещё не перенесённые сцена
 | Часть | Сделано | Ещё не сделано |
 | --- | --- | --- |
 | YouTube worker | Переписан на Go, коммит `c2b233c`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; `gofmt`, `go vet`, race-тесты; локальная проверка в браузере | golangci-lint, проверка архитектурных границ и перенос в целевой каталог; полный Docker build требует отдельной проверки |
-| React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Экран, entry point, API и model — строгий TypeScript; UI разделён на каталог, карточки, поиск, пагинацию и диалоги | Закончить browser/visual-сравнение на всех viewport; production-переключение запрещено до полного завершения миграции и отдельного явного указания |
+| React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Строгий TypeScript, browser/visual-сравнение и ручное принятие завершены | Production-переключение запрещено до полного завершения миграции и отдельного явного указания |
 | API анкет | `/api/v1/profiles` и `/api/v1/profiles/:nickname` поверх Elixir-контекстов; публичная проекция; OpenAPI; тесты | Генерация типов и автоматическая проверка контракта; Go-реализация |
 | Основной backend | Phoenix/Elixir, существующие контексты и тесты | Миграция предметных областей на Go ещё не начата |
 | Архитектура | Зафиксированы целевая монорепа, DDD/Clean Architecture и матрица проверок | Большинство новых статических проверок пока требования, а не работающие gates |
@@ -39,7 +39,7 @@ React/API и документация входят в первый коммит 
 [react_migration.md](react_migration.md), [OpenAPI](openapi/profiles.yaml).
 
 Последняя проверка 2026-09-22: `GO=/tmp/chat-go-sdk/go/bin/go`
-`GOCACHE=/tmp/chat-go-cache mix precommit` завершился успешно — Go formatting/vet/race,
+`GOCACHE=/tmp/chat-go-cache script/check` завершился успешно — Go formatting/vet/race,
 strict TypeScript, ESLint, Prettier, 7 React interaction-тестов и 408 ExUnit-тестов.
 Первый прогон выявил флак `Chat.LogFileHandlerTest`, второй прошёл полностью.
 Локальная browser-проверка на `http://localhost:4031/profiles/live` и
@@ -57,6 +57,12 @@ strict TypeScript, ESLint, Prettier, 7 React interaction-тестов и 408 ExU
 сохраняется, production-переключение не выполнялся. Новый единый `script/check`
 успешно выполнил все текущие gates: Go, TypeScript, ESLint, Prettier, React,
 Playwright и 408 ExUnit-тестов.
+`script/check-contracts` пересоздаёт DTO из OpenAPI и проверяет, что они не
+расходятся со сгенерированным TypeScript. Credo 1.7.19 и Dialyxir 1.4.8 добавлены
+как dev/test-зависимости; первый строгий Credo обнаружил legacy baseline (2 warnings,
+44 refactoring, 38 readability, 16 design), поэтому они пока не включены в blocking
+gate без явного ограниченного baseline. Следующий технический шаг — baseline Credo,
+затем CI quality; golangci-lint, ShellCheck и Hadolint ещё не подключены.
 
 ## Этапы и критерии завершения
 
@@ -88,7 +94,7 @@ Playwright и 408 ExUnit-тестов.
       образов зависит от успешной проверки. Сама настройка CI не разрешает push.
 - [ ] Проверять архитектурные границы автоматически, включая запрещённые
       импорты и циклы; тесты доменных правил оставлять на уровне сценариев/домена.
-- [ ] Подключить browser-сценарии и screenshot-регрессию с воспроизводимыми
+- [x] Подключить browser-сценарии и screenshot-регрессию с воспроизводимыми
       данными/шрифтами/viewport и артефактами сравнения по процедуре тестирования.
 
 Готовность: проверки воспроизводимы локально и в CI, версии зафиксированы,
