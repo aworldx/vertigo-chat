@@ -124,6 +124,11 @@ WORKDIR /src
 COPY services/youtube-worker/ ./
 RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /youtube-worker .
 
+FROM golang:1.27.1-trixie AS profiles-api-builder
+WORKDIR /src
+COPY apps/api/ ./
+RUN go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /profiles-api ./cmd/api
+
 # CI executes the same repository checks in this pinned toolchain image. It is
 # deliberately not used by production targets.
 FROM ${BUILDER_IMAGE} AS quality
@@ -158,6 +163,15 @@ COPY --from=youtube-builder /youtube-worker /app/bin/youtube-worker
 ENV YOUTUBE_WORKER_HOST=0.0.0.0 YOUTUBE_CACHE_DIR=/var/cache/chat-youtube
 USER nobody
 CMD ["/app/bin/youtube-worker"]
+
+FROM ${RUNNER_IMAGE} AS profiles-api
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl imagemagick \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=profiles-api-builder /profiles-api /app/bin/profiles-api
+ENV API_ADDR=0.0.0.0:4020
+USER nobody
+CMD ["/app/bin/profiles-api"]
 
 # Keep `docker build .` suitable for the public chat in local development.
 FROM app AS final

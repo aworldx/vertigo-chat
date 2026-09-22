@@ -30,9 +30,9 @@ Phoenix поддерживает ещё не перенесённые сцена
 | --- | --- | --- |
 | YouTube worker | Переписан на Go и расположен в `services/youtube-worker`; поиск, подготовка, кэш, proxy/range; отдельная сборка Docker; golangci-lint, `gofmt`, `go vet`, race-тесты | Полный production Docker build проверяется в CI quality/build pipeline |
 | React-анкеты | Локальный `/profiles` отдаёт React; `/profiles/live` сохраняет временный LiveView fallback, `/profiles/react` — React alias. Строгий TypeScript, browser/visual-сравнение и ручное принятие завершены | Production-переключение запрещено до полного завершения миграции и отдельного явного указания |
-| API анкет | `/api/v1/profiles` и `/api/v1/profiles/:nickname` поверх Elixir-контекстов; публичная проекция; OpenAPI в `contracts/openapi`; сгенерированные типы и тесты | Go-реализация |
+| API анкет | `apps/api` реализует Go read/write-модель анкет с domain/application/PostgreSQL/HTTP слоями, healthcheck, unit/race-тестами и тем же публичным контрактом. Phoenix имеет обратимые opt-in proxy: `PROFILES_GO_API_URL` для public JSON и media read, `PROFILES_GO_WRITE_API_URL` + `PROFILE_INTERNAL_TOKEN` для единого write-пути. React edit/upload и выдача original/thumbnail через cookie+CSRF Phoenix и Go подтверждены browser-сценарием | Включить оба proxy только после ручного принятия локального стенда; production-включение запрещено без отдельного указания |
 | Основной backend | Phoenix/Elixir, существующие контексты и тесты | Миграция предметных областей на Go ещё не начата |
-| Архитектура | `apps/phoenix`, `apps/web`, `services/youtube-worker`, `contracts`, `deploy`; quality gates и матрица проверок работают | Первый Go API ещё не создан; Phoenix сохраняется как временный application host |
+| Архитектура | `apps/phoenix`, `apps/web`, `apps/api`, `services/youtube-worker`, `contracts`, `deploy`; quality gates и матрица проверок работают. Docker target и Compose service `profiles-api` готовы и проверены локальной сборкой | Phoenix сохраняется временным application host; production rollout не выполнялся |
 
 React/API и документация входят в первый коммит ветки миграции после Go-воркера.
 Старый каталог анкет `/profiles` остаётся основным. Подробности первой итерации:
@@ -137,9 +137,18 @@ ExUnit. Визуальное сравнение не выявило различ
 
 - [x] После ручного принятия локально переключить анкеты на React с временным
       LiveView fallback; production-переключение по-прежнему запрещён.
-- [ ] Перенести один авторизованный сценарий, например редактирование анкеты:
-      документировать mutation API, проверить серверную авторизацию, CSRF,
-      валидацию и ошибки при существующей cookie-сессии.
+- [x] Зафиксировать авторизованный mutation API редактирования анкеты и фото в
+      OpenAPI; React использует same-origin cookie и CSRF token. Phoenix API
+      проверяет сессию, ownership, whitelist полей, валидацию и ошибки; есть
+      контроллерные тесты для read/update, unknown fields и unauthenticated upload.
+- [x] Подтвердить browser-сценарием авторизованные text edit и upload: React
+      отправляет same-origin cookie+CSRF запрос Phoenix, который передаёт запись
+      единственному opt-in Go writer; итоговая проекция и фото проверены.
+- [x] Проверить авторизованный edit/upload в реальном browser flow. Историческая
+      RoomLive-форма уже не имела reachable browser-flow до удаления, поэтому
+      её не возвращали искусственно для screenshot-сравнения; React editor
+      сохраняет её типографику, сетку, focus/loading states и stable IDs, а
+      browser-сценарий подтверждает edit, upload и последующую выдачу фото.
 - [ ] Составить инвентаризацию оставшихся экранов и зависимостей; переносить
       по одному. Библиотека и галерея — кандидаты, порядок уточнить по связности.
 - [ ] Чат, presence и восстановление сессии оставить до отдельного realtime-этапа.
@@ -149,10 +158,41 @@ ExUnit. Визуальное сравнение не выявило различ
 
 ### 5. Основной Go backend по bounded contexts
 
-- [ ] Выбрать первый контекст по зависимостям; read-only API анкет — кандидат.
-- [ ] Создать `apps/api` со слоями domain/application/adapters, composition root,
-      линтерами, тестами, healthcheck и локальным запуском.
-- [ ] Зафиксировать совместимость с Elixir-реализацией контрактными тестами.
+- [x] Выбрать первым контекстом read-only API анкет.
+- [x] Создать `apps/api` со слоями domain/application/adapters, composition root,
+      PostgreSQL read adapter, HTTP adapter, healthcheck, golangci-lint, vet,
+      build и race-тестами. `script/check-go` проверяет оба Go-модуля.
+- [x] Зафиксировать совместимость с Elixir-реализацией контрактным сравнением.
+      `script/verify-go-profile-contracts` сверяет живые Phoenix и Go на одной
+      локальной БД; `script/verify-go-profile-proxy` поднимает оба временных
+      процесса с `PROFILES_GO_API_URL` и подтверждает proxy-маршрут. Проверены
+      каталог, search/empty search, clamped, invalid/nested/repeated query
+      parameters, detail и not-found.
+- [x] Передать Go write-path анкет: token-protected internal endpoints принимают
+      partial update и фото; Phoenix сохраняет session/CSRF boundary, затем
+      reloads Ecto projection. После удаления legacy RoomLive form пользовательское
+      редактирование доступно только через React. `script/verify-go-profile-write`
+      проверяет text edit, upload и итоговую проекцию через реальный browser.
+- [x] Убрать последний Phoenix `INSERT` в `profiles`: database trigger
+      `create_profile_for_registered_user` атомарно provision-ит пустую анкету
+      после регистрации не-guest пользователя. Это сохраняет единый transaction
+      Accounts и не требует небезопасного HTTP-вызова Go до commit.
+- [x] Исключить `profiles` из ручной Phoenix S3 media migration при включённом
+      Go writer; это предотвращает обход владения записью, а Go продолжает
+      читать legacy DB bytes до отдельной Go-controlled S3 миграции.
+- [x] Передать Go read-path фото: API читает database/S3 original и thumbnail,
+      а Phoenix сохраняет прежние public URLs как тонкий binary proxy при
+      `PROFILES_GO_API_URL`. Browser-сценарий проверяет byte-identical PNG и
+      WebP thumbnail после Go upload; оба public media endpoint описаны в
+      OpenAPI вместе с cache/not-found/unavailable контрактом.
+- [x] Подготовить эксплуатационный контур без включения: Docker target
+      `profiles-api`, Compose service с healthcheck и нужными DB/S3/token
+      переменными, production CI image build. Локальная Docker-сборка target и
+      Compose config проверены 2026-09-22.
+- [x] Добавить явный Compose opt-in `deploy/compose.profiles-go.yaml`: он
+      связывает Phoenix с `profiles-api` только при отдельном подключении файла
+      и обязательном `PROFILE_INTERNAL_TOKEN`; базовый compose по умолчанию
+      ничего не переключает.
 - [ ] Для каждого следующего контекста описать зависимости, авторизацию,
       владельца данных и миграций, транзакции, события и порядок отката.
 - [ ] Переключать маршруты по одному; у каждого переключения один активный
@@ -183,9 +223,27 @@ ExUnit. Визуальное сравнение не выявило различ
    контекста. Проверить текущую ветку и `git status`; не затирать рабочее дерево.
 2. Сопоставить состояние файлов с таблицей выше. Брать первый незавершённый
    этап, не считать описанную в документации проверку уже внедрённой.
-3. Quality gates завершены, а целевые каталоги введены. Следующий миграционный
-   этап — один авторизованный UI-сценарий редактирования анкеты: сначала
-   зафиксировать mutation API, авторизацию, CSRF, валидацию и ошибки cookie-сессии.
+3. Read-контракт и обратимый Phoenix → Go proxy проверены на локальном стенде:
+   `DATABASE_URL=... GO=... script/verify-go-profile-contracts` (оба API уже
+   запущены) либо `script/verify-go-profile-proxy` (поднимает оба временно).
+   Go уже имеет закрытый token-protected mutation endpoint для partial field
+   updates и фото с ImageMagick WebP thumbnail, с атомарным ownership по
+   `user_id`. Go S3 adapter повторяет SigV4, object keys и public-read verify;
+   его local HTTP integration test проверяет подпись, upload и exact-byte read.
+   При opt-in write flag Phoenix JSON editor использует Go как единственного
+   writer. `script/verify-go-profile-write` создаёт и удаляет временный
+   локальный аккаунт, проходит через cookie+CSRF Phoenix и подтверждает update
+   в Go на итоговой проекции. Browser-часть этого скрипта подтверждает React
+   editor text edit и валидный PNG upload через Go, а также выдачу исходного
+   PNG и WebP thumbnail через Go. Недостижимая RoomLive
+   форма, upload и handlers удалены; его edit control ведёт в React `/profiles`.
+   Docker target и Compose service `profiles-api` готовы, но все Go proxy flags
+   по умолчанию выключены. Для совместного Compose-стенда подключать
+   `-f deploy/compose.profiles-go.yaml` и передавать непустой
+   `PROFILE_INTERNAL_TOKEN`; базовый compose не менять. Следующий этап — поднять совместный локальный стенд
+   с Go read/write flags, повторить browser-сравнение авторизованного просмотра
+   с историческим базовым снимком на изолированной БД и только затем готовить
+   отдельное предложение о production rollout.
 4. После изменений запускать `cd apps/phoenix && mix precommit`; для Go ранее
    использовались `GO=/tmp/chat-go-sdk/go/bin/go` и `GOCACHE=/tmp/chat-go-cache`.
    Для локального Go ранее использовались `GO=/tmp/chat-go-sdk/go/bin/go` и

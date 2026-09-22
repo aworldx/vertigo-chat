@@ -1,0 +1,38 @@
+#!/bin/sh
+# Starts disposable local Phoenix and Go processes, then proves the opt-in read proxy.
+set -eu
+
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+go_command="${GO:-go}"
+api_binary="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-api.XXXXXX")"
+api_log="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-api-log.XXXXXX")"
+phoenix_log="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-phoenix-log.XXXXXX")"
+
+cleanup() {
+  if [ -n "${phoenix_pid:-}" ]; then kill "$phoenix_pid" 2>/dev/null || true; fi
+  if [ -n "${api_pid:-}" ]; then kill "$api_pid" 2>/dev/null || true; fi
+  rm -f "$api_binary" "$api_log" "$phoenix_log"
+}
+trap cleanup EXIT HUP INT TERM
+
+cd "$repository_root/apps/api"
+"$go_command" build -o "$api_binary" ./cmd/api
+DATABASE_URL="${DATABASE_URL:?Set DATABASE_URL for the Go API}" API_ADDR="127.0.0.1:4020" "$api_binary" >"$api_log" 2>&1 &
+api_pid=$!
+
+cd "$repository_root/apps/phoenix"
+PROFILES_GO_API_URL="http://127.0.0.1:4020" PORT=4030 mix phx.server >"$phoenix_log" 2>&1 &
+phoenix_pid=$!
+
+attempt=0
+until curl --fail --silent --show-error http://127.0.0.1:4030/health >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 30 ]; then
+    cat "$api_log" "$phoenix_log" >&2
+    exit 1
+  fi
+  sleep 1
+done
+
+cd "$repository_root"
+node script/compare-profile-contracts.mjs

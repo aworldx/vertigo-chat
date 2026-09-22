@@ -3,6 +3,7 @@ defmodule Chat.Profiles do
   @moduledoc "Анкеты зарегистрированных пользователей."
 
   alias Chat.Accounts.User
+  alias Chat.Profiles.GoMutationAPI
   alias Chat.Profiles.Profile
   alias Chat.Repo
   alias Chat.Uploads
@@ -10,11 +11,6 @@ defmodule Chat.Profiles do
   import Ecto.Query
 
   @default_page_size 12
-
-  def create_for_user(%User{} = user) do
-    %Profile{user_id: user.id}
-    |> Repo.insert()
-  end
 
   def get_by_nickname(nickname) when is_binary(nickname) do
     query =
@@ -78,15 +74,40 @@ defmodule Chat.Profiles do
   end
 
   def update_profile(%User{id: user_id}, %Profile{user_id: user_id} = profile, attrs) do
-    profile
-    |> Profile.changeset(attrs)
-    |> Repo.update()
+    changeset = Profile.changeset(profile, attrs)
+
+    if GoMutationAPI.enabled?() do
+      with %{valid?: true} <- changeset,
+           :ok <- GoMutationAPI.update(user_id, attrs),
+           {:ok, updated_profile} <- get_by_nickname(profile.user.nickname) do
+        {:ok, updated_profile}
+      else
+        %{valid?: false} = invalid_changeset -> {:error, invalid_changeset}
+        {:error, :invalid} -> {:error, changeset}
+        error -> error
+      end
+    else
+      Repo.update(changeset)
+    end
   end
 
   def update_profile(_actor, _profile, _attrs), do: {:error, :forbidden}
 
   def put_photo(%User{id: user_id}, %Profile{user_id: user_id} = profile, bytes, content_type)
       when is_binary(bytes) and byte_size(bytes) <= 1_500_000 do
+    if GoMutationAPI.enabled?() do
+      case GoMutationAPI.put_photo(user_id, bytes, content_type) do
+        :ok -> get_by_nickname(profile.user.nickname)
+        error -> error
+      end
+    else
+      put_photo_in_phoenix(profile, bytes, content_type)
+    end
+  end
+
+  def put_photo(_actor, _profile, _bytes, _content_type), do: {:error, :invalid_photo}
+
+  defp put_photo_in_phoenix(profile, bytes, content_type) do
     if Uploads.valid_image?(bytes, content_type) do
       with {:ok, changeset} <-
              profile |> Profile.photo_changeset(bytes, content_type) |> Chat.Media.persist() do
@@ -96,8 +117,6 @@ defmodule Chat.Profiles do
       {:error, :invalid_photo}
     end
   end
-
-  def put_photo(_actor, _profile, _bytes, _content_type), do: {:error, :invalid_photo}
 
   def photo_resource(nickname, field \\ :photo) do
     case get_by_nickname(nickname) do

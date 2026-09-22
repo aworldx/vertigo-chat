@@ -1762,10 +1762,7 @@ defmodule ChatWeb.RoomComponents do
   end
 
   attr(:profile, :any, required: true)
-  attr(:form, :any, required: true)
   attr(:editable, :boolean, required: true)
-  attr(:editing, :boolean, required: true)
-  attr(:uploads, :map, required: true)
 
   def profile_modal(assigns) do
     assigns =
@@ -1804,7 +1801,7 @@ defmodule ChatWeb.RoomComponents do
 
         <div class="grid lg:min-h-[32rem] lg:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.35fr)]">
           <aside class="border-b border-white/10 bg-zinc-950/45 lg:border-b-0 lg:border-r">
-            <%= if @photo_url && not (@uploads.profile_photo.entries != [] and @editing) do %>
+            <%= if @photo_url do %>
               <button
                 id="open-room-profile-photo"
                 type="button"
@@ -1826,15 +1823,7 @@ defmodule ChatWeb.RoomComponents do
               </button>
             <% else %>
               <div class="grid h-[min(30vh,18rem)] place-items-center bg-gradient-to-br from-amber-300/15 via-zinc-950 to-zinc-950 text-6xl font-black text-amber-200 lg:h-full">
-                <%= cond do %>
-                  <% @uploads.profile_photo.entries != [] and @editing -> %>
-                    <.live_img_preview
-                      entry={List.first(@uploads.profile_photo.entries)}
-                      class="h-full w-full object-contain"
-                    />
-                  <% true -> %>
-                    {profile_initial(@profile.user.nickname)}
-                <% end %>
+                {profile_initial(@profile.user.nickname)}
               </div>
             <% end %>
           </aside>
@@ -1921,107 +1910,17 @@ defmodule ChatWeb.RoomComponents do
                 </p>
               </section>
 
-              <button
-                :if={@editable and not @editing}
+              <a
+                :if={@editable}
                 id="edit-profile"
-                type="button"
-                phx-click="edit_profile"
+                href={~p"/profiles"}
                 class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-200 hover:bg-amber-300/15"
               >
                 <.icon name="hero-pencil-square" class="size-5" /> Редактировать анкету
-              </button>
+              </a>
             </div>
-
-            <.form
-              :if={@editable and @editing}
-              for={@form}
-              id="profile-form"
-              phx-change="validate_profile"
-              phx-submit="save_profile"
-              class="space-y-5 border-t border-zinc-800 bg-zinc-950/40 p-5 sm:p-7"
-            >
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
-                    Твоя анкета
-                  </p>
-                  <h3 class="mt-1 text-xl font-bold text-white">Редактирование</h3>
-                </div>
-                <button
-                  id="cancel-profile-edit"
-                  type="button"
-                  phx-click="cancel_profile_edit"
-                  class="rounded-lg border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white"
-                >Отмена</button>
-              </div>
-
-              <div id="profile-photo-compressor" phx-hook=".ProfilePhotoCompressor">
-                <label for="profile-photo-input" class="text-sm font-semibold text-zinc-200">Фотография</label>
-                <.live_file_input
-                  id="profile-photo-input"
-                  upload={@uploads.profile_photo}
-                  class="mt-2 block w-full text-xs text-zinc-400 file:mr-2 file:rounded-lg file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:font-semibold file:text-zinc-950"
-                />
-                <p class="mt-2 text-xs leading-4 text-zinc-500">
-                  JPG, PNG или WebP. Фото будет уменьшено до 1280×1280.
-                </p>
-                <p
-                  :if={upload_errors(@uploads.profile_photo) != []}
-                  id="profile-photo-error"
-                  class="mt-2 text-xs text-red-300"
-                >
-                  Фото должно быть подходящего формата и не больше 1,5 МБ.
-                </p>
-              </div>
-
-              <.input field={@form[:name]} label="Имя" maxlength="80" />
-              <div class="grid gap-4 sm:grid-cols-2">
-                <.input field={@form[:birth_date]} type="date" label="Дата рождения" />
-                <.input
-                  field={@form[:gender]}
-                  type="select"
-                  label="Пол"
-                  prompt="Не указан"
-                  options={[{"Мужской", "male"}, {"Женский", "female"}, {"Другой", "other"}]}
-                />
-              </div>
-              <.input field={@form[:about]} type="textarea" label="О себе" maxlength="1000" />
-              <button
-                id="save-profile"
-                type="submit"
-                class="w-full rounded-xl bg-amber-300 px-4 py-3.5 font-semibold text-zinc-950 shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-50"
-              >Сохранить изменения</button>
-            </.form>
           </div>
         </div>
-
-        <script :type={Phoenix.LiveView.ColocatedHook} name=".ProfilePhotoCompressor">
-          export default {
-            mounted() {
-              this.el.addEventListener("change", async event => {
-                const input = event.target
-                if (input.dataset.compressed || !input.files?.[0]) return
-                event.preventDefault()
-                event.stopImmediatePropagation()
-
-                const image = await createImageBitmap(input.files[0])
-                const scale = Math.min(1, 1280 / image.width, 1280 / image.height)
-                const canvas = document.createElement("canvas")
-                canvas.width = Math.max(1, Math.round(image.width * scale))
-                canvas.height = Math.max(1, Math.round(image.height * scale))
-                canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height)
-                image.close()
-
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.82))
-                const files = new DataTransfer()
-                files.items.add(new File([blob], "profile.webp", {type: "image/webp"}))
-                input.files = files.files
-                input.dataset.compressed = "true"
-                input.dispatchEvent(new Event("change", {bubbles: true}))
-              }, true)
-            }
-          }
-        </script>
       </section>
 
       <div

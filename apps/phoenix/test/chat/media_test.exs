@@ -2,9 +2,11 @@ defmodule Chat.MediaTest do
   use ChatWeb.ConnCase, async: false
 
   alias Chat.{Accounts, Emojis, Gallery, Media, MusicChart, Profiles, Repo}
+  alias Chat.Profiles.GoMutationAPI
 
   setup do
     previous = Application.get_env(:chat, Media)
+    previous_go_mutation_api = Application.get_env(:chat, GoMutationAPI)
 
     Application.put_env(:chat, Media,
       enabled: true,
@@ -21,6 +23,10 @@ defmodule Chat.MediaTest do
       if previous,
         do: Application.put_env(:chat, Media, previous),
         else: Application.delete_env(:chat, Media)
+
+      if previous_go_mutation_api,
+        do: Application.put_env(:chat, GoMutationAPI, previous_go_mutation_api),
+        else: Application.delete_env(:chat, GoMutationAPI)
     end)
 
     objects = start_supervised!({Agent, fn -> %{} end})
@@ -181,6 +187,23 @@ defmodule Chat.MediaTest do
     assert Repo.one!(Gallery.Photo).thumbnail_key
     assert Repo.one!(MusicChart.Track).audio == nil
     assert Enum.all?(Media.Migration.run(), fn {_, count} -> count == 0 end)
+  end
+
+  test "Phoenix media migration does not rewrite profiles while Go owns profile writes", %{
+    user: user
+  } do
+    {:ok, profile} = Profiles.get_by_nickname(user.nickname)
+    Repo.update!(Ecto.Changeset.change(profile, photo: png(), photo_content_type: "image/png"))
+
+    Application.put_env(:chat, GoMutationAPI,
+      base_url: "http://profiles-api",
+      token: "test-token"
+    )
+
+    counts = Media.Migration.run()
+
+    refute Map.has_key?(counts, Profiles.Profile)
+    assert Repo.get!(Profiles.Profile, profile.id).photo == png()
   end
 
   test "failed public verification preserves the previous photo and legacy bytes", %{user: user} do

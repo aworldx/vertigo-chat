@@ -1,0 +1,11 @@
+# Explicit opt-in for the local profiles Go migration. Keep this file out of the
+# default production compose invocation until the rollout is separately approved.
+services:
+  app:
+    environment:
+      PROFILES_GO_API_URL: http://profiles-api:4020
+      PROFILES_GO_WRITE_API_URL: http://profiles-api:4020
+      PROFILE_INTERNAL_TOKEN: ${PROFILE_INTERNAL_TOKEN:?PROFILE_INTERNAL_TOKEN must be set when enabling Go profile writes}
+    depends_on:
+      profiles-api:
+        condition: service_healthy

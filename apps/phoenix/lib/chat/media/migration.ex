@@ -2,13 +2,21 @@ defmodule Chat.Media.Migration do
   @moduledoc "Resumable media migration. Back up the database and pause writes before running."
   import Ecto.Query
   alias Chat.{Media, Repo}
+  alias Chat.Profiles.GoMutationAPI
 
   def run do
     unless Media.enabled?(), do: raise("S3_ENABLED must be true")
 
-    for schema <- [Chat.Profiles.Profile, Chat.Gallery.Photo, Chat.MusicChart.Track], into: %{} do
+    for schema <- migratable_schemas(), into: %{} do
       {schema, migrate_schema(schema, 0, 0)}
     end
+  end
+
+  defp migratable_schemas do
+    [Chat.Gallery.Photo, Chat.MusicChart.Track]
+    |> then(fn schemas ->
+      if GoMutationAPI.enabled?(), do: schemas, else: [Chat.Profiles.Profile | schemas]
+    end)
   end
 
   defp migrate_schema(schema, cursor, count) do

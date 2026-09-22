@@ -79,6 +79,11 @@ start without its provider credentials. Keep values containing `$` in single quo
 Compose does not interpret part of the secret as another variable. The PostgreSQL password is also
 embedded into `DATABASE_URL`, so use URL-safe characters or percent-encode reserved characters.
 
+For the local, opt-in profiles migration stand only, add
+`-f deploy/compose.profiles-go.yaml` and set a non-empty `PROFILE_INTERNAL_TOKEN`.
+That override points Phoenix to the internal `profiles-api` service for profile read/write paths;
+it is deliberately not part of the default deployment command.
+
 ### Monitoring
 
 The chat exposes aggregate Prometheus data at `GET /internal/metrics`. It has no browser pipeline

@@ -10,7 +10,6 @@ defmodule Chat.Accounts do
   alias Chat.Accounts.User
   alias Chat.Appearance
   alias Chat.Chatlans
-  alias Chat.Profiles
   alias Chat.Repo
   alias Chat.Security
   alias Chat.Security.Subject
@@ -155,7 +154,6 @@ defmodule Chat.Accounts do
           else: Ecto.Changeset.put_change(changeset, :is_admin, true)
 
       with {:ok, user} <- Repo.insert(changeset),
-           {:ok, _profile} <- Profiles.create_for_user(user),
            :ok <- Security.claim_registration(subject) do
         user
       else

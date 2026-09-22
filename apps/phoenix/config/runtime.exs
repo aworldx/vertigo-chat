@@ -18,6 +18,14 @@ config :chat, Chat.YouTube,
       if(config_env() == :dev, do: "http://localhost:4001", else: nil),
   worker_receive_timeout: positive_integer_env.("YOUTUBE_WORKER_RECEIVE_TIMEOUT_MS", 30_000)
 
+# Read-only profile requests can be routed to Go after an explicit local/production
+# rollout. Browser session and all mutations remain in Phoenix until ownership moves.
+config :chat, Chat.Profiles.GoAPI, base_url: System.get_env("PROFILES_GO_API_URL")
+
+config :chat, Chat.Profiles.GoMutationAPI,
+  base_url: System.get_env("PROFILES_GO_WRITE_API_URL"),
+  token: System.get_env("PROFILE_INTERNAL_TOKEN")
+
 if config_env() == :dev do
   config :chat, Chat.YouTube,
     proxy_base_url: System.get_env("YOUTUBE_PROXY_BASE_URL", "http://localhost:4001")

@@ -6,6 +6,83 @@ info:
 servers:
   - url: /
 paths:
+  /api/v1/account/profile:
+    get:
+      operationId: getAccountProfile
+      summary: Get the authenticated account profile
+      security: [{accountSession: []}]
+      responses:
+        '200':
+          description: Current profile
+          content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}
+        '401': {description: Authentication required, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    patch:
+      operationId: updateAccountProfile
+      summary: Update the authenticated account profile using same-origin cookie session and CSRF token
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [profile]
+              properties:
+                profile: {$ref: '#/components/schemas/ProfileInput'}
+      responses:
+        '200': {description: Updated profile, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
+        '401': {description: Authentication required, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '422': {description: Validation error, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+  /api/v1/account/profile/photo:
+    put:
+      operationId: uploadAccountProfilePhoto
+      summary: Upload the authenticated account profile photo using same-origin cookie session and CSRF token
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [photo]
+              properties:
+                photo: {type: string, format: binary}
+      responses:
+        '200': {description: Updated profile, content: {application/json: {schema: {$ref: '#/components/schemas/ProfileResponse'}}}}
+        '401': {description: Authentication required, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+        '422': {description: Invalid photo, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+  /profiles/{nickname}/photo:
+    get:
+      operationId: getProfilePhoto
+      summary: Get a public profile original photo
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ProfileNickname'
+      responses:
+        '200':
+          description: Original image. Cache-Control is public, max-age=300.
+          content:
+            image/jpeg: {schema: {$ref: '#/components/schemas/BinaryImage'}}
+            image/png: {schema: {$ref: '#/components/schemas/BinaryImage'}}
+            image/webp: {schema: {$ref: '#/components/schemas/BinaryImage'}}
+        '404': {description: The profile has no photo or does not exist.}
+        '502': {description: Go profile service is unavailable when its read proxy is enabled.}
+  /profiles/{nickname}/photo/thumbnail:
+    get:
+      operationId: getProfilePhotoThumbnail
+      summary: Get a public profile WebP thumbnail
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ProfileNickname'
+      responses:
+        '200':
+          description: Thumbnail image. Cache-Control is public, max-age=300.
+          content:
+            image/webp: {schema: {$ref: '#/components/schemas/BinaryImage'}}
+        '404': {description: The profile has no thumbnail or does not exist.}
+        '502': {description: Go profile service is unavailable when its read proxy is enabled.}
   /api/v1/profiles:
     get:
       operationId: listProfiles
@@ -76,7 +153,30 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/Error'}
 components:
+  parameters:
+    ProfileNickname:
+      name: nickname
+      in: path
+      required: true
+      schema: {type: string}
+  securitySchemes:
+    accountSession: {type: apiKey, in: cookie, name: _chat_key}
+    csrfToken: {type: apiKey, in: header, name: x-csrf-token}
   schemas:
+    BinaryImage: {type: string, format: binary}
+    ProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties: {data: {$ref: '#/components/schemas/Profile'}}
+    ProfileInput:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: [string, 'null'], maxLength: 80}
+        birth_date: {type: [string, 'null'], format: date}
+        gender: {type: [string, 'null'], enum: [male, female, other, null]}
+        about: {type: [string, 'null'], maxLength: 1000}
     Profile:
       type: object
       additionalProperties: false
@@ -113,5 +213,5 @@ components:
           additionalProperties: false
           required: [code, message]
           properties:
-            code: {type: string, enum: [invalid_params, not_found]}
+            code: {type: string, enum: [invalid_params, not_found, unauthorized, invalid_profile, invalid_photo]}
             message: {type: string, description: "User-facing Russian message. Branch on code, not message."}

@@ -10,10 +10,11 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-shell_files="$(find script -maxdepth 1 -type f ! -name '*.exs' -print | sort)"
+shell_files="$(find script -maxdepth 1 -type f ! -name '*.exs' ! -name '*.mjs' -print | sort)"
 # shellcheck disable=SC2086 # Files are repository-controlled and contain no whitespace.
 docker run --rm -v "$repository_root:/work:ro" -w /work koalaman/shellcheck:v0.10.0 $shell_files
 docker run --rm -i -v "$repository_root:/work:ro" -w /work hadolint/hadolint:v2.12.0 hadolint --config /work/deploy/.hadolint.yaml - < deploy/docker/Dockerfile
 docker run --rm -v "$repository_root:/work:ro" -w /work redocly/cli:1.34.5 lint contracts/openapi/profiles.yaml
 
 docker compose -f deploy/compose.yaml --env-file deploy/quality.env config --quiet
+PROFILE_INTERNAL_TOKEN=quality-profile-token docker compose -f deploy/compose.yaml -f deploy/compose.profiles-go.yaml --env-file deploy/quality.env config --quiet

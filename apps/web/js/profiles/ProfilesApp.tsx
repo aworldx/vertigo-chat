@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
-import { listProfiles } from "./api/profiles"
+import { getAccountProfile, listProfiles } from "./api/profiles"
 import { readLocation, routeURL, type ProfilesRoute } from "./model/route"
 import { useResource } from "./model/useResource"
 import { Catalogue, Search } from "./ui/Catalogue"
 import { ProfileViewer } from "./ui/ProfileViewer"
+import { AccountProfileEditor } from "./ui/AccountProfileEditor"
 
 export default function ProfilesApp() {
   const [route, setRoute] = useState<ProfilesRoute>(readLocation)
@@ -39,6 +40,7 @@ export default function ProfilesApp() {
     [route.page, route.query],
   )
   const resource = useResource(`profiles:${route.query}:${String(route.page)}`, load)
+  const account = useResource("account-profile", getAccountProfile)
   const meta = resource.data?.meta
   return (
     <div id="profiles-content" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8">
@@ -66,6 +68,7 @@ export default function ProfilesApp() {
         route={route}
         goTo={goTo}
       />
+      {account.data && <AccountProfileEditor profile={account.data.data} />}
       {route.nickname && (
         <ProfileViewer
           nickname={route.nickname}

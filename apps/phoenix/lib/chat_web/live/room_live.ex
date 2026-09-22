@@ -71,9 +71,7 @@ defmodule ChatWeb.RoomLive do
       |> assign(:visit, nil)
       |> assign(:current_user, nil)
       |> assign(:profile, nil)
-      |> assign(:profile_form, nil)
       |> assign(:profile_editable?, false)
-      |> assign(:profile_editing?, false)
       |> assign(:settings_open?, false)
       |> assign(:screen, :login)
       |> assign(:entrance_error, nil)
@@ -110,11 +108,6 @@ defmodule ChatWeb.RoomLive do
       |> assign(:emojis, Emojis.list())
       |> assign_settings_form()
       |> stream(:messages, if(preserve_message_dom?, do: [], else: messages))
-      |> allow_upload(:profile_photo,
-        accept: ~w(.jpg .jpeg .png .webp),
-        max_entries: 1,
-        max_file_size: 1_500_000
-      )
       |> allow_emoji_upload()
 
     socket =
@@ -786,59 +779,7 @@ defmodule ChatWeb.RoomLive do
   def handle_event("close_profile", _params, socket) do
     {:noreply,
      socket
-     |> assign(:profile, nil)
-     |> assign(:profile_form, nil)
-     |> assign(:profile_editing?, false)}
-  end
-
-  def handle_event("edit_profile", _params, %{assigns: %{profile_editable?: true}} = socket) do
-    {:noreply, assign(socket, :profile_editing?, true)}
-  end
-
-  def handle_event("edit_profile", _params, socket), do: {:noreply, socket}
-
-  def handle_event("cancel_profile_edit", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:profile_editing?, false)
-     |> assign(:profile_form, to_form(Profiles.change_profile(socket.assigns.profile)))}
-  end
-
-  def handle_event(
-        "validate_profile",
-        %{"profile" => params},
-        %{assigns: %{profile_editable?: true, profile_editing?: true}} = socket
-      ) do
-    form =
-      socket.assigns.profile
-      |> Profiles.change_profile(params)
-      |> Map.put(:action, :validate)
-      |> to_form()
-
-    {:noreply, assign(socket, :profile_form, form)}
-  end
-
-  def handle_event("validate_profile", _params, socket), do: {:noreply, socket}
-
-  def handle_event("save_profile", %{"profile" => params}, socket) do
-    with true <- socket.assigns.profile_editable?,
-         true <- socket.assigns.profile_editing?,
-         {:ok, profile} <-
-           Profiles.update_profile(socket.assigns.current_user, socket.assigns.profile, params),
-         {:ok, profile} <- save_uploaded_photo(socket, profile) do
-      {:noreply,
-       socket
-       |> assign(:profile, profile)
-       |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
-       |> assign(:profile_editing?, false)
-       |> put_flash(:info, "Анкета сохранена.")}
-    else
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, :profile_form, to_form(changeset))}
-
-      _reason ->
-        {:noreply, put_flash(socket, :error, "Не удалось сохранить анкету.")}
-    end
+     |> assign(:profile, nil)}
   end
 
   def handle_event("leave_chat", _params, socket) do
@@ -2255,8 +2196,6 @@ defmodule ChatWeb.RoomLive do
         socket
         |> assign(:profile, profile)
         |> assign(:profile_editable?, editable?)
-        |> assign(:profile_editing?, false)
-        |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
 
       {:error, :not_found} ->
         profile = Profiles.guest_profile(nickname)
@@ -2264,8 +2203,6 @@ defmodule ChatWeb.RoomLive do
         socket
         |> assign(:profile, profile)
         |> assign(:profile_editable?, false)
-        |> assign(:profile_editing?, false)
-        |> assign(:profile_form, to_form(Profiles.change_profile(profile)))
     end
   end
 
@@ -2683,26 +2620,6 @@ defmodule ChatWeb.RoomLive do
 
   defp feedback_error(:rate_limited), do: "Слишком много пожеланий. Попробуй позже."
   defp feedback_error(_reason), do: "Не удалось отправить пожелание."
-
-  defp save_uploaded_photo(socket, profile) do
-    case uploaded_entries(socket, :profile_photo) do
-      {[], []} ->
-        {:ok, profile}
-
-      {[_entry], []} ->
-        [result] =
-          consume_uploaded_entries(socket, :profile_photo, fn %{path: path}, upload_entry ->
-            bytes = File.read!(path)
-            {:ok, {bytes, upload_entry.client_type}}
-          end)
-
-        {bytes, content_type} = result
-        Profiles.put_photo(socket.assigns.current_user, profile, bytes, content_type)
-
-      _entries ->
-        {:error, :invalid_photo}
-    end
-  end
 
   defp save_uploaded_emoji(socket, user, code) do
     case uploaded_entries(socket, :emoji_image) do

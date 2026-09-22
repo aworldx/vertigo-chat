@@ -877,7 +877,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert html =~ "registered"
   end
 
-  test "opens and updates the authenticated user's profile", %{conn: conn} do
+  test "opens the authenticated user's profile and links editing to React", %{conn: conn} do
     assert {:ok, _user} =
              Accounts.register_user(%{"nickname" => "profiled", "password" => "secret123"})
 
@@ -894,24 +894,7 @@ defmodule ChatWeb.RoomLiveTest do
     assert has_element?(view, "#profile-view")
     assert has_element?(view, "#edit-profile")
     refute has_element?(view, "#profile-form")
-
-    view |> element("#edit-profile") |> render_click()
-    assert has_element?(view, "#profile-form")
-    assert has_element?(view, "#save-profile")
-
-    view
-    |> form("#profile-form",
-      profile: %{
-        name: "Мария",
-        birth_date: "1995-07-21",
-        gender: "female",
-        about: "Пишу из теста"
-      }
-    )
-    |> render_submit()
-
-    assert has_element?(view, "#profile-display-name", "Мария")
-    refute has_element?(view, "#profile-form")
+    assert has_element?(view, "#edit-profile[href='/profiles']")
   end
 
   test "does not show profile editing controls to a guest", %{conn: conn} do
@@ -938,7 +921,7 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#save-profile")
   end
 
-  test "opens, validates and closes a guest profile", %{conn: conn} do
+  test "opens and closes a guest profile", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/chat")
     enter_chat(view, "viewer")
 
@@ -948,54 +931,8 @@ defmodule ChatWeb.RoomLiveTest do
     refute has_element?(view, "#profile-form")
     refute has_element?(view, "#save-profile")
 
-    render_hook(view, "validate_profile", %{"profile" => %{"name" => String.duplicate("x", 81)}})
-    refute has_element?(view, "#profile-form")
-
     view |> element("#close-profile") |> render_click()
     refute has_element?(view, "#profile-modal")
-  end
-
-  test "shows validation errors while saving an authenticated profile", %{conn: conn} do
-    assert {:ok, _user} =
-             Accounts.register_user(%{"nickname" => "invalid_profile", "password" => "secret123"})
-
-    {:ok, view, _html} = live(conn, ~p"/chat")
-    enter_chat(view, "invalid_profile", "secret123")
-    render_hook(view, "open_profile", %{"nickname" => "invalid_profile"})
-    view |> element("#edit-profile") |> render_click()
-
-    html =
-      view
-      |> form("#profile-form", profile: %{birth_date: Date.add(Date.utc_today(), 1)})
-      |> render_submit()
-
-    assert html =~ "не может быть в будущем"
-  end
-
-  test "uploads an authenticated user's profile photo", %{conn: conn} do
-    assert {:ok, _user} =
-             Accounts.register_user(%{"nickname" => "photo_profile", "password" => "secret123"})
-
-    {:ok, view, _html} = live(conn, ~p"/chat")
-    enter_chat(view, "photo_profile", "secret123")
-    render_hook(view, "open_profile", %{"nickname" => "photo_profile"})
-    view |> element("#edit-profile") |> render_click()
-
-    upload =
-      file_input(view, "#profile-form", :profile_photo, [
-        %{
-          name: "photo.webp",
-          content: <<"RIFF", 0, 0, 0, 0, "WEBP", "test">>,
-          type: "image/webp"
-        }
-      ])
-
-    render_upload(upload, "photo.webp")
-    view |> form("#profile-form", profile: %{name: "С фото"}) |> render_submit()
-
-    assert has_element?(view, "#profile-avatar-image[src='/profiles/photo_profile/photo']")
-    assert render(view) =~ "h-[min(30vh,18rem)]"
-    refute render(view) =~ "min-h-[24rem]"
   end
 
   test "delivers a private message only to sender and recipient", %{

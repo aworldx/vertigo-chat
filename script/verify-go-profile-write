@@ -1,0 +1,57 @@
+#!/bin/sh
+# Creates a disposable account and proves cookie+CSRF write routing through Go.
+set -eu
+
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+go_command="${GO:-go}"
+database_url="${DATABASE_URL:?Set DATABASE_URL for Go API}"
+nickname="goc$(date +%s)_$$"
+password="contract-secret-123"
+api_binary="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-api.XXXXXX")"
+api_log="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-api-log.XXXXXX")"
+phoenix_log="$(mktemp "${TMPDIR:-/tmp}/chat-profiles-phoenix-log.XXXXXX")"
+cookie_jar="$(mktemp "${TMPDIR:-/tmp}/chat-profile-cookie.XXXXXX")"
+response_file="$(mktemp "${TMPDIR:-/tmp}/chat-profile-response.XXXXXX")"
+browser_marker="$(mktemp "${TMPDIR:-/tmp}/chat-profile-browser.XXXXXX")"
+photo_fixture="$(mktemp "${TMPDIR:-/tmp}/chat-profile-photo.XXXXXX")"
+
+cleanup() {
+  if [ -n "${phoenix_pid:-}" ]; then kill "$phoenix_pid" 2>/dev/null || true; fi
+  if [ -n "${api_pid:-}" ]; then kill "$api_pid" 2>/dev/null || true; fi
+  if [ -n "${created_user:-}" ]; then
+    cd "$repository_root/apps/phoenix"
+    PROFILE_CONTRACT_NICKNAME="$nickname" mix run -e 'case Chat.Accounts.get_user_by_nickname(System.fetch_env!("PROFILE_CONTRACT_NICKNAME")) do nil -> :ok; user -> Chat.Repo.delete!(user) end' >/dev/null 2>&1 || true
+  fi
+  rm -f "$api_binary" "$api_log" "$phoenix_log" "$cookie_jar" "$response_file" "$browser_marker" "$photo_fixture"
+}
+trap cleanup EXIT HUP INT TERM
+
+cd "$repository_root/apps/phoenix"
+PROFILE_CONTRACT_NICKNAME="$nickname" PROFILE_CONTRACT_PASSWORD="$password" mix run -e 'case Chat.Accounts.register_user(%{"nickname" => System.fetch_env!("PROFILE_CONTRACT_NICKNAME"), "password" => System.fetch_env!("PROFILE_CONTRACT_PASSWORD")}) do {:ok, _user} -> :ok; error -> raise "could not create contract user: #{inspect(error)}" end' >/dev/null
+created_user=true
+
+cd "$repository_root/apps/api"
+"$go_command" build -o "$api_binary" ./cmd/api
+DATABASE_URL="$database_url" PROFILE_INTERNAL_TOKEN="contract-token" API_ADDR="127.0.0.1:4020" "$api_binary" >"$api_log" 2>&1 &
+api_pid=$!
+
+cd "$repository_root/apps/phoenix"
+PROFILES_GO_API_URL="http://127.0.0.1:4020" PROFILES_GO_WRITE_API_URL="http://127.0.0.1:4020" PROFILE_INTERNAL_TOKEN="contract-token" PORT=4030 mix phx.server >"$phoenix_log" 2>&1 &
+phoenix_pid=$!
+
+attempt=0
+until curl --fail --silent http://127.0.0.1:4030/health >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 30 ]; then cat "$api_log" "$phoenix_log" >&2; exit 1; fi
+  sleep 1
+done
+
+page="$(curl --fail --silent --cookie-jar "$cookie_jar" http://127.0.0.1:4030/profiles)"
+csrf="$(printf '%s' "$page" | sed -n 's/.*name="csrf-token" content="\([^"]*\)".*/\1/p')"
+test -n "$csrf"
+curl --fail --silent --show-error --cookie "$cookie_jar" --cookie-jar "$cookie_jar" --data-urlencode "_csrf_token=$csrf" --data-urlencode "account[nickname]=$nickname" --data-urlencode "account[password]=$password" http://127.0.0.1:4030/account/login >/dev/null
+curl --fail --silent --show-error --cookie "$cookie_jar" -H "x-csrf-token: $csrf" -H 'content-type: application/json' -X PATCH --data '{"profile":{"name":"Go contract profile","birth_date":"1999-01-01","gender":"other","about":"Saved by the Go owner"}}' http://127.0.0.1:4030/api/v1/account/profile >"$response_file"
+node "$repository_root/script/verify-go-profile-write.mjs" "$response_file" "$nickname"
+magick -size 1x1 xc:white "png:$photo_fixture"
+node "$repository_root/script/verify-go-profile-write-browser.mjs" "http://127.0.0.1:4030" "$nickname" "$password" "$browser_marker" "$photo_fixture"
+cat "$browser_marker"

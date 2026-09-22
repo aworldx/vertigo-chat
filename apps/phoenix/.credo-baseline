@@ -9,11 +9,11 @@ Credo.Check.Design.AliasUsage	lib/chat/music.ex	111	Chat.Music.fetch_results_thr
 Credo.Check.Design.AliasUsage	lib/chat/music.ex	82	Chat.Music.fetch_results
 Credo.Check.Design.AliasUsage	lib/chat/release.ex	21	Chat.Release.migrate_media
 Credo.Check.Design.AliasUsage	lib/chat_web/components/core_components.ex	208	ChatWeb.CoreComponents.input
-Credo.Check.Design.AliasUsage	test/chat/media_test.exs	148	Chat.MediaTest
-Credo.Check.Design.AliasUsage	test/chat/media_test.exs	155	Chat.MediaTest
+Credo.Check.Design.AliasUsage	test/chat/media_test.exs	154	Chat.MediaTest
+Credo.Check.Design.AliasUsage	test/chat/media_test.exs	161	Chat.MediaTest
 Credo.Check.Design.AliasUsage	test/chat/sessions/node_test.exs	19	Chat.Sessions.NodeTest
 Credo.Check.Design.AliasUsage	test/chat/sessions/node_test.exs	20	Chat.Sessions.NodeTest
-Credo.Check.Design.AliasUsage	test/chat_web/live/room_live_test.exs	1977	ChatWeb.RoomLiveTest.saved_guest_identity
+Credo.Check.Design.AliasUsage	test/chat_web/live/room_live_test.exs	1914	ChatWeb.RoomLiveTest.saved_guest_identity
 Credo.Check.Design.AliasUsage	test/support/data_case.ex	40	Chat.DataCase.setup_sandbox
 Credo.Check.Design.AliasUsage	test/support/data_case.ex	41	Chat.DataCase.setup_sandbox
 Credo.Check.Design.AliasUsage	test/support/session_node.ex	81	Chat.SessionNode.execute
@@ -55,7 +55,7 @@ Credo.Check.Readability.ModuleDoc	test/support/session_node.ex	3	Chat.SessionNod
 Credo.Check.Readability.WithSingleClause	lib/chat/games.ex	38	Chat.Games.create
 Credo.Check.Readability.WithSingleClause	lib/chat/messages.ex	499	Chat.Messages.persist_and_broadcast
 Credo.Check.Readability.WithSingleClause	lib/chat/you_tube.ex	208	Chat.YouTube.search_on_worker
-Credo.Check.Refactor.CondStatements	lib/chat/accounts.ex	32	Chat.Accounts.register_user
+Credo.Check.Refactor.CondStatements	lib/chat/accounts.ex	31	Chat.Accounts.register_user
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/checkers.ex	182	Chat.Checkers.validate_step
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/commands.ex	34	Chat.Commands.parse_command
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/gallery.ex	115	Chat.Gallery.insert_with_quota
@@ -66,7 +66,7 @@ Credo.Check.Refactor.CyclomaticComplexity	lib/chat/sessions/store.ex	111	Chat.Se
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/sessions/store.ex	250	Chat.Sessions.Store.touch
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat/visits.ex	31	Chat.Visits.start_visit
 Credo.Check.Refactor.CyclomaticComplexity	lib/chat_web/live/games_live.ex	346	ChatWeb.GamesLive.can_play_durak_card?
-Credo.Check.Refactor.CyclomaticComplexity	lib/chat_web/live/room_live.ex	1536	ChatWeb.RoomLive.execute_command
+Credo.Check.Refactor.CyclomaticComplexity	lib/chat_web/live/room_live.ex	1477	ChatWeb.RoomLive.execute_command
 Credo.Check.Refactor.FunctionArity	lib/chat/messages.ex	371	Chat.Messages.deliver_message
 Credo.Check.Refactor.FunctionArity	lib/chat/messages.ex	423	Chat.Messages.broadcast_message
 Credo.Check.Refactor.FunctionArity	lib/chat/messages.ex	514	Chat.Messages.deliver_registered_message
@@ -84,7 +84,7 @@ Credo.Check.Refactor.Nesting	lib/chat/karmik.ex	85	Chat.Karmik.review_batch
 Credo.Check.Refactor.Nesting	lib/chat/karmik/open_ai.ex	117	Chat.Karmik.OpenAI.decode_result
 Credo.Check.Refactor.Nesting	lib/chat/library.ex	92	Chat.Library.create_article
 Credo.Check.Refactor.Nesting	lib/chat/media.ex	36	Chat.Media.persist
-Credo.Check.Refactor.Nesting	lib/chat/media/migration.ex	51	Chat.Media.Migration.migrate_row
+Credo.Check.Refactor.Nesting	lib/chat/media/migration.ex	59	Chat.Media.Migration.migrate_row
 Credo.Check.Refactor.Nesting	lib/chat/messages.ex	400	Chat.Messages.deliver_message
 Credo.Check.Refactor.Nesting	lib/chat/messages.ex	544	Chat.Messages.deliver_registered_message
 Credo.Check.Refactor.Nesting	lib/chat/sessions.ex	287	Chat.Sessions.finalize

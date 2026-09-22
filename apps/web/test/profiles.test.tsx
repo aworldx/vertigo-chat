@@ -165,3 +165,27 @@ test("renders user text as text", async () => {
   await screen.findByText('<img src=x onerror="alert(1)">')
   assert.equal(document.querySelector("img[onerror]"), null)
 })
+
+test("edits the authenticated account through the narrow profile payload", async () => {
+  let patch: RequestInit | undefined
+  mockFetch((path, init) => {
+    if (path === "/api/v1/account/profile") {
+      if (init.method === "PATCH") {
+        patch = init
+        return response({ data: { ...profile("owner"), name: "Мария" } })
+      }
+      return response({ data: profile("owner") })
+    }
+    return response(catalogue([profile("alice")]))
+  })
+  render(<ProfilesApp />)
+  await screen.findByRole("heading", { name: "Редактирование" })
+  assert.equal(byId("account-profile-save").tagName, "BUTTON")
+  fireEvent.change(byId("account-profile-name"), { target: { value: "Мария" } })
+  fireEvent.click(byId("account-profile-save"))
+  await screen.findByText("Анкета сохранена.")
+  if (typeof patch?.body !== "string") throw new Error("account update did not use a JSON body")
+  assert.deepEqual(JSON.parse(patch.body), {
+    profile: { name: "Мария", birth_date: "1994-05-18", gender: "female", about: "О себе" },
+  })
+})

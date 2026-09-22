@@ -31,6 +31,55 @@ async function request(path: string, signal: AbortSignal): Promise<unknown> {
   return body
 }
 
+function csrfToken(): string {
+  return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? ""
+}
+
+export async function updateAccountProfile(
+  profile: Pick<Profile, "name" | "birth_date" | "gender" | "about">,
+): Promise<GetProfileResponse> {
+  const response = await fetch("/api/v1/account/profile", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "x-csrf-token": csrfToken() },
+    body: JSON.stringify({
+      profile: {
+        name: profile.name,
+        birth_date: profile.birth_date,
+        gender: profile.gender,
+        about: profile.about,
+      },
+    }),
+  })
+  const body: unknown = await response.json().catch(() => undefined)
+  if (!response.ok)
+    throw new APIError(
+      isErrorResponse(body) ? body.error.message : "Не удалось сохранить анкету.",
+      isErrorResponse(body) ? body.error.code : "unavailable",
+    )
+  if (!isGetProfileResponse(body)) throw new APIError("Сервер вернул некорректную анкету.", "invalid_response")
+  return body
+}
+
+export async function uploadAccountProfilePhoto(photo: File): Promise<GetProfileResponse> {
+  const form = new FormData()
+  form.set("photo", photo)
+  const response = await fetch("/api/v1/account/profile/photo", {
+    method: "PUT",
+    credentials: "same-origin",
+    headers: { Accept: "application/json", "x-csrf-token": csrfToken() },
+    body: form,
+  })
+  const body: unknown = await response.json().catch(() => undefined)
+  if (!response.ok)
+    throw new APIError(
+      isErrorResponse(body) ? body.error.message : "Не удалось загрузить фото.",
+      isErrorResponse(body) ? body.error.code : "unavailable",
+    )
+  if (!isGetProfileResponse(body)) throw new APIError("Сервер вернул некорректную анкету.", "invalid_response")
+  return body
+}
+
 export async function listProfiles(query: string, page: number, signal: AbortSignal): Promise<ListProfilesResponse> {
   const params = new URLSearchParams({ q: query, page: String(page) })
   const body = await request(`/api/v1/profiles?${params}`, signal)
@@ -40,6 +89,12 @@ export async function listProfiles(query: string, page: number, signal: AbortSig
 
 export async function getProfile(nickname: string, signal: AbortSignal): Promise<GetProfileResponse> {
   const body = await request(`/api/v1/profiles/${encodeURIComponent(nickname)}`, signal)
+  if (!isGetProfileResponse(body)) throw new APIError("Сервер вернул некорректную анкету.", "invalid_response")
+  return body
+}
+
+export async function getAccountProfile(signal: AbortSignal): Promise<GetProfileResponse> {
+  const body = await request("/api/v1/account/profile", signal)
   if (!isGetProfileResponse(body)) throw new APIError("Сервер вернул некорректную анкету.", "invalid_response")
   return body
 }

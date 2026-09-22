@@ -25,11 +25,30 @@ defmodule ChatWeb.Router do
     }
   end
 
+  pipeline :account_api do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug :protect_from_forgery
+
+    plug :put_secure_browser_headers, %{
+      "cache-control" => "no-store",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
   scope "/api/v1", ChatWeb.API.V1 do
     pipe_through :public_api
 
     get "/profiles", ProfileController, :index
     get "/profiles/:nickname", ProfileController, :show
+  end
+
+  scope "/api/v1/account", ChatWeb.API.V1 do
+    pipe_through :account_api
+
+    get "/profile", AccountProfileController, :show
+    patch "/profile", AccountProfileController, :update
+    put "/profile/photo", AccountProfileController, :put_photo
   end
 
   pipeline :internal do

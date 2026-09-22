@@ -123,4 +123,50 @@ defmodule ChatWeb.API.V1.ProfileControllerTest do
                conn |> get(~p"/api/v1/profiles", params) |> json_response(422)
     end
   end
+
+  test "account profile requires a session", %{conn: conn} do
+    assert %{"error" => %{"code" => "unauthorized"}} =
+             conn |> get(~p"/api/v1/account/profile") |> json_response(401)
+  end
+
+  test "account profile reads and updates only the logged-in user's profile", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "account_api", "password" => "secret123"})
+
+    {:ok, other} =
+      Accounts.register_user(%{"nickname" => "account_other", "password" => "secret123"})
+
+    {:ok, other_profile} = Profiles.get_by_nickname(other.nickname)
+
+    conn = init_test_session(conn, account_user_id: user.id)
+
+    assert %{"data" => %{"nickname" => "account_api"}} =
+             get(conn, ~p"/api/v1/account/profile") |> json_response(200)
+
+    updated =
+      conn
+      |> recycle()
+      |> init_test_session(account_user_id: user.id)
+      |> patch(~p"/api/v1/account/profile", %{
+        "profile" => %{"name" => "Алиса", "about" => "О себе"}
+      })
+
+    assert %{"data" => %{"name" => "Алиса", "about" => "О себе"}} = json_response(updated, 200)
+    assert other_profile.name == nil
+  end
+
+  test "account profile rejects unknown fields and unauthenticated photo uploads", %{conn: conn} do
+    {:ok, user} =
+      Accounts.register_user(%{"nickname" => "account_validation", "password" => "secret123"})
+
+    invalid =
+      conn
+      |> init_test_session(account_user_id: user.id)
+      |> patch(~p"/api/v1/account/profile", %{"profile" => %{"user_id" => 0}})
+
+    assert %{"error" => %{"code" => "invalid_profile"}} = json_response(invalid, 422)
+
+    assert %{"error" => %{"code" => "unauthorized"}} =
+             build_conn() |> put(~p"/api/v1/account/profile/photo", %{}) |> json_response(401)
+  end
 end

@@ -1,29 +1,41 @@
 #!/bin/sh
 # Go quality gate used by mix precommit and available independently.
 set -eu
-cd "$(dirname "$0")/../services/youtube-worker"
 go_command="${GO:-go}"
+repo_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
 if ! command -v "$go_command" >/dev/null 2>&1; then
   echo "Go is required for precommit. Install Go 1.25+ or set GO=/path/to/go." >&2
   exit 1
 fi
 gofmt_command="$("$go_command" env GOROOT)/bin/gofmt"
-unformatted="$("$gofmt_command" -l .)"
-if [ -n "$unformatted" ]; then
-  echo "Go files need formatting (run gofmt -w services/youtube-worker/*.go):" >&2
-  printf '%s\n' "$unformatted" >&2
-  exit 1
-fi
-"$go_command" vet ./...
-if command -v golangci-lint >/dev/null 2>&1; then
-  golangci-lint run
-elif command -v docker >/dev/null 2>&1; then
-  docker run --rm -v "$(pwd):/app" -w /app golangci/golangci-lint:v2.13.2 golangci-lint run
-else
-  echo "golangci-lint v2.13.2 or Docker is required for Go quality checks." >&2
-  exit 1
-fi
-"$go_command" test -race ./...
-build_artifact="$(mktemp "${TMPDIR:-/tmp}/chat-youtube-worker.XXXXXX")"
-trap 'rm -f "$build_artifact"' EXIT HUP INT TERM
-"$go_command" build -o "$build_artifact" .
+
+check_module() {
+  module_path="$1"
+  cd "$repo_root/$module_path"
+  unformatted="$("$gofmt_command" -l .)"
+  if [ -n "$unformatted" ]; then
+    echo "Go files need formatting in $module_path:" >&2
+    printf '%s\n' "$unformatted" >&2
+    exit 1
+  fi
+  "$go_command" vet ./...
+  if command -v golangci-lint >/dev/null 2>&1; then
+    golangci-lint run
+  elif command -v docker >/dev/null 2>&1; then
+    docker run --rm -v "$(pwd):/app" -w /app golangci/golangci-lint:v2.13.2 golangci-lint run
+  else
+    echo "golangci-lint v2.13.2 or Docker is required for Go quality checks." >&2
+    exit 1
+  fi
+  "$go_command" test -race ./...
+  build_artifact="$(mktemp "${TMPDIR:-/tmp}/chat-go-service.XXXXXX")"
+  if [ "$module_path" = "apps/api" ]; then
+    "$go_command" build -o "$build_artifact" ./cmd/api
+  else
+    "$go_command" build -o "$build_artifact" .
+  fi
+  rm -f "$build_artifact"
+}
+
+check_module services/youtube-worker
+check_module apps/api
