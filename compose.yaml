@@ -27,6 +27,7 @@ x-app-environment: &app-environment
   S3_VIRTUAL_HOSTED: ${S3_VIRTUAL_HOSTED:-false}
   MUSIC_PROXY_FILE: /run/secrets/music_proxies
   DISCOURSE_CONNECT_SECRET: ${DISCOURSE_CONNECT_SECRET:-}
+  YOUTUBE_WORKER_URL: http://youtube-worker:4001
   YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
 
 x-app-image: &app-image

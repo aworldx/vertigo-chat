@@ -1,7 +1,9 @@
 defmodule Chat.YouTubeTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Chat.YouTube
+
+  setup {Req.Test, :verify_on_exit!}
 
   test "normalizes watch, short and shorts links" do
     for link <- [
@@ -35,6 +37,32 @@ defmodule Chat.YouTubeTest do
     )
 
     on_exit(fn -> Application.put_env(:chat, Chat.YouTube, previous_config) end)
+
+    assert {:ok, [%{id: "dQw4w9WgXcQ", title: "Короткий ролик", duration: 120}]} =
+             YouTube.search("короткий ролик")
+  end
+
+  test "delegates search to the isolated YouTube worker" do
+    previous_config = Application.get_env(:chat, YouTube)
+
+    Application.put_env(:chat, YouTube,
+      worker_url: "http://youtube-worker.test",
+      worker_plug: {Req.Test, __MODULE__}
+    )
+
+    on_exit(fn -> Application.put_env(:chat, YouTube, previous_config) end)
+
+    Req.Test.expect(__MODULE__, fn conn ->
+      assert conn.method == "POST"
+      assert conn.request_path == "/youtube/search"
+      assert %{"query" => "короткий ролик"} = conn |> Req.Test.raw_body() |> Jason.decode!()
+
+      Req.Test.json(conn, %{
+        "videos" => [
+          %{"id" => "dQw4w9WgXcQ", "title" => "Короткий ролик", "duration" => 120}
+        ]
+      })
+    end)
 
     assert {:ok, [%{id: "dQw4w9WgXcQ", title: "Короткий ролик", duration: 120}]} =
              YouTube.search("короткий ролик")

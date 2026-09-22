@@ -24,6 +24,8 @@ youtube_cache_dir =
 config :chat, Chat.YouTube,
   cache_dir: System.get_env("YOUTUBE_CACHE_DIR", youtube_cache_dir),
   cache_max_bytes: positive_integer_env.("YOUTUBE_CACHE_MAX_BYTES", 2 * 1_024 * 1_024 * 1_024),
+  worker_url: System.get_env("YOUTUBE_WORKER_URL"),
+  worker_receive_timeout: positive_integer_env.("YOUTUBE_WORKER_RECEIVE_TIMEOUT_MS", 30_000),
   # One preparation keeps yt-dlp and ffmpeg from competing for the worker's
   # limited CPU and memory. Requests for other videos wait in Cache's FIFO queue.
   cache_max_preparations: positive_integer_env.("YOUTUBE_CACHE_MAX_PREPARATIONS", 1)

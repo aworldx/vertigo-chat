@@ -102,15 +102,14 @@ RUN chown nobody:root /app
 
 FROM runtime AS youtube-client
 
-# Search and metadata validation run in the public chat process. They need
-# yt-dlp, but not ffmpeg or the video cache used by the worker.
+# Only the isolated worker runs yt-dlp and validates YouTube metadata.
 USER root
 RUN apt-get update \
   && apt-get install -y --no-install-recommends nodejs python3-pip \
   && pip3 install --break-system-packages --no-cache-dir --upgrade 'yt-dlp[default]' \
   && rm -rf /var/lib/apt/lists/*
 
-FROM youtube-client AS app
+FROM runtime AS app
 
 # The public chat creates profile-photo thumbnails.
 USER root

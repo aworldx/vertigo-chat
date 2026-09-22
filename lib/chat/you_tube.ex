@@ -1,7 +1,8 @@
 # Назначение файла: проверка ссылок YouTube и запуск серверного потока для видеосообщений.
 defmodule Chat.YouTube do
   @moduledoc """
-  Normalizes links, searches YouTube, and prepares Safari-compatible cached MP4 files.
+  Normalizes links and delegates YouTube search and metadata work to the isolated
+  video worker. The worker alone carries the multimedia toolchain.
   """
 
   @video_id_pattern ~r/\A[A-Za-z0-9_-]{11}\z/
@@ -35,6 +36,14 @@ defmodule Chat.YouTube do
           | {:error, :invalid_youtube | :video_too_long | :video_unavailable}
   def prepare_video(link) do
     with {:ok, video} <- normalize_link(link),
+         {:ok, prepared} <- prepare_on_worker(video.source_url) do
+      {:ok, Map.merge(video, prepared)}
+    end
+  end
+
+  @doc false
+  def prepare_video_locally(link) do
+    with {:ok, video} <- normalize_link(link),
          {:ok, duration} <- fetch_duration(video.source_url),
          true <- duration <= @max_duration_seconds do
       {:ok,
@@ -54,11 +63,24 @@ defmodule Chat.YouTube do
     cond do
       query == "" -> {:error, :query_required}
       String.length(query) > @max_search_query_length -> {:error, :query_too_long}
-      true -> search_videos(query)
+      true -> search_on_worker(query)
     end
   end
 
   def search(_query), do: {:error, :query_required}
+
+  @doc false
+  def search_locally(query) when is_binary(query) do
+    query = String.trim(query)
+
+    cond do
+      query == "" -> {:error, :query_required}
+      String.length(query) > @max_search_query_length -> {:error, :query_too_long}
+      true -> search_videos(query)
+    end
+  end
+
+  def search_locally(_query), do: {:error, :query_required}
 
   @spec proxy_url(String.t()) :: String.t()
   def proxy_url(video_id) when is_binary(video_id) do
@@ -267,6 +289,95 @@ defmodule Chat.YouTube do
     else
       _error -> {:error, :video_unavailable}
     end
+  end
+
+  defp prepare_on_worker(source_url) do
+    if local_resolvers_configured?() do
+      prepare_video_locally(source_url)
+      |> case do
+        {:ok, %{duration: duration, title: title}} -> {:ok, %{duration: duration, title: title}}
+        {:error, _reason} = error -> error
+      end
+    else
+      with {:ok, %{"duration" => duration, "title" => title}} <-
+             worker_request("/youtube/prepare", %{"source_url" => source_url}),
+           true <- is_number(duration) and duration > 0 and duration <= @max_duration_seconds,
+           true <- is_binary(title) do
+        {:ok, %{duration: trunc(duration), title: String.slice(String.trim(title), 0, 160)}}
+      else
+        false -> {:error, :video_unavailable}
+        {:error, _reason} = error -> error
+        _invalid -> {:error, :video_unavailable}
+      end
+    end
+  end
+
+  defp search_on_worker(query) do
+    if local_resolvers_configured?() do
+      search_locally(query)
+    else
+      with {:ok, %{"videos" => videos}} <- worker_request("/youtube/search", %{"query" => query}) do
+        normalize_worker_search_results(videos)
+      else
+        {:error, _reason} = error -> error
+        _invalid -> {:error, :video_unavailable}
+      end
+    end
+  end
+
+  defp worker_request(path, body) do
+    config = Application.get_env(:chat, __MODULE__, [])
+
+    with worker_url when is_binary(worker_url) and worker_url != "" <- config[:worker_url],
+         {:ok, response} <-
+           Req.post(
+             String.trim_trailing(worker_url, "/") <> path,
+             worker_request_options(config, body)
+           ) do
+      worker_response(response)
+    else
+      {:error, _reason} -> {:error, :video_unavailable}
+      _unavailable -> {:error, :video_unavailable}
+    end
+  end
+
+  defp worker_request_options(config, body) do
+    options = [
+      json: body,
+      receive_timeout: Keyword.get(config, :worker_receive_timeout, 30_000),
+      retry: false
+    ]
+
+    if config[:worker_plug], do: Keyword.put(options, :plug, config[:worker_plug]), else: options
+  end
+
+  defp worker_response(%{status: status, body: body}) when status in 200..299 and is_map(body),
+    do: {:ok, body}
+
+  defp worker_response(%{body: %{"error" => "invalid_youtube"}}), do: {:error, :invalid_youtube}
+  defp worker_response(%{body: %{"error" => "video_too_long"}}), do: {:error, :video_too_long}
+  defp worker_response(%{body: %{"error" => "not_found"}}), do: {:error, :not_found}
+
+  defp worker_response(_response), do: {:error, :video_unavailable}
+
+  defp normalize_worker_search_results(videos) when is_list(videos) do
+    videos
+    |> Enum.flat_map(&search_entry/1)
+    |> Enum.filter(&(&1.duration <= @max_duration_seconds))
+    |> Enum.take(@max_search_results)
+    |> case do
+      [] -> {:error, :not_found}
+      results -> {:ok, results}
+    end
+  end
+
+  defp normalize_worker_search_results(_videos), do: {:error, :video_unavailable}
+
+  defp local_resolvers_configured? do
+    config = Application.get_env(:chat, __MODULE__, [])
+
+    is_function(config[:duration_resolver], 1) or is_function(config[:title_resolver], 1) or
+      is_function(config[:search_resolver], 1)
   end
 
   defp download_with_yt_dlp(yt_dlp, ffmpeg, video_id, path) do

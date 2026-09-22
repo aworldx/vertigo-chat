@@ -49,6 +49,22 @@ defmodule Chat.YouTube.WorkerTest do
     send(task_pid, {:finish_download, "dQw4w9WgXcQ"})
   end
 
+  test "searches through the worker-local yt-dlp resolver" do
+    Application.put_env(:chat, YouTube,
+      search_resolver: fn "короткий ролик" ->
+        {:ok, [%{"id" => "dQw4w9WgXcQ", "title" => "Короткий ролик", "duration" => 120}]}
+      end
+    )
+
+    conn =
+      conn(:post, "/youtube/search", Jason.encode!(%{"query" => "короткий ролик"}))
+      |> Plug.Conn.put_req_header("content-type", "application/json")
+      |> Worker.call([])
+
+    assert conn.status == 200
+    assert %{"videos" => [%{"id" => "dQw4w9WgXcQ"}]} = Jason.decode!(conn.resp_body)
+  end
+
   test "prepares only one distinct video and queues the next one" do
     assert :pending = Cache.request("first-video")
     assert_receive {:youtube_download_started, "first-video", first_task}

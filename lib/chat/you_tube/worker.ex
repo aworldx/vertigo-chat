@@ -13,6 +13,41 @@ defmodule Chat.YouTube.Worker do
     send_resp(conn, :ok, "ok")
   end
 
+  post "/youtube/search" do
+    with {:ok, %{"query" => query}} <- read_json(conn),
+         {:ok, videos} <- YouTube.search_locally(query) do
+      send_json(conn, :ok, %{videos: videos})
+    else
+      {:error, :query_required} ->
+        send_json(conn, :unprocessable_entity, %{error: "query_required"})
+
+      {:error, :query_too_long} ->
+        send_json(conn, :unprocessable_entity, %{error: "query_too_long"})
+
+      {:error, :not_found} ->
+        send_json(conn, :not_found, %{error: "not_found"})
+
+      _error ->
+        send_json(conn, :bad_gateway, %{error: "video_unavailable"})
+    end
+  end
+
+  post "/youtube/prepare" do
+    with {:ok, %{"source_url" => source_url}} <- read_json(conn),
+         {:ok, %{duration: duration, title: title}} <- YouTube.prepare_video_locally(source_url) do
+      send_json(conn, :ok, %{duration: duration, title: title})
+    else
+      {:error, :invalid_youtube} ->
+        send_json(conn, :unprocessable_entity, %{error: "invalid_youtube"})
+
+      {:error, :video_too_long} ->
+        send_json(conn, :unprocessable_entity, %{error: "video_too_long"})
+
+      _error ->
+        send_json(conn, :bad_gateway, %{error: "video_unavailable"})
+    end
+  end
+
   get "/youtube-proxy/:video_id" do
     case YouTube.Cache.request(video_id) do
       {:ok, %{path: path, size: size}} ->
@@ -25,6 +60,21 @@ defmodule Chat.YouTube.Worker do
 
   match _ do
     send_resp(conn, :not_found, "")
+  end
+
+  defp read_json(conn) do
+    with {:ok, body, _conn} <- read_body(conn),
+         {:ok, payload} when is_map(payload) <- Jason.decode(body) do
+      {:ok, payload}
+    else
+      _invalid -> {:error, :invalid_json}
+    end
+  end
+
+  defp send_json(conn, status, payload) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(status, Jason.encode!(payload))
   end
 
   defp send_video(conn, path, size) do

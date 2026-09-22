@@ -6,6 +6,7 @@ config :chat, :youtube_worker_embedded?, true
 
 config :chat, Chat.YouTube,
   proxy_base_url: "http://localhost:4001",
+  worker_url: "http://localhost:4001",
   cache_dir: Path.join(System.tmp_dir!(), "chat-youtube-cache")
 
 # Configure your database
