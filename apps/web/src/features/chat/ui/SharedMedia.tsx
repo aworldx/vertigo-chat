@@ -1,6 +1,8 @@
 import { ListeningAudio } from "./ListeningAudio"
 import type { SharedFile } from "../model/mediaTransfer"
+import { useFeedContentEvent } from "./MessageFeed"
 export function SharedMedia({ file, onRequest }: { file: SharedFile; onRequest: () => void }) {
+  useFeedContentEvent(`${file.id}:${file.status}:${String(file.progress)}:${file.url}`)
   return (
     <article
       id={`shared-media-${file.id}`}

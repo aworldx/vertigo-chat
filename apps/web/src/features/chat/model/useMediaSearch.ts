@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react"
 import { searchMedia, type MediaItem } from "../api/media"
+
+export type MediaSearchResult = {
+  time: string
+  page: number
+  kind: MediaItem["kind"]
+  query: string
+  items: MediaItem[]
+  loading: boolean
+  error: string
+}
+
 export function useMediaSearch(generation: number, publish: (item: MediaItem) => void) {
-  const [result, setResult] = useState<{
-    time: string
-    page: number
-    kind: MediaItem["kind"]
-    query: string
-    items: MediaItem[]
-    loading: boolean
-    error: string
-  } | null>(null)
+  const [result, setResult] = useState<MediaSearchResult | null>(null)
   const active = useRef<AbortController | null>(null)
   useEffect(() => () => active.current?.abort(), [])
   const search = (kind: MediaItem["kind"], query: string) => {

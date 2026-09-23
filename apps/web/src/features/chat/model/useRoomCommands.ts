@@ -98,7 +98,10 @@ export function useRoomCommands(
   return {
     execute,
     results,
+    dismiss: (id: number) => {
+      setResults((list) => list.filter((result) => result.id !== id))
+    },
     notice,
-    visible: messages.filter((m) => !cleared.includes(m.id) && !ignored.includes(m.author)),
+    isVisible: (message: Message) => !cleared.includes(message.id) && !ignored.includes(message.author),
   }
 }

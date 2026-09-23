@@ -1,15 +1,20 @@
 #!/bin/sh
 # Go quality gate used by mix precommit and available independently.
 set -eu
-go_command="${GO:-go}"
 repo_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
-if ! command -v "$go_command" >/dev/null 2>&1; then
-  echo "Go is required for precommit. Install Go 1.25+ or set GO=/path/to/go." >&2
+go_command="${GO:-go}"
+
+if command -v "$go_command" >/dev/null 2>&1; then
+  go_mode="local"
+  gofmt_command="$("$go_command" env GOROOT)/bin/gofmt"
+elif command -v docker >/dev/null 2>&1; then
+  go_mode="container"
+else
+  echo "Go 1.25+ or Docker is required for Go quality checks." >&2
   exit 1
 fi
-gofmt_command="$("$go_command" env GOROOT)/bin/gofmt"
 
-check_module() {
+check_local_module() {
   module_path="$1"
   cd "$repo_root/$module_path"
   unformatted="$("$gofmt_command" -l .)"
@@ -19,14 +24,6 @@ check_module() {
     exit 1
   fi
   "$go_command" vet ./...
-  if command -v golangci-lint >/dev/null 2>&1; then
-    golangci-lint run
-  elif command -v docker >/dev/null 2>&1; then
-    docker run --rm -v "$(pwd):/app" -w /app golangci/golangci-lint:v2.13.2 golangci-lint run
-  else
-    echo "golangci-lint v2.13.2 or Docker is required for Go quality checks." >&2
-    exit 1
-  fi
   "$go_command" test -race ./...
   build_artifact="$(mktemp "${TMPDIR:-/tmp}/chat-go-service.XXXXXX")"
   if [ "$module_path" = "apps/api" ]; then
@@ -37,5 +34,39 @@ check_module() {
   rm -f "$build_artifact"
 }
 
-check_module services/youtube-worker
-check_module apps/api
+check_container_module() {
+  module_path="$1"
+  docker run --rm -v "$repo_root:/work" -w "/work/$module_path" golang:1.27.1-trixie sh -eu -c '
+    unformatted="$(gofmt -l .)"
+    if [ -n "$unformatted" ]; then
+      echo "Go files need formatting:" >&2
+      printf "%s\\n" "$unformatted" >&2
+      exit 1
+    fi
+    go vet ./...
+    go test -race ./...
+    if [ "$1" = "apps/api" ]; then
+      go build -buildvcs=false -o /tmp/chat-go-service ./cmd/api
+    else
+      go build -buildvcs=false -o /tmp/chat-go-service .
+    fi
+  ' sh "$module_path"
+}
+
+check_lint() {
+  module_path="$1"
+  if command -v golangci-lint >/dev/null 2>&1; then
+    (cd "$repo_root/$module_path" && golangci-lint run)
+  else
+    docker run --rm -v "$repo_root/$module_path:/app" -w /app golangci/golangci-lint:v2.13.2 golangci-lint run
+  fi
+}
+
+for module_path in services/youtube-worker apps/api; do
+  if [ "$go_mode" = "local" ]; then
+    check_local_module "$module_path"
+  else
+    check_container_module "$module_path"
+  fi
+  check_lint "$module_path"
+done

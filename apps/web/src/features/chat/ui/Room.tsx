@@ -2,7 +2,7 @@ import { ListeningContext } from "../model/listeningContext"
 import { useRef, useState, type ReactNode } from "react"
 import { useNotification } from "../model/useNotification"
 import { useMediaSearch } from "../model/useMediaSearch"
-import { MediaResults } from "./MediaResults"
+import { MediaSearchResults } from "./MediaSearchResults"
 import { useMediaTransfer } from "../model/useMediaTransfer"
 import { SharedMedia } from "./SharedMedia"
 import { RoomForms } from "./RoomForms"
@@ -10,13 +10,14 @@ import { useRoomForm } from "../model/useRoomForm"
 import { TopMenu } from "./TopMenu"
 import { Composer } from "./Composer"
 import { Settings } from "./Settings"
-import { CommandResult } from "./CommandResult"
+import { CommandResults } from "./CommandResults"
 import { usePreferences } from "../model/usePreferences"
 import { useRoomCommands } from "../model/useRoomCommands"
 import { useEmojis } from "../model/useEmojis"
 import { OnlineList } from "./OnlineList"
 import { MessageFeed } from "./MessageFeed"
 import { useRoom } from "../model/useRoom"
+import { timelineMessages } from "../model/timeline"
 export function Room({
   onProfile,
   csrf,
@@ -27,6 +28,7 @@ export function Room({
   children?: ReactNode
 }) {
   const { state, connection } = useRoom()
+  const publishedMessages = timelineMessages(state.timeline)
   const [draft, setDraft] = useState("")
   const settings = usePreferences(state.snapshot.preferences, connection)
   const emoji = useEmojis()
@@ -40,7 +42,7 @@ export function Room({
     connection.sendMedia(item)
   })
   const command = useRoomCommands(
-    [...state.snapshot.messages, ...state.ephemeral].sort((a, b) => Date.parse(a.sent_at) - Date.parse(b.sent_at)),
+    [...publishedMessages, ...state.ephemeral].sort((a, b) => Date.parse(a.sent_at) - Date.parse(b.sent_at)),
     state.snapshot.peers,
     openProfile,
     () => {
@@ -49,7 +51,7 @@ export function Room({
     search.search,
   )
   useNotification(
-    [...state.snapshot.messages, ...state.ephemeral],
+    [...publishedMessages, ...state.ephemeral],
     state.nickname,
     state.snapshot.preferences.message_sound_enabled,
   )
@@ -96,11 +98,8 @@ export function Room({
                 </div>
               )}
               <MessageFeed
-                messages={command.visible}
+                entries={state.timeline.filter((entry) => command.isVisible(entry.message))}
                 frame={state.snapshot.preferences.appearance.message_frame}
-                appearance={state.snapshot.preferences.appearance}
-                fontID={state.snapshot.preferences.font_id}
-                fontStyle={state.snapshot.preferences.font_style}
                 onRetry={(id) => {
                   connection.retryMessage(id)
                 }}
@@ -109,7 +108,6 @@ export function Room({
                 }}
                 emojis={emoji.emojis}
                 peers={state.snapshot.peers}
-                outbox={state.outbox}
                 nickname={state.nickname}
                 onAddress={address}
                 onReaction={(id, emoji, active) => {
@@ -123,7 +121,7 @@ export function Room({
                     : undefined
                 }
               >
-                <MediaResults
+                <MediaSearchResults
                   frame={state.snapshot.preferences.appearance.message_frame}
                   result={search.result}
                   onClose={search.close}
@@ -142,9 +140,7 @@ export function Room({
                     }}
                   />
                 ))}
-                {command.results.map((result) => (
-                  <CommandResult key={result.id} result={result} onAddress={address} />
-                ))}
+                <CommandResults results={command.results} onAddress={address} onDismiss={command.dismiss} />
               </MessageFeed>
               <p
                 id="typing-indicator"

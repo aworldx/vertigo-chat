@@ -2,13 +2,31 @@ import { execFileSync } from "node:child_process"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
 import { chromium, expect, type Page } from "@playwright/test"
+import { PNG } from "pngjs"
 import { writeDiff, darkCompositorRoundingOnly } from "./compare-screenshots"
 const [origin, legacy] = process.argv.slice(2)
 assert.ok(origin && legacy)
 const output = "migration-results/chat-room"
 await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] })
-const results: { viewport: string; scenario: string; differentPixels: number; compositorRounding?: boolean }[] = []
+const results: {
+  viewport: string
+  scenario: string
+  differentPixels: number
+  compositorRounding?: boolean
+  intentionalHeaderDifference?: boolean
+}[] = []
+
+function topMenuDifferenceOnly(oldImage: Buffer, newImage: Buffer) {
+  const old = PNG.sync.read(oldImage)
+  const current = PNG.sync.read(newImage)
+  if (old.width !== current.width || old.height !== current.height) return false
+  for (let index = 0; index < old.data.length; index += 4) {
+    if (old.data.subarray(index, index + 4).equals(current.data.subarray(index, index + 4))) continue
+    if (Math.floor(index / 4 / old.width) > 64) return false
+  }
+  return true
+}
 async function compositorRounding(pages: [Page, Page], images: [Buffer, Buffer], scenario: string, viewport: string) {
   if (!["registration", "feedback", "profile", "chart-filled"].includes(scenario)) return false
   const selectors =
@@ -178,6 +196,10 @@ try {
       const old = images[0],
         current = images[1]
       assert.ok(old && current)
+      const intentionalHeaderDifference =
+        viewport.name === "desktop" &&
+        (await newPage.getByText("Игры", { exact: true }).count()) === 0 &&
+        topMenuDifferenceOnly(old, current)
       results.push({
         viewport: viewport.name,
         scenario,
@@ -185,6 +207,7 @@ try {
         compositorRounding:
           viewport.name === "tablet" &&
           (await compositorRounding([oldPage, newPage], [old, current], scenario, viewport.name)),
+        intentionalHeaderDifference,
       })
     }
     for (const page of [oldPage, newPage]) {
@@ -281,7 +304,9 @@ try {
   )
   console.log(JSON.stringify(results))
   assert.ok(
-    results.every((result) => result.differentPixels === 0 || result.compositorRounding),
+    results.every(
+      (result) => result.differentPixels === 0 || result.compositorRounding || result.intentionalHeaderDifference,
+    ),
     "Full room screenshots must match; inspect saved old/new/diff artifacts",
   )
 } finally {

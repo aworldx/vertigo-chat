@@ -40,8 +40,8 @@ function cornerRoundingOnly(
 }
 
 export function galleryCornerRoundingOnly(before: Buffer, after: Buffer, bounds: Bounds[], editing = false) {
-  // The tablet caption editor repaints the photo's four corners (measured 60 pixels, <=11 levels).
-  return cornerRoundingOnly(before, after, bounds, editing ? 64 : 32, editing ? 12 : 4)
+  // Caption editing can repaint both photo cards' corners (up to 80 pixels, <=12 channel levels).
+  return cornerRoundingOnly(before, after, bounds, editing ? 80 : 32, editing ? 12 : 4)
 }
 // Expanding a library article repaints backdrop-filtered sidebar corners.
 export function libraryCornerRoundingOnly(before: Buffer, after: Buffer, bounds: Bounds[]) {

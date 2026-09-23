@@ -39,7 +39,7 @@ function DeliveryStatus({
     <span
       id={`message-delivery-${id}`}
       data-delivery-state={state}
-      className={`absolute right-2 top-1 text-[11px] font-bold leading-none ${color}`}
+      className={`absolute right-2 ${state === "failed" ? "top-5" : "top-1"} inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-bold leading-none ${color}`}
       aria-label={deliveryLabels[state]}
     >
       <span aria-hidden="true">{marker}</span>
@@ -49,7 +49,7 @@ function DeliveryStatus({
           <button type="button" onClick={onRetry} className="ml-1 font-semibold text-amber-200 hover:underline">
             Повторить
           </button>
-          <button type="button" onClick={onCancel} className="ml-1 text-zinc-400 hover:text-zinc-200 hover:underline">
+          <button type="button" onClick={onCancel} className="text-zinc-400 hover:text-zinc-200 hover:underline">
             Удалить
           </button>
         </>
@@ -115,6 +115,7 @@ export function MessageEntry({
   const addressed = message.recipient === nickname
   const mediaLayout = message.kind === "music" || message.kind === "youtube"
   const system = message.kind === "system"
+  const failedDelivery = delivery === "failed"
   if (privateMessage) frame = true
   const entryID = domID ?? String(message.id)
   return (
@@ -128,7 +129,7 @@ export function MessageEntry({
       data-message-font={message.font_id}
       data-message-font-style={message.font_style}
       data-message-frame={frame}
-      className={`chat-message-entry group/message relative transition-colors ${system ? "px-3 py-0.5 text-center" : message.kind === "music" ? `ml-auto w-full max-w-xl ${frame ? "border-zinc-700 bg-zinc-950/90 px-3 py-2.5" : "px-1"}` : message.kind === "youtube" ? "ml-auto w-full max-w-sm" : frame ? `rounded border px-3 pb-2 pt-5 shadow-sm ${addressed ? "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30" : privateMessage ? "border-sky-400/50 bg-sky-400/10" : "border-zinc-800 bg-zinc-900"}` : addressed ? "px-1 rounded bg-amber-300/20" : "px-1"} ${message.kind === "gif" ? "ml-auto w-fit max-w-full" : ""}`}
+      className={`chat-message-entry group/message relative transition-colors ${system ? "px-3 py-0.5 text-center" : message.kind === "music" ? `ml-auto w-full max-w-xl ${frame ? "border-zinc-700 bg-zinc-950/90 px-3 py-2.5" : "px-1"}` : message.kind === "youtube" ? "ml-auto w-full max-w-sm" : frame ? `rounded border px-3 pb-2 ${failedDelivery ? "pt-11" : "pt-5"} shadow-sm ${addressed ? "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30" : privateMessage ? "border-sky-400/50 bg-sky-400/10" : "border-zinc-800 bg-zinc-900"}` : addressed ? "px-1 rounded bg-amber-300/20" : "px-1"} ${message.kind === "gif" ? "ml-auto w-fit max-w-full" : ""}`}
     >
       {system ? (
         <p className="inline-flex items-center gap-2 text-xs leading-4 text-zinc-500">

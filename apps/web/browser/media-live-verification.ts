@@ -9,7 +9,7 @@ try {
   await page.goto(origin)
   await page.locator("#entrance-nickname").fill("media-live-reader")
   await page.locator("#enter-chat").click()
-  await expect(page.locator("#chat-connection-status")).toContainText("В чате")
+  await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
   const command = async (body: string) => {
     await page.locator("#message-body").fill(body)
     await page.locator("#send-message").click()
@@ -17,6 +17,11 @@ try {
   await command("/музыка Radiohead")
   const results = page.locator("#media-search-results")
   await expect(results.locator("audio")).toHaveCount(5, { timeout: 45000 })
+  await expect
+    .poll(() =>
+      page.locator("#messages").evaluate((element) => element.scrollHeight - element.clientHeight - element.scrollTop),
+    )
+    .toBeLessThanOrEqual(1)
   await results.getByRole("button", { name: "2", exact: true }).click()
   await expect(results.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page")
   await results.getByRole("button", { name: "1", exact: true }).click()

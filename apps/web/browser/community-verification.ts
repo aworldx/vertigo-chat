@@ -152,6 +152,20 @@ try {
       const pixels = await writeDiff(before, after, `${output}/${String(width)}-${scenario}-diff.png`)
       results.push({ width, scenario, pixels })
       console.log(width, scenario, pixels)
+      // Legacy renders the empty gallery inside CSS columns at tablet and desktop
+      // widths, splitting the message and dropping the page chrome. The React
+      // layout intentionally keeps one full-width empty card outside columns.
+      // Assert that replacement explicitly instead of treating it as pixel parity.
+      if (scenario === "gallery-empty" && width >= 768) {
+        await expect(newPage.locator("#gallery-page > header")).toBeVisible()
+        await expect(newPage.locator("#gallery-page h1")).toHaveText("Фотоальбом")
+        await expect(newPage.locator("#gallery-account-login")).toBeVisible()
+        await expect(newPage.locator("#gallery-photos")).toHaveCount(0)
+        await expect(newPage.locator("#gallery-empty")).toContainText(
+          "В альбоме пока нет фотографий. Станьте первым автором.",
+        )
+        return
+      }
       if (pixels && scenario.startsWith("gallery-")) {
         const bounds = async (page: Page) => {
           const full = !scenario.includes("editor")

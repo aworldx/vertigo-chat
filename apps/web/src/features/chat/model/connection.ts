@@ -1,9 +1,11 @@
 import { newID } from "../../../shared/id"
 import type { MediaItem } from "../api/media"
 import { defaultPreferences, type Preferences } from "../api/preferences"
-import { decodeFrame, socketURL, type Frame, type Snapshot } from "../api/protocol"
+import { type Frame, type Snapshot } from "../api/protocol"
 import { readSession, clearSession, readOutbox, saveOutbox, type PendingMessage } from "./storage"
 import { transitionPendingDelivery } from "./delivery"
+import { addTimelineEntry, publishTimeline, setTimelineDelivery, type TimelineEntry } from "./timeline"
+import { SocketTransport } from "./socketTransport"
 export type RoomState = {
   karmikMood: "resting" | "happy" | "angry"
   status: "loading" | "ready" | "reconnecting" | "ended" | "duplicate"
@@ -13,6 +15,7 @@ export type RoomState = {
   error: string
   snapshot: Snapshot
   outbox: PendingMessage[]
+  timeline: TimelineEntry[]
 }
 export class ChatConnection {
   private state: RoomState = {
@@ -24,6 +27,7 @@ export class ChatConnection {
     error: "",
     snapshot: { messages: [], peers: [], preferences: defaultPreferences, admin: false, typing: [] },
     outbox: [],
+    timeline: [],
   }
   private karmikTimer: ReturnType<typeof setTimeout> | undefined
   petKarmik() {
@@ -37,7 +41,7 @@ export class ChatConnection {
     }, 8000)
   }
   private observeKarmik(snapshot: Snapshot) {
-    const previous = new Set(this.state.snapshot.messages.map((message) => message.id))
+    const previous = new Set(this.state.timeline.map((entry) => entry.message.id))
     for (const message of snapshot.messages) {
       if (message.kind !== "system" || previous.has(message.id)) continue
       if (message.body.startsWith("Кармик варит для ")) this.showKarmik("happy")
@@ -64,14 +68,19 @@ export class ChatConnection {
     return this.write({ type: "signal", target, body })
   }
   private listeners = new Set<() => void>()
-  private socket: WebSocket | null = null
-  private timer: ReturnType<typeof setTimeout> | undefined
   private stopped = false
   private lastTyping = 0
   private leaving = false
-  private token = ""
-  private retry = 0
   private release: (() => void) | undefined
+  private transport = new SocketTransport({
+    opened: () => undefined,
+    frame: (frame) => {
+      this.receive(frame)
+    },
+    closed: (code) => {
+      this.disconnected(code)
+    },
+  })
   subscribe = (listener: () => void) => {
     this.listeners.add(listener)
     return () => {
@@ -89,8 +98,12 @@ export class ChatConnection {
       this.update({ status: "ended" })
       return
     }
-    this.token = session.resume_token
-    this.update({ nickname: session.nickname, outbox: readOutbox() })
+    const outbox = readOutbox()
+    this.update({
+      nickname: session.nickname,
+      outbox,
+      timeline: outbox.map((item) => this.pendingTimelineEntry(item, session.nickname)),
+    })
     if ("locks" in navigator) {
       void navigator.locks
         .request(`vertigo-chat-${session.nickname}`, { ifAvailable: true }, async (lock) => {
@@ -104,13 +117,13 @@ export class ChatConnection {
           }
           await new Promise<void>((resolve) => {
             this.release = resolve
-            this.connect()
+            this.transport.start(session.resume_token)
           })
         })
         .catch(() => {
           if (!this.stopped) this.update({ status: "ended", error: "Не удалось открыть сессию вкладки." })
         })
-    } else this.connect()
+    } else this.transport.start(session.resume_token)
     this.listeningChannel = new BroadcastChannel("vertigo-listening")
     this.listeningChannel.onmessage = (event: MessageEvent<unknown>) => {
       const value = event.data
@@ -136,76 +149,59 @@ export class ChatConnection {
     for (const timer of this.acknowledgements.values()) clearTimeout(timer)
     this.acknowledgements.clear()
     this.listeningChannel?.close()
-    clearTimeout(this.timer)
-    this.socket?.close()
+    this.transport.stop()
     this.release?.()
     document.removeEventListener("visibilitychange", this.visibility)
     window.removeEventListener("offline", this.offline)
     window.removeEventListener("online", this.online)
   }
   private offline = () => {
-    this.socket?.close()
+    this.transport.disconnect()
+    const outbox = this.state.outbox.map((item) =>
+      item.state === "failed" || item.state === "blocked" || item.state === "confirmed"
+        ? item
+        : { ...item, state: "retrying" as const },
+    )
     this.update({
       status: "reconnecting",
-      outbox: this.state.outbox.map((item) =>
-        item.state === "failed" || item.state === "blocked" || item.state === "confirmed"
-          ? item
-          : { ...item, state: "retrying" },
+      outbox,
+      timeline: outbox.reduce(
+        (timeline, item) => setTimelineDelivery(timeline, item.client_id, item.state),
+        this.state.timeline,
       ),
     })
   }
   private online = () => {
-    clearTimeout(this.timer)
-    this.retry = 0
-    this.connect()
+    this.transport.reconnect()
   }
   private visibility = () => {
     this.write({ type: "heartbeat", visibility: document.visibilityState })
   }
   private write(command: object) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify(command))
-      return true
-    }
-    return false
+    return this.transport.send(command)
   }
-  private connect() {
+  private disconnected(code: number) {
     if (this.stopped) return
-    if (!navigator.onLine) return
-    const socket = new WebSocket(socketURL())
-    this.socket = socket
-    socket.onopen = () => {
-      this.write({ type: "resume", resume_token: this.token })
+    this.preferenceReply?.reject(new Error("Связь прервалась. Повтори сохранение после подключения."))
+    this.preferenceReply = undefined
+    if (code === 1008) {
+      clearSession()
+      this.update({ status: "ended", error: "Сессия завершена. Войди в чат снова." })
+      return
     }
-    socket.onmessage = (event: MessageEvent<unknown>) => {
-      if (typeof event.data !== "string") return
-      const frame = decodeFrame(event.data)
-      if (frame) this.receive(frame)
-    }
-    socket.onclose = (event) => {
-      if (this.stopped || this.socket !== socket) return
-      this.preferenceReply?.reject(new Error("Связь прервалась. Повтори сохранение после подключения."))
-      this.preferenceReply = undefined
-      if (event.code === 1008) {
-        clearSession()
-        this.update({ status: "ended", error: "Сессия завершена. Войди в чат снова." })
-        return
-      }
-      this.update({
-        status: "reconnecting",
-        outbox: this.state.outbox.map((item) =>
-          item.state === "failed" || item.state === "blocked" || item.state === "confirmed"
-            ? item
-            : { ...item, state: "retrying" },
-        ),
-      })
-      this.timer = setTimeout(
-        () => {
-          this.connect()
-        },
-        Math.min(1000 * 2 ** this.retry++, 10000),
-      )
-    }
+    const outbox = this.state.outbox.map((item) =>
+      item.state === "failed" || item.state === "blocked" || item.state === "confirmed"
+        ? item
+        : { ...item, state: "retrying" as const },
+    )
+    this.update({
+      status: "reconnecting",
+      outbox,
+      timeline: outbox.reduce(
+        (timeline, item) => setTimelineDelivery(timeline, item.client_id, item.state),
+        this.state.timeline,
+      ),
+    })
   }
   private receive(frame: Frame) {
     switch (frame.type) {
@@ -219,11 +215,11 @@ export class ChatConnection {
         break
       case "ready":
         if (this.listeningTrack) this.write({ type: "listening", body: this.listeningTrack, active: true })
-        this.retry = 0
         this.update({
           status: "ready",
           error: "",
-          snapshot: this.mergeSnapshot(frame.snapshot),
+          snapshot: frame.snapshot,
+          timeline: publishTimeline(this.state.timeline, frame.snapshot.messages),
           generation: frame.generation,
         })
         this.reconcile(frame.snapshot)
@@ -237,7 +233,10 @@ export class ChatConnection {
         break
       case "snapshot":
         this.observeKarmik(frame.snapshot)
-        this.update({ snapshot: this.mergeSnapshot(frame.snapshot) })
+        this.update({
+          snapshot: frame.snapshot,
+          timeline: publishTimeline(this.state.timeline, frame.snapshot.messages),
+        })
         this.reconcile(frame.snapshot)
         break
       case "private":
@@ -247,23 +246,25 @@ export class ChatConnection {
         break
       case "ack": {
         this.clearAcknowledgement(frame.message.client_id)
-        const outbox = this.state.outbox.filter((item) => item.client_id !== frame.message.client_id)
-        saveOutbox(outbox)
         if (frame.message.kind === "private") {
+          const outbox = this.state.outbox.filter((item) => item.client_id !== frame.message.client_id)
+          saveOutbox(outbox)
           this.update({
             outbox,
             ephemeral: [...this.state.ephemeral.filter((m) => m.id !== frame.message.id), frame.message].slice(-100),
           })
           break
         }
-        const confirmed = this.state.outbox.map((item) =>
-          item.client_id === frame.message.client_id
-            ? { ...item, state: transitionPendingDelivery(item.state, "acknowledge") }
-            : item,
-        )
-        saveOutbox(confirmed)
-        this.update({ outbox: confirmed })
-        this.reconcile(this.state.snapshot)
+        const outbox = this.state.outbox.filter((item) => item.client_id !== frame.message.client_id)
+        saveOutbox(outbox)
+        this.update({
+          outbox,
+          timeline: addTimelineEntry(this.state.timeline, {
+            key: `client:${frame.message.client_id}`,
+            message: frame.message,
+            delivery: "confirmed",
+          }),
+        })
         break
       }
       case "error": {
@@ -284,6 +285,11 @@ export class ChatConnection {
         saveOutbox(outbox)
         this.update({
           outbox,
+          timeline: setTimelineDelivery(
+            this.state.timeline,
+            frame.client_id,
+            frame.code === "rate_limited" ? "blocked" : "failed",
+          ),
           error:
             frame.code === "rate_limited"
               ? "Заблокировано лимитом — сообщение видно только вам"
@@ -304,7 +310,14 @@ export class ChatConnection {
     this.acknowledgements.delete(id)
   }
   private transmit(item: PendingMessage) {
-    if (!this.write({ type: "send", ...item })) return
+    if (item.state === "blocked" || item.state === "failed" || item.state === "confirmed") return
+    const outbox = this.state.outbox.map((pending) =>
+      pending.client_id === item.client_id ? { ...pending, state: "sending" as const } : pending,
+    )
+    saveOutbox(outbox)
+    this.update({ outbox, timeline: setTimelineDelivery(this.state.timeline, item.client_id, "sending") })
+    const sending = outbox.find((pending) => pending.client_id === item.client_id)
+    if (!sending || !this.write({ type: "send", ...sending })) return
     this.clearAcknowledgement(item.client_id)
     this.acknowledgements.set(
       item.client_id,
@@ -316,28 +329,47 @@ export class ChatConnection {
             : pending,
         )
         saveOutbox(outbox)
-        this.update({ outbox })
+        this.update({ outbox, timeline: setTimelineDelivery(this.state.timeline, item.client_id, "retrying") })
       }, 10000),
     )
   }
   private reconcile(snapshot: Snapshot) {
+    const waiting = new Set(this.state.outbox.map((item) => item.client_id))
     const ids = new Set(
-      snapshot.messages.filter((message) => message.author === this.state.nickname).map((message) => message.client_id),
+      snapshot.messages
+        .filter((message) => message.author === this.state.nickname && waiting.has(message.client_id))
+        .map((message) => message.client_id),
     )
     for (const id of ids) this.clearAcknowledgement(id)
     const outbox = this.state.outbox.filter((item) => !ids.has(item.client_id))
-    if (outbox.length !== this.state.outbox.length) {
+    const timeline = [...ids].reduce(
+      (entries, clientID) => setTimelineDelivery(entries, clientID, "published"),
+      this.state.timeline,
+    )
+    if (ids.size > 0) {
       saveOutbox(outbox)
-      this.update({ outbox })
+      this.update({ outbox, timeline })
     }
   }
-
-  private mergeSnapshot(snapshot: Snapshot): Snapshot {
-    const messages = new Map(this.state.snapshot.messages.map((message) => [message.id, message]))
-    for (const message of snapshot.messages) messages.set(message.id, message)
+  private pendingTimelineEntry(item: PendingMessage, nickname: string): TimelineEntry {
+    const preferences = this.state.snapshot.preferences
     return {
-      ...snapshot,
-      messages: [...messages.values()].sort((left, right) => Date.parse(left.sent_at) - Date.parse(right.sent_at)),
+      key: `client:${item.client_id}`,
+      delivery: item.state,
+      message: {
+        id: 0,
+        client_id: item.client_id,
+        kind: "text",
+        author: nickname,
+        body: item.body,
+        sent_at: item.sent_at,
+        recipient: "",
+        reactions: {},
+        reacted: [],
+        appearance: preferences.appearance,
+        font_id: preferences.font_id,
+        font_style: preferences.font_style,
+      },
     }
   }
   send(body: string) {
@@ -356,7 +388,11 @@ export class ChatConnection {
       this.update({ error: "Разреши хранение данных вкладки, чтобы отправить сообщение." })
       return false
     }
-    this.update({ outbox, error: "" })
+    this.update({
+      outbox,
+      timeline: addTimelineEntry(this.state.timeline, this.pendingTimelineEntry(item, this.state.nickname)),
+      error: "",
+    })
     if (this.state.status === "ready") this.transmit(item)
     return true
   }
@@ -365,7 +401,7 @@ export class ChatConnection {
       item.client_id === clientID ? { ...item, state: "retrying" as const } : item,
     )
     saveOutbox(outbox)
-    this.update({ outbox, error: "" })
+    this.update({ outbox, timeline: setTimelineDelivery(this.state.timeline, clientID, "sending"), error: "" })
     const item = outbox.find((item) => item.client_id === clientID)
     if (item && this.state.status === "ready") this.transmit(item)
   }
@@ -377,7 +413,11 @@ export class ChatConnection {
       this.update({ error: "Не удалось изменить очередь. Разреши хранение данных вкладки." })
       return
     }
-    this.update({ outbox, error: "" })
+    this.update({
+      outbox,
+      timeline: this.state.timeline.filter((entry) => entry.message.client_id !== clientID),
+      error: "",
+    })
   }
   sendMedia(media: MediaItem) {
     this.write({ type: "media", client_id: newID(), media })
@@ -394,13 +434,8 @@ export class ChatConnection {
     this.write({ type: "typing", active })
   }
   replaceCredential(token: string) {
-    const old = this.socket
-    this.socket = null
-    old?.close()
-    clearTimeout(this.timer)
-    this.token = token
     this.update({ status: "reconnecting" })
-    this.connect()
+    this.transport.replaceToken(token)
   }
   savePreferences(preferences: Preferences): Promise<Preferences> {
     if (this.state.status !== "ready" || this.preferenceReply)

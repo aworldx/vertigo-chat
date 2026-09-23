@@ -40,6 +40,10 @@ npm --prefix apps/web test
 script/check-infrastructure
 ```
 
+`script/check-go` использует установленный Go или закреплённый Docker-образ
+Go, поэтому локальная проверка не требует отдельной установки SDK при наличии
+Docker.
+
 Пока Phoenix остаётся в репозитории для legacy-сравнений, обязательный общий
 локальный gate из [AGENTS.md](AGENTS.md) также запускается командой
 `cd apps/phoenix && mix precommit`.

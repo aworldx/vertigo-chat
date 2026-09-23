@@ -14,7 +14,7 @@ async function enter(page: Page, nickname: string, password = "") {
   await page.locator("#entrance-nickname").fill(nickname)
   await page.locator("#entrance-password").fill(password)
   await page.locator("#enter-chat").click()
-  await expect(page.locator("#chat-connection-status")).toContainText("В чате")
+  await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
 }
 try {
   await verifyLandingFlow(browser, origin)
@@ -77,8 +77,11 @@ try {
   await first.locator("#message-body").fill("/кто")
   await first.locator("#send-message").click()
   await expect(first.locator("#messages")).toContainText("Сейчас онлайн")
+  await first.locator('[data-command-result="who"] button', { hasText: "browser-guest-two" }).click()
+  await expect(first.locator('[data-command-result="who"]')).toHaveCount(0)
+  await expect(first.locator("#message-body")).toHaveValue("browser-guest-two, ")
   await first.reload()
-  await expect(first.locator("#chat-connection-status")).toContainText("В чате")
+  await expect(first.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
   await expect(first.locator("#messages")).toContainText("Привет из первой вкладки")
   await expect(first.locator('[data-message-kind="private"]')).toHaveCount(0)
   await first.locator("#toggle-settings").click()
@@ -93,7 +96,7 @@ try {
   }, copied)
   await duplicate.goto(`${origin}/chat`)
   await expect(duplicate.locator("#chat-entrance-screen")).toContainText("уже открыт в другой вкладке")
-  await expect(first.locator("#chat-connection-status")).toContainText("В чате")
+  await expect(first.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
   await duplicate.close()
   await context.setOffline(true)
   await expect(first.locator("#chat-connection-status")).toContainText("Восстанавливаем", { timeout: 15000 })
@@ -101,9 +104,14 @@ try {
   await expect(first.locator("#current-chatlan-online")).toHaveCount(0)
   await first.locator("#message-body").fill("Сообщение после обрыва")
   await first.locator("#send-message").click()
-  await expect(first.locator('[data-delivery-state="retrying"]')).toContainText("Сообщение после обрыва")
+  await expect(
+    first
+      .locator("#messages > [data-client-id]")
+      .filter({ hasText: "Сообщение после обрыва" })
+      .locator('[data-delivery-state="retrying"]'),
+  ).toBeVisible()
   await context.setOffline(false)
-  await expect(first.locator("#chat-connection-status")).toContainText("В чате", { timeout: 15000 })
+  await expect(first.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true", { timeout: 15000 })
   await expect(
     second.locator('#messages [data-message-kind="text"]').filter({ hasText: "Сообщение после обрыва" }),
   ).toHaveCount(1)
@@ -143,28 +151,20 @@ try {
   await enter(deliveryPage, "delivery-guest")
   await deliveryPage.locator("#message-body").fill("Повтор после отказа")
   await deliveryPage.locator("#send-message").click()
-  const failed = deliveryPage.locator('[data-delivery-state="failed"]')
-  await expect(failed).toContainText("Не отправлено")
-  await failed.getByRole("button", { name: "Повторить" }).click()
-  await expect(
-    deliveryPage.locator('#messages [data-message-kind="text"]').filter({ hasText: "Повтор после отказа" }),
-  ).toHaveCount(1)
-  await expect(
-    deliveryPage
-      .locator("#messages > [data-client-id]")
-      .filter({ hasText: "Повтор после отказа" })
-      .locator("[data-delivery-state]"),
-  ).toHaveAttribute("data-delivery-state", "published")
+  const retried = deliveryPage.locator("#messages > [data-client-id]").filter({ hasText: "Повтор после отказа" })
+  await expect(retried.locator('[data-delivery-state="failed"]')).toHaveCount(1)
+  await retried.getByRole("button", { name: "Повторить" }).click()
+  await expect(retried).toHaveCount(1)
+  await expect(retried.locator("[data-delivery-state]")).toHaveAttribute("data-delivery-state", "published")
   rejected = false
   await deliveryPage.locator("#message-body").fill("Удаление из очереди")
   await deliveryPage.locator("#send-message").click()
-  await expect(failed).toContainText("Удаление из очереди")
-  await failed.getByRole("button", { name: "Удалить" }).click()
-  await expect(
-    deliveryPage.locator("#messages > [data-client-id]").filter({ hasText: "Удаление из очереди" }),
-  ).toHaveCount(0)
+  const removable = deliveryPage.locator("#messages > [data-client-id]").filter({ hasText: "Удаление из очереди" })
+  await expect(removable.locator('[data-delivery-state="failed"]')).toHaveCount(1)
+  await removable.getByRole("button", { name: "Удалить" }).click()
+  await expect(removable).toHaveCount(0)
   await deliveryPage.reload()
-  await expect(deliveryPage.locator("#chat-connection-status")).toContainText("В чате")
+  await expect(deliveryPage.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
   await expect(deliveryPage.locator("#messages")).not.toContainText("Удаление из очереди")
   await deliveryPage.locator("#leave-chat").click()
   await expect(deliveryPage).toHaveURL(`${origin}/`)
@@ -177,7 +177,8 @@ try {
   await page.locator("#registration-nickname").fill("browser-registered")
   await page.locator("#registration-password").fill("secret123")
   await page.locator("#register-user").click()
-  await expect(page.locator("#chat-connection-status")).toContainText("browser-registered")
+  await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
+  await expect(page.locator("#online-list")).toContainText("browser-registered")
   await expect(page.locator('[id^="profile-link-"]')).toHaveCount(1)
   {
     const recipientContext = await browser.newContext()
@@ -316,7 +317,7 @@ try {
   await account.locator("#site-account-logout-submit").click()
   await expect(account.locator("#site-account-nickname")).toHaveCount(0)
   await page.reload()
-  await expect(page.locator("#chat-connection-status")).toContainText("В чате")
+  await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
   await page.locator("#leave-chat").click()
   await expect(page).toHaveURL(`${origin}/`)
   await registered.close()
