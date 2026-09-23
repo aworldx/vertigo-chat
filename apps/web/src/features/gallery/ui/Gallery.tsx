@@ -70,29 +70,30 @@ export function Gallery({ nickname, csrf, login }: { nickname: string; csrf: str
             </button>
           </p>
         )}
-        <div id="gallery-photos" className="mt-8 columns-1 gap-5 sm:columns-2 lg:columns-3 xl:columns-4">
-          {data?.data.length === 0 && (
-            <div
-              id="gallery-empty"
-              className="rounded-2xl border border-dashed border-zinc-700 px-6 py-20 text-center text-zinc-400"
-            >
-              В альбоме пока нет фотографий. Станьте первым автором.
-            </div>
-          )}
-          {data?.data.map((p) => (
-            <PhotoCard
-              key={p.id}
-              photo={p}
-              csrf={csrf}
-              signedIn={!!nickname}
-              onOpen={setSelected}
-              onChanged={(message) => {
-                setNotice(message)
-                refresh()
-              }}
-            />
-          ))}
-        </div>
+        {data?.data.length === 0 ? (
+          <div
+            id="gallery-empty"
+            className="mt-8 rounded-2xl border border-dashed border-zinc-700 px-6 py-20 text-center text-zinc-400"
+          >
+            В альбоме пока нет фотографий. Станьте первым автором.
+          </div>
+        ) : (
+          <div id="gallery-photos" className="mt-8 columns-1 gap-5 sm:columns-2 lg:columns-3 xl:columns-4">
+            {data?.data.map((p) => (
+              <PhotoCard
+                key={p.id}
+                photo={p}
+                csrf={csrf}
+                signedIn={!!nickname}
+                onOpen={setSelected}
+                onChanged={(message) => {
+                  setNotice(message)
+                  refresh()
+                }}
+              />
+            ))}
+          </div>
+        )}
       </main>
       <Notice
         message={notice}

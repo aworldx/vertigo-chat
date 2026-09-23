@@ -32,11 +32,3 @@ groups:
           severity: warning
         annotations:
           summary: Chat is returning 5xx responses
-
-      - alert: ChatReconnectGrowth
-        expr: rate(chat_sessions_reconnecting_total[15m]) > 0.1
-        for: 15m
-        labels:
-          severity: warning
-        annotations:
-          summary: Chat reconnect rate is unusually high

@@ -149,13 +149,20 @@ try {
   await expect(
     deliveryPage.locator('#messages [data-message-kind="text"]').filter({ hasText: "Повтор после отказа" }),
   ).toHaveCount(1)
-  await expect(deliveryPage.locator("#pending-messages")).toBeEmpty()
+  await expect(
+    deliveryPage
+      .locator("#messages > [data-client-id]")
+      .filter({ hasText: "Повтор после отказа" })
+      .locator("[data-delivery-state]"),
+  ).toHaveAttribute("data-delivery-state", "published")
   rejected = false
   await deliveryPage.locator("#message-body").fill("Удаление из очереди")
   await deliveryPage.locator("#send-message").click()
   await expect(failed).toContainText("Удаление из очереди")
   await failed.getByRole("button", { name: "Удалить" }).click()
-  await expect(deliveryPage.locator("#pending-messages")).toBeEmpty()
+  await expect(
+    deliveryPage.locator("#messages > [data-client-id]").filter({ hasText: "Удаление из очереди" }),
+  ).toHaveCount(0)
   await deliveryPage.reload()
   await expect(deliveryPage.locator("#chat-connection-status")).toContainText("В чате")
   await expect(deliveryPage.locator("#messages")).not.toContainText("Удаление из очереди")

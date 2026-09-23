@@ -30,9 +30,9 @@ check_module() {
   "$go_command" test -race ./...
   build_artifact="$(mktemp "${TMPDIR:-/tmp}/chat-go-service.XXXXXX")"
   if [ "$module_path" = "apps/api" ]; then
-    "$go_command" build -o "$build_artifact" ./cmd/api
+    "$go_command" build -buildvcs=false -o "$build_artifact" ./cmd/api
   else
-    "$go_command" build -o "$build_artifact" .
+    "$go_command" build -buildvcs=false -o "$build_artifact" .
   fi
   rm -f "$build_artifact"
 }

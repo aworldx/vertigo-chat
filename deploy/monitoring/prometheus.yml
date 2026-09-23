@@ -12,7 +12,7 @@ scrape_configs:
       type: Bearer
       credentials_file: /run/secrets/chat_metrics_token
     static_configs:
-      - targets: ["app:4000"]
+      - targets: ["api:4020"]
 
   - job_name: vps
     static_configs:

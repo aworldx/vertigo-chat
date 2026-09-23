@@ -10,9 +10,9 @@ image_repository="${CHAT_IMAGE:-registry.gitlab.com/aworldx1/vertigo-chat}"
 deploy_target="${1:-all}"
 
 case "$deploy_target" in
-  all|app|admin|youtube-worker) ;;
+  all|api|youtube-worker) ;;
   *)
-    echo "Usage: $0 [all|app|admin|youtube-worker]" >&2
+    echo "Usage: $0 [all|api|youtube-worker]" >&2
     exit 2
     ;;
 esac
@@ -67,14 +67,8 @@ else
   echo "No GitLab Registry token configured; attempting an anonymous image pull."
 fi
 
-mkdir -p logs
-chown 65534:root logs
-chmod 0770 logs
-
-export CHAT_APP_IMAGE="$image_repository"
-export CHAT_APP_IMAGE_TAG="app-${expected_revision}"
-export CHAT_ADMIN_IMAGE="$image_repository"
-export CHAT_ADMIN_IMAGE_TAG="admin-${expected_revision}"
+export CHAT_API_IMAGE="$image_repository"
+export CHAT_API_IMAGE_TAG="api-${expected_revision}"
 export CHAT_YOUTUBE_WORKER_IMAGE="$image_repository"
 export CHAT_YOUTUBE_WORKER_IMAGE_TAG="youtube-worker-${expected_revision}"
 
@@ -108,26 +102,20 @@ wait_for_health() {
 
 case "$deploy_target" in
   all)
-    compose pull migrate app admin youtube-cache-init youtube-worker caddy
+    compose pull migrate api youtube-cache-init youtube-worker caddy
     compose run --rm --no-deps migrate
     compose run --rm --no-deps youtube-cache-init
-    compose up -d --no-build --force-recreate --no-deps app admin youtube-worker caddy
-    wait_for_health app
-    wait_for_health admin
+    compose up -d --no-build --force-recreate --no-deps api youtube-worker caddy
+    wait_for_health api
     wait_for_health youtube-worker
     curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
     ;;
-  app)
-    compose pull migrate app
+  api)
+    compose pull migrate api
     compose run --rm --no-deps migrate
-    compose up -d --no-build --force-recreate --no-deps app
-    wait_for_health app
+    compose up -d --no-build --force-recreate --no-deps api
+    wait_for_health api
     curl --fail --silent --show-error http://127.0.0.1/ >/dev/null
-    ;;
-  admin)
-    compose pull admin
-    compose up -d --no-build --force-recreate --no-deps admin
-    wait_for_health admin
     ;;
   youtube-worker)
     compose pull youtube-cache-init youtube-worker

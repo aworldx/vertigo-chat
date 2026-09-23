@@ -9,20 +9,11 @@
 	handle_path /monitoring/* {
 		reverse_proxy grafana:3000
 	}
-	@admin_assets path /admin-assets/*
-	handle @admin_assets {
-		uri replace /admin-assets/ /assets/
-		reverse_proxy admin:4000
-	}
-	@admin path /admin /admin/*
-	handle @admin {
-		reverse_proxy admin:4000
-	}
 	@youtube path /youtube-proxy/*
 	handle @youtube {
 		reverse_proxy youtube-worker:4001
 	}
 	handle {
-		reverse_proxy app:4000
+		reverse_proxy api:4020
 	}
 }

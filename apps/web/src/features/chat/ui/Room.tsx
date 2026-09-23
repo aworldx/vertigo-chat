@@ -83,16 +83,30 @@ export function Room({
               id="dialogue-frame"
               className="relative flex min-h-0 flex-col border-b border-zinc-800 bg-zinc-950 md:border-b-0 md:border-r"
             >
-              <p
-                id="chat-connection-status"
-                role="status"
-                className={state.status === "ready" ? "sr-only" : "px-4 py-2 text-xs text-zinc-400"}
-              >
-                {state.nickname} · {state.status === "ready" ? "В чате" : "Восстанавливаем связь…"}
-              </p>
+              {state.status === "reconnecting" && (
+                <div
+                  id="chat-connection-status"
+                  role="status"
+                  aria-live="polite"
+                  className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-zinc-950/45 p-4"
+                >
+                  <p className="rounded-lg border border-amber-300/50 bg-zinc-950/95 px-5 py-3 text-sm text-amber-100 shadow-xl">
+                    Восстанавливаем связь…
+                  </p>
+                </div>
+              )}
               <MessageFeed
                 messages={command.visible}
                 frame={state.snapshot.preferences.appearance.message_frame}
+                appearance={state.snapshot.preferences.appearance}
+                fontID={state.snapshot.preferences.font_id}
+                fontStyle={state.snapshot.preferences.font_style}
+                onRetry={(id) => {
+                  connection.retryMessage(id)
+                }}
+                onCancel={(id) => {
+                  connection.cancelMessage(id)
+                }}
                 emojis={emoji.emojis}
                 peers={state.snapshot.peers}
                 outbox={state.outbox}
@@ -108,12 +122,6 @@ export function Room({
                       }
                     : undefined
                 }
-                onRetry={(id) => {
-                  connection.retryMessage(id)
-                }}
-                onCancel={(id) => {
-                  connection.cancelMessage(id)
-                }}
               >
                 <MediaResults
                   frame={state.snapshot.preferences.appearance.message_frame}
@@ -121,6 +129,7 @@ export function Room({
                   onClose={search.close}
                   onPage={search.page}
                   onSend={(item) => {
+                    search.close()
                     connection.sendMedia(item)
                   }}
                 />

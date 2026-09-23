@@ -22,6 +22,7 @@ import (
 	emojis "chat/api/internal/emojis/application"
 	entrancehttp "chat/api/internal/entrance/adapters/http"
 	entranceapp "chat/api/internal/entrance/application"
+	"chat/api/internal/observability"
 	profileshttp "chat/api/internal/profiles/adapters/http"
 	"chat/api/internal/profiles/adapters/postgres"
 	"chat/api/internal/profiles/application"
@@ -46,6 +47,8 @@ func main() {
 		os.Exit(1)
 	}
 	mux := http.NewServeMux()
+	metrics := observability.NewMetrics()
+	metrics.Register(mux, os.Getenv("METRICS_TOKEN"))
 	if directory := os.Getenv("WEB_ASSETS_DIR"); directory != "" {
 		if err := webdelivery.Register(mux, os.DirFS(directory), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")); err != nil {
 			slog.Error("load React build", "error", err)
@@ -112,7 +115,7 @@ func main() {
 	}).WithUpgrade(upgradeChatAccount(pool)).Register(mux)
 	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).WithExperience(roomExperience(pool)).Register(mux)
 	go reapChatSessions(ctx, chatSessions)
-	server := &http.Server{Addr: env("API_ADDR", "127.0.0.1:4020"), Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: env("API_ADDR", "127.0.0.1:4020"), Handler: metrics.Wrap(mux), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)

@@ -1,4 +1,5 @@
 import { record, type Entrance } from "../api/entrance"
+import { isPendingDeliveryState, type PendingDeliveryState } from "./delivery"
 const key = "vertigo.go-chat"
 export function readSession(): Entrance | null {
   try {
@@ -25,23 +26,33 @@ export function clearSession() {
 export type PendingMessage = {
   client_id: string
   body: string
-  state: "sending" | "retrying" | "confirmed" | "blocked" | "failed"
+  sent_at: string
+  state: PendingDeliveryState
 }
 export function readOutbox(): PendingMessage[] {
   try {
     const value: unknown = JSON.parse(sessionStorage.getItem(`${key}.outbox`) ?? "[]")
     return Array.isArray(value)
-      ? value.filter(
-          (item: unknown): item is PendingMessage =>
-            record(item) &&
-            typeof item.client_id === "string" &&
-            typeof item.body === "string" &&
-            (item.state === "sending" ||
-              item.state === "retrying" ||
-              item.state === "failed" ||
-              item.state === "confirmed" ||
-              item.state === "blocked"),
-        )
+      ? value.flatMap((item: unknown): PendingMessage[] => {
+          if (
+            !record(item) ||
+            typeof item.client_id !== "string" ||
+            typeof item.body !== "string" ||
+            !isPendingDeliveryState(item.state)
+          )
+            return []
+          return [
+            {
+              client_id: item.client_id,
+              body: item.body,
+              sent_at:
+                typeof item.sent_at === "string" && Number.isFinite(Date.parse(item.sent_at))
+                  ? item.sent_at
+                  : new Date().toISOString(),
+              state: item.state,
+            },
+          ]
+        })
       : []
   } catch {
     return []

@@ -3,6 +3,7 @@ import type { MediaItem } from "../api/media"
 import { defaultPreferences, type Preferences } from "../api/preferences"
 import { decodeFrame, socketURL, type Frame, type Snapshot } from "../api/protocol"
 import { readSession, clearSession, readOutbox, saveOutbox, type PendingMessage } from "./storage"
+import { transitionPendingDelivery } from "./delivery"
 export type RoomState = {
   karmikMood: "resting" | "happy" | "angry"
   status: "loading" | "ready" | "reconnecting" | "ended" | "duplicate"
@@ -219,7 +220,12 @@ export class ChatConnection {
       case "ready":
         if (this.listeningTrack) this.write({ type: "listening", body: this.listeningTrack, active: true })
         this.retry = 0
-        this.update({ status: "ready", error: "", snapshot: frame.snapshot, generation: frame.generation })
+        this.update({
+          status: "ready",
+          error: "",
+          snapshot: this.mergeSnapshot(frame.snapshot),
+          generation: frame.generation,
+        })
         this.reconcile(frame.snapshot)
         this.visibility()
         if (this.leaving) {
@@ -231,7 +237,7 @@ export class ChatConnection {
         break
       case "snapshot":
         this.observeKarmik(frame.snapshot)
-        this.update({ snapshot: frame.snapshot })
+        this.update({ snapshot: this.mergeSnapshot(frame.snapshot) })
         this.reconcile(frame.snapshot)
         break
       case "private":
@@ -251,7 +257,9 @@ export class ChatConnection {
           break
         }
         const confirmed = this.state.outbox.map((item) =>
-          item.client_id === frame.message.client_id ? { ...item, state: "confirmed" as const } : item,
+          item.client_id === frame.message.client_id
+            ? { ...item, state: transitionPendingDelivery(item.state, "acknowledge") }
+            : item,
         )
         saveOutbox(confirmed)
         this.update({ outbox: confirmed })
@@ -267,7 +275,10 @@ export class ChatConnection {
         }
         const outbox = this.state.outbox.map((item) =>
           item.client_id === frame.client_id
-            ? { ...item, state: frame.code === "rate_limited" ? ("blocked" as const) : ("failed" as const) }
+            ? {
+                ...item,
+                state: transitionPendingDelivery(item.state, frame.code === "rate_limited" ? "block" : "fail"),
+              }
             : item,
         )
         saveOutbox(outbox)
@@ -320,12 +331,22 @@ export class ChatConnection {
       this.update({ outbox })
     }
   }
+
+  private mergeSnapshot(snapshot: Snapshot): Snapshot {
+    const messages = new Map(this.state.snapshot.messages.map((message) => [message.id, message]))
+    for (const message of snapshot.messages) messages.set(message.id, message)
+    return {
+      ...snapshot,
+      messages: [...messages.values()].sort((left, right) => Date.parse(left.sent_at) - Date.parse(right.sent_at)),
+    }
+  }
   send(body: string) {
     body = body.trim()
     if (!body) return false
     const item: PendingMessage = {
       client_id: newID(),
       body,
+      sent_at: new Date().toISOString(),
       state: this.state.status === "ready" ? "sending" : "retrying",
     }
     const outbox = [...this.state.outbox, item].slice(-50)

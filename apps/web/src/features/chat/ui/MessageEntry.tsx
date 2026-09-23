@@ -5,6 +5,58 @@ import { Icon } from "../../../shared/ui/Icon"
 import type { Emoji } from "../api/emojis"
 import type { Peer } from "../api/protocol"
 import type { Message } from "../api/protocol"
+import type { DeliveryState } from "../model/delivery"
+
+const deliveryLabels: Record<DeliveryState, string> = {
+  sending: "Сообщение отправляется",
+  retrying: "Сообщение ждёт восстановления связи",
+  confirmed: "Принято сервером — ожидает публикации в истории",
+  blocked: "Заблокировано лимитом",
+  failed: "Не отправлено",
+  published: "Опубликовано в истории",
+}
+
+function DeliveryStatus({
+  state,
+  id,
+  onRetry,
+  onCancel,
+}: {
+  state: DeliveryState
+  id: string
+  onRetry?: (() => void) | undefined
+  onCancel?: (() => void) | undefined
+}) {
+  const marker =
+    state === "failed" || state === "blocked" ? "!" : state === "retrying" ? "↻" : state === "sending" ? "✓" : "✓✓"
+  const color =
+    state === "failed" || state === "blocked"
+      ? "text-red-400"
+      : state === "published"
+        ? "text-sky-400"
+        : "text-zinc-500"
+  return (
+    <span
+      id={`message-delivery-${id}`}
+      data-delivery-state={state}
+      className={`absolute right-2 top-1 text-[11px] font-bold leading-none ${color}`}
+      aria-label={deliveryLabels[state]}
+    >
+      <span aria-hidden="true">{marker}</span>
+      <span className="sr-only">{deliveryLabels[state]}</span>
+      {state === "failed" && (
+        <>
+          <button type="button" onClick={onRetry} className="ml-1 font-semibold text-amber-200 hover:underline">
+            Повторить
+          </button>
+          <button type="button" onClick={onCancel} className="ml-1 text-zinc-400 hover:text-zinc-200 hover:underline">
+            Удалить
+          </button>
+        </>
+      )}
+    </span>
+  )
+}
 
 function MessageBody({ body, emojis }: { body: string; emojis: Emoji[] }) {
   const codes = new Map(emojis.map((e) => [e.code, e]))
@@ -40,9 +92,17 @@ export function MessageEntry({
   peers = [],
   onReaction,
   onDelete,
+  delivery,
+  domID,
+  onRetry,
+  onCancel,
 }: {
   onReaction?: ((id: number, emoji: string, active: boolean) => void) | undefined
   onDelete?: ((id: number) => void) | undefined
+  delivery?: DeliveryState | undefined
+  domID?: string | undefined
+  onRetry?: (() => void) | undefined
+  onCancel?: (() => void) | undefined
   frame?: boolean
   emojis?: Emoji[]
   peers?: Peer[]
@@ -56,10 +116,10 @@ export function MessageEntry({
   const mediaLayout = message.kind === "music" || message.kind === "youtube"
   const system = message.kind === "system"
   if (privateMessage) frame = true
-  const published = message.kind === "text" && message.author === nickname && message.client_id !== ""
+  const entryID = domID ?? String(message.id)
   return (
     <div
-      id={`message-${String(message.id)}`}
+      id={`message-${entryID}`}
       data-message-id={message.id}
       data-client-id={message.client_id}
       data-message-kind={message.kind}
@@ -102,7 +162,7 @@ export function MessageEntry({
       ) : (
         <>
           <button
-            id={`message-author-${String(message.id)}`}
+            id={`message-author-${entryID}`}
             type="button"
             onDoubleClick={() => {
               onAddress(`^${message.author}`)
@@ -117,18 +177,10 @@ export function MessageEntry({
           </button>
           <MessageTime
             message={message}
-            className={`absolute top-1 text-[10px] text-zinc-500 ${published ? "right-8" : "right-2"}`}
+            id={entryID}
+            className={`absolute top-1 text-[10px] text-zinc-500 ${delivery ? "right-8" : "right-2"}`}
           />
-          {published && (
-            <span
-              id={`message-delivery-${String(message.id)}`}
-              data-delivery-state="published"
-              className="absolute right-2 top-1 text-[11px] font-bold leading-none text-sky-400"
-              aria-label="Опубликовано в истории"
-            >
-              <span aria-hidden="true">✓✓</span>
-            </span>
-          )}
+          {delivery && <DeliveryStatus state={delivery} id={entryID} onRetry={onRetry} onCancel={onCancel} />}
           {privateMessage && (
             <p className="mb-0.5 pr-12 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
               {message.recipient === nickname ? "Лично вам" : `Лично для ${message.recipient}`}
@@ -157,7 +209,11 @@ export function MessageEntry({
                 aria-pressed={message.reacted.includes(emoji)}
                 disabled={message.author === nickname}
                 onClick={() => onReaction?.(message.id, emoji, !message.reacted.includes(emoji))}
-                className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs aria-pressed:border-amber-300"
+                className={`chat-reaction-entry inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] shadow-sm transition ${
+                  message.reacted.includes(emoji)
+                    ? "border-amber-300/70 bg-amber-950 text-amber-100"
+                    : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500"
+                }`}
               >
                 {emoji} {count}
               </button>

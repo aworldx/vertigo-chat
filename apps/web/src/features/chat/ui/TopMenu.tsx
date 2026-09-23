@@ -4,7 +4,6 @@ const links = [
   ["Анкеты", "/profiles", "vertigo-profiles"],
   ["Библиотека", "/library", "vertigo-library"],
   ["Фотоальбом", "/gallery", "vertigo-gallery"],
-  ["Игры", "/games", "vertigo-games"],
   ["Кто был", "/visits", "vertigo-visits"],
 ] as const
 export function TopMenu({
@@ -48,48 +47,6 @@ export function TopMenu({
         >
           Фотоальбом
         </a>
-        <details id="games-main-menu" className="relative hidden lg:block">
-          <summary className="cursor-pointer whitespace-nowrap transition hover:text-amber-300 [&::-webkit-details-marker]:hidden">
-            Игры
-          </summary>
-          <div className="absolute right-0 top-7 z-50 w-44 rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-2xl shadow-black/50">
-            <a
-              href="/games"
-              target="vertigo-games"
-              className="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
-            >
-              Все игры
-            </a>
-            <a
-              href="/checkers"
-              target="vertigo-checkers"
-              className="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
-            >
-              Шашки
-            </a>
-            <a
-              href="/games/battleship"
-              target="vertigo-battleship"
-              className="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
-            >
-              Морской бой
-            </a>
-            <a
-              href="/games/durak"
-              target="vertigo-durak"
-              className="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
-            >
-              Дурак
-            </a>
-            <a
-              href="/games/balda"
-              target="vertigo-balda"
-              className="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
-            >
-              Балда
-            </a>
-          </div>
-        </details>
         <a
           href="/visits"
           target="vertigo-visits"

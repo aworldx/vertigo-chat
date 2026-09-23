@@ -55,6 +55,24 @@ legacy-ветке и не является fallback или proxy целевой 
 `6519926`. Следующий этап — общий cutover Docker/Compose/CI,
 эксплуатационные команды и регресс всего целевого стека. Игры и форум исключены.
 
+### Продолжение: целевой Docker/Compose/CI (в работе, 2026-09-23)
+
+Целевой Dockerfile теперь собирает один образ `api`: Go `net/http` на `:4020`,
+Go-migrator и React build. Compose запускает `migrate`, `api` и отдельный
+`youtube-worker`; Caddy завершает TLS и направляет application-маршруты в `api`.
+Phoenix `app`, `admin`, `profiles-api` и opt-in proxy file удалены из целевой
+конфигурации. Prometheus скрейпит защищённый Go endpoint `/internal/metrics`;
+CI проверяет Go, React и инфраструктуру и публикует только `api` и
+`youtube-worker`.
+
+Проверены `docker compose ... config`, Docker targets `api` и `quality`,
+контейнерные Go/React checks и `script/check-infrastructure`. Обязательный
+`mix precommit` запущен для legacy gate; его длительные browser/ExUnit шаги
+нужно отдельно подтвердить полным прогоном. Остаётся общий regression с
+существующей схемой БД и проверка S3 data-migrator до production cutover.
+Phoenix используется только отдельным legacy checkout для сравнения, а
+production не затрагивается.
+
 
 ### Продолжение: история визитов (2026-09-23)
 
@@ -302,7 +320,7 @@ Go vet/lint/race, TypeScript/ESLint/Prettier и контракты) и повт�
 | React-анкеты | Строгий TypeScript; Go отдаёт standalone React, каталог, диалог, редактор и фото; old/new проверены на трёх viewport | Ручное принятие нового standalone delivery; LiveView остаётся только legacy |
 | API анкет | Go public read/write API; текущий пользователь определяется account-cookie и CSRF, media выдаётся Go | Удалить исторический Phoenix proxy код при завершении общего cutover |
 | Accounts и chat-session | React login/register/logout и главная подключены к Go; guest/registered entrance, базовый WebSocket/Presence, PBKDF2, cookie/CSRF, editor/upload и выход проверены | Полный React chat UI и его визуальное сравнение; настройки аккаунта и административные сценарии |
-| Архитектура | Standalone web build в `apps/web/src`, Go web delivery, Docker target `profiles-api` содержит React; quality gates работают | Полностью исключить Phoenix из Docker/Compose/CI после переноса остальных контекстов |
+| Архитектура | Standalone web build в `apps/web/src`, Go web delivery, Docker target `api` содержит React; Compose и CI используют Go target | Прогнать целевой Docker/Compose/CI и общий регресс; Phoenix остаётся только legacy checkout |
 
 React/API и документация входят в первый коммит ветки миграции после Go-воркера.
 Старый каталог анкет `/profiles` остаётся основным. Подробности первой итерации:
@@ -678,9 +696,9 @@ generation обновляются атомарно, а resume-secret ротир�
    вход/регистрация/анкеты, полная общая комната, ранги/справка, аккаунт и визиты.
 3. Реализованы и проверены галерея, библиотека, редакционные статьи и админка;
    ожидается ручное принятие. Игры и форум / Discourse SSO исключены.
-4. Удалить Phoenix из целевых Docker/Compose/CI, обновить эксплуатационные
-   команды и документацию, проверить весь целевой стек вместе. Сравнение
-   с Phoenix выполняется только отдельным legacy checkout. Production
+4. В работе: Phoenix удалён из целевых Docker/Compose/CI, обновлены
+   эксплуатационные команды и документация. Проверить весь целевой стек вместе;
+   сравнение с Phoenix выполняется только отдельным legacy checkout. Production
    остаётся отдельным действием после нового указания пользователя.
 
 ## Как продолжать в следующей сессии
@@ -689,7 +707,7 @@ generation обновляются атомарно, а resume-secret ротир�
    контекста. Проверить текущую ветку и `git status`; не затирать рабочее дерево.
 2. Сопоставить состояние файлов с таблицей выше. Брать первый незавершённый
    этап, не считать описанную в документации проверку уже внедрённой.
-3. Продолжать первый незавершённый пункт актуального состояния в начале
+3. Продолжать Docker/Compose/CI regression из актуального состояния в начале
    документа. Игры и Discourse SSO не переносить. Для проверки Accounts
    применять `script/verify-go-accounts`, для текущих контекстов —
    `script/verify-go-community` и `WEB_VERIFICATION_SUITE=community`.
