@@ -10,3 +10,7 @@ await build({ entryPoints: ["src/app/main.tsx"], bundle: true, minify: true, tar
 execFileSync(process.execPath, ["node_modules/@tailwindcss/cli/dist/index.mjs", "-i", "css/web.css", "-o", "dist/assets/app.css", "--minify"], { stdio: "inherit" })
 await cp("public", "dist", { recursive: true })
 await cp("index.html", "dist/index.html")
+
+await build({entryPoints:["scripts/render-articles.tsx"],bundle:true,platform:"node",format:"esm",packages:"external",jsx:"automatic",outfile:"dist/render-articles.mjs"})
+execFileSync(process.execPath, ["dist/render-articles.mjs"], {stdio:"inherit"})
+await rm("dist/render-articles.mjs")

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Public Go chat integration and real React entrance/socket scenarios.
+set -eu
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+go_command="${GO:-go}"
+source_url="${ACCOUNTS_LEGACY_DATABASE_URL:-postgresql://localhost/chat_test}"
+database_name="chat_community_test_$$"
+database_url="$(node -e 'const u = new URL(process.argv[1]); u.pathname = process.argv[2]; console.log(u.href)' "$source_url" "$database_name")"
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/chat-public-verification.XXXXXX")"
+cleanup() {
+  if [ -n "${api_pid:-}" ]; then kill "$api_pid" 2>/dev/null || true; wait "$api_pid" 2>/dev/null || true; fi
+  if [ -n "${created_database:-}" ]; then dropdb --maintenance-db="$source_url" "$database_name"; fi
+  rm -rf "$work_dir"
+}
+trap cleanup EXIT HUP INT TERM
+createdb --maintenance-db="$source_url" "$database_name"
+created_database=true
+pg_dump --schema-only --no-owner --no-privileges "$source_url" > "$work_dir/schema.sql"
+psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$work_dir/schema.sql" > "$work_dir/schema.log"
+psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/go-web.sql"
+cd "$repository_root/apps/api"
+GO_COMMUNITY_TEST_DATABASE_URL="$database_url" "$go_command" test -race ./cmd/api -run TestCommunityPostgres -count=1 -v

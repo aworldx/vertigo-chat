@@ -81,6 +81,15 @@ func main() {
 		os.Exit(1)
 	}
 	auth.Register(mux)
+	if err := registerAdmin(mux, pool, auth); err != nil {
+		slog.Error("configure admin", "error", err)
+		os.Exit(1)
+	}
+	registerLibrary(mux, pool, auth)
+	if err := registerGallery(mux, pool, auth); err != nil {
+		slog.Error("configure gallery", "error", err)
+		os.Exit(1)
+	}
 	accountshttp.NewSettingsHandler(accountsapplication.NewSettings(accounts), auth.AccountIdentity).Register(mux)
 	registerFeedback(mux, pool, auth)
 	if err := registerMusicChart(mux, pool, auth); err != nil {

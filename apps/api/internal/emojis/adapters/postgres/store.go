@@ -10,7 +10,7 @@ type Store struct{ pool *pgxpool.Pool }
 
 func NewStore(pool *pgxpool.Pool) Store { return Store{pool} }
 func (s Store) List(ctx context.Context) ([]domain.Emoji, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id,code,COALESCE(width,32),COALESCE(height,32),COALESCE(tags,'{}') FROM emojis WHERE status='approved' ORDER BY code`)
+	rows, err := s.pool.Query(ctx, `SELECT e.id,e.code,COALESCE(e.width,32),COALESCE(e.height,32),ARRAY(SELECT DISTINCT term FROM emoji_tag_assignments a JOIN emoji_tags t ON t.id=a.emoji_tag_id CROSS JOIN LATERAL unnest(ARRAY[t.name] || COALESCE(t.triggers,'{}')) term WHERE a.emoji_id=e.id ORDER BY term) FROM emojis e WHERE e.status='approved' ORDER BY e.code`)
 	if err != nil {
 		return nil, err
 	}

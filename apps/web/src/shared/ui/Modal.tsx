@@ -17,7 +17,7 @@ export function Modal({
         root.querySelectorAll<HTMLElement>(
           'button:not(:disabled),a[href],input:not(:disabled),select,textarea,[tabindex="0"]',
         ),
-      ).filter((e) => e.getClientRects().length > 0)
+      ).filter((e) => e.tabIndex >= 0 && e.getClientRects().length > 0)
     focusable()[0]?.focus()
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape") {

@@ -32,3 +32,12 @@ func Rank(messages, seconds int) (string, string) {
 	}
 	return current.Title, current.Icon
 }
+
+func MeetsRank(messages, seconds int, title string) bool {
+	for _, r := range RankDefinitions() {
+		if r.Title == title {
+			return messages >= r.Messages && seconds >= r.Hours*3600
+		}
+	}
+	return false
+}

@@ -7,7 +7,7 @@ cd "$repository_root"
 
 original_file="$(mktemp "${TMPDIR:-/tmp}/chat-contract-types.XXXXXX")"
 trap 'rm -f "$original_file"' EXIT HUP INT TERM
-for contract in profiles accounts chat; do
+for contract in profiles accounts chat community; do
   generated_file="apps/web/src/shared/generated/$contract.ts"
   cp "$generated_file" "$original_file"
   npm --prefix apps/web run "generate:$contract-types"

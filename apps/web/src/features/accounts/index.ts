@@ -8,3 +8,5 @@ export { getSession } from "./api/accounts"
 export { InlineLogin } from "./ui/InlineLogin"
 
 export { EmailSettings } from "./ui/EmailSettings"
+
+export { AdminLogin } from "./ui/AdminLogin"

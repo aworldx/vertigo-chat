@@ -7,12 +7,13 @@
     "test:browser": "playwright test",
     "browsers:install": "playwright install chromium",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src js/profiles.tsx js/account_login.tsx test browser playwright.config.ts && node scripts/check-architecture.mjs",
-    "format:check": "prettier --check src js/profiles.tsx js/account_login.tsx test browser playwright.config.ts package.json tsconfig.json eslint.config.js",
+    "lint": "eslint src scripts/render-articles.tsx js/profiles.tsx js/account_login.tsx test browser playwright.config.ts && node scripts/check-architecture.mjs",
+    "format:check": "prettier --check src scripts/render-articles.tsx js/profiles.tsx js/account_login.tsx test browser playwright.config.ts package.json tsconfig.json eslint.config.js",
     "generate:profiles-types": "openapi-typescript ../../contracts/openapi/profiles.yaml -o src/shared/generated/profiles.ts",
     "generate:accounts-types": "openapi-typescript ../../contracts/openapi/accounts.yaml -o src/shared/generated/accounts.ts",
     "build": "node scripts/build.mjs",
-    "generate:chat-types": "openapi-typescript ../../contracts/openapi/chat.yaml -o src/shared/generated/chat.ts"
+    "generate:chat-types": "openapi-typescript ../../contracts/openapi/chat.yaml -o src/shared/generated/chat.ts",
+    "generate:community-types": "openapi-typescript ../../contracts/openapi/community.yaml -o src/shared/generated/community.ts"
   },
   "dependencies": {
     "react": "19.3.0",
