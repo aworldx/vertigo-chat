@@ -12,11 +12,14 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 		return err
 	}
 	page := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/visits" {
+			w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write(index)
 	}
-	for _, route := range []string{"/account", "/account/login", "/account/register", "/profiles", "/music-chart", "/help", "/ranks", "/chat", "/{$}"} {
+	for _, route := range []string{"/account", "/account/login", "/account/register", "/profiles", "/music-chart", "/visits", "/help", "/ranks", "/chat", "/{$}"} {
 		mux.HandleFunc("GET "+route, canonicalPage(origin, page))
 	}
 	files := http.FileServer(http.FS(assets))

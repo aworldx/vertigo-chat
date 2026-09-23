@@ -71,6 +71,7 @@ func TestPublicChatPostgres(t *testing.T) {
 	chatshttp.NewSocket(lifecycle, chatspg.NewStore(pool), rooms.NewService(roompg.NewStore(pool)), sendRoomMessage(pool), server.URL).WithExperience(roomExperience(pool)).Register(mux)
 	jar, _ := cookiejar.New(nil)
 	fixture := chatFixture{pool: pool, server: server, client: &http.Client{Jar: jar, Timeout: 5 * time.Second}}
+	t.Run("recent visit history and non-UTC cutoff", fixture.visitHistory)
 	t.Run("guest protection and atomic registration", fixture.registration)
 	t.Run("socket resume fencing outbox and terminal leave", fixture.socket)
 	t.Run("presence classification reconnect and departure", fixture.presence)

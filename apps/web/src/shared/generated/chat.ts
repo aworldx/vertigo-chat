@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/visits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public chat visits entered in the last 48 hours
+         * @description Snapshot ordered by entered_at descending then id descending. Only the newest active visit per exact nickname is shown; finished visits remain distinct. Cutoff is inclusive and truncated to seconds. Timestamps are UTC RFC3339; UI displays Moscow time. No session, identity or account fields are exposed. Cache-Control no-store, X-Robots-Tag noindex, nofollow.
+         */
+        get: operations["listVisits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/emojis": {
         parameters: {
             query?: never;
@@ -347,6 +367,40 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listVisits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recent visits */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        meta: {
+                            /** @enum {integer} */
+                            history_hours: 48;
+                        };
+                        data: {
+                            id: number;
+                            nickname: string;
+                            /** Format: date-time */
+                            entered_at: string;
+                            /** Format: date-time */
+                            left_at: string | null;
+                        }[];
+                    };
+                };
+            };
+            503: components["responses"]["Error"];
+        };
+    };
     listChatEmojis: {
         parameters: {
             query?: never;

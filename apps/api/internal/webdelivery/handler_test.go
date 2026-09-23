@@ -13,9 +13,12 @@ func TestOnlyPublicPagesAndFilesAreServed(t *testing.T) {
 	if err := Register(mux, files, "https://chat.test"); err != nil {
 		t.Fatal(err)
 	}
-	for path, status := range map[string]int{"/account": 200, "/account/login": 200, "/account/register": 200, "/profiles": 200, "/help": 200, "/ranks": 200, "/games": 404, "/assets/app.js": 200, "/": 200, "/chat": 200, "/api/v1/missing": 404, "/assets/": 404, "/private.txt": 404, "/profiles/missing": 404} {
+	for path, status := range map[string]int{"/account": 200, "/account/login": 200, "/account/register": 200, "/profiles": 200, "/visits": 200, "/help": 200, "/ranks": 200, "/games": 404, "/assets/app.js": 200, "/": 200, "/chat": 200, "/api/v1/missing": 404, "/assets/": 404, "/private.txt": 404, "/profiles/missing": 404} {
 		response := httptest.NewRecorder()
 		mux.ServeHTTP(response, httptest.NewRequest("GET", path, nil))
+		if path == "/visits" && response.Header().Get("X-Robots-Tag") != "noindex, nofollow" {
+			t.Fatal("visits must not be indexed")
+		}
 		if response.Code != status {
 			t.Errorf("%s status=%d", path, response.Code)
 		}

@@ -43,6 +43,12 @@ CSS overrides или масок. Room/composer/emoji/settings/registration/feedb
 Сетевые/CSRF/двухвкладочные сценарии входят в `verify-go-accounts`.
 [Отчёт](go_account_settings_verification.md).
 
+Для истории визитов доступен `WEB_VERIFICATION_SUITE=visits`:
+пустая/заполненная таблица и мобильная прокрутка на 390/639/640/768/1440 px,
+а также авторизованный режим. Реальный вход/выход, снимок до reload,
+загрузка и ошибка/повтор входят в `verify-go-chat`.
+[Отчёт](go_visits_verification.md).
+
 ## Поднять обе версии локально
 
 Для текущего standalone-среза собрать assets в отдельном legacy checkout,

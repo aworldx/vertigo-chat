@@ -1,3 +1,4 @@
+import { verifyVisits } from "./visits-flow"
 import { readFileSync } from "node:fs"
 import { record } from "../src/features/chat/api/entrance"
 import assert from "node:assert/strict"
@@ -324,6 +325,7 @@ try {
   await storagePage.locator("#enter-chat").click()
   await expect(storagePage.locator("#entrance-error")).toContainText("Разреши хранение")
   await blocked.close()
+  await verifyVisits(browser, origin)
   console.log(
     "Go chat browser: guest/registered entrance, reserved nickname, two tabs, messages, reload, duplicate-tab lock, offline outbox, site logout independence, terminal leave and denied storage passed",
   )

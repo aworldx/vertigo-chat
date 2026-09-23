@@ -5,6 +5,43 @@ info:
   description: Same-origin atomic chat entrance. WebSocket commands and lifecycle are specified in docs/go_chat_protocol.md.
 servers: [{url: /}]
 paths:
+  /api/v1/visits:
+    get:
+      operationId: listVisits
+      summary: Public chat visits entered in the last 48 hours
+      description: >-
+        Snapshot ordered by entered_at descending then id descending. Only the
+        newest active visit per exact nickname is shown; finished visits remain
+        distinct. Cutoff is inclusive and truncated to seconds. Timestamps are
+        UTC RFC3339; UI displays Moscow time. No session, identity or account
+        fields are exposed. Cache-Control no-store, X-Robots-Tag noindex, nofollow.
+      security: []
+      responses:
+        '200':
+          description: Recent visits
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  meta:
+                    type: object
+                    required: [history_hours]
+                    properties:
+                      history_hours: {type: integer, enum: [48]}
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, nickname, entered_at, left_at]
+                      additionalProperties: false
+                      properties:
+                        id: {type: integer, minimum: 1}
+                        nickname: {type: string}
+                        entered_at: {type: string, format: date-time}
+                        left_at: {type: [string, 'null'], format: date-time}
+        '503': {$ref: '#/components/responses/Error'}
   /api/v1/chat/emojis:
     get:
       operationId: listChatEmojis

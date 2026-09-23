@@ -1,3 +1,4 @@
+import { VisitsPage } from "../pages/VisitsPage"
 import { AccountPage } from "../pages/AccountPage"
 import { HelpPage } from "../pages/HelpPage"
 import { MusicChartPage } from "../pages/MusicChartPage"
@@ -11,10 +12,12 @@ const container = document.getElementById("root")
 const path = window.location.pathname
 const help = path === "/help" || path === "/ranks"
 const login = path.startsWith("/account/")
-document.title = `${path === "/account" ? "Настройки аккаунта" : help ? "Помощь" : login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
+document.title = `${path === "/visits" ? "Кто был" : path === "/account" ? "Настройки аккаунта" : help ? "Помощь" : login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
 if (container)
   createRoot(container).render(
-    path === "/account" ? (
+    path === "/visits" ? (
+      <VisitsPage />
+    ) : path === "/account" ? (
       <AccountPage />
     ) : help ? (
       <HelpPage />

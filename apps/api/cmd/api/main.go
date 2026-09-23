@@ -92,6 +92,7 @@ func main() {
 	profileshttp.NewMutationHandler(application.NewEditor(profiles), application.NewPhotoEditor(profiles), application.NewAccountCatalog(profiles), auth.AccountIdentity).Register(mux)
 	go pruneAccountSessions(ctx, accounts)
 	go runKarmik(ctx, pool)
+	chatsessionshttp.NewHistoryHandler(chatsessionsapplication.NewHistory(chatsessionspostgres.NewStore(pool))).Register(mux)
 	chatSessions := chatsessionsapplication.NewService(chatsessionspostgres.NewStore(pool), chatsessionsPolicy())
 	chatsessionshttp.NewHandler(
 		chatSessions,
