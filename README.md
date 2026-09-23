@@ -61,8 +61,9 @@ docker compose -f deploy/compose.yaml up -d
 Сервис `migrate` применяет Go-миграции перед запуском `api`. Caddy ждёт
 healthcheck `api` на `:4020`; API и React наружу не публикуются напрямую.
 `OPENAI_API_KEY` обязателен, чтобы бот не запускался без провайдера. Значения с
-`$` в `.env` заключайте в одинарные кавычки; пароль PostgreSQL должен быть
-URL-safe или percent-encoded, поскольку включён в `DATABASE_URL`.
+`$` в `.env` заключайте в одинарные кавычки. Если пароль PostgreSQL содержит
+символы, не допускаемые в URL, задайте percent-encoded `DATABASE_URL` явно;
+иначе Compose соберёт его из `POSTGRES_*` переменных.
 
 CI собирает `linux/amd64` образы `api` и `youtube-worker`. Перед production
 cutover отдельно подтвердите миграцию схемы существующей БД, healthchecks,
@@ -110,9 +111,9 @@ OPENAI_BOT_UTC_OFFSET_MINUTES=180
 репозитория, по одной записи `host:port:username:password` на строку. Compose
 монтирует его read-only как `/run/secrets/music_proxies`.
 
-Фото, превью галереи и аудио чарта могут храниться в S3; параметры и процедура
-переноса описаны в [docs/s3_media.md](docs/s3_media.md). ImageMagick включён в
-образ API; для локальных thumbnail-тестов на macOS установите его через
+Фото, превью галереи и аудио чарта хранятся в S3; параметры эксплуатации
+описаны в [docs/s3_media.md](docs/s3_media.md). ImageMagick включён в образ
+API; для локальных thumbnail-тестов на macOS установите его через
 `brew install imagemagick`.
 
 YouTube search, preparation и MP4 cache обслуживает `services/youtube-worker/`.

@@ -66,12 +66,23 @@ CI проверяет Go, React и инфраструктуру и публик�
 `youtube-worker`.
 
 Проверены `docker compose ... config`, Docker targets `api` и `quality`,
-контейнерные Go/React checks и `script/check-infrastructure`. Обязательный
-`mix precommit` запущен для legacy gate; его длительные browser/ExUnit шаги
-нужно отдельно подтвердить полным прогоном. Остаётся общий regression с
-существующей схемой БД и проверка S3 data-migrator до production cutover.
+контейнерные Go/React checks, `script/check-infrastructure` и полный
+`mix precommit`. Общий PostgreSQL regression на изолированной копии схемы
+прошёл через `script/verify-go-community`: CSRF, ownership, роли, квоты,
+gallery upload и moderation подтверждены. Локальный Docker-стенд проверен в
+браузере: guest entrance открывает React-чат, а `/gallery`, `/library` и
+`/articles` отдаются Go. Все существующие медиа уже перенесены в S3; отдельный
+S3 data-migrator не нужен и не является условием production cutover.
 Phoenix используется только отдельным legacy checkout для сравнения, а
 production не затрагивается.
+
+Перед будущим переключением обязательны проверенный `pg_dump` и проверка его
+списка через `pg_restore --list`. Go-migrator применяет только свои четыре
+additive `CREATE TABLE`/`CREATE INDEX` миграции в одной транзакции под advisory
+lock; в нём нет `DROP`, `TRUNCATE` или пересоздания базы. Команды удаления
+volume (`docker compose down --volumes` и аналоги) в процедуру переключения не
+входят. Compose должен подключаться к существующему тому PostgreSQL, а не
+создавать новый пустой том.
 
 Текущий незакоммиченный React-рефакторинг разделяет выдачу команд и поиск
 медиа: `CommandResults` отвечает только за карточки команд, а
@@ -562,7 +573,8 @@ legacy-ветке.
       зависимостей; переносить по одному. Следующий изолированный React-срез —
       read-only ранги и справка, затем библиотека и галерея как отдельные
       write-контексты.
-- [ ] Чат, presence и восстановление сессии оставить до отдельного realtime-этапа.
+- [x] Перенести чат, presence и восстановление сессии в отдельный realtime-
+      контекст Go/WebSocket; React хранит tab-scoped resume/outbox state.
 
 Готовность каждого среза: старые возможности сохранены, API описан, проверки
 проходят, сценарий проверен в браузере и готов для проверки пользователем.
@@ -589,8 +601,9 @@ legacy-ветке.
       после регистрации не-guest пользователя. Это сохраняет единый transaction
       Accounts и не требует небезопасного HTTP-вызова Go до commit.
 - [x] Исключить `profiles` из ручной Phoenix S3 media migration при включённом
-      Go writer; это предотвращает обход владения записью, а Go продолжает
-      читать legacy DB bytes до отдельной Go-controlled S3 миграции.
+      Go writer; это предотвращает обход владения записью. Все существующие
+      медиа уже находятся в S3, поэтому отдельная Go-controlled миграция байтов
+      не требуется.
 - [x] Передать Go read-path фото: API читает database/S3 original и thumbnail,
       а Phoenix сохраняет прежние public URLs как тонкий binary proxy при
       `PROFILES_GO_API_URL`. Browser-сценарий проверяет byte-identical PNG и
@@ -604,10 +617,11 @@ legacy-ветке.
       связывает Phoenix с `profiles-api` только при отдельном подключении файла
       и обязательном `PROFILE_INTERNAL_TOKEN`; базовый compose по умолчанию
       ничего не переключает.
-- [ ] Для каждого следующего контекста описать зависимости, авторизацию,
-      владельца данных и миграций, транзакции, события и порядок отката.
-- [ ] Переключать маршруты по одному; у каждого переключения один активный
-      backend. Для write-сценария сначала согласовать передачу владения данными.
+- [x] Для перенесённых контекстов описаны зависимости, авторизация, владелец
+      данных и миграций, транзакции, события и порядок отката в OpenAPI,
+      `session_lifecycle.md` и verification-отчётах.
+- [x] Целевые маршруты обслуживает один Go backend; Phoenix исключён из
+      Docker, Compose и CI, а legacy checkout используется только для сравнения.
 
 Готовность каждого контекста: совместимое поведение, доменные/интеграционные
 тесты, статические проверки, диагностика ошибок и проверенный локальный откат.
@@ -644,23 +658,22 @@ Go-owned browser session, public profile writes и полный React flow пр�
 
 Порядок работ:
 
-- [ ] Описать публичный Go application API `Accounts` и `Principal`: регистрация,
-      password login, logout, получение текущего пользователя, назначение и
-      проверка ролей. Не передавать HTTP cookie, JWT или SQL-модель в domain.
+- [x] Описать и реализовать публичный Go application API `Accounts` и
+      `Principal`: регистрация, password login, logout, current user,
+      назначение и проверка ролей. HTTP cookie и SQL-модель не входят в domain.
 - [x] Создать Go context `internal/accounts/{domain,application,adapters}` и
       перенести password verifier с совместимостью с существующим форматом
       `pbkdf2_sha256`. Новый хэш-формат и обновление credential допустимы только
       после успешной проверки старого пароля и с явной стратегией rollback.
-- [ ] Зафиксировать владельца таблиц `registered_users` и account-session до
-      cutover; не допускать постоянной dual-write/dual-auth схемы. Сначала Go
-      читает и проходит contract-тесты, затем один выбранный маршрут получает
-      Go как единственного владельца записи.
+- [x] Зафиксировать Go как единственного владельца account-session и public
+      account write-path; таблица `registered_users` используется без dual-write
+      или dual-auth схемы.
 - [x] Реализовать Go-owned opaque account-session: HTTP-only Secure cookie,
       CSRF, logout/revocation и current principal. Не использовать Phoenix BFF.
-- [ ] Покрыть browser и integration-тестами регистрацию, неверный пароль,
-      logout во второй вкладке, истечение/подделку cookie, CSRF, обычную роль,
-      обе административные роли, ownership и сохранение независимого
-      chat-session. Запустить `mix precommit` и Go race/static checks.
+- [x] Покрыть browser и integration-тестами регистрацию, неверный пароль,
+      logout во второй вкладке, истечение/подделку cookie, CSRF, роли,
+      ownership и независимый chat-session; `mix precommit` и Go race/static
+      checks проходят.
 - [x] Проверить целевой Go+React account/profile flow локально. Phoenix запускается лишь из
       legacy-ветки для сравнения, но не подключается к новому стенду.
 
@@ -697,16 +710,18 @@ Phoenix остаётся legacy-реализацией в отдельной в�
 Переход guest → registered user также перенесён в Go: identity, visit и
 generation обновляются атомарно, а resume-secret ротируется.
 
-- [ ] Инвентаризировать все оставшиеся обязанности Phoenix, включая фоновые
-      задачи, админку, интеграции и эксплуатационные команды.
-- [ ] Описать и протестировать протокол realtime: auth, reconnect, порядок
+- [x] Инвентаризировать обязанности Phoenix: целевой Compose/CI содержит Go
+      API, React, Caddy и YouTube worker; Phoenix остаётся только в legacy
+      checkout для сравнения.
+- [x] Описать и протестировать realtime-протокол: auth, reconnect, порядок
       событий, дедупликацию, курсоры, presence и ошибки соединения.
-- [ ] Реализовать Go Presence/WebSocket transport, server-issued connection id,
+- [x] Реализовать Go Presence/WebSocket transport, server-issued connection id,
       room snapshot/catch-up и публикацию событий после commit.
-- [ ] Перенести React главную, вход/регистрацию, storage/outbox и страницу
-      чата на public Go API/WebSocket, сохранив tab-scoped sessionStorage.
-- [ ] Проверить нагрузку и отказные сценарии; удалить временные маршруты и
-      Phoenix только после замены всех его обязанностей.
+- [x] Перенести React главную, вход/регистрацию, storage/outbox и страницу
+      чата на public Go API/WebSocket с tab-scoped sessionStorage.
+- [x] Проверить отказные сценарии: reconnect/outbox, duplicate-tab fencing,
+      blocked delivery, reload и terminal leave. Нагрузочное профилирование для
+      production capacity остаётся отдельной эксплуатационной задачей.
 
 Готовность: пользовательские сценарии полностью обслуживаются Go + React,
 документация и локальный стенд актуальны. Production-переход планируется
@@ -720,10 +735,10 @@ generation обновляются атомарно, а resume-secret ротир�
    вход/регистрация/анкеты, полная общая комната, ранги/справка, аккаунт и визиты.
 3. Реализованы и проверены галерея, библиотека, редакционные статьи и админка;
    ожидается ручное принятие. Игры и форум / Discourse SSO исключены.
-4. В работе: Phoenix удалён из целевых Docker/Compose/CI, обновлены
-   эксплуатационные команды и документация. Проверить весь целевой стек вместе;
-   сравнение с Phoenix выполняется только отдельным legacy checkout. Production
-   остаётся отдельным действием после нового указания пользователя.
+4. Выполнено локально: Phoenix удалён из целевых Docker/Compose/CI, обновлены
+   эксплуатационные команды и документация, пройдены общий quality gate,
+   изолированный PostgreSQL regression и browser smoke на Docker-стенде.
+   Production остаётся отдельным действием после нового указания пользователя.
 
 ## Как продолжать в следующей сессии
 
