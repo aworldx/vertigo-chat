@@ -47,7 +47,7 @@ export function Emojis({
         }}
         className="mt-5 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
       >
-        <Field id="emoji-code" name="code" label="Код без двоеточий" placeholder="гляжу_кота" required />
+        <Field id="emoji-code" name="code" label="Код смайлика" placeholder="гляжу_кота" required />
         <Field
           id="emoji-image"
           name="image"
@@ -70,10 +70,10 @@ export function Emojis({
         </p>
       )}
       <p className="mt-3 text-sm text-stone-400">
-        {"\n            До 700 КБ и 100×100 px. Введите код без двоеточий: "}
+        {"\n            До 700 КБ и 100×100 px. Введите код смайлика: "}
         <code>кот_плачет</code>
         {". В сообщениях он будет выглядеть как "}
-        <code>:кот_плачет:</code>
+        <code>-кот_плачет-</code>
         {".\n          "}
       </p>
       <div id="admin-emojis-list" className="mt-5 space-y-6">
@@ -112,7 +112,9 @@ export function Emojis({
                         height={e.height}
                         className="h-auto w-auto max-h-12 max-w-12 object-contain"
                       />
-                      <span className="w-full truncate text-xs text-stone-300">{e.code.replaceAll(":", "")}</span>
+                      <span className="w-full truncate text-xs text-stone-300">
+                        {e.code.replace(/^[:-]+|[:-]+$/gu, "")}
+                      </span>
                     </a>
                   ))}
                 </div>

@@ -4,19 +4,23 @@ import { useResource } from "../model/useResource"
 import { Modal } from "../../../shared/ui/Modal"
 import { Icon } from "../../../shared/ui/Icon"
 import { birthDate, genderLabel } from "./Primitives"
+import { AccountProfileEditor } from "./AccountProfileEditor"
 export function RoomProfileViewer({
   nickname,
   editable,
+  csrfToken,
   onDismiss,
 }: {
   nickname: string
   editable: boolean
+  csrfToken: string
   onDismiss: () => void
 }) {
   const load = useCallback((signal: AbortSignal) => getRoomProfile(nickname, signal), [nickname]),
     resource = useResource(`room-profile:${nickname}`, load)
   const profile = resource.data?.data,
-    [photo, setPhoto] = useState(false)
+    [photo, setPhoto] = useState(false),
+    [editing, setEditing] = useState(false)
   const closePhoto = useCallback(() => {
     setPhoto(false)
   }, [])
@@ -54,7 +58,7 @@ export function RoomProfileViewer({
               )}
             </div>
           )}
-          {profile && (
+          {profile && !editing && (
             <div className="grid lg:min-h-[32rem] lg:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.35fr)]">
               <aside className="border-b border-white/10 bg-zinc-950/45 lg:border-b-0 lg:border-r">
                 {profile.photo_url ? (
@@ -156,23 +160,47 @@ export function RoomProfileViewer({
                     </p>
                   </section>
                   {editable && (
-                    <a
+                    <button
                       id="edit-profile"
-                      href="/profiles"
-                      target="vertigo-profiles"
+                      type="button"
+                      onClick={() => {
+                        setEditing(true)
+                      }}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 font-semibold text-amber-100 transition hover:-translate-y-0.5 hover:border-amber-200 hover:bg-amber-300/15"
                     >
                       <Icon name="pencil-square" className="size-5" />
                       Редактировать анкету
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
             </div>
           )}
+          {profile && editing && (
+            <div className="p-6 pt-16 sm:p-8">
+              <button
+                id="back-to-profile"
+                type="button"
+                onClick={() => {
+                  setEditing(false)
+                }}
+                className="mb-5 text-sm font-semibold text-amber-200 transition hover:text-amber-100"
+              >
+                ← К анкете
+              </button>
+              <AccountProfileEditor
+                profile={profile}
+                csrfToken={csrfToken}
+                onSaved={() => {
+                  setEditing(false)
+                  resource.retry()
+                }}
+              />
+            </div>
+          )}
         </section>
       </Modal>
-      {photo && profile?.photo_url && (
+      {!editing && photo && profile?.photo_url && (
         <Modal
           id="room-profile-photo-lightbox"
           labelId="room-photo-title"

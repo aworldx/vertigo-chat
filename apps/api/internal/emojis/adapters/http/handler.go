@@ -2,6 +2,7 @@ package http
 
 import (
 	"chat/api/internal/emojis/application"
+	"chat/api/internal/emojis/domain"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -42,7 +43,7 @@ func (h Handler) list(w http.ResponseWriter, r *http.Request) {
 		if terms == nil {
 			terms = []string{}
 		}
-		result = append(result, emojiDTO{e.ID, e.Code, e.Width, e.Height, terms})
+		result = append(result, emojiDTO{e.ID, domain.NormalizeCode(e.Code), e.Width, e.Height, terms})
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")

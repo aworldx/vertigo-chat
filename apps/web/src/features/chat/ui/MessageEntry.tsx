@@ -2,7 +2,7 @@ import { useState } from "react"
 import { appearanceStyle, MessageTime } from "./MessagePresentation"
 import { MediaBody } from "./MediaBody"
 import { Icon } from "../../../shared/ui/Icon"
-import type { Emoji } from "../api/emojis"
+import { emojiToken, legacyEmojiToken, type Emoji } from "../api/emojis"
 import type { Peer } from "../api/protocol"
 import type { Message } from "../api/protocol"
 import type { DeliveryState } from "../model/delivery"
@@ -59,29 +59,46 @@ function DeliveryStatus({
 }
 
 function MessageBody({ body, emojis }: { body: string; emojis: Emoji[] }) {
-  const codes = new Map(emojis.map((e) => [e.code, e]))
-  return body.split(/((?:https?:\/\/|www\.)[^\s<>"']+|:[\p{Ll}\p{Nd}_]{2,30}:)/giu).map((part, index) =>
-    /^(?:https?:\/\/|www\.)/iu.test(part) ? (
-      <a
-        key={index}
-        href={/^www\./iu.test(part) ? `https://${part}` : part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
-      >
-        {part}
-      </a>
-    ) : codes.has(part) ? (
-      <img
-        key={index}
-        src={`/emojis/${String(codes.get(part)?.id)}`}
-        alt={part}
-        className="inline-block h-auto w-auto max-h-8 max-w-8 align-text-bottom"
-      />
-    ) : (
-      part
-    ),
+  const codes = new Map(
+    emojis.flatMap((e) => [
+      [emojiToken(e.code), e],
+      [legacyEmojiToken(e.code), e],
+    ]),
   )
+  return body
+    .split(/((?:https?:\/\/|www\.)[^\s<>"']+|(?<!-)-[\p{Ll}\p{Nd}_]{2,30}-(?!-)|:[\p{Ll}\p{Nd}_]{2,30}:)/giu)
+    .map((part, index) =>
+      /^(?:https?:\/\/|www\.)/iu.test(part) ? (
+        <a
+          key={index}
+          href={/^www\./iu.test(part) ? `https://${part}` : part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
+        >
+          {part}
+        </a>
+      ) : codes.has(part) ? (
+        <span key={index} className="chat-inline-emoji inline-flex align-text-bottom">
+          <img
+            src={`/emojis/${String(codes.get(part)?.id)}`}
+            alt={part}
+            className="h-auto w-auto max-h-8 max-w-8 object-contain"
+          />
+        </span>
+      ) : (
+        <FormattedText key={index} text={part} />
+      ),
+    )
+}
+
+function FormattedText({ text }: { text: string }) {
+  return text.split(/(\*\*[^*\n]+\*\*|\/\/[^/\n]+\/\/|--[^-\n]+--)/gu).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>
+    if (part.startsWith("//") && part.endsWith("//")) return <em key={index}>{part.slice(2, -2)}</em>
+    if (part.startsWith("--") && part.endsWith("--")) return <s key={index}>{part.slice(2, -2)}</s>
+    return part
+  })
 }
 export function MessageEntry({
   message,
@@ -157,7 +174,7 @@ export function MessageEntry({
           </button>
           <span className="chat-message-body" style={appearanceStyle(message.appearance)}>
             {" "}
-            <MessageBody body={message.body} emojis={emojis} />
+            <AddressedBody body={message.body} emojis={emojis} peers={peers} recipient={message.recipient} />
           </span>
         </p>
       ) : (
@@ -194,7 +211,7 @@ export function MessageEntry({
               className="chat-message-body break-words pr-12 text-sm leading-5"
               style={appearanceStyle(message.appearance)}
             >
-              <AddressedBody body={message.body} emojis={emojis} peers={peers} />
+              <AddressedBody body={message.body} emojis={emojis} peers={peers} recipient={message.recipient} />
             </p>
           )}
         </>
@@ -249,12 +266,13 @@ export function MessageEntry({
             <button
               type="button"
               aria-label="Удалить сообщение"
+              title="Удалить для всех"
               onClick={() => {
                 if (window.confirm("Удалить это сообщение для всех?")) onDelete(message.id)
               }}
-              className="text-xs text-red-300 opacity-0 group-hover/message:opacity-100 focus:opacity-100"
+              className="flex size-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 opacity-0 shadow-sm transition hover:border-red-300/60 hover:text-red-300 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
             >
-              Удалить
+              <Icon name="trash" className="size-3" />
             </button>
           )}
         </div>
@@ -263,19 +281,45 @@ export function MessageEntry({
   )
 }
 
-function AddressedBody({ body, emojis, peers }: { body: string; emojis: Emoji[]; peers: Peer[] }) {
-  const match = Array.from(body.matchAll(/[\p{L}\p{N}_-]+,/gu)).find((value) =>
-    peers.some((peer) => peer.nickname === value[0].slice(0, -1)),
-  )
-  const peer = peers.find((value) => value.nickname === match?.[0].slice(0, -1))
-  if (!match || !peer) return <MessageBody body={body} emojis={emojis} />
+function escaped(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")
+}
+
+function nicknameMatch(body: string, nickname: string) {
+  return new RegExp(`(?<![\\p{L}\\p{N}_-])(${escaped(nickname)},?)(?![\\p{L}\\p{N}_-])`, "u").exec(body)
+}
+
+function AddressedBody({
+  body,
+  emojis,
+  peers,
+  recipient,
+}: {
+  body: string
+  emojis: Emoji[]
+  peers: Peer[]
+  recipient: string
+}) {
+  const nicknames = [recipient, ...peers.map((peer) => peer.nickname)]
+    .filter((nickname, index, values) => nickname && values.indexOf(nickname) === index)
+    .sort((left, right) => right.length - left.length)
+  const match = nicknames
+    .map((nickname) => ({ nickname, match: nicknameMatch(body, nickname) }))
+    .filter((candidate): candidate is { nickname: string; match: RegExpExecArray } => candidate.match !== null)
+    .sort((left, right) => left.match.index - right.match.index)[0]
+  if (!match) return <MessageBody body={body} emojis={emojis} />
+  const peer = peers.find((value) => value.nickname === match.nickname)
+  const appearance = peer?.preferences.appearance
   return (
     <>
-      <MessageBody body={body.slice(0, match.index)} emojis={emojis} />
-      <strong className="chat-message-recipient font-semibold" style={appearanceStyle(peer.preferences.appearance)}>
-        {match[0]}
+      <MessageBody body={body.slice(0, match.match.index)} emojis={emojis} />
+      <strong
+        className="chat-message-recipient font-semibold"
+        style={appearance ? appearanceStyle(appearance) : undefined}
+      >
+        {match.match[0]}
       </strong>
-      <MessageBody body={body.slice(match.index + match[0].length)} emojis={emojis} />
+      <MessageBody body={body.slice(match.match.index + match.match[0].length)} emojis={emojis} />
     </>
   )
 }

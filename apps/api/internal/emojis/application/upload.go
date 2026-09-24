@@ -1,13 +1,14 @@
 package application
 
 import (
+	"chat/api/internal/emojis/domain"
 	"context"
 	"errors"
 	"regexp"
 )
 
 var ErrUpload = errors.New("invalid emoji upload")
-var codePattern = regexp.MustCompile(`^:[\p{Ll}\p{Nd}_]{2,30}:$`)
+var codePattern = regexp.MustCompile(`^-[\p{Ll}\p{Nd}_]{2,30}-$`)
 
 type Upload struct {
 	UserID            int64
@@ -29,6 +30,7 @@ type Uploader struct {
 
 func NewUploader(s UploadStore, i ImageInspector) Uploader { return Uploader{s, i} }
 func (u Uploader) Submit(ctx context.Context, value Upload) error {
+	value.Code = domain.NormalizeCode(value.Code)
 	if value.UserID <= 0 || !codePattern.MatchString(value.Code) || len(value.Bytes) == 0 || len(value.Bytes) > 700000 {
 		return ErrUpload
 	}

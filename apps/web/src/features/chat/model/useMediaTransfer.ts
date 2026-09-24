@@ -28,7 +28,13 @@ export function useMediaTransfer(connection: ChatConnection, peers: Peer[], nick
   }, [connection])
   const share = async (file: File) => {
     setError("")
-    await transfer.current?.share(file, nickname)
+    try {
+      await transfer.current?.share(file, nickname)
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Не удалось прикрепить файл."
+      setError(message)
+      throw reason
+    }
   }
   return {
     files: files.map((file) => ({ ...file, author: peers.find((p) => p.id === file.author)?.nickname ?? file.author })),

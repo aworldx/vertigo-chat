@@ -15,11 +15,11 @@ func (h Socket) private(ctx context.Context, conn *websocket.Conn, session domai
 		return h.privateError(ctx, conn, cmd.ClientID)
 	}
 	if h.service.Touch(ctx, session.ID, session.IdentityKey, session.Generation, "visible", time.Now()) != nil {
-		return false
+		return h.privateError(ctx, conn, cmd.ClientID)
 	}
 	peers, err := h.projection.Presence(ctx, session.RoomID)
 	if err != nil {
-		return false
+		return h.privateError(ctx, conn, cmd.ClientID)
 	}
 	var target domain.Session
 	for _, peer := range peers {
@@ -33,7 +33,7 @@ func (h Socket) private(ctx context.Context, conn *websocket.Conn, session domai
 	}
 	presentation, err := h.presentation(ctx, session)
 	if err != nil {
-		return false
+		return h.privateError(ctx, conn, cmd.ClientID)
 	}
 	p := presentation.Preferences
 	message := rooms.Message{ClientID: cmd.ClientID, Kind: "private", Author: session.Nickname, Recipient: recipient, Body: body, SentAt: time.Now().UTC(), FontID: p.Font, FontStyle: p.Style, Appearance: rooms.Appearance{Dark: rooms.Colors{Nickname: p.Appearance.Dark.Nickname, Text: p.Appearance.Dark.Text}, Light: rooms.Colors{Nickname: p.Appearance.Light.Nickname, Text: p.Appearance.Light.Text}}}

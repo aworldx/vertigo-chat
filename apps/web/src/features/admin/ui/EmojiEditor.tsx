@@ -95,8 +95,8 @@ export function EmojiEditor({
           <Field
             id={`emoji-code-${String(e.id)}`}
             name="code"
-            defaultValue={e.code.replaceAll(":", "")}
-            label="Код смайла без двоеточий"
+            defaultValue={e.code.replace(/^[:-]+|[:-]+$/gu, "")}
+            label="Код смайла"
             placeholder="танцую"
             required
           />

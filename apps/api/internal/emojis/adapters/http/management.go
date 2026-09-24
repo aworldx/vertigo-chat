@@ -72,7 +72,7 @@ func (m Manager) list(w http.ResponseWriter, r *http.Request) {
 	data := []managedDTO{}
 	groups := []tagDTO{}
 	for _, e := range emojis {
-		data = append(data, managedDTO{names[e.UserID], e.ID, e.Code, e.Status, e.ContentType, e.Reason, e.Width, e.Height, e.Animated, e.TagIDs})
+		data = append(data, managedDTO{names[e.UserID], e.ID, domain.NormalizeCode(e.Code), e.Status, e.ContentType, e.Reason, e.Width, e.Height, e.Animated, e.TagIDs})
 	}
 	for _, t := range tags {
 		groups = append(groups, tagDTO{t.ID, t.Name, t.Triggers})

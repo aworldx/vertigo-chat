@@ -2,7 +2,15 @@ import { useState, type SyntheticEvent } from "react"
 import type { Profile } from "../api/profiles"
 import { uploadAccountProfilePhoto, updateAccountProfile } from "../api/profiles"
 
-export function AccountProfileEditor({ profile, csrfToken }: { profile: Profile; csrfToken: string }) {
+export function AccountProfileEditor({
+  profile,
+  csrfToken,
+  onSaved,
+}: {
+  profile: Profile
+  csrfToken: string
+  onSaved?: (profile: Profile) => void
+}) {
   const [draft, setDraft] = useState(profile)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
@@ -12,6 +20,7 @@ export function AccountProfileEditor({ profile, csrfToken }: { profile: Profile;
     try {
       const result = await updateAccountProfile(draft, csrfToken)
       setDraft(result.data)
+      onSaved?.(result.data)
       setMessage("Анкета сохранена.")
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Не удалось сохранить анкету.")

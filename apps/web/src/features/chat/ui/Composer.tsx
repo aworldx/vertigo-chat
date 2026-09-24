@@ -1,7 +1,7 @@
-import { useState, type RefObject } from "react"
+import { useState, type DragEvent, type RefObject } from "react"
 import { Icon } from "../../../shared/ui/Icon"
 import { commands } from "../model/commands"
-import type { Emoji } from "../api/emojis"
+import { emojiToken, type Emoji } from "../api/emojis"
 export function Composer({
   draft,
   onDraft,
@@ -15,6 +15,7 @@ export function Composer({
   onEmojiRetry,
   onUploadEmoji,
   onAttach,
+  onAttachFile,
 }: {
   draft: string
   onDraft: (text: string) => void
@@ -28,6 +29,7 @@ export function Composer({
   onEmojiRetry: () => void
   onUploadEmoji: () => void
   onAttach: () => void
+  onAttachFile: (file: File) => void
 }) {
   const [picker, setPicker] = useState(false),
     [menu, setMenu] = useState(false),
@@ -35,6 +37,7 @@ export function Composer({
     [mode, setMode] = useState("autosuggest"),
     [autosuggest, setAutosuggest] = useState(true)
   const [dismissed, setDismissed] = useState(false)
+  const [dragDepth, setDragDepth] = useState(0)
   const [frequency, setFrequency] = useState<Record<string, number>>({})
   const query = draft.toLocaleLowerCase().split(/\s+/u).at(-1) ?? ""
   const ordered = [...emojis].sort((a, b) => {
@@ -62,6 +65,7 @@ export function Composer({
       input.current?.setSelectionRange(start + code.length, start + code.length)
     })
   }
+  const hasFiles = (event: DragEvent<HTMLFormElement>) => Array.from(event.dataTransfer.types).includes("Files")
   return (
     <form
       id="message-form"
@@ -70,8 +74,38 @@ export function Composer({
         setMenu(false)
         onSend()
       }}
-      className="relative z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition"
+      onDragEnter={(event) => {
+        if (!hasFiles(event)) return
+        event.preventDefault()
+        if (registered) setDragDepth((depth) => depth + 1)
+      }}
+      onDragOver={(event) => {
+        if (hasFiles(event)) event.preventDefault()
+      }}
+      onDragLeave={(event) => {
+        if (!hasFiles(event) || !registered) return
+        setDragDepth((depth) => Math.max(0, depth - 1))
+      }}
+      onDrop={(event) => {
+        if (!hasFiles(event)) return
+        event.preventDefault()
+        setDragDepth(0)
+        const [file] = Array.from(event.dataTransfer.files)
+        if (registered && file) onAttachFile(file)
+      }}
+      className={`relative z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition ${
+        dragDepth > 0 ? "ring-2 ring-inset ring-amber-300" : ""
+      }`}
     >
+      {dragDepth > 0 && (
+        <div
+          id="attachment-drop-target"
+          aria-live="polite"
+          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-zinc-950/85 text-sm font-semibold text-amber-100"
+        >
+          Отпусти файл, чтобы прикрепить
+        </div>
+      )}
       {error && (
         <p id="message-error" role="alert" className="mb-2 text-sm text-red-300">
           {error}
@@ -93,16 +127,16 @@ export function Composer({
               <button
                 key={emoji.id}
                 type="button"
-                data-emoji-code={emoji.code}
-                aria-label={`Вставить ${emoji.code}`}
+                data-emoji-code={emojiToken(emoji.code)}
+                aria-label={`Вставить ${emojiToken(emoji.code)}`}
                 onClick={() => {
-                  insert(emoji.code)
+                  insert(emojiToken(emoji.code))
                 }}
                 className="flex size-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-amber-300/15 hover:scale-110"
               >
                 <img
                   src={`/emojis/${String(emoji.id)}`}
-                  alt={emoji.code}
+                  alt={emojiToken(emoji.code)}
                   width={emoji.width}
                   height={emoji.height}
                   className="h-auto w-auto max-h-8 max-w-8 object-contain"

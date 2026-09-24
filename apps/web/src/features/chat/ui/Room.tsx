@@ -17,7 +17,7 @@ import { useEmojis } from "../model/useEmojis"
 import { OnlineList } from "./OnlineList"
 import { MessageFeed } from "./MessageFeed"
 import { useRoom } from "../model/useRoom"
-import { timelineMessages } from "../model/timeline"
+import { feedTimeline, timelineMessages } from "../model/timeline"
 export function Room({
   onProfile,
   csrf,
@@ -29,6 +29,7 @@ export function Room({
 }) {
   const { state, connection } = useRoom()
   const publishedMessages = timelineMessages(state.timeline)
+  const feedEntries = feedTimeline(state.timeline, state.ephemeral)
   const [draft, setDraft] = useState("")
   const settings = usePreferences(state.snapshot.preferences, connection)
   const emoji = useEmojis()
@@ -98,7 +99,7 @@ export function Room({
                 </div>
               )}
               <MessageFeed
-                entries={state.timeline.filter((entry) => command.isVisible(entry.message))}
+                entries={feedEntries.filter((entry) => command.isVisible(entry.message))}
                 frame={state.snapshot.preferences.appearance.message_frame}
                 onRetry={(id) => {
                   connection.retryMessage(id)
@@ -210,6 +211,9 @@ export function Room({
             }}
             onAttach={() => {
               forms.open("attachment")
+            }}
+            onAttachFile={(file) => {
+              void media.share(file).catch(() => undefined)
             }}
           />
         )}

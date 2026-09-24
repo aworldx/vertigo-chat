@@ -29,10 +29,10 @@ type Moderation struct {
 	TagIDs               []int64
 }
 
-var validCode = regexp.MustCompile(`^:[\p{Ll}\p{Nd}_]{2,30}:$`)
+var validCode = regexp.MustCompile(`^-[\p{Ll}\p{Nd}_]{2,30}-$`)
 
 func NormalizeCode(s string) string {
-	return ":" + strings.ToLower(strings.Trim(strings.TrimSpace(s), ":")) + ":"
+	return "-" + strings.ToLower(strings.Trim(strings.TrimSpace(s), ":-")) + "-"
 }
 func NormalizeModeration(v Moderation) (Moderation, error) {
 	v.Code = NormalizeCode(v.Code)

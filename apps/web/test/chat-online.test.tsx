@@ -16,6 +16,7 @@ mock.method(dom.window.HTMLMediaElement.prototype, "pause", () => undefined)
 const React = (await import("react")).default
 const { render, fireEvent, cleanup } = await import("@testing-library/react")
 const { OnlineList } = await import("../src/features/chat/ui/OnlineList")
+const { Composer } = await import("../src/features/chat/ui/Composer")
 afterEach(cleanup)
 const guest: Peer = {
   bot: false,
@@ -73,4 +74,35 @@ test("presence is exclusive, local disconnect affects only self, reconnect retai
   view.rerender(<OnlineList {...props} peers={[guest]} reconnecting={false} />)
   assert.equal(document.getElementById("online-count")?.textContent, "1")
   assert.equal(document.getElementById("online-row-member-session"), null)
+})
+
+test("dropping a file on the composer starts attachment delivery", () => {
+  const attached: File[] = []
+  const view = render(
+    <Composer
+      draft=""
+      onDraft={() => undefined}
+      input={React.createRef<HTMLInputElement>()}
+      onSend={() => undefined}
+      onLeave={() => undefined}
+      registered
+      error=""
+      emojis={[]}
+      emojiError=""
+      onEmojiRetry={() => undefined}
+      onUploadEmoji={() => undefined}
+      onAttach={() => undefined}
+      onAttachFile={(file) => {
+        attached.push(file)
+      }}
+    />,
+  )
+  const file = new dom.window.File(["image"], "photo.png", { type: "image/png" })
+  const form = view.container.querySelector("#message-form")
+  assert.ok(form)
+  fireEvent.dragEnter(form, { dataTransfer: { types: ["Files"], files: [file] } })
+  assert.ok(view.container.querySelector("#attachment-drop-target"))
+  fireEvent.drop(form, { dataTransfer: { types: ["Files"], files: [file] } })
+  assert.deepEqual(attached, [file])
+  assert.equal(view.container.querySelector("#attachment-drop-target"), null)
 })

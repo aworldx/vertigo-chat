@@ -18,7 +18,8 @@ export function addTimelineEntry(entries: TimelineEntry[], entry: TimelineEntry)
 }
 
 export function publishTimeline(entries: TimelineEntry[], messages: Message[]) {
-  let next = entries
+  const published = new Set(messages.map(keyFor))
+  let next = entries.filter((entry) => entry.delivery !== "published" || published.has(entry.key))
   for (const message of messages) {
     const key = keyFor(message)
     next = addTimelineEntry(next, { key, message, delivery: "published" })
@@ -34,4 +35,16 @@ export function timelineMessages(entries: TimelineEntry[]) {
   return entries
     .filter((entry) => entry.delivery === "confirmed" || entry.delivery === "published")
     .map((entry) => entry.message)
+}
+
+export function feedTimeline(entries: TimelineEntry[], ephemeral: Message[]) {
+  return ephemeral.reduce(
+    (next, message) =>
+      addTimelineEntry(next, {
+        key: `ephemeral:${message.client_id || String(message.id)}`,
+        message,
+        delivery: "published",
+      }),
+    entries,
+  )
 }

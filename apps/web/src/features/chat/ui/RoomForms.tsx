@@ -59,7 +59,7 @@ export function RoomForms({
                   </p>
                   <label className="block text-sm">
                     Код
-                    <input name="code" placeholder=":smile:" required maxLength={32} className={input} />
+                    <input name="code" placeholder="-smile-" required maxLength={32} className={input} />
                   </label>
                   <label className="block text-sm">
                     Файл

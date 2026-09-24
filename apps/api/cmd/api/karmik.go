@@ -56,7 +56,10 @@ func runKarmik(ctx context.Context, pool *pgxpool.Pool) {
 	limit, _ := strconv.Atoi(env("OPENAI_BOT_DAILY_TOKEN_LIMIT", "120000"))
 	offset := botUTCOffset()
 	percent, _ := strconv.Atoi(env("OPENAI_BOT_TOKEN_WARNING_PERCENT", "90"))
-	provider := karmikapi.NewProvider(os.Getenv("OPENAI_API_KEY"), env("OPENAI_KARMIK_MODEL", "gpt-5.4-nano"))
+	provider := karmikapi.NewProvider(
+		os.Getenv("OPENAI_API_KEY"),
+		env("OPENAI_KARMIK_MODEL", env("OPENAI_BOT_MODEL", "gpt-5.6-terra")),
+	)
 	provider.Client.Timeout = botTimeout()
 	service := karmik.NewService(karmikStore{pool}, provider, karmikBudget{botpg.NewStore(pool, limit, offset).WithWarningPercent(percent)})
 	timer := time.NewTimer(2 * time.Second)
@@ -71,7 +74,7 @@ func runKarmik(ctx context.Context, pool *pgxpool.Pool) {
 			next, err := reviewKarmik(review, pool, service, cursor)
 			done()
 			if err != nil && ctx.Err() == nil {
-				slog.Info("karmik review unavailable")
+				slog.Info("karmik review unavailable", "error", err)
 			}
 			cursor = next
 			timer.Reset(180 * time.Second)

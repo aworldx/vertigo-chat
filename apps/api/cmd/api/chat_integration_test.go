@@ -74,6 +74,7 @@ func TestPublicChatPostgres(t *testing.T) {
 	t.Run("recent visit history and non-UTC cutoff", fixture.visitHistory)
 	t.Run("guest protection and atomic registration", fixture.registration)
 	t.Run("socket resume fencing outbox and terminal leave", fixture.socket)
+	t.Run("private delivery and unavailable recipient", fixture.private)
 	t.Run("presence classification reconnect and departure", fixture.presence)
 	t.Run("guest upgrade preserves visit and rotates credentials", fixture.upgrade)
 	t.Run("shared bot budget and summary", fixture.botBudget)
@@ -157,9 +158,13 @@ type serverFrame struct {
 	Snapshot struct{ Peers []serverPeer }
 
 	Type       string
+	ClientID   string `json:"client_id"`
 	Generation int
 	Message    struct {
 		ID         int64
+		ClientID   string `json:"client_id"`
+		Kind       string
+		Recipient  string
 		Body       string
 		SentAt     time.Time `json:"sent_at"`
 		Appearance struct {
@@ -234,6 +239,33 @@ func (f *chatFixture) socket(t *testing.T) {
 	}
 	if _, err := lifecycle.Restore(context.Background(), resume.SessionID, resume.IdentityKey, resume.Secret, time.Now()); err == nil {
 		t.Fatal("ended session restored")
+	}
+}
+
+func (f *chatFixture) private(t *testing.T) {
+	otherJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receiver := chatFixture{pool: f.pool, server: f.server, client: &http.Client{Jar: otherJar, Timeout: 5 * time.Second}}
+	senderToken := f.post(t, "/api/v1/chat/enter", `{"nickname":"private-sender","password":""}`, 200)
+	receiverToken := receiver.post(t, "/api/v1/chat/enter", `{"nickname":"private-receiver","password":""}`, 200)
+	sender, _ := f.connect(t, senderToken)
+	target, _ := receiver.connect(t, receiverToken)
+
+	f.send(t, sender, map[string]string{"type": "send", "client_id": "private-delivery", "body": "^private-receiver, only receiver"})
+	ack := f.frame(t, sender, "ack")
+	if ack.Message.Kind != "private" || ack.Message.Recipient != "private-receiver" || ack.Message.Body != "only receiver" {
+		t.Fatalf("private ack = %+v", ack.Message)
+	}
+	delivered := receiver.frame(t, target, "private")
+	if delivered.Message.ClientID != "private-delivery" || delivered.Message.Body != "only receiver" || delivered.Message.Recipient != "private-receiver" {
+		t.Fatalf("private delivery = %+v", delivered.Message)
+	}
+
+	f.send(t, sender, map[string]string{"type": "send", "client_id": "private-unavailable", "body": "^offline-user, not delivered"})
+	if frame := f.frame(t, sender, "error"); frame.ClientID != "private-unavailable" {
+		t.Fatalf("private error lost client id: %+v", frame)
 	}
 }
 

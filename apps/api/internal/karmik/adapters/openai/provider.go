@@ -24,7 +24,43 @@ func (p Provider) Assess(ctx context.Context, input domain.Input) ([]domain.Asse
 		return nil, domain.Usage{}, domain.ErrInvalid
 	}
 	data, _ := json.Marshal(input)
-	payload, err := json.Marshal(map[string]any{"model": p.Model, "instructions": domain.Instructions, "input": []map[string]string{{"role": "user", "content": string(data)}}, "max_output_tokens": 1536, "reasoning": map[string]string{"effort": "none"}, "text": map[string]any{"format": map[string]string{"type": "json_object"}, "verbosity": "low"}, "store": false})
+	payload, err := json.Marshal(map[string]any{
+		"model":             p.Model,
+		"instructions":      domain.Instructions,
+		"input":             []map[string]string{{"role": "user", "content": string(data)}},
+		"max_output_tokens": 1536,
+		"reasoning":         map[string]string{"effort": "none"},
+		"text": map[string]any{
+			"format": map[string]any{
+				"type":   "json_schema",
+				"name":   "karmik_assessment",
+				"strict": true,
+				"schema": map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"required":             []string{"assessments"},
+					"properties": map[string]any{
+						"assessments": map[string]any{
+							"type":     "array",
+							"maxItems": 12,
+							"items": map[string]any{
+								"type":                 "object",
+								"additionalProperties": false,
+								"required":             []string{"message_id", "verdict", "reason"},
+								"properties": map[string]any{
+									"message_id": map[string]any{"type": "integer"},
+									"verdict":    map[string]any{"type": "string", "enum": []string{"good", "bad", "neutral"}},
+									"reason":     map[string]any{"type": "string", "minLength": 1, "maxLength": 300},
+								},
+							},
+						},
+					},
+				},
+			},
+			"verbosity": "low",
+		},
+		"store": false,
+	})
 	if err != nil {
 		return nil, domain.Usage{}, err
 	}

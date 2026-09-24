@@ -1,6 +1,21 @@
 import type { components } from "../../../shared/generated/chat"
 import { record } from "./entrance"
 export type Emoji = components["schemas"]["Emoji"]
+
+export function emojiToken(code: string): string {
+  return `-${code
+    .trim()
+    .replace(/^[:-]+|[:-]+$/gu, "")
+    .toLocaleLowerCase()}-`
+}
+
+export function legacyEmojiToken(code: string): string {
+  return `:${code
+    .trim()
+    .replace(/^[:-]+|[:-]+$/gu, "")
+    .toLocaleLowerCase()}:`
+}
+
 export async function getEmojis(signal: AbortSignal): Promise<Emoji[]> {
   const response = await fetch("/api/v1/chat/emojis", { signal, credentials: "same-origin" })
   const body: unknown = await response.json()

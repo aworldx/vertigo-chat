@@ -7,8 +7,12 @@ import (
 
 func TestModerationNormalization(t *testing.T) {
 	v, err := NormalizeModeration(Moderation{Code: " КОТ ", Status: "approved"})
-	if err != nil || v.Code != ":кот:" {
+	if err != nil || v.Code != "-кот-" {
 		t.Fatal(v, err)
+	}
+	legacy, err := NormalizeModeration(Moderation{Code: ":КОТ:", Status: "approved"})
+	if err != nil || legacy.Code != "-кот-" {
+		t.Fatal(legacy, err)
 	}
 	if _, err := NormalizeModeration(Moderation{Code: "кот", Status: "admin"}); err != ErrInvalid {
 		t.Fatal(err)

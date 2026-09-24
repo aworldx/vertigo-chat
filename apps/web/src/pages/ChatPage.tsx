@@ -15,7 +15,9 @@ export function ChatPage() {
         setProfile({ nickname, editable })
       }}
     >
-      {profile && <RoomProfileViewer {...profile} onDismiss={closeProfile} />}
+      {profile && (
+        <RoomProfileViewer {...profile} csrfToken={account.session?.csrf_token ?? ""} onDismiss={closeProfile} />
+      )}
     </Room>
   )
 }

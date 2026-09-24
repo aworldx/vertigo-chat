@@ -22,6 +22,7 @@ dom.window.HTMLDialogElement.prototype.close = function () {
 const React = (await import("react")).default
 const { render, fireEvent, screen, waitFor, cleanup, act } = await import("@testing-library/react")
 const { default: ProfilesApp } = await import("../src/features/profiles")
+const { RoomProfileViewer } = await import("../src/features/profiles")
 const originalFetch = globalThis.fetch
 const profile = (nickname: string): Profile => ({
   nickname,
@@ -188,4 +189,14 @@ test("edits the authenticated account through the narrow profile payload", async
   assert.deepEqual(JSON.parse(patch.body), {
     profile: { name: "Мария", birth_date: "1994-05-18", gender: "female", about: "О себе" },
   })
+})
+
+test("edits the current chat profile in its existing modal", async () => {
+  mockFetch((path) => response(path.includes("/chat/profiles/owner") ? { data: profile("owner") } : catalogue([])))
+  render(<RoomProfileViewer nickname="owner" editable csrfToken="csrf" onDismiss={() => undefined} />)
+  const edit = await screen.findByRole("button", { name: "Редактировать анкету" })
+  fireEvent.click(edit)
+  await screen.findByRole("heading", { name: "Редактирование" })
+  assert.equal(window.location.pathname, "/profiles/react")
+  assert.ok(document.getElementById("profile-modal"))
 })

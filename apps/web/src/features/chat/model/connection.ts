@@ -251,6 +251,7 @@ export class ChatConnection {
           saveOutbox(outbox)
           this.update({
             outbox,
+            timeline: this.state.timeline.filter((entry) => entry.message.client_id !== frame.message.client_id),
             ephemeral: [...this.state.ephemeral.filter((m) => m.id !== frame.message.id), frame.message].slice(-100),
           })
           break
@@ -317,7 +318,18 @@ export class ChatConnection {
     saveOutbox(outbox)
     this.update({ outbox, timeline: setTimelineDelivery(this.state.timeline, item.client_id, "sending") })
     const sending = outbox.find((pending) => pending.client_id === item.client_id)
-    if (!sending || !this.write({ type: "send", ...sending })) return
+    if (!sending) return
+    if (!this.write({ type: "send", ...sending })) {
+      const retrying = this.state.outbox.map((pending) =>
+        pending.client_id === item.client_id ? { ...pending, state: "retrying" as const } : pending,
+      )
+      saveOutbox(retrying)
+      this.update({
+        outbox: retrying,
+        timeline: setTimelineDelivery(this.state.timeline, item.client_id, "retrying"),
+      })
+      return
+    }
     this.clearAcknowledgement(item.client_id)
     this.acknowledgements.set(
       item.client_id,
