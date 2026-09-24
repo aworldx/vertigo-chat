@@ -62,38 +62,63 @@ async function description(pc: RTCPeerConnection) {
   return pc.localDescription?.sdp ?? ""
 }
 export class MediaTransfer {
-  private streams = new Set<AudioStream>()
-  private stream(type: string) {
+  private stopped = false
+  private streams = new Map<string, AudioStream>()
+  private stream(id: string, type: string) {
     const value = createAudioStream(type)
-    if (value) this.streams.add(value)
+    if (value) this.streams.set(id, value)
     return value
   }
   private stopStream(value: AudioStream | null) {
     if (value) {
       value.abort()
-      this.streams.delete(value)
+      for (const [id, stream] of this.streams) if (stream === value) this.streams.delete(id)
     }
   }
   private files = new Map<string, { file: File; timer: ReturnType<typeof setTimeout> }>()
   private cards = new Map<string, SharedFile>()
   private transfers = new Map<string, Transfer>()
   private peers = new Map<string, Peer>()
-  private acknowledgements = new Map<string, () => void>()
+  private acknowledgements = new Map<string, (error?: Error) => void>()
   private urls = new Set<string>()
   constructor(
     private signal: (target: string, body: string) => boolean,
     private received: (file: SharedFile) => void,
     private fail: (message: string) => void,
+    private removed: (id: string) => void = () => {},
   ) {}
   private emit(file: SharedFile) {
+    if (this.stopped) return
     this.cards.set(file.id, file)
     this.received(file)
+    // Bound both the visible history and the bytes retained by File/Blob/MSE.
+    let bytes = [...this.cards.values()].reduce((sum, card) => sum + (card.status === "waiting" ? 0 : card.size), 0)
+    for (const [id, card] of this.cards) {
+      if (this.cards.size <= 20 && bytes <= 128 * 1024 * 1024) break
+      bytes -= card.status === "waiting" ? 0 : card.size
+      this.discard(id)
+    }
+  }
+  private discard(id: string) {
+    const card = this.cards.get(id)
+    if (card?.url && this.urls.delete(card.url)) URL.revokeObjectURL(card.url)
+    this.stopStream(this.streams.get(id) ?? null)
+    clearTimeout(this.files.get(id)?.timer)
+    clearTimeout(this.transfers.get(id)?.timer)
+    this.files.delete(id)
+    this.transfers.delete(id)
+    for (const [key, peer] of this.peers) if (peer.id === id) this.close(key)
+    for (const [key, finish] of this.acknowledgements)
+      if (key.startsWith(`${id}:`)) finish(new Error("Файл больше недоступен."))
+    this.cards.delete(id)
+    this.removed(id)
   }
   private sendSignal(target: string, value: object) {
-    if (!this.signal(target, JSON.stringify(value))) throw new Error("Связь прервалась.")
+    if (this.stopped || !this.signal(target, JSON.stringify(value))) throw new Error("Связь прервалась.")
   }
   stop() {
-    for (const stream of this.streams) stream.abort()
+    this.stopped = true
+    for (const stream of this.streams.values()) stream.abort()
     this.streams.clear()
     for (const { timer } of this.files.values()) clearTimeout(timer)
     for (const { timer } of this.transfers.values()) clearTimeout(timer)
@@ -101,8 +126,9 @@ export class MediaTransfer {
     for (const url of this.urls) URL.revokeObjectURL(url)
     this.urls.clear()
     this.files.clear()
+    this.cards.clear()
     this.transfers.clear()
-    this.acknowledgements.clear()
+    for (const finish of this.acknowledgements.values()) finish(new Error("Передача файлов завершена."))
   }
   private close(key: string) {
     const p = this.peers.get(key)
@@ -114,6 +140,7 @@ export class MediaTransfer {
   }
   async share(file: File, author: string) {
     file = await normalizeFile(file)
+    if (this.stopped) throw new Error("Передача файлов завершена.")
     if (!valid(file.type, file.size))
       throw new Error("Изображение: JPG, PNG или WebP до 5 МБ. Аудиофайл: MP3, OGG, WAV, M4A или AAC до 50 МБ.")
     if (Array.from(file.name).length > 120) throw new Error("Название файла должно быть не длиннее 120 символов.")
@@ -127,7 +154,15 @@ export class MediaTransfer {
       15 * 60 * 1000,
     )
     this.files.set(id, { file, timer })
-    this.sendSignal("", { id, type: "announce", name: file.name, mime: file.type, size: file.size })
+    try {
+      this.sendSignal("", { id, type: "announce", name: file.name, mime: file.type, size: file.size })
+    } catch (error) {
+      this.urls.delete(url)
+      URL.revokeObjectURL(url)
+      clearTimeout(timer)
+      this.files.delete(id)
+      throw error
+    }
     this.emit({
       id,
       author,
@@ -146,7 +181,7 @@ export class MediaTransfer {
     const timer = setTimeout(() => {
       this.fallback(id)
     }, 20000)
-    const stream = this.stream(file.type)
+    const stream = this.stream(id, file.type)
     const loading = { ...file, url: stream?.url ?? "", status: "loading" as const, error: "", progress: 0 }
     this.transfers.set(id, { stream, sender: file.author, file: loading, chunks: [], size: 0, timer, relay: false })
     this.emit(loading)
@@ -170,7 +205,7 @@ export class MediaTransfer {
     const t = this.transfers.get(id)
     if (!t || t.relay) return
     this.stopStream(t.stream)
-    t.stream = this.stream(t.file.type)
+    t.stream = this.stream(id, t.file.type)
     t.file = { ...t.file, url: t.stream?.url ?? "" }
     t.relay = true
     t.chunks = []
@@ -203,6 +238,7 @@ export class MediaTransfer {
     return pc
   }
   async accept(sender: string, raw: string) {
+    if (this.stopped) return
     const v: unknown = JSON.parse(raw)
     if (!record(v) || typeof v.id !== "string" || typeof v.type !== "string") return
     const id = v.id
@@ -366,12 +402,18 @@ export class MediaTransfer {
           this.acknowledgements.delete(key)
           reject(new Error("Передача остановилась."))
         }, 30000)
-        this.acknowledgements.set(key, () => {
+        const finish = (error?: Error) => {
           clearTimeout(timer)
           this.acknowledgements.delete(key)
-          resolve()
-        })
-        this.sendSignal(sender, { id, type: "relay_chunk", index, total, data })
+          if (error) reject(error)
+          else resolve()
+        }
+        this.acknowledgements.set(key, finish)
+        try {
+          this.sendSignal(sender, { id, type: "relay_chunk", index, total, data })
+        } catch (error) {
+          finish(error instanceof Error ? error : new Error("Связь прервалась."))
+        }
       })
     }
   }

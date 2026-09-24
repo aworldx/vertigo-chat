@@ -1,3 +1,4 @@
+import { launchBrowser } from "./coverage"
 import { technologyArticle, articlesWithoutJS } from "./community-articles"
 import { uploadAndModerate, failureRecovery } from "./community-mutations"
 import {
@@ -10,7 +11,7 @@ import { galleryFlows, libraryFlows, adminFlows } from "./community-flows"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
-import { chromium, expect, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 import { PNG } from "pngjs"
 import { writeDiff } from "./compare-screenshots"
 const [origin, legacy] = process.argv.slice(2)
@@ -45,7 +46,7 @@ function fixtures(populated: boolean) {
       `INSERT INTO gallery_photos(user_id,caption,image,content_type,inserted_at,updated_at) SELECT id,'Осенний вечер',decode('${bytes.toString("hex")}','hex'),'image/png','2026-09-01','2026-09-01' FROM registered_users WHERE nickname IN ('fixture01','fixture02'); INSERT INTO library_articles(user_id,title,body,series,part_number,inserted_at,updated_at) SELECT id,'Первая история','${"Тихий вечер в читальном зале. ".repeat(20)}','Хроники Vertigo',1,'2026-09-01','2026-09-01' FROM registered_users WHERE nickname='fixture01'; INSERT INTO library_articles(user_id,title,body,series,part_number,inserted_at,updated_at) SELECT id,'Продолжение','Короткая история.','Хроники Vertigo',2,'2026-09-02','2026-09-02' FROM registered_users WHERE nickname='fixture01';`,
     )
 }
-const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] })
+const browser = await launchBrowser({ headless: true, args: ["--disable-gpu"] })
 const results: { width: number; scenario: string; pixels: number }[] = []
 async function ready(page: Page, base: string, path: string) {
   await page.goto(base + path)

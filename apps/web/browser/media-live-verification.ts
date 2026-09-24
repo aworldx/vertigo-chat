@@ -1,8 +1,9 @@
+import { launchBrowser } from "./coverage"
 import assert from "node:assert/strict"
-import { chromium, expect } from "@playwright/test"
+import { expect } from "@playwright/test"
 const origin = process.argv[2]
 assert.ok(origin)
-const browser = await chromium.launch({ headless: true })
+const browser = await launchBrowser({ headless: true })
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()

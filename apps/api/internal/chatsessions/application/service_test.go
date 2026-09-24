@@ -111,3 +111,41 @@ func TestPolicyKeepsConfiguredGraceWindows(t *testing.T) {
 		t.Fatalf("hidden cutoff = %s, want %s", store.hiddenCutoff, want)
 	}
 }
+
+type reapingStore struct {
+	lifecycleStoreStub
+	fail     string
+	endedIDs []string
+}
+
+func (s *reapingStore) MarkStale(context.Context, time.Time, time.Duration, time.Duration, time.Duration) ([]domain.Session, error) {
+	if s.fail == "mark" {
+		return nil, domain.ErrInvalidSession
+	}
+	return nil, nil
+}
+func (s *reapingStore) Expired(context.Context, time.Time) ([]domain.Session, error) {
+	if s.fail == "list" {
+		return nil, domain.ErrInvalidSession
+	}
+	return []domain.Session{{ID: "session", IdentityKey: "guest:1", Generation: 4}}, nil
+}
+func (s *reapingStore) End(_ context.Context, id, identity string, generation int, _ time.Time) (domain.Session, error) {
+	if s.fail == "end" {
+		return domain.Session{}, domain.ErrInvalidSession
+	}
+	s.endedIDs = append(s.endedIDs, id)
+	return domain.Session{ID: id, IdentityKey: identity, Generation: generation, Status: domain.StatusEnded}, nil
+}
+func TestReaperEndsExpiredSessionsAndPropagatesFailures(t *testing.T) {
+	for _, fail := range []string{"", "mark", "list", "end"} {
+		store := &reapingStore{fail: fail}
+		err := NewService(store).Reap(context.Background(), time.Now())
+		if (err != nil) != (fail != "") {
+			t.Fatal(fail, err)
+		}
+		if fail == "" && (len(store.endedIDs) != 1 || store.endedIDs[0] != "session") {
+			t.Fatal(store.endedIDs)
+		}
+	}
+}

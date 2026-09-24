@@ -27,7 +27,7 @@ RUN npm run build
 # migration comparisons.
 FROM api-builder AS quality
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git shellcheck \
+  && apt-get install -y --no-install-recommends git shellcheck postgresql-client imagemagick \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=web-builder /usr/local /usr/local
 COPY --from=golangci/golangci-lint:v2.13.2 /usr/bin/golangci-lint /usr/local/bin/golangci-lint
@@ -35,6 +35,7 @@ COPY --from=hadolint/hadolint:v2.12.0 /bin/hadolint /usr/local/bin/hadolint
 WORKDIR /app
 COPY . .
 RUN npm --prefix apps/web ci \
+  && npm exec --prefix apps/web -- playwright install --with-deps chromium \
   && find /app/script -maxdepth 1 -type f ! -name '*.exs' ! -name '*.mjs' -exec shellcheck {} + \
   && hadolint --config /app/deploy/.hadolint.yaml /app/deploy/docker/Dockerfile \
   && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint /app/contracts/openapi/*.yaml

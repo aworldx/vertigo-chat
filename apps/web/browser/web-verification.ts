@@ -1,15 +1,16 @@
+import { launchBrowser } from "./coverage"
 import { posterRoundingOnly, writeDiff } from "./compare-screenshots"
 import { verifyFlow } from "./accounts-flow"
 import { landingScenarios, prepareLanding } from "./landing-comparison"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
-import { chromium, expect, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 
 const [origin, legacy] = process.argv.slice(2)
 assert.ok(origin && legacy)
 const output = "migration-results/go-web"
 await mkdir(output, { recursive: true })
-const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] })
+const browser = await launchBrowser({ headless: true, args: ["--disable-gpu"] })
 const viewports = [
   { name: "phone", width: 390, height: 844 },
   { name: "tablet", width: 768, height: 1024 },

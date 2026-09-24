@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chat/api/internal/observability"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -68,7 +69,7 @@ func TestPublicChatPostgres(t *testing.T) {
 		return chatshttp.EncodeResume(chatshttp.Resume{SessionID: result.Session.ID, IdentityKey: result.Session.IdentityKey, Secret: result.ResumeSecret})
 	}).WithUpgrade(upgradeChatAccount(pool)).Register(mux)
 	lifecycle := chats.NewService(chatspg.NewStore(pool), chatsessionsPolicy())
-	chatshttp.NewSocket(lifecycle, chatspg.NewStore(pool), rooms.NewService(roompg.NewStore(pool)), sendRoomMessage(pool), server.URL).WithExperience(roomExperience(pool)).Register(mux)
+	chatshttp.NewSocket(lifecycle, chatspg.NewStore(pool), rooms.NewService(roompg.NewStore(pool)), sendRoomMessage(pool), server.URL).WithExperience(roomExperience(pool, observability.NewMetrics())).Register(mux)
 	jar, _ := cookiejar.New(nil)
 	fixture := chatFixture{pool: pool, server: server, client: &http.Client{Jar: jar, Timeout: 5 * time.Second}}
 	t.Run("recent visit history and non-UTC cutoff", fixture.visitHistory)
@@ -80,6 +81,17 @@ func TestPublicChatPostgres(t *testing.T) {
 	t.Run("shared bot budget and summary", fixture.botBudget)
 	t.Run("chart ownership quotas votes and comments", fixture.chart)
 	t.Run("Karmik duplicate protection and two changes per day", fixture.karmikQuota)
+	t.Run("bot reply publication and provider backoff", fixture.botPublication)
+	t.Run("feedback minute and hourly limits", fixture.feedbackLimits)
+	t.Run("media persistence replay and generation fencing", fixture.mediaPersistence)
+	t.Run("Karmik review cursor and shared usage", fixture.karmikReview)
+	t.Run("registered account chat preferences", fixture.accountPreferences)
+	t.Run("cancelled requests cannot continue persistence", fixture.cancelledPersistence)
+	t.Run("remote gallery persistence and failure recovery", fixture.remoteGallery)
+	t.Run("only approved emoji image is public", fixture.publicEmojiImage)
+	t.Run("bot failed requests fallback and summary recovery", fixture.botFailureRecovery)
+	t.Run("session conflict rolls back visit", fixture.sessionStartRollback)
+	t.Run("profile media missing and remote storage", fixture.profileMediaBoundaries)
 }
 func (f *chatFixture) refresh(t *testing.T) {
 	t.Helper()

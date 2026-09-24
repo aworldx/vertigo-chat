@@ -48,6 +48,7 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	metrics := observability.NewMetrics()
+	configureBotMetrics(metrics, pool)
 	metrics.Register(mux, os.Getenv("METRICS_TOKEN"))
 	if directory := os.Getenv("WEB_ASSETS_DIR"); directory != "" {
 		if err := webdelivery.Register(mux, os.DirFS(directory), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")); err != nil {
@@ -103,7 +104,8 @@ func main() {
 	emojihttp.NewUploadHandler(emojis.NewUploader(emojipg.NewStore(pool), emojiimages.Inspector{}), auth.AccountIdentity).Register(mux)
 	profileshttp.NewMutationHandler(application.NewEditor(profiles), application.NewPhotoEditor(profiles), application.NewAccountCatalog(profiles), auth.AccountIdentity).Register(mux)
 	go pruneAccountSessions(ctx, accounts)
-	go runKarmik(ctx, pool)
+	go runKarmik(ctx, pool, metrics)
+	go runOpenAICosts(ctx, metrics)
 	chatsessionshttp.NewHistoryHandler(chatsessionsapplication.NewHistory(chatsessionspostgres.NewStore(pool))).Register(mux)
 	chatSessions := chatsessionsapplication.NewService(chatsessionspostgres.NewStore(pool), chatsessionsPolicy())
 	chatsessionshttp.NewHandler(
@@ -113,7 +115,7 @@ func main() {
 	entrancehttp.NewHandler(entranceapp.NewService(entranceWork(pool)), auth.AuthorizeMutation, auth.SetSessionCookie, func(result entranceapp.Result) string {
 		return chatsessionshttp.EncodeResume(chatsessionshttp.Resume{SessionID: result.Session.ID, IdentityKey: result.Session.IdentityKey, Secret: result.ResumeSecret})
 	}).WithUpgrade(upgradeChatAccount(pool)).Register(mux)
-	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).WithExperience(roomExperience(pool)).Register(mux)
+	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).WithExperience(roomExperience(pool, metrics)).Register(mux)
 	go reapChatSessions(ctx, chatSessions)
 	server := &http.Server{Addr: env("API_ADDR", "127.0.0.1:4020"), Handler: metrics.Wrap(mux), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {

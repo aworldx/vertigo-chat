@@ -16,8 +16,15 @@ quality:
   script:
     - docker build --file deploy/docker/Dockerfile --target quality --tag chat-quality:$CI_COMMIT_SHA .
     - docker compose -f deploy/compose.yaml --env-file deploy/quality.env config --quiet
+    - docker network create coverage
+    - docker run -d --name coverage-postgres --network coverage -e POSTGRES_USER=coverage -e POSTGRES_PASSWORD=coverage -e POSTGRES_DB=postgres postgres:17
+    - docker run --rm --network coverage -e COVERAGE_DATABASE_URL=postgresql://coverage:coverage@coverage-postgres/postgres --entrypoint /app/script/check-coverage chat-quality:$CI_COMMIT_SHA
     - docker run --rm --entrypoint /app/script/check-go chat-quality:$CI_COMMIT_SHA
     - docker run --rm --entrypoint sh chat-quality:$CI_COMMIT_SHA -c 'npm --prefix apps/web run typecheck && npm --prefix apps/web run lint && npm --prefix apps/web run format:check && npm --prefix apps/web test'
+
+  after_script:
+    - docker rm -f coverage-postgres || true
+    - docker network rm coverage || true
 
 build_production_image:
   stage: build

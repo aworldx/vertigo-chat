@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { expect, type Page } from "@playwright/test"
 export type Pair = {
+  legacyPhoenix?: boolean
   oldPage: Page
   newPage: Page
   origin: string
@@ -31,7 +32,8 @@ export async function galleryFlows(p: Pair) {
     [newPage, origin],
   ] as const) {
     await page.goto(base + "/account/login")
-    if (base === legacy) await page.addScriptTag({ url: base + "/assets/js/account_login.js" })
+    if (base === legacy && p.legacyPhoenix !== false)
+      await page.addScriptTag({ url: base + "/assets/js/account_login.js" })
     await page.locator("#react-account-nickname").fill("fixture01")
     await page.locator("#react-account-password").fill("secret123")
     await page.locator("#react-account-login-form button[type=submit]").click()
@@ -124,9 +126,11 @@ export async function libraryFlows(p: Pair) {
 export async function adminFlows(p: Pair) {
   const { oldPage, newPage, origin, legacy, compare, ready } = p
   await ready(oldPage, legacy, "/admin")
-  await oldPage.locator("#admin-login-nickname").fill("fixture01")
-  await oldPage.locator("#admin-login-password").fill("secret123")
-  await oldPage.locator("#admin-login-submit").click()
+  if (p.legacyPhoenix !== false) {
+    await oldPage.locator("#admin-login-nickname").fill("fixture01")
+    await oldPage.locator("#admin-login-password").fill("secret123")
+    await oldPage.locator("#admin-login-submit").click()
+  }
   await expect(oldPage.locator("#database")).toBeVisible()
   for (const [page, base] of [
     [oldPage, legacy],

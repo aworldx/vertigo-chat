@@ -24,7 +24,9 @@ export class SocketTransport {
   stop() {
     this.stopped = true
     clearTimeout(this.timer)
-    this.socket?.close()
+    const previous = this.socket
+    this.socket = null
+    previous?.close()
   }
 
   disconnect() {
@@ -54,20 +56,27 @@ export class SocketTransport {
 
   private connect() {
     if (this.stopped || !navigator.onLine) return
+    if (this.socket && this.socket.readyState < WebSocket.CLOSING) return
     const socket = new WebSocket(socketURL())
     this.socket = socket
     socket.onopen = () => {
+      if (this.stopped || this.socket !== socket) return
+      this.retry = 0
       this.send({ type: "resume", resume_token: this.token })
       this.events.opened()
     }
     socket.onmessage = (event: MessageEvent<unknown>) => {
+      if (this.stopped || this.socket !== socket) return
       if (typeof event.data !== "string") return
       const frame = decodeFrame(event.data)
       if (frame) this.events.frame(frame)
     }
     socket.onclose = (event) => {
       if (this.stopped || this.socket !== socket) return
+      this.socket = null
+      if (event.code === 1008) this.stopped = true
       this.events.closed(event.code)
+      if (this.stopped) return
       this.timer = setTimeout(
         () => {
           this.connect()

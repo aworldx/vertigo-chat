@@ -1,14 +1,15 @@
+import { launchBrowser } from "./coverage"
 import { verifyVisits } from "./visits-flow"
 import { readFileSync } from "node:fs"
 import { record } from "../src/features/chat/api/entrance"
 import assert from "node:assert/strict"
 import { verifyDeliveryStates } from "./delivery-status-verification"
 import { verifyLandingFlow } from "./landing-flow"
-import { chromium, expect, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 const targetOrigin = process.argv[2]
 assert.ok(targetOrigin)
 const origin: string = targetOrigin
-const browser = await chromium.launch({ headless: true, args: ["--disable-features=WebRtcHideLocalIpsWithMdns"] })
+const browser = await launchBrowser({ headless: true, args: ["--disable-features=WebRtcHideLocalIpsWithMdns"] })
 async function enter(page: Page, nickname: string, password = "") {
   await page.goto(`${origin}/`)
   await page.locator("#entrance-nickname").fill(nickname)

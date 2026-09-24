@@ -8,6 +8,7 @@ import (
 	karmikapi "chat/api/internal/karmik/adapters/openai"
 	karmikpg "chat/api/internal/karmik/adapters/postgres"
 	karmik "chat/api/internal/karmik/application"
+	"chat/api/internal/observability"
 	roompg "chat/api/internal/rooms/adapters/postgres"
 	rooms "chat/api/internal/rooms/application"
 	"context"
@@ -52,7 +53,7 @@ func (b karmikBudget) Spend(ctx context.Context, fn func() (karmik.Usage, error)
 		return botdomain.Result{Input: usage.Input, Output: usage.Output, Total: usage.Total}, err
 	})
 }
-func runKarmik(ctx context.Context, pool *pgxpool.Pool) {
+func runKarmik(ctx context.Context, pool *pgxpool.Pool, metrics *observability.Metrics) {
 	limit, _ := strconv.Atoi(env("OPENAI_BOT_DAILY_TOKEN_LIMIT", "120000"))
 	offset := botUTCOffset()
 	percent, _ := strconv.Atoi(env("OPENAI_BOT_TOKEN_WARNING_PERCENT", "90"))
@@ -61,6 +62,8 @@ func runKarmik(ctx context.Context, pool *pgxpool.Pool) {
 		env("OPENAI_KARMIK_MODEL", env("OPENAI_BOT_MODEL", "gpt-5.6-terra")),
 	)
 	provider.Client.Timeout = botTimeout()
+	provider.Observe = metrics.OpenAIObserver("karmik")
+	provider.ObserveHeaders = metrics.OpenAIHeaders("karmik")
 	service := karmik.NewService(karmikStore{pool}, provider, karmikBudget{botpg.NewStore(pool, limit, offset).WithWarningPercent(percent)})
 	timer := time.NewTimer(2 * time.Second)
 	defer timer.Stop()

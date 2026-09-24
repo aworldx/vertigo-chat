@@ -46,8 +46,12 @@ done
 npm --prefix "$repository_root/apps/web" run build
 cp -R "$repository_root/apps/web/dist" "$work_dir/web"
 cd "$repository_root/apps/api"
-DATABASE_URL="$go_url" "$go_command" run ./cmd/migrate
-"$go_command" build -o "$work_dir/api" ./cmd/api
+DATABASE_URL="$go_url" "$go_command" run -buildvcs=false ./cmd/migrate
+if [ -n "${GOCOVERDIR:-}" ]; then
+  "$go_command" build -buildvcs=false -cover -coverpkg=./... -o "$work_dir/api" ./cmd/api
+else
+  "$go_command" build -buildvcs=false -o "$work_dir/api" ./cmd/api
+fi
 DATABASE_URL="$go_url" API_ADDR="127.0.0.1:$go_port" API_PUBLIC_ORIGIN="$go_origin" WEB_ASSETS_DIR="$work_dir/web" "$work_dir/api" > "$work_dir/go.log" 2>&1 &
 api_pid=$!
 cd "$legacy_root/apps/phoenix"

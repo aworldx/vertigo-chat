@@ -60,3 +60,14 @@ func (s Store) Available(ctx context.Context) bool {
 	err := s.pool.QueryRow(ctx, `SELECT COALESCE((SELECT total_tokens FROM bot_daily_usages WHERE usage_date=$1),0)`, date).Scan(&total)
 	return err == nil && total < s.threshold()
 }
+
+// ReadBudget uses the same ledger, day boundary and stop threshold as Spend and Exchange.
+func (s Store) ReadBudget(ctx context.Context, now time.Time) (domain.Budget, error) {
+	date := now.UTC().Add(time.Duration(s.offset) * time.Minute).Format("2006-01-02")
+	var used int
+	err := s.pool.QueryRow(ctx, `SELECT COALESCE((SELECT total_tokens FROM bot_daily_usages WHERE usage_date=$1),0)`, date).Scan(&used)
+	if err != nil {
+		return domain.Budget{}, err
+	}
+	return domain.NewBudget(s.limit, used, s.threshold()), nil
+}

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"testing"
 
 	"chat/api/internal/profiles/application"
@@ -153,5 +155,93 @@ func TestMutationClearsExplicitNullAndRejectsCallerIdentity(t *testing.T) {
 	mux.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/v1/account/profile", bytes.NewBufferString(`{"user_id":8,"profile":{"name":"other"}}`)))
 	if response.Code != http.StatusUnprocessableEntity {
 		t.Fatal("accepted caller-supplied identity")
+	}
+}
+
+func TestChatProfileIncludesKarmaAndHandlesMissingProfile(t *testing.T) {
+	mux := http.NewServeMux()
+	NewHandler(application.NewCatalog(catalogueStub{})).Register(mux)
+	for _, tc := range []struct {
+		nickname string
+		status   int
+	}{{"owner", 200}, {"missing", 404}} {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/chat/profiles/"+tc.nickname, nil))
+		if w.Code != tc.status {
+			t.Fatal(w.Code, w.Body)
+		}
+		if tc.status == 200 && !bytes.Contains(w.Body.Bytes(), []byte(`"karma":0`)) {
+			t.Fatal(w.Body)
+		}
+	}
+}
+
+type failingUpdater struct{ err error }
+
+func (s failingUpdater) UpdateByUserID(context.Context, int64, domain.UpdateInput) (domain.Profile, error) {
+	return domain.Profile{}, s.err
+}
+func (s failingUpdater) UpdatePhotoByUserID(context.Context, int64, domain.PhotoInput) (domain.Profile, error) {
+	return domain.Profile{}, s.err
+}
+func (s failingUpdater) GetByUserID(context.Context, int64) (domain.Profile, error) {
+	return domain.Profile{}, s.err
+}
+func TestProfileMutationFailureContracts(t *testing.T) {
+	for _, tc := range []struct {
+		method, body string
+		identity     int
+		err          error
+		status       int
+	}{
+		{"PATCH", `{"profile":{}}`, 403, nil, 403}, {"PATCH", `{"profile":{}}`, 503, nil, 503},
+		{"PATCH", `{"profile":{}}`, 0, application.ErrNotFound, 404}, {"PATCH", `{"profile":{}}`, 0, errors.New("private database details"), 502},
+		{"GET", "", 0, application.ErrNotFound, 404},
+		{"PATCH", `{"profile":{"name":false}}`, 0, nil, 422}, {"PATCH", `{"profile":{"birth_date":42}}`, 0, nil, 422}, {"PATCH", `{"profile":{"gender":[]}}`, 0, nil, 422}, {"PATCH", `{"profile":{"about":{}}}`, 0, nil, 422}, {"PATCH", `{} {}`, 0, nil, 422},
+		{"PATCH", `{"profile":{"birth_date":"not a date"}}`, 0, nil, 422},
+	} {
+		t.Run(tc.method+tc.body, func(t *testing.T) {
+			store := failingUpdater{tc.err}
+			mux := http.NewServeMux()
+			NewMutationHandler(application.NewEditor(store), application.NewPhotoEditor(store), application.NewAccountCatalog(store), func(*http.Request, bool) (int64, int) { return 1, tc.identity }).Register(mux)
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, httptest.NewRequest(tc.method, "/api/v1/account/profile", bytes.NewBufferString(tc.body)))
+			if w.Code != tc.status || bytes.Contains(w.Body.Bytes(), []byte("private database details")) {
+				t.Fatal(w.Code, w.Body)
+			}
+		})
+	}
+}
+
+func TestPhotoUploadReturnsDistinctValidationMissingAndStorageErrors(t *testing.T) {
+	for _, tc := range []struct {
+		err    error
+		status int
+	}{{application.ErrNotFound, 404}, {application.ErrInvalidPhoto, 422}, {errors.New("storage offline"), 502}} {
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		header := textproto.MIMEHeader{}
+		header.Set("Content-Disposition", `form-data; name="photo"; filename="photo.png"`)
+		header.Set("Content-Type", "image/png")
+		file, err := writer.CreatePart(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := file.Write([]byte("\x89PNG\r\n\x1a\n")); err != nil {
+			t.Fatal(err)
+		}
+		if err := writer.Close(); err != nil {
+			t.Fatal(err)
+		}
+		store := failingUpdater{tc.err}
+		mux := http.NewServeMux()
+		NewMutationHandler(application.NewEditor(store), application.NewPhotoEditor(store), application.NewAccountCatalog(store), func(*http.Request, bool) (int64, int) { return 1, 0 }).Register(mux)
+		r := httptest.NewRequest("PUT", "/api/v1/account/profile/photo", &body)
+		r.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, r)
+		if w.Code != tc.status {
+			t.Fatal(w.Code, w.Body)
+		}
 	}
 }

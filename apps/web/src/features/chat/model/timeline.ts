@@ -7,28 +7,41 @@ export type TimelineEntry = {
   message: Message
 }
 
-function keyFor(message: Message) {
-  return message.client_id ? `client:${message.client_id}` : `message:${String(message.id)}`
+export function timelineKey(message: Pick<Message, "id" | "client_id" | "author">) {
+  return message.id > 0
+    ? `message:${String(message.id)}`
+    : `pending:${JSON.stringify([message.author, message.client_id])}`
 }
 
 export function addTimelineEntry(entries: TimelineEntry[], entry: TimelineEntry) {
-  return [...entries.filter((current) => current.key !== entry.key), entry].sort(
+  const retained = entries.filter((current) => {
+    if (current.key === entry.key) return false
+    return !(
+      entry.message.id > 0 &&
+      current.message.id === 0 &&
+      current.message.author === entry.message.author &&
+      current.message.client_id === entry.message.client_id
+    )
+  })
+  return [...retained, entry].sort(
     (left, right) => Date.parse(left.message.sent_at) - Date.parse(right.message.sent_at),
   )
 }
 
 export function publishTimeline(entries: TimelineEntry[], messages: Message[]) {
-  const published = new Set(messages.map(keyFor))
+  const published = new Set(messages.map(timelineKey))
   let next = entries.filter((entry) => entry.delivery !== "published" || published.has(entry.key))
   for (const message of messages) {
-    const key = keyFor(message)
+    const key = timelineKey(message)
     next = addTimelineEntry(next, { key, message, delivery: "published" })
   }
   return next
 }
 
 export function setTimelineDelivery(entries: TimelineEntry[], clientID: string, delivery: DeliveryState) {
-  return entries.map((entry) => (entry.message.client_id === clientID ? { ...entry, delivery } : entry))
+  return entries.map((entry) =>
+    entry.message.id === 0 && entry.message.client_id === clientID ? { ...entry, delivery } : entry,
+  )
 }
 
 export function timelineMessages(entries: TimelineEntry[]) {
@@ -41,7 +54,7 @@ export function feedTimeline(entries: TimelineEntry[], ephemeral: Message[]) {
   return ephemeral.reduce(
     (next, message) =>
       addTimelineEntry(next, {
-        key: `ephemeral:${message.client_id || String(message.id)}`,
+        key: `ephemeral:${String(message.id)}`,
         message,
         delivery: "published",
       }),

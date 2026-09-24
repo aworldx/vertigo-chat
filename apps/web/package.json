@@ -13,13 +13,16 @@
     "generate:accounts-types": "openapi-typescript ../../contracts/openapi/accounts.yaml -o src/shared/generated/accounts.ts",
     "build": "node scripts/build.mjs",
     "generate:chat-types": "openapi-typescript ../../contracts/openapi/chat.yaml -o src/shared/generated/chat.ts",
-    "generate:community-types": "openapi-typescript ../../contracts/openapi/community.yaml -o src/shared/generated/community.ts"
+    "generate:community-types": "openapi-typescript ../../contracts/openapi/community.yaml -o src/shared/generated/community.ts",
+    "test:coverage": "c8 --all --include=\"src/**/*.ts\" --include=\"src/**/*.tsx\" --exclude=\"src/shared/generated/**\" --reporter=json --reporter=text --reports-dir=coverage/unit node --import=tsx --test test/*.test.tsx",
+    "coverage:check": "node scripts/coverage.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@bcoe/v8-coverage": "1.0.2",
     "@eslint/js": "9.39.5",
     "@playwright/test": "1.57.0",
     "@tailwindcss/cli": "4.3.0",
@@ -29,6 +32,7 @@
     "@types/pngjs": "6.0.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "c8": "10.1.3",
     "esbuild": "0.25.4",
     "eslint": "9.39.5",
     "eslint-config-prettier": "10.1.8",
@@ -36,12 +40,19 @@
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react-hooks": "7.1.1",
+    "istanbul-lib-coverage": "3.2.2",
+    "istanbul-lib-report": "3.0.1",
+    "istanbul-reports": "3.1.7",
     "jsdom": "26.1.0",
     "openapi-typescript": "7.13.0",
     "pngjs": "7.0.0",
     "prettier": "3.9.8",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.70.1"
+    "typescript-eslint": "8.70.1",
+    "v8-to-istanbul": "9.3.0"
+  },
+  "engines": {
+    "node": ">=24.8.0"
   }
 }

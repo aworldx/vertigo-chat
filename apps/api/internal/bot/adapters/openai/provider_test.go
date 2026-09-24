@@ -81,8 +81,18 @@ func TestEmptyReplyRetriesOnlyCurrentMessage(t *testing.T) {
 	defer server.Close()
 	p := NewProvider("test", "model")
 	p.Endpoint = server.URL
+	var observed []error
+	p.Observe = func(status int, err error) {
+		if status != 200 {
+			t.Errorf("status = %d", status)
+		}
+		observed = append(observed, err)
+	}
 	result, err := p.Generate(context.Background(), domain.Context{Messages: []domain.Message{{Role: "assistant", Content: "history"}, {Role: "user", Content: "current"}}})
 	if err != nil || result.Text != "Ответ" || calls != 2 {
 		t.Fatal(result, err, calls)
+	}
+	if len(observed) != 2 || !errors.Is(observed[0], domain.ErrEmptyResponse) || observed[1] != nil {
+		t.Fatal("retry observations", observed)
 	}
 }

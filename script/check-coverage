@@ -1,0 +1,46 @@
+#!/bin/sh
+# Coverage is enforced independently for API, worker and React, including browsers.
+set -eu
+repo_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+go_command="${GO:-go}"
+maintenance="${COVERAGE_DATABASE_URL:-postgresql://localhost/postgres}"
+source_database="chat_coverage_schema_$$"
+node -e 'const [major,minor]=process.versions.node.split(".").map(Number);if(major<24||(major===24&&minor<8))throw new Error("Coverage requires Node >=24.8")'
+# ShellCheck 0.10 does not follow this EXIT/signal callback.
+# Remove when the pinned version recognizes the trap.
+# shellcheck disable=SC2317
+cleanup() {
+  if [ -n "${source_created:-}" ]; then dropdb --maintenance-db="$maintenance" "$source_database"; fi
+}
+trap cleanup EXIT HUP INT TERM
+# These are exclusively generated coverage reports, never user source or data.
+rm -rf "$repo_root/coverage/go" "$repo_root/apps/web/coverage"
+mkdir -p "$repo_root/coverage/go/browser" "$repo_root/apps/web/coverage/browser"
+attempt=0
+until pg_isready -d "$maintenance" >/dev/null 2>&1; do
+  attempt=$((attempt+1))
+  if [ "$attempt" -ge 30 ]; then echo "Coverage PostgreSQL is unavailable" >&2; exit 1; fi
+  sleep 1
+done
+node --test "$repo_root/script/coverage-threshold.test.mjs" "$repo_root/apps/web/scripts/browser-coverage.test.mjs"
+(cd "$repo_root/apps/web" && node --import=tsx browser/coverage-collection-verification.ts)
+createdb --maintenance-db="$maintenance" "$source_database"
+source_created=true
+ACCOUNTS_LEGACY_DATABASE_URL="$(node -e 'const u=new URL(process.argv[1]);u.pathname=process.argv[2];console.log(u.href)' "$maintenance" "$source_database")"
+export ACCOUNTS_LEGACY_DATABASE_URL
+psql "$ACCOUNTS_LEGACY_DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/legacy-schema.sql" > "$repo_root/coverage/schema.log"
+"$repo_root/script/collect-go-coverage"
+npm --prefix "$repo_root/apps/web" run test:coverage
+GOCOVERDIR="$repo_root/coverage/go/browser"
+WEB_COVERAGE_DIR="$repo_root/apps/web/coverage/browser"
+export GOCOVERDIR WEB_COVERAGE_DIR
+"$repo_root/script/verify-go-accounts"
+"$repo_root/script/verify-go-chat"
+"$repo_root/script/verify-target-web"
+cd "$repo_root/apps/api"
+"$go_command" tool covdata textfmt -i="$GOCOVERDIR" -o="$repo_root/coverage/go/api-browser.cover"
+status=0
+node "$repo_root/script/coverage-threshold.mjs" 'Go API' "$repo_root/coverage/go/api.cover" "$repo_root/coverage/go/api-unit.cover" "$repo_root/coverage/go/api-browser.cover" || status=1
+node "$repo_root/script/coverage-threshold.mjs" 'YouTube worker' "$repo_root/coverage/go/worker-total.cover" "$repo_root/coverage/go/worker.cover" || status=1
+npm --prefix "$repo_root/apps/web" run coverage:check || status=1
+exit "$status"

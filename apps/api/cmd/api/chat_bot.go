@@ -7,6 +7,7 @@ import (
 	botdomain "chat/api/internal/bot/domain"
 	chatshttp "chat/api/internal/chatsessions/adapters/http"
 	chatdomain "chat/api/internal/chatsessions/domain"
+	"chat/api/internal/observability"
 	roompg "chat/api/internal/rooms/adapters/postgres"
 	rooms "chat/api/internal/rooms/application"
 	roomdomain "chat/api/internal/rooms/domain"
@@ -23,7 +24,7 @@ import (
 	"time"
 )
 
-func botReplies(pool *pgxpool.Pool) (chatshttp.BotReply, func(context.Context) bool) {
+func botReplies(pool *pgxpool.Pool, metrics *observability.Metrics) (chatshttp.BotReply, func(context.Context) bool) {
 	limit, _ := strconv.Atoi(env("OPENAI_BOT_DAILY_TOKEN_LIMIT", "120000"))
 	offset := botUTCOffset()
 	percent, _ := strconv.Atoi(env("OPENAI_BOT_TOKEN_WARNING_PERCENT", "90"))
@@ -34,6 +35,8 @@ func botReplies(pool *pgxpool.Pool) (chatshttp.BotReply, func(context.Context) b
 	}
 	provider := openai.NewProvider(os.Getenv("OPENAI_API_KEY"), env("OPENAI_BOT_MODEL", "gpt-5.6-terra"))
 	provider.Client.Timeout = botTimeout()
+	provider.Observe = metrics.OpenAIObserver("hitchcock")
+	provider.ObserveHeaders = metrics.OpenAIHeaders("hitchcock")
 	service := bot.NewService(store, provider)
 	type work struct {
 		session chatdomain.Session

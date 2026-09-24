@@ -1,6 +1,7 @@
 package application
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
@@ -49,5 +50,27 @@ func TestGuestIPAndFileQuotas(t *testing.T) {
 	}
 	if l.Media("user:1", now.Add(11*time.Minute)) {
 		t.Fatal("hourly media quota exceeded")
+	}
+}
+
+func TestLimiterPrunesExpiredIdentitiesAndReceiptsUnderLoad(t *testing.T) {
+	limiter := NewLimiter()
+	now := time.Now()
+	for i := 0; i < 10001; i++ {
+		key := strconv.Itoa(i)
+		limiter.events[key] = []time.Time{now.Add(-2 * time.Hour)}
+		limiter.receipts[key] = now.Add(-2 * time.Minute)
+	}
+	limiter.events["empty"] = nil
+	limiter.events["active"] = []time.Time{now}
+	limiter.receipts["active"] = now
+	if !limiter.Media("new", now) {
+		t.Fatal("new identity rejected")
+	}
+	if len(limiter.events) != 2 || len(limiter.receipts) != 1 {
+		t.Fatal("expired limiter state retained", len(limiter.events), len(limiter.receipts))
+	}
+	if _, ok := limiter.events["active"]; !ok {
+		t.Fatal("active limit forgotten")
 	}
 }

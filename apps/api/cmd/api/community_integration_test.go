@@ -53,6 +53,7 @@ func TestCommunityPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	auth.Register(mux)
+	registerFeedback(mux, pool, auth)
 	if err := registerGallery(mux, pool, auth); err != nil {
 		t.Fatal(err)
 	}
@@ -68,6 +69,7 @@ func TestCommunityPostgres(t *testing.T) {
 		communityRequest(t, &f, "GET", "/api/v1/admin/database", "", 401, false)
 	})
 	f.post(t, "/api/v1/auth/login", `{"nickname":"fixture01","password":"secret123"}`, 200)
+	t.Run("registered feedback identity and CSRF", f.registeredFeedback)
 	t.Run("library normalization ownership and validation", func(t *testing.T) {
 		communityRequest(t, &f, "POST", "/api/v1/library", `{"title":"x","body":"y"}`, 403, false)
 		body := communityRequest(t, &f, "POST", "/api/v1/library", `{"title":" Заголовок ","body":" Текст ","series":"","part_number":2}`, 201, true)
@@ -233,5 +235,14 @@ func communityLibrary(t *testing.T, pool *pgxpool.Pool) {
 	}
 	if success != 10 || limited != 2 {
 		t.Fatal(success, limited)
+	}
+}
+
+func (f *chatFixture) registeredFeedback(t *testing.T) {
+	communityRequest(t, f, "POST", "/api/v1/chat/feedback", `{"name":"Forged","body":"Useful feedback"}`, 403, false)
+	communityRequest(t, f, "POST", "/api/v1/chat/feedback", `{"name":"Forged","body":"Useful feedback"}`, 201, true)
+	var name string
+	if err := f.pool.QueryRow(context.Background(), `SELECT name FROM feedback_entries ORDER BY id DESC LIMIT 1`).Scan(&name); err != nil || name != "fixture01" {
+		t.Fatal(name, err)
 	}
 }

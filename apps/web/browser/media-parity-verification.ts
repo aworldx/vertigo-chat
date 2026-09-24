@@ -1,11 +1,12 @@
+import { launchBrowser } from "./coverage"
 import { execFileSync } from "node:child_process"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
-import { chromium, expect } from "@playwright/test"
+import { expect } from "@playwright/test"
 import { writeDiff } from "./compare-screenshots"
 const [origin, legacy] = process.argv.slice(2)
 assert.ok(origin && legacy)
-const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] })
+const browser = await launchBrowser({ headless: true, args: ["--disable-gpu"] })
 const output = "migration-results/chat-media"
 await mkdir(output, { recursive: true })
 const runID = String(Date.now()).slice(-4)

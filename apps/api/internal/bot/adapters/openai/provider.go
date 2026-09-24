@@ -16,8 +16,10 @@ import (
 )
 
 type Provider struct {
+	ObserveHeaders       func(http.Header)
 	Key, Model, Endpoint string
 	Client               *http.Client
+	Observe              func(status int, err error)
 }
 
 func NewProvider(key, model string) Provider {
@@ -33,7 +35,7 @@ func (p Provider) Generate(ctx context.Context, input domain.Context) (domain.Re
 	}
 	return result, err
 }
-func (p Provider) request(ctx context.Context, input domain.Context) (domain.Result, error) {
+func (p Provider) request(ctx context.Context, input domain.Context) (result domain.Result, requestErr error) {
 	if p.Key == "" {
 		return domain.Result{}, domain.ErrUnavailable
 	}
@@ -57,9 +59,19 @@ func (p Provider) request(ctx context.Context, input domain.Context) (domain.Res
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+p.Key)
+	status := 0
+	defer func() {
+		if p.Observe != nil {
+			p.Observe(status, requestErr)
+		}
+	}()
 	response, err := p.Client.Do(request)
 	if err != nil {
 		return domain.Result{}, err
+	}
+	status = response.StatusCode
+	if p.ObserveHeaders != nil {
+		p.ObserveHeaders(response.Header)
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode == http.StatusTooManyRequests {

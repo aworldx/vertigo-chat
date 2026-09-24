@@ -13,6 +13,9 @@ export function useMediaTransfer(connection: ChatConnection, peers: Peer[], nick
         setFiles((list) => [...list.filter((item) => item.id !== file.id), file].slice(-20))
       },
       setError,
+      (id) => {
+        setFiles((list) => list.filter((file) => file.id !== id))
+      },
     )
     transfer.current = manager
     const unsubscribe = connection.subscribeSignal((sender, body) => {

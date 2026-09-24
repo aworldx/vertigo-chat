@@ -1,7 +1,8 @@
+import { launchBrowser } from "./coverage"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
-import { chromium, expect, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 import { writeDiff } from "./compare-screenshots"
 const [origin, legacy] = process.argv.slice(2)
 assert.ok(origin && legacy)
@@ -10,7 +11,7 @@ for (const database of databases) assert.ok(database && /^chat_web_(go|legacy)_\
 const output = "migration-results/account-settings"
 await mkdir(output, { recursive: true })
 const results: { width: number; scenario: string; differentPixels: number }[] = []
-const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] })
+const browser = await launchBrowser({ headless: true, args: ["--disable-gpu"] })
 async function login(page: Page, base: string) {
   await page.goto(base + "/account/login")
   if (base === legacy) await page.addScriptTag({ url: base + "/assets/js/account_login.js" })

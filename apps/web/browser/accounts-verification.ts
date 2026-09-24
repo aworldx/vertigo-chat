@@ -1,10 +1,11 @@
+import { launchBrowser } from "./coverage"
 import assert from "node:assert/strict"
-import { chromium, type Page } from "@playwright/test"
+import { type Page } from "@playwright/test"
 import type { components } from "../src/shared/generated/accounts"
 
 const origin = process.argv[2]
 assert.ok(origin)
-const browser = await chromium.launch({ headless: true })
+const browser = await launchBrowser({ headless: true })
 try {
   const context = await browser.newContext()
   const tab = await context.newPage()

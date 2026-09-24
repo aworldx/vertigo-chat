@@ -41,6 +41,8 @@ chat-*.tar
 npm-debug.log
 /apps/web/node_modules/
 /apps/web/test-results/
+/apps/web/coverage/
+/coverage/
 
 .env
 .env.vps

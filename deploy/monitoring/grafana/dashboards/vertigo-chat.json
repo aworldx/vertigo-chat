@@ -47,7 +47,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 69
       },
       "id": 13,
       "description": "Маршруты, у которых p95 за последние 5 минут превышает 1 секунду. Таблица показывает только проблемные маршруты; путь и статус не содержат персональных данных. Если список пуст, в этом окне медленных маршрутов нет.",
@@ -308,7 +308,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 53
       },
       "id": 7,
       "description": "Скорость HTTP-запросов по маршрутам, усреднённая за 5 минут. Помогает понять, какой экран или endpoint создаёт нагрузку.",
@@ -348,7 +348,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 53
       },
       "id": 8,
       "description": "Время ответа HTTP. p50 — типичная задержка, p95 — значение, быстрее которого отрабатывают 95% запросов. Рост p95 при стабильном RPS обычно указывает на проблему приложения, БД или внешнего сервиса.",
@@ -393,7 +393,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 20
+        "y": 61
       },
       "id": 9,
       "description": "Скорость публичных сообщений по типам и число начатых переподключений в секунду, усреднённые за 5 минут. Это скорости, а не абсолютное число за период.",
@@ -438,7 +438,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 61
       },
       "id": 10,
       "description": "BEAM — память процесса Erlang/Elixir-приложения. «Свободная RAM» — доступная операционной системе память (MemAvailable), включая освобождаемый файловый кэш; это не только полностью пустая RAM.",
@@ -490,7 +490,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 77
       },
       "id": 11,
       "description": "Список активных правил оповещения с их метками и текущим значением. Здесь можно увидеть причину числа в карточке «Активные алерты».",
@@ -525,7 +525,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 45
+        "y": 86
       },
       "id": 12,
       "options": {
@@ -548,6 +548,1056 @@
       ],
       "title": "RAM Docker-контейнеров",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 6,
+        "h": 6
+      },
+      "id": 14,
+      "description": "Общий бюджет приложения для Хичкока, памяти диалогов и Кармика. День определяется OPENAI_BOT_UTC_OFFSET_MINUTES (по умолчанию UTC+3). Это учёт приложения, не баланс биллинга OpenAI.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_daily_tokens_remaining{job=\"chat\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "OpenAI — осталось на день",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 13,
+        "w": 6,
+        "h": 6
+      },
+      "id": 15,
+      "description": "Общий бюджет приложения для Хичкока, памяти диалогов и Кармика. День определяется OPENAI_BOT_UTC_OFFSET_MINUTES (по умолчанию UTC+3). Это учёт приложения, не баланс биллинга OpenAI. При отключённом лимите показывается «Нет данных».",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_daily_token_limit{job=\"chat\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "OpenAI — дневной лимит",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "Нет данных",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 75
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 6,
+        "h": 6
+      },
+      "id": 16,
+      "description": "Общий бюджет приложения для Хичкока, памяти диалогов и Кармика. День определяется OPENAI_BOT_UTC_OFFSET_MINUTES (по умолчанию UTC+3). Это учёт приложения, не баланс биллинга OpenAI. Остановка обычно при 90%; порог настраивается.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "100 * max(chat_openai_daily_tokens_used{job=\"chat\"}) / max(chat_openai_daily_token_limit{job=\"chat\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "Дневной лимит · %",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 13,
+        "w": 6,
+        "h": 6
+      },
+      "id": 17,
+      "description": "Остаток до OPENAI_BOT_TOKEN_WARNING_PERCENT от дневного лимита. При нуле новые запросы прекращаются; уже выполняющийся запрос может пересечь порог.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_daily_tokens_available{job=\"chat\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "OpenAI — до остановки ботов",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 6,
+        "h": 6
+      },
+      "id": 18,
+      "description": "Число неуспешных попыток за выбранный период, включая повторы и обновление памяти. Оценка Prometheus по scrape; до первых двух наблюдений данных нет.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(chat_openai_requests_total{job=\"chat\",bot=\"hitchcock\",outcome!=\"success\"}[$__range]))",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "Хичкок — ошибки за период",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 19,
+        "w": 6,
+        "h": 6
+      },
+      "id": 19,
+      "description": "Число неуспешных попыток за выбранный период, включая повторы и обновление памяти. Оценка Prometheus по scrape; до первых двух наблюдений данных нет.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(chat_openai_requests_total{job=\"chat\",bot=\"karmik\",outcome!=\"success\"}[$__range]))",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "Кармик — ошибки за период",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 6,
+        "h": 6
+      },
+      "id": 20,
+      "description": "Общий бюджет приложения для Хичкока, памяти диалогов и Кармика. День определяется OPENAI_BOT_UTC_OFFSET_MINUTES (по умолчанию UTC+3). Это учёт приложения, не баланс биллинга OpenAI.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_daily_tokens_used{job=\"chat\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "OpenAI — использовано сегодня",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Ошибка БД",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "OK",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 19,
+        "w": 6,
+        "h": 6
+      },
+      "id": 21,
+      "description": "При ошибке БД бюджет скрывается, а не отображается как нулевой расход.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "min(chat_openai_budget_read_success{job=\"chat\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "title": "OpenAI — чтение бюджета",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 12,
+        "h": 10
+      },
+      "id": 22,
+      "description": "Ошибки в скользящем окне $__rate_interval. http_429 — HTTP 429; http_4xx/5xx — ошибка API; timeout/canceled/transport_error — сеть или отмена; invalid_response — непригодный ответ при HTTP 200. Нет текстов запросов или ключей.",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (bot, outcome) (increase(chat_openai_requests_total{job=\"chat\",outcome!=\"success\"}[$__rate_interval]))",
+          "refId": "A",
+          "instant": false,
+          "legendFormat": "{{bot}} · {{outcome}}"
+        }
+      ],
+      "title": "OpenAI — ошибки по ботам и причинам",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 25,
+        "w": 12,
+        "h": 10
+      },
+      "id": 23,
+      "description": "Общий бюджет приложения для Хичкока, памяти диалогов и Кармика. День определяется OPENAI_BOT_UTC_OFFSET_MINUTES (по умолчанию UTC+3). Это учёт приложения, не баланс биллинга OpenAI. Суточный расход — gauge, он сбрасывается на границе дня и сохраняется после перезапуска API.",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_daily_tokens_used{job=\"chat\"})",
+          "refId": "A",
+          "legendFormat": "Использовано"
+        },
+        {
+          "expr": "max(chat_openai_daily_token_limit{job=\"chat\"})",
+          "refId": "B",
+          "legendFormat": "Лимит"
+        },
+        {
+          "expr": "max(chat_openai_daily_stop_threshold{job=\"chat\"})",
+          "refId": "C",
+          "legendFormat": "Остановка ботов"
+        }
+      ],
+      "title": "OpenAI — расход, лимит и порог остановки",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 6,
+        "h": 6
+      },
+      "id": 24,
+      "description": "Все проекты организации admin key. Данные Costs API могут приходить с задержкой; это расходы, не остаток кредитов.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_costs_usd{job=\"chat\",period=\"today\"})",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "title": "Расход сегодня · USD",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 35,
+        "w": 6,
+        "h": 6
+      },
+      "id": 25,
+      "description": "Расходы с начала календарного месяца UTC. Опрос раз в 5 минут. Нужен OPENAI_COSTS_ADMIN_KEY.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_costs_usd{job=\"chat\",period=\"month\"})",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "title": "Расход за месяц · USD",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 35,
+        "w": 6,
+        "h": 6
+      },
+      "id": 26,
+      "description": "Время последнего успешного получения расходов. При ошибке суммы скрываются, время последнего успеха сохраняется.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "max(chat_openai_costs_last_success_timestamp_seconds{job=\"chat\"}) * 1000",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "title": "Costs API · обновлено",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-1": {
+                  "text": "Нет admin key",
+                  "color": "gray"
+                },
+                "0": {
+                  "text": "Нет свежих данных",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "OK",
+                  "color": "green"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 35,
+        "w": 6,
+        "h": 6
+      },
+      "id": 27,
+      "description": "−1: admin key не настроен; 0: ошибка или нет свежего ответа; 1: данные получены.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "min(chat_openai_costs_read_success{job=\"chat\"}) or (min(chat_openai_costs_configured{job=\"chat\"}) - 1)",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": ""
+        }
+      ],
+      "title": "Costs API — состояние",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hitchcock"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Хичкок"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "karmik"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Кармик"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 6,
+        "h": 6
+      },
+      "id": 28,
+      "description": "Последний остаток из x-ratelimit-remaining-tokens. Это окно ограничения частоты, не дневной бюджет и не баланс. Ботов нельзя суммировать: они могут делить один лимит. После reset значение скрывается до нового ответа.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "chat_openai_rate_remaining{job=\"chat\",resource=\"tokens\"}",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": "{{bot}}"
+        }
+      ],
+      "title": "Остаток токенов · API",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hitchcock"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Хичкок"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "karmik"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Кармик"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 41,
+        "w": 6,
+        "h": 6
+      },
+      "id": 29,
+      "description": "Последнее значение x-ratelimit-limit-tokens для запросов каждого бота.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "chat_openai_rate_limit{job=\"chat\",resource=\"tokens\"}",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": "{{bot}}"
+        }
+      ],
+      "title": "Лимит токенов · API",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hitchcock"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Хичкок"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "karmik"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Кармик"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 41,
+        "w": 6,
+        "h": 6
+      },
+      "id": 30,
+      "description": "Время до reset, сообщённое последним ответом OpenAI. Ноль не доказывает, что квота свободна: свежие данные появятся после следующего ответа.",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "clamp_min(chat_openai_rate_reset_timestamp_seconds{job=\"chat\",resource=\"tokens\"} - time(), 0)",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": "{{bot}}"
+        }
+      ],
+      "title": "Сброс лимита · API",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "noValue": "Нет данных",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hitchcock"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Хичкок"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "karmik"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Кармик"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 41,
+        "w": 6,
+        "h": 6
+      },
+      "id": 31,
+      "description": "Сколько прошло с ответа OpenAI, из которого получены заголовки. При отсутствии заголовков показывается «Нет данных».",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "time() - chat_openai_rate_observed_timestamp_seconds{job=\"chat\",resource=\"tokens\"}",
+          "refId": "A",
+          "instant": true,
+          "legendFormat": "{{bot}}"
+        }
+      ],
+      "title": "Возраст данных · API",
+      "type": "stat"
     }
   ],
   "refresh": "30s",
@@ -563,5 +1613,5 @@
   },
   "title": "Vertigo chat — мониторинг",
   "uid": "vertigo-chat",
-  "version": 1
+  "version": 2
 }

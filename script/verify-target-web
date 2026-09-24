@@ -1,0 +1,54 @@
+#!/bin/sh
+# Functional target-stack flows on two isolated databases; no Phoenix dependency.
+set -eu
+repo_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+go_command="${GO:-go}"
+maintenance="${COVERAGE_DATABASE_URL:-postgresql://localhost/postgres}"
+a_database="chat_coverage_web_a_$$"
+b_database="chat_coverage_web_b_$$"
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/chat-target-verification.XXXXXX")"
+url() { node -e 'const u=new URL(process.argv[1]);u.pathname=process.argv[2];console.log(u.href)' "$maintenance" "$1"; }
+cleanup() {
+  for pid in "${a_pid:-}" "${b_pid:-}"; do
+    if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
+  done
+  if [ -n "${a_created:-}" ]; then dropdb --maintenance-db="$maintenance" "$a_database"; fi
+  if [ -n "${b_created:-}" ]; then dropdb --maintenance-db="$maintenance" "$b_database"; fi
+  rm -rf "$work_dir"
+}
+trap cleanup EXIT HUP INT TERM
+createdb --maintenance-db="$maintenance" "$a_database"
+a_created=true
+createdb --maintenance-db="$maintenance" "$b_database"
+b_created=true
+a_url="$(url "$a_database")"
+b_url="$(url "$b_database")"
+for database in "$a_url" "$b_url"; do
+  psql "$database" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/legacy-schema.sql" > "$work_dir/schema.log"
+  psql "$database" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/go-web.sql"
+done
+npm --prefix "$repo_root/apps/web" run build
+cd "$repo_root/apps/api"
+if [ -n "${GOCOVERDIR:-}" ]; then
+  "$go_command" build -buildvcs=false -cover -coverpkg=./... -o "$work_dir/migrate" ./cmd/migrate
+  for database in "$a_url" "$b_url"; do DATABASE_URL="$database" "$work_dir/migrate"; done
+else
+  for database in "$a_url" "$b_url"; do DATABASE_URL="$database" "$go_command" run -buildvcs=false ./cmd/migrate; done
+fi
+if [ -n "${GOCOVERDIR:-}" ]; then
+  "$go_command" build -buildvcs=false -cover -coverpkg=./... -o "$work_dir/api" ./cmd/api
+else
+  "$go_command" build -buildvcs=false -o "$work_dir/api" ./cmd/api
+fi
+DATABASE_URL="$a_url" API_ADDR=127.0.0.1:4071 API_PUBLIC_ORIGIN=http://127.0.0.1:4071 WEB_ASSETS_DIR="$repo_root/apps/web/dist" "$work_dir/api" > "$work_dir/a.log" 2>&1 &
+a_pid=$!
+DATABASE_URL="$b_url" API_ADDR=127.0.0.1:4072 API_PUBLIC_ORIGIN=http://127.0.0.1:4072 WEB_ASSETS_DIR="$repo_root/apps/web/dist" "$work_dir/api" > "$work_dir/b.log" 2>&1 &
+b_pid=$!
+attempt=0
+until curl --fail --silent http://127.0.0.1:4071/health >/dev/null && curl --fail --silent http://127.0.0.1:4072/health >/dev/null; do
+  attempt=$((attempt+1))
+  if [ "$attempt" -ge 30 ] || ! kill -0 "$a_pid" "$b_pid" 2>/dev/null; then cat "$work_dir/a.log" "$work_dir/b.log" >&2; exit 1; fi
+  sleep 1
+done
+cd "$repo_root/apps/web"
+node --import=tsx browser/target-verification.ts http://127.0.0.1:4071 http://127.0.0.1:4072 "$a_url" "$b_url"

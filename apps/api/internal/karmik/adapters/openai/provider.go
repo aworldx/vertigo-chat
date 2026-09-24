@@ -12,14 +12,16 @@ import (
 )
 
 type Provider struct {
+	ObserveHeaders       func(http.Header)
 	Key, Model, Endpoint string
 	Client               *http.Client
+	Observe              func(status int, err error)
 }
 
 func NewProvider(key, model string) Provider {
 	return Provider{Key: key, Model: model, Endpoint: "https://api.openai.com/v1/responses", Client: &http.Client{Timeout: 120 * time.Second}}
 }
-func (p Provider) Assess(ctx context.Context, input domain.Input) ([]domain.Assessment, domain.Usage, error) {
+func (p Provider) Assess(ctx context.Context, input domain.Input) (assessments []domain.Assessment, usage domain.Usage, requestErr error) {
 	if p.Key == "" {
 		return nil, domain.Usage{}, domain.ErrInvalid
 	}
@@ -70,9 +72,19 @@ func (p Provider) Assess(ctx context.Context, input domain.Input) ([]domain.Asse
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+p.Key)
+	status := 0
+	defer func() {
+		if p.Observe != nil {
+			p.Observe(status, requestErr)
+		}
+	}()
 	response, err := p.Client.Do(request)
 	if err != nil {
 		return nil, domain.Usage{}, err
+	}
+	status = response.StatusCode
+	if p.ObserveHeaders != nil {
+		p.ObserveHeaders(response.Header)
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != 200 {

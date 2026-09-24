@@ -9,6 +9,7 @@ import (
 	chatspg "chat/api/internal/chatsessions/adapters/postgres"
 	chats "chat/api/internal/chatsessions/application"
 	chatdomain "chat/api/internal/chatsessions/domain"
+	"chat/api/internal/observability"
 	profiles "chat/api/internal/profiles/application"
 	roompg "chat/api/internal/rooms/adapters/postgres"
 	rooms "chat/api/internal/rooms/application"
@@ -62,8 +63,8 @@ func preferencesService(db interface {
 }) chatlans.Service {
 	return chatlans.NewService(participantPreferences{chatlanpg.NewStore(db), accounts.NewPreferences(accountspg.NewAccounts(db))})
 }
-func roomExperience(pool *pgxpool.Pool) chathttp.Experience {
-	reply, available := botReplies(pool)
+func roomExperience(pool *pgxpool.Pool, metrics *observability.Metrics) chathttp.Experience {
+	reply, available := botReplies(pool, metrics)
 	return chathttp.Experience{Bot: reply, BotAvailable: available, Media: sendRoomMedia(pool),
 		React: func(ctx context.Context, session chatdomain.Session, id int64, emoji string, active bool) error {
 			return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {

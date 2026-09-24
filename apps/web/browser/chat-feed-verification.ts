@@ -1,12 +1,13 @@
+import { launchBrowser } from "./coverage"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
-import { chromium, expect, type Page } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 import { writeDiff } from "./compare-screenshots"
 const [origin, legacy] = process.argv.slice(2)
 assert.ok(origin && legacy)
 const output = "migration-results/chat-feed"
 await mkdir(output, { recursive: true })
-const browser = await chromium.launch({ headless: true, args: ["--disable-gpu"] })
+const browser = await launchBrowser({ headless: true, args: ["--disable-gpu"] })
 const results: { viewport: string; scenario: string; differentPixels: number }[] = []
 async function enter(page: Page, base: string) {
   await page.goto(base)

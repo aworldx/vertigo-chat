@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func (f *chatFixture) botBudget(t *testing.T) {
@@ -49,6 +50,29 @@ func (f *chatFixture) botBudget(t *testing.T) {
 	var total int
 	if err := f.pool.QueryRow(ctx, `SELECT sum(total_tokens) FROM bot_daily_usages`).Scan(&total); err != nil || total != 45 {
 		t.Fatal("usage lost", total, err)
+	}
+	f.checkBudgetSnapshot(t, store)
+}
+
+func (f *chatFixture) checkBudgetSnapshot(t *testing.T, store botpg.Store) {
+	t.Helper()
+	ctx := context.Background()
+	snapshot, err := store.ReadBudget(ctx, time.Now())
+	if err != nil || snapshot.Used != 45 || snapshot.Limit != 50 || snapshot.Remaining != 5 || snapshot.Available != 0 {
+		t.Fatal("budget snapshot", snapshot, err)
+	}
+	// Test the configured UTC+3 day boundary, independent of the host timezone.
+	boundary := time.Date(2099, 1, 1, 21, 0, 0, 0, time.UTC)
+	if _, err := f.pool.Exec(ctx, `INSERT INTO bot_daily_usages(usage_date,input_tokens,output_tokens,total_tokens,request_count,inserted_at,updated_at) VALUES('2099-01-01',10,0,10,1,NOW(),NOW())`); err != nil {
+		t.Fatal(err)
+	}
+	before, err := store.ReadBudget(ctx, boundary.Add(-time.Second))
+	if err != nil || before.Used != 10 {
+		t.Fatal(before, err)
+	}
+	after, err := store.ReadBudget(ctx, boundary)
+	if err != nil || after.Used != 0 || after.Available != 45 {
+		t.Fatal(after, err)
 	}
 }
 func (f *chatFixture) chart(t *testing.T) {

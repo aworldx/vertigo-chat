@@ -4,6 +4,9 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -61,5 +64,70 @@ func TestYoutubeSearchKeepsLegacyDurationLimitAndFormat(t *testing.T) {
 	items, err := c.Search(context.Background(), "youtube", "query")
 	if err != nil || len(items) != 1 || items[0].Duration != "00:19" || items[0].Source != "https://www.youtube.com/watch?v=abcdefghijk" {
 		t.Fatal(items, err)
+	}
+}
+
+func TestCatalogueGIFValidationAndFailures(t *testing.T) {
+	for _, body := range []string{`{"data":[{"title":"Cat","url":"https://gifsnap.com/api/v1/media/1","preview_url":"https://static.klipy.com/a.webp"},{"url":"https://evil.example/a.gif","preview_url":"https://static.klipy.com/a.webp"}]}`, `bad JSON`} {
+		c := NewCatalogue("")
+		c.Client.Transport = transportFunc(func(r *http.Request) (*http.Response, error) {
+			if r.URL.Query().Get("q") != "cat & dog" {
+				t.Fatal(r.URL)
+			}
+			return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body))}, nil
+		})
+		items, err := c.Search(context.Background(), "gif", "cat & dog")
+		if body == "bad JSON" {
+			if err == nil {
+				t.Fatal("invalid JSON accepted")
+			}
+		} else if err != nil || len(items) != 1 || items[0].Title != "Cat" {
+			t.Fatal(items, err)
+		}
+	}
+	c := NewCatalogue("")
+	c.Client.Transport = transportFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 503, Body: io.NopCloser(strings.NewReader(""))}, nil
+	})
+	if _, err := c.Search(context.Background(), "gif", "cat"); err == nil {
+		t.Fatal("upstream error ignored")
+	}
+}
+func TestMusicSearchBoundsResultsAndFiltersForeignMedia(t *testing.T) {
+	c := NewCatalogue("")
+	item := `<li><a class="playlist-play" data-url="https://sunproxy.net/file/test"></a><span class="playlist-name-title"><a>Song &amp; title</a></span></li>`
+	c.Client.Transport = transportFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`<li><a class="playlist-play" data-url="https://evil.example/file"></a></li>` + strings.Repeat(item, 20)))}, nil
+	})
+	items, err := c.Search(context.Background(), "music", "song")
+	if err != nil || len(items) != 15 || items[0].Title != "Song & title" {
+		t.Fatal(items, err)
+	}
+}
+
+func TestMusicFallsBackAfterProxyFailure(t *testing.T) {
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "CONNECT" {
+			t.Error("expected HTTPS tunnel")
+		}
+		w.WriteHeader(502)
+	}))
+	defer proxy.Close()
+	file := filepath.Join(t.TempDir(), "proxies.txt")
+	if err := os.WriteFile(file, []byte(strings.TrimPrefix(proxy.URL, "http://")+":test:test"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	c := NewCatalogue("")
+	c.Proxies = NewProxyPool(file)
+	c.Client.Transport = transportFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`<li><a class="playlist-play" data-url="https://sunproxy.net/file/test"></a></li>`))}, nil
+	})
+	items, err := c.Search(context.Background(), "music", "query")
+	if err != nil || len(items) != 1 {
+		t.Fatal(items, err)
+	}
+	candidates := c.Proxies.candidates()
+	if len(candidates) != 1 || candidates[0].failures != 1 {
+		t.Fatal("failed proxy not cooled down")
 	}
 }

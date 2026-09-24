@@ -4,7 +4,7 @@ import { defaultPreferences, type Preferences } from "../api/preferences"
 import { type Frame, type Snapshot } from "../api/protocol"
 import { readSession, clearSession, readOutbox, saveOutbox, type PendingMessage } from "./storage"
 import { transitionPendingDelivery } from "./delivery"
-import { addTimelineEntry, publishTimeline, setTimelineDelivery, type TimelineEntry } from "./timeline"
+import { addTimelineEntry, publishTimeline, setTimelineDelivery, timelineKey, type TimelineEntry } from "./timeline"
 import { SocketTransport } from "./socketTransport"
 export type RoomState = {
   karmikMood: "resting" | "happy" | "angry"
@@ -145,6 +145,8 @@ export class ChatConnection {
   }
   stop() {
     this.stopped = true
+    this.preferenceReply?.reject(new Error("Подключение закрыто."))
+    this.preferenceReply = undefined
     clearTimeout(this.karmikTimer)
     for (const timer of this.acknowledgements.values()) clearTimeout(timer)
     this.acknowledgements.clear()
@@ -251,7 +253,9 @@ export class ChatConnection {
           saveOutbox(outbox)
           this.update({
             outbox,
-            timeline: this.state.timeline.filter((entry) => entry.message.client_id !== frame.message.client_id),
+            timeline: this.state.timeline.filter(
+              (entry) => entry.message.id !== 0 || entry.message.client_id !== frame.message.client_id,
+            ),
             ephemeral: [...this.state.ephemeral.filter((m) => m.id !== frame.message.id), frame.message].slice(-100),
           })
           break
@@ -261,7 +265,7 @@ export class ChatConnection {
         this.update({
           outbox,
           timeline: addTimelineEntry(this.state.timeline, {
-            key: `client:${frame.message.client_id}`,
+            key: timelineKey(frame.message),
             message: frame.message,
             delivery: "confirmed",
           }),
@@ -366,7 +370,7 @@ export class ChatConnection {
   private pendingTimelineEntry(item: PendingMessage, nickname: string): TimelineEntry {
     const preferences = this.state.snapshot.preferences
     return {
-      key: `client:${item.client_id}`,
+      key: timelineKey({ id: 0, client_id: item.client_id, author: nickname }),
       delivery: item.state,
       message: {
         id: 0,
@@ -387,13 +391,17 @@ export class ChatConnection {
   send(body: string) {
     body = body.trim()
     if (!body) return false
+    if (this.state.outbox.length >= 50) {
+      this.update({ error: "Очередь заполнена. Дождись отправки сообщений или удали неотправленные." })
+      return false
+    }
     const item: PendingMessage = {
       client_id: newID(),
       body,
       sent_at: new Date().toISOString(),
       state: this.state.status === "ready" ? "sending" : "retrying",
     }
-    const outbox = [...this.state.outbox, item].slice(-50)
+    const outbox = [...this.state.outbox, item]
     try {
       saveOutbox(outbox)
     } catch {
@@ -418,6 +426,7 @@ export class ChatConnection {
     if (item && this.state.status === "ready") this.transmit(item)
   }
   cancelMessage(clientID: string) {
+    if (!this.state.outbox.some((item) => item.client_id === clientID && item.state === "failed")) return
     const outbox = this.state.outbox.filter((item) => item.client_id !== clientID || item.state !== "failed")
     try {
       saveOutbox(outbox)
@@ -427,7 +436,7 @@ export class ChatConnection {
     }
     this.update({
       outbox,
-      timeline: this.state.timeline.filter((entry) => entry.message.client_id !== clientID),
+      timeline: this.state.timeline.filter((entry) => entry.message.id !== 0 || entry.message.client_id !== clientID),
       error: "",
     })
   }

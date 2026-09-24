@@ -105,3 +105,67 @@ func TestRegisterIdentityRequiresACompleteFencedCommand(t *testing.T) {
 		t.Fatalf("response = %d %s", response.Code, response.Body.String())
 	}
 }
+
+type rejectedStore struct{ storeStub }
+
+func (rejectedStore) Start(context.Context, domain.Session, string, *int64) (domain.Session, error) {
+	return domain.Session{}, domain.ErrInvalidSession
+}
+func (rejectedStore) Restore(context.Context, string, string, string, time.Time, time.Time, time.Time) (domain.Session, error) {
+	return domain.Session{}, domain.ErrInvalidSession
+}
+func (rejectedStore) Reconnect(context.Context, string, string, int, time.Time, time.Duration, time.Duration) (domain.Session, error) {
+	return domain.Session{}, domain.ErrInvalidSession
+}
+func (rejectedStore) Activate(context.Context, string, string, int, time.Time, time.Time, time.Time) (domain.Session, error) {
+	return domain.Session{}, domain.ErrInvalidSession
+}
+func (rejectedStore) Touch(context.Context, string, string, int, string, time.Time, time.Time, time.Time) error {
+	return domain.ErrInvalidSession
+}
+func (rejectedStore) RegisterIdentity(context.Context, string, string, int, int64, string, time.Time) (domain.Session, error) {
+	return domain.Session{}, domain.ErrInvalidSession
+}
+func (rejectedStore) End(context.Context, string, string, int, time.Time) (domain.Session, error) {
+	return domain.Session{}, domain.ErrInvalidSession
+}
+func TestLifecycleMalformedUnauthorizedAndRejectedCommands(t *testing.T) {
+	for _, tc := range []struct {
+		path, body string
+		status     int
+	}{
+		{"start", `{"room_id":"lobby","identity_key":"guest:1","nickname":"Guest"}`, 409},
+		{"restore", `{"session_id":"session","identity_key":"guest:1","resume_secret":"secret"}`, 401},
+		{"connection-lost", `{"session_id":"session","identity_key":"guest:1","generation":1}`, 409},
+		{"activate", `{"session_id":"session","identity_key":"guest:1","generation":1}`, 409},
+		{"touch", `{"session_id":"session","identity_key":"guest:1","generation":1,"visibility":"hidden"}`, 409},
+		{"leave", `{"session_id":"session","identity_key":"guest:1","generation":1}`, 409},
+		{"register-identity", `{"session_id":"session","identity_key":"guest:1","generation":1,"user_id":1,"nickname":"Guest"}`, 409},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			mux := http.NewServeMux()
+			NewHandler(application.NewService(rejectedStore{}), "token").Register(mux)
+			for _, requestCase := range []struct {
+				body, token string
+				status      int
+			}{{tc.body, "token", tc.status}, {`{`, "token", 422}, {tc.body, "wrong", 401}} {
+				r := httptest.NewRequest("POST", "/internal/v1/chat-sessions/"+tc.path, strings.NewReader(requestCase.body))
+				r.Header.Set("X-Internal-Chat-Sessions-Token", requestCase.token)
+				w := httptest.NewRecorder()
+				mux.ServeHTTP(w, r)
+				if w.Code != requestCase.status {
+					t.Fatal(w.Code, requestCase)
+				}
+			}
+		})
+	}
+	mux := http.NewServeMux()
+	NewHandler(application.NewService(storeStub{}), "token").Register(mux)
+	r := httptest.NewRequest("POST", "/internal/v1/chat-sessions/touch", strings.NewReader(`{"session_id":"session","identity_key":"guest:1","generation":1,"visibility":"hidden"}`))
+	r.Header.Set("X-Internal-Chat-Sessions-Token", "token")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, r)
+	if w.Code != 204 {
+		t.Fatal(w.Code)
+	}
+}
