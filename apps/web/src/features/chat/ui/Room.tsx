@@ -4,7 +4,6 @@ import { useNotification } from "../model/useNotification"
 import { useMediaSearch } from "../model/useMediaSearch"
 import { MediaSearchResults } from "./MediaSearchResults"
 import { useMediaTransfer } from "../model/useMediaTransfer"
-import { SharedMedia } from "./SharedMedia"
 import { RoomForms } from "./RoomForms"
 import { useRoomForm } from "../model/useRoomForm"
 import { TopMenu } from "./TopMenu"
@@ -99,6 +98,8 @@ export function Room({
                 </div>
               )}
               <MessageFeed
+                files={media.files}
+                onRequestFile={media.request}
                 entries={feedEntries.filter((entry) => command.isVisible(entry.message))}
                 frame={state.snapshot.preferences.appearance.message_frame}
                 onRetry={(id) => {
@@ -132,15 +133,6 @@ export function Room({
                     connection.sendMedia(item)
                   }}
                 />
-                {media.files.map((file) => (
-                  <SharedMedia
-                    key={file.id}
-                    file={file}
-                    onRequest={() => {
-                      media.request(file.id)
-                    }}
-                  />
-                ))}
                 <CommandResults results={command.results} onAddress={address} onDismiss={command.dismiss} />
               </MessageFeed>
               <p

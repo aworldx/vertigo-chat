@@ -2,7 +2,7 @@ import { Icon } from "../../../shared/ui/Icon"
 import type { MediaItem } from "../api/media"
 import type { MediaSearchResult } from "../model/useMediaSearch"
 import { ListeningAudio } from "./ListeningAudio"
-import { useFeedContentEvent } from "./MessageFeed"
+import { useFeedContentEvent } from "./feedContent"
 
 type SearchListProps = { items: MediaItem[]; onSend: (item: MediaItem) => void }
 

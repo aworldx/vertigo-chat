@@ -1,18 +1,12 @@
-import { createContext, useContext, useLayoutEffect, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import type { Emoji } from "../api/emojis"
 import type { Peer } from "../api/protocol"
 import type { TimelineEntry } from "../model/timeline"
 import { useMessageScroll } from "../model/useMessageScroll"
 import { MessageEntry } from "./MessageEntry"
-
-const FeedContentContext = createContext<(() => void) | null>(null)
-
-export function useFeedContentEvent(version: string | null) {
-  const publishContent = useContext(FeedContentContext)
-  useLayoutEffect(() => {
-    if (version) publishContent?.()
-  }, [publishContent, version])
-}
+import { SharedMedia } from "./SharedMedia"
+import { mergeMediaTimeline, type PositionedFile } from "../model/mediaTimeline"
+import { FeedContentContext } from "./feedContent"
 
 export function MessageFeed({
   entries,
@@ -22,6 +16,8 @@ export function MessageFeed({
   emojis = [],
   peers = [],
   children,
+  files = [],
+  onRequestFile,
   onReaction,
   onDelete,
   onRetry,
@@ -35,6 +31,8 @@ export function MessageFeed({
   emojis?: Emoji[]
   peers?: Peer[]
   children?: ReactNode
+  files?: PositionedFile[]
+  onRequestFile?: (id: string) => void
   entries: TimelineEntry[]
   nickname: string
   onAddress: (nickname: string) => void
@@ -50,35 +48,40 @@ export function MessageFeed({
       className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3"
     >
       <FeedContentContext.Provider value={publishContent}>
-        {entries.map((entry) => (
-          <MessageEntry
-            key={entry.key}
-            message={entry.message}
-            frame={frame}
-            emojis={emojis}
-            peers={peers}
-            nickname={nickname}
-            onAddress={onAddress}
-            onReaction={onReaction}
-            onDelete={onDelete}
-            delivery={entry.message.author === nickname ? entry.delivery : undefined}
-            domID={entry.message.author === nickname && entry.message.client_id ? entry.message.client_id : undefined}
-            onRetry={
-              entry.delivery === "failed"
-                ? () => {
-                    onRetry(entry.message.client_id)
-                  }
-                : undefined
-            }
-            onCancel={
-              entry.delivery === "failed"
-                ? () => {
-                    onCancel(entry.message.client_id)
-                  }
-                : undefined
-            }
-          />
-        ))}
+        {mergeMediaTimeline(entries, files).map((item) => {
+          if (item.kind === "file")
+            return <SharedMedia key={item.key} file={item.file} onRequest={() => onRequestFile?.(item.file.id)} />
+          const { entry } = item
+          return (
+            <MessageEntry
+              key={entry.key}
+              message={entry.message}
+              frame={frame}
+              emojis={emojis}
+              peers={peers}
+              nickname={nickname}
+              onAddress={onAddress}
+              onReaction={onReaction}
+              onDelete={onDelete}
+              delivery={entry.message.author === nickname ? entry.delivery : undefined}
+              domID={entry.message.author === nickname && entry.message.client_id ? entry.message.client_id : undefined}
+              onRetry={
+                entry.delivery === "failed"
+                  ? () => {
+                      onRetry(entry.message.client_id)
+                    }
+                  : undefined
+              }
+              onCancel={
+                entry.delivery === "failed"
+                  ? () => {
+                      onCancel(entry.message.client_id)
+                    }
+                  : undefined
+              }
+            />
+          )
+        })}
         {children}
       </FeedContentContext.Provider>
     </div>

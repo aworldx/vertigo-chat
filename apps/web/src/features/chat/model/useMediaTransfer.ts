@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from "react"
-import { MediaTransfer, type SharedFile } from "./mediaTransfer"
+import { MediaTransfer } from "./mediaTransfer"
+import { updateSharedFile, type PositionedFile } from "./mediaTimeline"
+import { feedTimeline } from "./timeline"
 import type { ChatConnection } from "./connection"
 import type { Peer } from "../api/protocol"
 export function useMediaTransfer(connection: ChatConnection, peers: Peer[], nickname: string) {
-  const [files, setFiles] = useState<SharedFile[]>([]),
+  const [files, setFiles] = useState<PositionedFile[]>([]),
     [error, setError] = useState("")
   const transfer = useRef<MediaTransfer | null>(null)
   useEffect(() => {
     const manager = new MediaTransfer(
       (target, body) => connection.signal(target, body),
       (file) => {
-        setFiles((list) => [...list.filter((item) => item.id !== file.id), file].slice(-20))
+        const state = connection.getSnapshot()
+        const entries = feedTimeline(state.timeline, state.ephemeral)
+        setFiles((list) => updateSharedFile(list, file, entries))
       },
       setError,
       (id) => {

@@ -246,6 +246,13 @@ try {
       ),
     })
     await page.locator('#room-action-form button[type="submit"]').click()
+    const ownImage = page.locator('[id^="shared-media-"]').filter({ hasText: "pixel.png" })
+    await expect(ownImage.locator("img")).toHaveCount(0)
+    await ownImage.getByRole("button", { name: "Показать изображение" }).click()
+    await expect(ownImage.locator("img")).toBeVisible()
+    await page.locator("#message-body").fill("after screenshot")
+    await page.locator("#send-message").click()
+    await expect(recipientPage.locator("#messages")).toContainText("after screenshot")
     await recipientPage.getByRole("button", { name: "Показать изображение" }).click()
     await expect(recipientPage.locator('[id^="shared-media-"] img')).toBeVisible({ timeout: 45000 })
     await expect
@@ -255,6 +262,19 @@ try {
           .evaluate((element) => element instanceof HTMLImageElement && element.complete && element.naturalWidth === 1),
       )
       .toBe(true)
+    for (const viewer of [page, recipientPage]) {
+      await expect
+        .poll(() =>
+          viewer.locator("#messages").evaluate((feed) => {
+            const image = feed.querySelector('[id^="shared-media-"]')
+            const later = [...feed.querySelectorAll("[data-message-id]")].find((item) =>
+              item.textContent.includes("after screenshot"),
+            )
+            return !!image && !!later && !!(image.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING)
+          }),
+        )
+        .toBe(true)
+    }
     await page.locator("#attach-media").click()
     await page.locator('input[name="file"]').setInputFiles({
       name: "purr.mp3",

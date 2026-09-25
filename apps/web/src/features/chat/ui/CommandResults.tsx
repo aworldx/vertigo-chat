@@ -1,6 +1,6 @@
 import type { CommandResult as Result } from "../model/commands"
 import { CommandResult } from "./CommandResult"
-import { useFeedContentEvent } from "./MessageFeed"
+import { useFeedContentEvent } from "./feedContent"
 
 export function CommandResults({
   results,

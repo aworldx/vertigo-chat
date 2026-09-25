@@ -1,8 +1,10 @@
 import { ListeningAudio } from "./ListeningAudio"
 import type { SharedFile } from "../model/mediaTransfer"
-import { useFeedContentEvent } from "./MessageFeed"
+import { useFeedContentEvent } from "./feedContent"
+import { useState } from "react"
 export function SharedMedia({ file, onRequest }: { file: SharedFile; onRequest: () => void }) {
-  useFeedContentEvent(`${file.id}:${file.status}:${String(file.progress)}:${file.url}`)
+  const [opened, setOpened] = useState(false)
+  useFeedContentEvent(`${file.id}:${file.status}:${String(file.progress)}:${file.url}:${String(opened)}`)
   return (
     <article
       id={`shared-media-${file.id}`}
@@ -12,7 +14,7 @@ export function SharedMedia({ file, onRequest }: { file: SharedFile; onRequest: 
         {file.author}
       </span>
       <p className="mb-2 text-sm text-zinc-300">{file.name}</p>
-      {file.status !== "ready" ? (
+      {!opened || file.status !== "ready" ? (
         <div>
           <p role="status">
             {file.error ||
@@ -20,11 +22,14 @@ export function SharedMedia({ file, onRequest }: { file: SharedFile; onRequest: 
                 ? `Получаем файл… ${String(file.progress)}%`
                 : "Файл хранится на устройстве автора и доступен 15 минут.")}
           </p>
-          {!file.url && (
+          {(!opened || !file.url) && (
             <button
               type="button"
               disabled={file.status === "loading"}
-              onClick={onRequest}
+              onClick={() => {
+                setOpened(true)
+                if (!file.url) onRequest()
+              }}
               className="mt-2 rounded bg-amber-300 px-3 py-2 text-zinc-950"
             >
               {file.type.startsWith("image/") ? "Показать изображение" : "Слушать"}
@@ -36,7 +41,7 @@ export function SharedMedia({ file, onRequest }: { file: SharedFile; onRequest: 
           <img src={file.url} alt={file.name} className="max-h-80 max-w-full rounded object-contain" />
         </a>
       ) : null}
-      {file.type.startsWith("audio/") && file.url && (
+      {opened && file.type.startsWith("audio/") && file.url && (
         <ListeningAudio title={file.name} controls src={file.url} className="max-w-full">
           <track kind="captions" label="Субтитры" />
         </ListeningAudio>
