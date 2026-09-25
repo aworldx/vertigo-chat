@@ -40,6 +40,12 @@
 
 ## Расходы аккаунта в долларах
 
+Production проверен 2026-09-25: общий дневной бюджет ботов — 200000 токенов,
+порог остановки 90% (180000), граница суток UTC+3. Costs admin key сохранён
+в исключённых из Git локальном и серверном `.env.vps` с правами 0600;
+значение ключа в документацию и Git не записывается. После пересоздания API
+метрика `chat_openai_costs_read_success` равна 1, API healthy.
+
 Настроить отдельно от ключа ботов:
 
 ```dotenv
@@ -68,8 +74,6 @@ Admin key не заменяет `OPENAI_API_KEY` и не используетс�
 [rate-limit headers](https://developers.openai.com/api/docs/guides/rate-limits#rate-limits-in-headers),
 [Prometheus increase](https://prometheus.io/docs/prometheus/latest/querying/functions/#increase).
 
-Изменение подготовлено в Go-ветке. Для появления метрик на VPS требуется
-отдельный выпуск Go API и обновлённой конфигурации Grafana. Публикация и
-production rollout этой задачей не выполняются.
+Go API и конфигурация Grafana опубликованы на VPS; Costs подключён и проверен.
 
 Клэр учитывается отдельно с `bot="claire"`; её фоновые и прямые ответы используют общий дневной бюджет. Правила пауз описаны в [Клэр и фоновая беседа](claire_bot.md).
