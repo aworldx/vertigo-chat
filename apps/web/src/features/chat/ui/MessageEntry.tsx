@@ -237,31 +237,46 @@ export function MessageEntry({
               </button>
             ))}
           {onReaction && message.author !== nickname && (
-            <button
-              type="button"
-              aria-label="Добавить реакцию"
-              onClick={() => {
-                setReactionsOpen(!reactionsOpen)
-              }}
-              className="flex size-5 cursor-pointer items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200"
-            >
-              <Icon name="face-smile" className="size-3" />
-            </button>
-          )}
-          {reactionsOpen &&
-            ["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => (
+            <div className="relative">
               <button
-                key={emoji}
+                id={`reaction-toggle-${entryID}`}
                 type="button"
-                aria-label={emoji}
+                aria-label="Добавить реакцию"
+                title="Добавить реакцию"
+                aria-expanded={reactionsOpen}
+                aria-controls={`reaction-picker-${entryID}`}
                 onClick={() => {
-                  onReaction?.(message.id, emoji, !message.reacted.includes(emoji))
-                  setReactionsOpen(false)
+                  setReactionsOpen(!reactionsOpen)
                 }}
+                className="flex size-5 cursor-pointer items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200"
               >
-                {emoji}
+                <Icon name="face-smile" className="size-3" />
               </button>
-            ))}
+              {reactionsOpen && (
+                <div
+                  id={`reaction-picker-${entryID}`}
+                  role="group"
+                  aria-label="Выбор реакции"
+                  className="absolute bottom-full right-0 z-30 mb-1.5 flex gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-1.5 shadow-2xl"
+                >
+                  {["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      aria-label={`Поставить реакцию ${emoji}`}
+                      onClick={() => {
+                        onReaction(message.id, emoji, !message.reacted.includes(emoji))
+                        setReactionsOpen(false)
+                      }}
+                      className="flex size-8 items-center justify-center rounded-lg text-lg transition hover:bg-amber-300/15 hover:scale-110"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {onDelete && (
             <button
               type="button"
