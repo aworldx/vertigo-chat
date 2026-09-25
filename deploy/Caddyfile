@@ -1,4 +1,6 @@
 {$CADDY_SITE_ADDRESS} {
+	redir /admin/ /admin 308
+
 	@internal path /internal /internal/*
 	handle @internal {
 		respond 404
