@@ -42,10 +42,11 @@ type Socket struct {
 	origin     string
 	experience Experience
 	hub        *hub
+	cache      *snapshotCache
 }
 
 func NewSocket(service application.Service, projection Projection, history History, send SendMessage, origin string) Socket {
-	return Socket{service: service, projection: projection, history: history, send: send, origin: origin, hub: newHub(), limiter: security.NewLimiter(), shares: shares.NewRegistry()}
+	return Socket{service: service, projection: projection, history: history, send: send, origin: origin, hub: newHub(), limiter: security.NewLimiter(), shares: shares.NewRegistry(), cache: &snapshotCache{}}
 }
 func (h Socket) Register(mux *http.ServeMux) { mux.HandleFunc("GET /api/v1/chat/socket", h.serve) }
 
@@ -181,6 +182,10 @@ func (h Socket) run(ctx context.Context, conn *websocket.Conn, session domain.Se
 	}
 }
 func (h Socket) command(ctx context.Context, conn *websocket.Conn, session domain.Session, cmd command, visibility string) bool {
+	switch cmd.Type {
+	case "send", "media", "reaction", "delete", "preferences", "leave":
+		defer h.cache.invalidate()
+	}
 	if h.messageLimited(session, cmd) {
 		return socketWrite(ctx, conn, map[string]string{"type": "error", "code": "rate_limited", "client_id": cmd.ClientID}) == nil
 	}
@@ -221,18 +226,15 @@ func (h Socket) command(ctx context.Context, conn *websocket.Conn, session domai
 	}
 }
 func (h Socket) snapshot(ctx context.Context, session domain.Session) (snapshot, error) {
-	sessions, err := h.projection.Presence(ctx, session.RoomID)
+	shared, err := h.sharedSnapshot(ctx, session)
 	if err != nil {
 		return snapshot{}, err
 	}
-	peers := make([]peer, 0, len(sessions))
+	peers := make([]peer, 0, len(shared.sessions))
 	current := false
 	own := Presentation{Preferences: chatlans.Default()}
-	for _, value := range sessions {
-		presentation, err := h.presentation(ctx, value)
-		if err != nil {
-			return snapshot{}, err
-		}
+	for _, value := range shared.sessions {
+		presentation := shared.presentations[value.ID]
 		peers = append(peers, peer{ListeningTrack: h.hub.listening(value), ID: value.ID, Nickname: value.Nickname, Status: value.Status, Registered: strings.HasPrefix(value.IdentityKey, "user:"), Self: value.ID == session.ID, Preferences: presentation.Preferences, Rank: presentation.Rank})
 		if value.ID == session.ID {
 			own = presentation
@@ -244,10 +246,10 @@ func (h Socket) snapshot(ctx context.Context, session domain.Session) (snapshot,
 	if !current {
 		return snapshot{}, domain.ErrInvalidSession
 	}
-	peers = append(peers, peer{BotBusy: h.experience.BotAvailable != nil && !h.experience.BotAvailable(ctx), ID: "bot-hitchcock", Nickname: "Хичкок", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
-	peers = append(peers, peer{BotBusy: h.experience.BotAvailable != nil && !h.experience.BotAvailable(ctx), ID: "bot-claire", Nickname: "Клэр", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
+	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-hitchcock", Nickname: "Хичкок", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
+	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-claire", Nickname: "Клэр", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
 	sort.Slice(peers, func(i, j int) bool { return peers[i].Nickname < peers[j].Nickname })
-	messages, err := h.history.Recent(ctx, session.RoomID)
+	messages := shared.messages
 	encoded := make([]messageDTO, 0, len(messages))
 	for _, message := range messages {
 		encoded = append(encoded, encodeMessage(message, session.IdentityKey))

@@ -36,6 +36,11 @@ func TestAccountsPostgres(t *testing.T) {
 	if !strings.HasPrefix(database, "chat_accounts_test_") {
 		t.Fatal("integration tests require disposable chat_accounts_test_* database")
 	}
+	// Production Phoenix predates this last legacy migration. Reproduce that
+	// schema in the disposable database and prove Go provisions profiles itself.
+	if _, err := pool.Exec(ctx, `DROP TRIGGER IF EXISTS create_profile_for_registered_user ON registered_users; DROP FUNCTION IF EXISTS create_profile_for_registered_user()`); err != nil {
+		t.Fatal(err)
+	}
 	if err := migrations.Apply(ctx, pool); err != nil {
 		t.Fatal(err)
 	}

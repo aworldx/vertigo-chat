@@ -16,6 +16,7 @@ import (
 	chatsessionshttp "chat/api/internal/chatsessions/adapters/http"
 	chatsessionspostgres "chat/api/internal/chatsessions/adapters/postgres"
 	chatsessionsapplication "chat/api/internal/chatsessions/application"
+	"chat/api/internal/clientip"
 	emojihttp "chat/api/internal/emojis/adapters/http"
 	emojiimages "chat/api/internal/emojis/adapters/images"
 	emojipg "chat/api/internal/emojis/adapters/postgres"
@@ -118,7 +119,12 @@ func main() {
 	}).WithUpgrade(upgradeChatAccount(pool)).Register(mux)
 	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).WithExperience(roomExperience(pool, metrics, ctx)).Register(mux)
 	go reapChatSessions(ctx, chatSessions)
-	server := &http.Server{Addr: env("API_ADDR", "127.0.0.1:4020"), Handler: metrics.Wrap(mux), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
+	handler, err := clientip.Wrap(metrics.Wrap(mux), os.Getenv("API_TRUSTED_PROXY_CIDRS"))
+	if err != nil {
+		slog.Error("configure trusted proxies", "error", err)
+		os.Exit(1)
+	}
+	server := &http.Server{Addr: env("API_ADDR", "127.0.0.1:4020"), Handler: handler, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)

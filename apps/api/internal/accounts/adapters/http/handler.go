@@ -104,8 +104,8 @@ func (h Handler) register(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &body) {
 		return
 	}
-	// Forwarded headers are deliberately not trusted. A future reverse proxy
-	// must supply a separately configured trusted-peer adapter.
+	// The configured trusted-proxy middleware normalizes RemoteAddr. Never
+	// consume caller-supplied forwarding headers inside business handlers.
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_peer")
