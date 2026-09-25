@@ -58,7 +58,8 @@ defmodule Chat.Sessions.NodeTest do
              call(restarted, {:snapshot, ctx.room})
   end
 
-  test "two nodes entering the same registered identity create one session and one visit", ctx do
+  test "two nodes entering the same registered identity leave one current session and visit",
+       ctx do
     {:ok, _user} = call(ctx.first, {:register, "racing_member"})
 
     results =
@@ -68,9 +69,27 @@ defmodule Chat.Sessions.NodeTest do
         {:enter, ctx.room, "racing_member", "integration123"}
       )
 
-    assert 1 == Enum.count(results, &match?({:ok, _}, &1))
-    assert {:error, :nickname_online} in results
-    assert %{sessions: [_], visits: [_]} = call(ctx.first, {:snapshot, ctx.room})
+    # Legacy password login intentionally takes over an existing session (also
+    # covered by RoomLiveTest). The loser can fail before creation, lose its
+    # generation before connect, or connect before the next login takes over.
+    successful = for {:ok, session} <- results, do: session
+    assert successful != []
+
+    for {:error, reason} <- results do
+      assert reason in [:nickname_online, :stale_connection]
+    end
+
+    %{sessions: sessions, visits: visits} = call(ctx.first, {:snapshot, ctx.room})
+    assert [current] = Enum.filter(sessions, &(&1.status == "active"))
+    assert [open_visit] = Enum.filter(visits, &is_nil(&1.left_at))
+    assert current.visit_id == open_visit.id
+    assert Enum.all?(sessions, &(&1.status in ["active", "ended"]))
+    assert length(sessions) == length(visits)
+
+    for session <- successful do
+      expected = if session.session_id == current.id, do: :ok, else: :stale
+      assert call(ctx.first, {:touch, session, DateTime.utc_now()}) == expected
+    end
   end
 
   test "two reapers close an expired session once after its owning VM stops", ctx do
