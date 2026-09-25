@@ -35,7 +35,12 @@ COPY --from=hadolint/hadolint:v2.12.0 /bin/hadolint /usr/local/bin/hadolint
 WORKDIR /app
 COPY . .
 RUN npm --prefix apps/web ci \
-  && npm exec --prefix apps/web -- playwright install --with-deps chromium \
+  && npm exec --prefix apps/web -- playwright install-deps chromium \
+  && (attempt=1; until PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT=120000 npm exec --prefix apps/web -- playwright install chromium; do \
+       if [ "$attempt" -ge 3 ]; then exit 1; fi; \
+       echo "Chromium download failed; retrying in 15 seconds ($attempt/3)" >&2; \
+       attempt=$((attempt + 1)); sleep 15; \
+     done) \
   && find /app/script -maxdepth 1 -type f ! -name '*.exs' ! -name '*.mjs' -exec shellcheck {} + \
   && hadolint --config /app/deploy/.hadolint.yaml /app/deploy/docker/Dockerfile \
   && npm exec --yes --package=@redocly/cli@1.34.5 -- redocly lint /app/contracts/openapi/*.yaml
