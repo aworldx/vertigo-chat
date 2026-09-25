@@ -4,5 +4,5 @@ set -eu
 
 cd "$(dirname "$0")/../apps/phoenix"
 mix precommit
-../../script/verify-go-accounts
+# Accounts browser checks already run inside precommit coverage.
 exec ../../script/check-infrastructure

@@ -48,6 +48,17 @@ Docker.
 локальный gate из [AGENTS.md](AGENTS.md) также запускается командой
 `cd apps/phoenix && mix precommit`.
 
+Перед push запускайте полный локальный gate: `script/check`. Он включает
+`mix precommit` (Go/React/Phoenix, покрытие, browser regression и контракты),
+затем ShellCheck, Hadolint, OpenAPI lint и проверку Compose. Нужны локальные
+Node >=24.8, Go, Elixir, PostgreSQL, установленный Playwright Chromium и Docker.
+Accounts browser regression уже входит в проверку покрытия и повторно не запускается.
+
+GitLab CI только собирает и публикует production-образы после push в `main`;
+полного quality job в CI нет. Проверки обязательны локально перед отправкой.
+API и worker используют отдельные registry build caches, чтобы не перезаписывать
+кэш друг друга; прежний общий кэш пока читается для первого переходного запуска.
+
 ## Docker Compose
 
 Локальный стенд с автоматической пересборкой: `./script/dev-docker`.

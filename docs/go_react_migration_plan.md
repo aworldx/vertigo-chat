@@ -31,6 +31,24 @@ legacy-ветке и не является fallback или proxy целевой 
 
 ## Текущее состояние
 
+### Полный quality gate локально (2026-09-25)
+
+По запросу пользователя полный gate перенесён из GitLab на локальный запуск
+`script/check` перед push. Он запускает обязательный `mix precommit` и
+`check-infrastructure`; дублирующий `verify-go-accounts` удалён, поскольку
+Accounts browser regression уже выполняется внутри `check-coverage`.
+GitLab оставлен для сборки и публикации production-образов. Go vet/unit tests
+в production Docker targets сохранены. Docker target `quality` остаётся
+доступным для ручной контейнерной диагностики.
+
+У удалённого quality job отсутствовал импорт Docker build cache; на свежем
+runner повторялись установки зависимостей и Chromium. Production API и worker
+теперь пишут отдельные registry cache tags; прежний общий кэш читается для
+перехода. Это устраняет перезапись одного cache tag двумя разными targets.
+Полный `RUN_CHAT_P2P=1 script/check` прошёл локально: 411 Phoenix tests,
+Go/React/browser/coverage и инфраструктурные проверки. CI YAML разобран и
+проверен: единственный stage `build`, зависимости от удалённого quality нет.
+
 ### Меню реакций без смещения кнопки (2026-09-25)
 
 В React варианты реакции ошибочно добавлялись в общую flex-строку действий:
