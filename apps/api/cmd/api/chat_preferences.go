@@ -63,8 +63,8 @@ func preferencesService(db interface {
 }) chatlans.Service {
 	return chatlans.NewService(participantPreferences{chatlanpg.NewStore(db), accounts.NewPreferences(accountspg.NewAccounts(db))})
 }
-func roomExperience(pool *pgxpool.Pool, metrics *observability.Metrics) chathttp.Experience {
-	reply, available := botReplies(pool, metrics)
+func roomExperience(pool *pgxpool.Pool, metrics *observability.Metrics, lifecycle ...context.Context) chathttp.Experience {
+	reply, available := botReplies(pool, metrics, lifecycle...)
 	return chathttp.Experience{Bot: reply, BotAvailable: available, Media: sendRoomMedia(pool),
 		React: func(ctx context.Context, session chatdomain.Session, id int64, emoji string, active bool) error {
 			return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {

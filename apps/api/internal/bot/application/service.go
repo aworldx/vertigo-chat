@@ -18,9 +18,12 @@ type Store interface {
 type Service struct {
 	store    Store
 	provider Provider
+	fallback string
 }
 
-func NewService(s Store, p Provider) Service { return Service{s, p} }
+func NewService(s Store, p Provider) Service {
+	return Service{store: s, provider: p, fallback: domain.Hitchcock().Fallback}
+}
 func (s Service) Answer(ctx context.Context, r Request, publish func(domain.Result) error) (domain.Result, error) {
 	r.Body = strings.TrimSpace(r.Body)
 	if r.Body == "" || utf8.RuneCountInString(r.Body) > 1000 {
@@ -29,9 +32,11 @@ func (s Service) Answer(ctx context.Context, r Request, publish func(domain.Resu
 	result, err := s.store.Exchange(ctx, r, func(input domain.Context) (domain.Result, error) {
 		result, err := s.provider.Generate(ctx, input)
 		if errors.Is(err, domain.ErrEmptyResponse) && !input.Summarize {
-			return domain.Result{Text: "Моя реплика застряла в монтажной. Сформулируй вопрос ещё раз — и я отвечу без лишней драмы.", Fallback: true}, nil
+			return domain.Result{Text: s.fallback, Fallback: true}, nil
 		}
 		return result, err
 	}, publish)
 	return result, err
 }
+
+func (s Service) WithFallback(text string) Service { s.fallback = text; return s }

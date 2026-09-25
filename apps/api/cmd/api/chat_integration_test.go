@@ -92,6 +92,10 @@ func TestPublicChatPostgres(t *testing.T) {
 	t.Run("bot failed requests fallback and summary recovery", fixture.botFailureRecovery)
 	t.Run("session conflict rolls back visit", fixture.sessionStartRollback)
 	t.Run("profile media missing and remote storage", fixture.profileMediaBoundaries)
+	t.Run("Claire separate memory publication and media", fixture.claireConversation)
+	t.Run("ambient leader election and cancellation", fixture.ambientLeadership)
+	t.Run("Claire video search and publication", fixture.claireVideo)
+	t.Run("persistent bot profiles progress and karma", fixture.botProfiles)
 }
 func (f *chatFixture) refresh(t *testing.T) {
 	t.Helper()
@@ -142,6 +146,7 @@ func (f *chatFixture) post(t *testing.T, path, body string, status int) string {
 func (f *chatFixture) registration(t *testing.T) {
 	f.post(t, "/api/v1/chat/enter", `{"nickname":"fixture01","password":""}`, 401)
 	f.post(t, "/api/v1/chat/enter", `{"nickname":"Хичкок","password":""}`, 409)
+	f.post(t, "/api/v1/chat/enter", `{"nickname":"Клэр","password":""}`, 409)
 	token := f.post(t, "/api/v1/chat/enter", `{"nickname":"guest-atomic","password":""}`, 200)
 	f.post(t, "/api/v1/chat/register", `{"nickname":"guest-atomic","password":"secret123"}`, 409)
 	f.post(t, "/api/v1/auth/register", `{"nickname":"guest-atomic","password":"secret123"}`, 422)

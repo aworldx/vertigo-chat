@@ -438,7 +438,7 @@ components:
       type: object
       required: [theme_id, appearance, font_id, font_style, message_sound_enabled]
       properties:
-        theme_id: {type: string, enum: [vertigo, dark, night_sky, newspaper]}
+        theme_id: {type: string, enum: [vertigo, dark, night_sky, autumn, autumn_sunny, newspaper]}
         font_id: {type: string, enum: [theme, sans, display, serif]}
         font_style: {type: string, enum: [normal, italic]}
         message_sound_enabled: {type: boolean}
@@ -449,6 +449,7 @@ components:
               required: [message_frame]
               properties:
                 message_frame: {type: boolean}
+                hide_karmik: {type: boolean, description: Hide only the personal Karmik decoration; defaults to false when omitted. Karma processing remains active.}
 
     Emoji:
       type: object

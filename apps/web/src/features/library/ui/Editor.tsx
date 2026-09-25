@@ -1,6 +1,9 @@
+import { RichTextEditor } from "./RichTextEditor"
+import { ArticleText } from "./ArticleText"
+import { articleBodyLimit } from "../model/articleText"
 import { Icon } from "../../../shared/ui/Icon"
 import { useState, type SyntheticEvent } from "react"
-import { Field, TextField } from "../../../shared/ui/Field"
+import { Field } from "../../../shared/ui/Field"
 import { Modal } from "../../../shared/ui/Modal"
 import { saveArticle, libraryError, type Article, type Series } from "../api/library"
 export function Editor({
@@ -26,6 +29,10 @@ export function Editor({
     [pending, setPending] = useState(false)
   async function submit(e: SyntheticEvent) {
     e.preventDefault()
+    if (!body.trim() || Array.from(body).length > articleBodyLimit) {
+      setError("Текст должен содержать от 1 до 12000 символов с форматированием.")
+      return
+    }
     setPending(true)
     setError("")
     try {
@@ -112,20 +119,11 @@ export function Editor({
               ))}
             </datalist>
             <div>
-              <TextField
-                id="article_body"
-                label="Текст"
-                maxLength={12000}
-                placeholder="Начните писать здесь…"
-                value={body}
-                onChange={(e) => {
-                  setBody(e.target.value)
-                }}
-                required
-                className="mt-2 min-h-[26rem] w-full resize-y rounded-xl border border-stone-700 bg-stone-900 px-4 py-3 font-serif text-base leading-7 text-stone-100 shadow-sm outline-none transition placeholder:text-stone-600 hover:border-stone-600 focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10"
-              />
+              <RichTextEditor initialBody={article?.body ?? ""} onChange={setBody} disabled={pending} />
               <div className="mt-2 flex items-center justify-between gap-4 text-xs">
-                <span className="text-stone-500">Если текст не помещается, продолжите его новой частью серии.</span>
+                <span className="text-stone-500">
+                  Лимит включает форматирование. Большой текст можно разделить на части.
+                </span>
                 <span id="article-character-count" className="text-stone-400">
                   {`${String(Array.from(body).length)} / 12000`}
                 </span>
@@ -138,7 +136,7 @@ export function Editor({
             )}
             <button
               id="save-library-article"
-              disabled={pending}
+              disabled={pending || !body.trim() || Array.from(body).length > articleBodyLimit}
               className="w-full rounded-xl bg-amber-300 px-5 py-3.5 font-semibold text-stone-950 shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-60"
             >
               {pending ? "Сохраняем…" : "Сохранить статью"}
@@ -149,8 +147,8 @@ export function Editor({
             <h3 className="mt-3 font-serif text-3xl leading-tight">{title || "Название статьи"}</h3>
             <p className="mt-3 text-xs text-stone-500">{nickname}</p>
             <p className="mt-1 text-xs text-stone-600">До 10 новых статей в сутки и 50 всего.</p>
-            <div className="mt-6 whitespace-pre-wrap font-serif text-base leading-8">
-              {"\n              " + (body || "Текст появится здесь по мере набора.") + "\n            "}
+            <div className="mt-6 font-serif text-base leading-8">
+              <ArticleText body={body || "Текст появится здесь по мере набора."} />
             </div>
           </aside>
         </form>

@@ -1,3 +1,4 @@
+import { ArticleText } from "./ArticleText"
 import { Icon } from "../../../shared/ui/Icon"
 import type { Article } from "../api/library"
 export function seriesURL(author: number, series: string) {
@@ -60,20 +61,18 @@ export function ArticleCard({
         </div>
       </div>
       <div className="px-5 py-5 sm:px-7">
-        <p className="whitespace-pre-wrap text-sm leading-7 text-stone-300">
-          {"\n                  " +
-            (body.length > 360 ? body.slice(0, 360).join("") + "…" : a.body) +
-            "\n                "}
-        </p>
+        <div className="text-sm leading-7 text-stone-300">
+          <ArticleText body={a.body} compact={body.length > 360} />
+        </div>
         {body.length > 360 && (
           <details className="group mt-4 border-t border-amber-950/40 pt-4">
             <summary className="cursor-pointer list-none text-sm font-medium text-amber-400 transition hover:text-amber-200">
               <span className="group-open:hidden">Читать полностью</span>
               <span className="hidden group-open:inline">Свернуть</span>
             </summary>
-            <p className="mt-5 whitespace-pre-wrap text-sm leading-7 text-stone-300">
-              {"\n                    " + a.body + "\n                  "}
-            </p>
+            <div className="mt-5 text-sm leading-7 text-stone-300">
+              <ArticleText body={a.body} />
+            </div>
           </details>
         )}
       </div>

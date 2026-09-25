@@ -1,0 +1,1 @@
+UPDATE profiles SET photo=decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jKbkAAAAASUVORK5CYII=','base64'), photo_content_type='image/png' WHERE user_id=(SELECT id FROM registered_users WHERE nickname=:'nickname' AND is_bot);

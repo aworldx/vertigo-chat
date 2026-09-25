@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#fbe6aa"/><stop offset=".55" stop-color="#fff6dc"/><stop offset="1" stop-color="#edd499"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#fffef1"/><stop offset=".4" stop-color="#fff9d8" stop-opacity=".9"/><stop offset="1" stop-color="#fff4b8" stop-opacity="0"/></radialGradient>
+    <g id="leaf"><path d="M0 0C-30-30-22-65 0-84 24-63 33-28 0 0Z" fill="currentColor"/><path d="M0 8V-65M0-25-12-39M0-42 11-54" stroke="#a85e28" stroke-opacity=".4" stroke-width="2"/></g>
+    <g id="maple"><path d="m0 0-28-20 9-7-23-29 25 5-4-28 16 12L4-96l12 30 18-9-6 29 24-6-25 29 8 8Z" fill="currentColor"/><path d="M0 9 4-74M2-19-24-43M2-20 29-40" stroke="#a85e28" stroke-opacity=".4" stroke-width="2"/></g>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h1600v1000H0z"/>
+  <ellipse cx="1120" cy="320" rx="620" ry="590" fill="url(#sun)"/>
+  <g fill="#c5ae6e" opacity=".17"><path d="m220 1000 15-930 17 930zm280 0 18-840 14 840zm500 0 12-950 14 950zm310 0 14-760 15 760z"/></g>
+  <path d="M-30 720Q20 270 130-50M1620 850Q1500 380 1450-30" stroke="#ac8954" stroke-width="22" opacity=".4"/>
+  <path d="M40 220Q230 160 470-30M1500 190Q1350 120 1220-20" stroke="#ac8954" stroke-width="12" opacity=".4"/>
+  <g color="#edac31"><use href="#maple" transform="translate(60 135) rotate(-30) scale(2.1)"/><use href="#leaf" transform="translate(235 180) rotate(45) scale(1.6)"/><use href="#maple" transform="translate(430 95) rotate(60) scale(1.5)"/><use href="#leaf" transform="translate(1320 130) rotate(-45) scale(2)"/><use href="#maple" transform="translate(1580 240) rotate(30) scale(2.4)"/></g>
+  <g color="#e78b3b"><use href="#leaf" transform="translate(100 310) rotate(-45) scale(1.4)"/><use href="#maple" transform="translate(290 90) rotate(25) scale(1.8)"/><use href="#leaf" transform="translate(1470 120) rotate(70) scale(2.3)"/><use href="#maple" transform="translate(1490 425) rotate(40) scale(.9)"/><use href="#leaf" transform="translate(1230 730) rotate(35) scale(.65)"/></g>
+  <g color="#cf6038"><use href="#maple" transform="translate(40 490) rotate(-30) scale(.9)"/><use href="#leaf" transform="translate(1390 315) rotate(35)"/><use href="#maple" transform="translate(340 730) rotate(45) scale(.6)"/></g>
+  <g color="#adb34f"><use href="#leaf" transform="translate(165 115) rotate(-70) scale(1.4)"/><use href="#leaf" transform="translate(1240 80) rotate(-35) scale(1.5)"/></g>
+  <path d="M0 960Q350 900 820 980T1600 930V1000H0Z" fill="#cfac65" opacity=".2"/>
+  <g color="#e7a340" opacity=".6"><use href="#maple" transform="translate(140 970) rotate(70) scale(.7)"/><use href="#leaf" transform="translate(1490 945) rotate(-70)"/></g>
+</svg>

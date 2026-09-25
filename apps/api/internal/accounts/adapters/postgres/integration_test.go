@@ -86,7 +86,7 @@ func testRegistration(t *testing.T, pool *pgxpool.Pool, accounts postgres.Accoun
 		t.Fatalf("first admins=%d", admins)
 	}
 	var profiles int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM profiles`).Scan(&profiles); err != nil || profiles != 2 {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM profiles p JOIN registered_users u ON u.id=p.user_id WHERE NOT u.is_bot`).Scan(&profiles); err != nil || profiles != 2 {
 		t.Fatalf("profile trigger: count=%d error=%v", profiles, err)
 	}
 }
@@ -110,7 +110,7 @@ func testRegistrationConflicts(t *testing.T, pool *pgxpool.Pool, accounts postgr
 	}
 
 	var count int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM registered_users`).Scan(&count); err != nil || count != 4 {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM registered_users WHERE NOT is_bot`).Scan(&count); err != nil || count != 4 {
 		t.Fatalf("partial writes: count=%d err=%v", count, err)
 	}
 }
@@ -119,7 +119,7 @@ func testSessions(t *testing.T, pool *pgxpool.Pool, accounts postgres.Accounts) 
 	ctx := context.Background()
 	now := time.Now().UTC()
 	var userID int64
-	if err := pool.QueryRow(ctx, `SELECT id FROM registered_users ORDER BY id LIMIT 1`).Scan(&userID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT id FROM registered_users WHERE NOT is_bot ORDER BY id LIMIT 1`).Scan(&userID); err != nil {
 		t.Fatal(err)
 	}
 	sessions := application.NewSessions(accounts)

@@ -48,6 +48,7 @@ export function OnlineList({
   onAddress,
   onProfile,
   onSettings,
+  hideKarmik = false,
 }: {
   mood?: "resting" | "happy" | "angry"
   onPet?: () => void
@@ -56,6 +57,7 @@ export function OnlineList({
   onAddress: (nickname: string) => void
   onProfile?: (nickname: string) => void
   onSettings?: () => void
+  hideKarmik?: boolean
 }) {
   const pet = useKarmikPet(onPet)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -106,9 +108,16 @@ export function OnlineList({
               className="chat-online-row flex items-center gap-2 rounded px-2 py-0.5"
             >
               {peer.bot ? (
-                <span className="flex size-7 shrink-0 items-center justify-center text-amber-300" aria-label="Чат-бот">
-                  <Icon name="video-camera" className="size-5" />
-                </span>
+                <button
+                  id={`profile-link-${peer.id}`}
+                  type="button"
+                  onClick={() => onProfile?.(peer.nickname)}
+                  aria-label={`Открыть анкету ${peer.nickname}`}
+                  title={`${peer.nickname} · чат-бот`}
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-amber-300 transition hover:bg-amber-300/15 focus-visible:outline-2 focus-visible:outline-amber-300"
+                >
+                  <Icon name={peer.id === "bot-claire" ? "star" : "video-camera"} className="size-5" />
+                </button>
               ) : peer.registered ? (
                 <button
                   id={`profile-link-${peer.id}`}
@@ -187,41 +196,43 @@ export function OnlineList({
           )
         })}
       </div>
-      <section
-        id="karmik"
-        data-mood={mood}
-        className="karmik mt-auto hidden lg:flex"
-        aria-label="Кармик, хранитель кармы чатлан"
-      >
-        <div
-          id="karmik-sprite"
-          className="karmik-sprite"
-          role="button"
-          tabIndex={0}
-          aria-label="Погладить Кармика курсором"
-          aria-describedby="karmik-name"
-          onPointerMove={() => {
-            pet()
-          }}
-          onPointerDown={() => {
-            pet(true)
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault()
+      {!hideKarmik && (
+        <section
+          id="karmik"
+          data-mood={mood}
+          className="karmik mt-auto hidden lg:flex"
+          aria-label="Кармик, хранитель кармы чатлан"
+        >
+          <div
+            id="karmik-sprite"
+            className="karmik-sprite"
+            role="button"
+            tabIndex={0}
+            aria-label="Погладить Кармика курсором"
+            aria-describedby="karmik-name"
+            onPointerMove={() => {
+              pet()
+            }}
+            onPointerDown={() => {
               pet(true)
-            }
-          }}
-        />
-        {mood === "happy" && (
-          <span id="karmik-purr" className="karmik-purr" aria-live="polite">
-            Мур-р-р!
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                pet(true)
+              }
+            }}
+          />
+          {mood === "happy" && (
+            <span id="karmik-purr" className="karmik-purr" aria-live="polite">
+              Мур-р-р!
+            </span>
+          )}
+          <span id="karmik-name" className="karmik-tooltip" role="tooltip">
+            Котик Кармик
           </span>
-        )}
-        <span id="karmik-name" className="karmik-tooltip" role="tooltip">
-          Котик Кармик
-        </span>
-      </section>
+        </section>
+      )}
     </aside>
   )
 }

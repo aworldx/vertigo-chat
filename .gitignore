@@ -45,6 +45,7 @@ npm-debug.log
 /coverage/
 
 .env
+.env.docker.local
 .env.vps
 .music_proxies
 /logs/

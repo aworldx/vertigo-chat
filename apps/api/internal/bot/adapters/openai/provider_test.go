@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -94,5 +95,32 @@ func TestEmptyReplyRetriesOnlyCurrentMessage(t *testing.T) {
 	}
 	if len(observed) != 2 || !errors.Is(observed[0], domain.ErrEmptyResponse) || observed[1] != nil {
 		t.Fatal("retry observations", observed)
+	}
+}
+
+func TestClaireUsesOwnInstructionsAndSummaryPrompt(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Instructions string `json:"instructions"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		if !strings.Contains(body.Instructions, "24-летнюю") && !strings.Contains(body.Instructions, "долговременную память") {
+			t.Error("missing Claire persona or summary prompt")
+		}
+		if strings.Contains(body.Instructions, "именитый режиссёр") {
+			t.Error("Hitchcock persona leaked")
+		}
+		_, _ = w.Write([]byte(`{"output":[{"content":[{"type":"output_text","text":"Привет!"}]}]}`))
+	}))
+	defer server.Close()
+	p := NewProvider("test", "model")
+	p.Endpoint = server.URL
+	p.PersonaInstructions = domain.ClaireInstructions
+	for _, summary := range []bool{false, true} {
+		if _, err := p.Generate(context.Background(), domain.Context{Summarize: summary}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

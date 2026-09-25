@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="dusk" x2="0" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#64452e"/><stop offset=".5" stop-color="#302d25"/><stop offset="1" stop-color="#171d19"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#efc177" stop-opacity=".55"/><stop offset="1" stop-color="#d49045" stop-opacity="0"/></radialGradient>
+    <g id="tree"><path d="M0 1000 12 80 26 1000Z" fill="#201f1a"/><path d="m17 360-105-148m104 254 125-205M18 622-133-150m130-212 84-151" stroke="#25251d" stroke-width="9"/></g>
+    <g id="leaf"><path d="M0 0C-26-35-13-63 0-80 16-58 29-29 0 0Z" fill="currentColor"/><path d="M0 8V-62" stroke="#502e1d" stroke-opacity=".55" stroke-width="1.5"/></g>
+  </defs>
+  <path fill="url(#dusk)" d="M0 0h1600v1000H0z"/>
+  <ellipse cx="1120" cy="320" rx="600" ry="510" fill="url(#sun)"/>
+  <g opacity=".18"><use href="#tree" x="220"/><use href="#tree" x="460"/><use href="#tree" x="690"/><use href="#tree" x="960"/><use href="#tree" x="1140"/><use href="#tree" x="1390"/></g>
+  <g opacity=".65"><use href="#tree" transform="translate(100 0) scale(1.5 1)"/><use href="#tree" transform="translate(770 0) scale(.7 1)"/><use href="#tree" transform="translate(1470 0) scale(2 1)"/></g>
+  <path d="M-60 100Q260 130 500-40M1250-40Q1440 160 1700 170" stroke="#30271e" stroke-width="30"/>
+  <g color="#b16b32"><use href="#leaf" transform="translate(70 110) rotate(-60) scale(2)"/><use href="#leaf" transform="translate(210 130) rotate(15) scale(1.5)"/><use href="#leaf" transform="translate(360 90) rotate(60) scale(1.8)"/><use href="#leaf" transform="translate(1430 170) rotate(-30) scale(2)"/><use href="#leaf" transform="translate(1580 240) rotate(35) scale(2.5)"/></g>
+  <g color="#d3a052"><use href="#leaf" transform="translate(150 200) rotate(-30)"/><use href="#leaf" transform="translate(440 55) rotate(80)"/><use href="#leaf" transform="translate(1350 110) rotate(-70) scale(1.5)"/><use href="#leaf" transform="translate(1240 370) rotate(35) scale(.65)"/><use href="#leaf" transform="translate(1020 650) rotate(-50) scale(.5)"/></g>
+  <g color="#9c4c2e"><use href="#leaf" transform="translate(50 360) rotate(35) scale(1.2)"/><use href="#leaf" transform="translate(1510 480) rotate(70)"/><use href="#leaf" transform="translate(380 710) rotate(-25) scale(.6)"/><use href="#leaf" transform="translate(1320 810) rotate(65) scale(.8)"/></g>
+  <path d="M0 960Q380 860 770 950T1600 900V1000H0Z" fill="#191b16" opacity=".7"/>
+</svg>

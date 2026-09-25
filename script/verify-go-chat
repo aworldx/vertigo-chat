@@ -23,6 +23,11 @@ GO_CHAT_TEST_DATABASE_URL="$database_url" "$go_command" test -race ./cmd/api -ru
 # Only this disposable test database is reset between independent test suites.
 psql "$database_url" -v ON_ERROR_STOP=1 -q -c 'TRUNCATE registered_users, security_registration_guards, chat_sessions, visits, room_messages RESTART IDENTITY CASCADE' > "$work_dir/reset.log" 2>&1
 psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/go-web.sql"
+psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$repository_root/apps/api/migrations/0005_bot_profiles.sql"
+# Local fixture bytes keep browser tests independent of external S3/network.
+for nickname in Клэр Хичкок; do
+  psql "$database_url" -v ON_ERROR_STOP=1 -q -v nickname="$nickname" -f "$repository_root/script/fixtures/bot-portraits.sql"
+done
 npm --prefix "$repository_root/apps/web" run build
 if [ -n "${GOCOVERDIR:-}" ]; then
   "$go_command" build -buildvcs=false -cover -coverpkg=./... -o "$work_dir/api" ./cmd/api

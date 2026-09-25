@@ -22,7 +22,7 @@ func (s Store) RecentText(ctx context.Context, before int64) ([]domain.Message, 
 	return messages, rows.Err()
 }
 func (s Store) AnnounceAssessment(ctx context.Context, nickname string, delta int) error {
-	body := "Кармик варит для " + nickname + " сердечко — рейтинг повышен на 1."
+	body := "Кармик дарит для " + nickname + " сердечко — рейтинг повышен на 1."
 	if delta < 0 {
 		body = "Кармик сердито машет хвостом: " + nickname + ", рейтинг понижен на 1."
 	}

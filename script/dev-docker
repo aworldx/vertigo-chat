@@ -1,0 +1,17 @@
+#!/bin/sh
+# Run the local stack and continuously rebuild changed services.
+set -eu
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+cd "$repository_root"
+environment_file="${1:-$repository_root/.env.docker.local}"
+if [ ! -f "$environment_file" ]; then
+  echo "Local Docker environment file is missing: $environment_file" >&2
+  echo "See docs/local-docker.md." >&2
+  exit 1
+fi
+compose() {
+  docker compose -p chat-cutover --env-file "$environment_file" \
+    -f deploy/compose.yaml -f deploy/compose.local.yaml "$@"
+}
+compose up -d --build api youtube-worker caddy
+compose watch --no-up api youtube-worker

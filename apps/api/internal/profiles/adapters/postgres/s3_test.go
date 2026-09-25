@@ -16,7 +16,7 @@ func TestS3ObjectURLsMatchMediaLayout(t *testing.T) {
 		t.Fatalf("private URL = %q, %v", privateURL, err)
 	}
 	publicURL, err := media.objectURL("profiles/photo/hash.jpg", true)
-	if err != nil || publicURL != "https://media.example.test/vertigo/profiles/photo/hash.jpg" {
+	if err != nil || publicURL != "https://media.example.test/profiles/photo/hash.jpg" {
 		t.Fatalf("public URL = %q, %v", publicURL, err)
 	}
 }
@@ -48,7 +48,7 @@ func TestS3StoreSignsAndVerifiesPublicBytes(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
-	media, err := NewS3Media(S3Config{Endpoint: server.URL, PublicBaseURL: server.URL, Region: "test", Bucket: "bucket", AccessKeyID: "key", SecretAccessKey: "secret"})
+	media, err := NewS3Media(S3Config{Endpoint: server.URL, PublicBaseURL: server.URL + "/bucket", Region: "test", Bucket: "bucket", AccessKeyID: "key", SecretAccessKey: "secret"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -91,7 +91,9 @@ export async function libraryFlows(p: Pair) {
     await page.locator("#article_series").fill("Хроники Vertigo")
     await page.locator("#article_part_number").fill("3")
     await page.locator("#article_body").fill("Проверка авторского редактора.\nВторая строка.")
-    await expect(page.locator("#article-character-count")).toContainText("45 / 12000")
+    await expect(page.locator("#article-character-count")).toContainText(
+      page === oldPage && p.legacyPhoenix !== false ? "45 / 12000" : "72 / 12000",
+    )
     await page.locator("#article_title").focus()
     await page.locator("#library-editor").evaluate((el) => {
       el.scrollTop = 0

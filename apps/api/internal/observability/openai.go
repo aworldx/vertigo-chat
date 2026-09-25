@@ -20,7 +20,7 @@ func (m *Metrics) WithBudget(read func(context.Context) (Budget, error)) { m.bud
 // OpenAIObserver counts individual outgoing attempts, including retries and memory summaries.
 // Only bounded labels are exported; error text, prompts and credentials never are.
 func (m *Metrics) OpenAIObserver(bot string) func(int, error) {
-	if bot != "hitchcock" && bot != "karmik" {
+	if bot != "hitchcock" && bot != "karmik" && bot != "claire" {
 		panic("unknown OpenAI bot")
 	}
 	m.mu.Lock()
@@ -68,7 +68,7 @@ func (m *Metrics) writeOpenAI(w io.Writer, ctx context.Context) {
 		counts[k] = v
 	}
 	m.mu.Unlock()
-	for _, bot := range []string{"hitchcock", "karmik"} {
+	for _, bot := range []string{"hitchcock", "karmik", "claire"} {
 		for _, outcome := range openAIOutcomes {
 			if count, ok := counts[openAIKey{bot, outcome}]; ok {
 				_, _ = fmt.Fprintf(w, "chat_openai_requests_total{bot=%q,outcome=%q} %d\n", bot, outcome, count)

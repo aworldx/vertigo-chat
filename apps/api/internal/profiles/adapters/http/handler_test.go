@@ -245,3 +245,15 @@ func TestPhotoUploadReturnsDistinctValidationMissingAndStorageErrors(t *testing.
 		}
 	}
 }
+
+func TestProfileListRejectsMalformedPageAndOversizedQuery(t *testing.T) {
+	mux := http.NewServeMux()
+	NewHandler(application.NewCatalog(catalogueStub{})).Register(mux)
+	for _, query := range []string{"?page=oops", "?page=0", "?q=" + string(bytes.Repeat([]byte("a"), 81))} {
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/profiles"+query, nil))
+		if response.Code != http.StatusUnprocessableEntity || !bytes.Contains(response.Body.Bytes(), []byte("invalid_params")) {
+			t.Fatalf("%s: %d %s", query, response.Code, response.Body.String())
+		}
+	}
+}

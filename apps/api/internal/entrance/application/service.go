@@ -46,7 +46,7 @@ func (s Service) Enter(ctx context.Context, input Input) (Result, error) {
 	if !nicknamePattern.MatchString(input.Nickname) {
 		return Result{}, ErrInvalidNickname
 	}
-	if input.Nickname == "Хичкок" {
+	if strings.EqualFold(input.Nickname, "Хичкок") || strings.EqualFold(input.Nickname, "Клэр") {
 		return Result{}, ErrNicknameOnline
 	}
 	var result Result

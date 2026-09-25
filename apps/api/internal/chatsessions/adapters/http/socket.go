@@ -245,6 +245,7 @@ func (h Socket) snapshot(ctx context.Context, session domain.Session) (snapshot,
 		return snapshot{}, domain.ErrInvalidSession
 	}
 	peers = append(peers, peer{BotBusy: h.experience.BotAvailable != nil && !h.experience.BotAvailable(ctx), ID: "bot-hitchcock", Nickname: "Хичкок", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
+	peers = append(peers, peer{BotBusy: h.experience.BotAvailable != nil && !h.experience.BotAvailable(ctx), ID: "bot-claire", Nickname: "Клэр", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
 	sort.Slice(peers, func(i, j int) bool { return peers[i].Nickname < peers[j].Nickname })
 	messages, err := h.history.Recent(ctx, session.RoomID)
 	encoded := make([]messageDTO, 0, len(messages))

@@ -44,7 +44,7 @@ export class ChatConnection {
     const previous = new Set(this.state.timeline.map((entry) => entry.message.id))
     for (const message of snapshot.messages) {
       if (message.kind !== "system" || previous.has(message.id)) continue
-      if (message.body.startsWith("Кармик варит для ")) this.showKarmik("happy")
+      if (message.body.startsWith("Кармик дарит для ")) this.showKarmik("happy")
       if (message.body.startsWith("Кармик сердито машет хвостом:")) this.showKarmik("angry")
     }
   }

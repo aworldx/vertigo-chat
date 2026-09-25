@@ -8,8 +8,6 @@ import (
 	chatshttp "chat/api/internal/chatsessions/adapters/http"
 	chatdomain "chat/api/internal/chatsessions/domain"
 	"chat/api/internal/observability"
-	roompg "chat/api/internal/rooms/adapters/postgres"
-	rooms "chat/api/internal/rooms/application"
 	roomdomain "chat/api/internal/rooms/domain"
 	"context"
 	"crypto/sha256"
@@ -24,7 +22,7 @@ import (
 	"time"
 )
 
-func botReplies(pool *pgxpool.Pool, metrics *observability.Metrics) (chatshttp.BotReply, func(context.Context) bool) {
+func botReplies(pool *pgxpool.Pool, metrics *observability.Metrics, lifecycle ...context.Context) (chatshttp.BotReply, func(context.Context) bool) {
 	limit, _ := strconv.Atoi(env("OPENAI_BOT_DAILY_TOKEN_LIMIT", "120000"))
 	offset := botUTCOffset()
 	percent, _ := strconv.Atoi(env("OPENAI_BOT_TOKEN_WARNING_PERCENT", "90"))
@@ -38,10 +36,21 @@ func botReplies(pool *pgxpool.Pool, metrics *observability.Metrics) (chatshttp.B
 	provider.Observe = metrics.OpenAIObserver("hitchcock")
 	provider.ObserveHeaders = metrics.OpenAIHeaders("hitchcock")
 	service := bot.NewService(store, provider)
+	claireProvider := openai.NewProvider(os.Getenv("OPENAI_API_KEY"), env("OPENAI_BOT_MODEL", "gpt-5.6-terra"))
+	claireProvider.PersonaInstructions = botdomain.ClaireInstructions
+	claireProvider.Client.Timeout = botTimeout()
+	claireProvider.Observe = metrics.OpenAIObserver("claire")
+	claireProvider.ObserveHeaders = metrics.OpenAIHeaders("claire")
+	claire := bot.NewService(store, claireProvider).WithFallback(botdomain.Claire().Fallback)
+	music := claireMedia(pool)
+	if len(lifecycle) > 0 {
+		go runAmbient(lifecycle[0], pool, store, service, claire, music)
+	}
 	type work struct {
 		session chatdomain.Session
 		message roomdomain.Message
 		ip      string
+		persona botdomain.Persona
 	}
 	queue := make(chan work, 32)
 	go func() {
@@ -50,30 +59,48 @@ func botReplies(pool *pgxpool.Pool, metrics *observability.Metrics) (chatshttp.B
 			ready := available(ctx)
 			cancel()
 			if ready {
-				if delay := answerBot(pool, service, job.session, job.message, job.ip); delay > 0 {
+				chosen := service
+				if job.persona.ID == "claire" {
+					chosen = claire
+				}
+				if delay := answerPersona(pool, chosen, job.persona, job.session, job.message, job.ip, music); delay > 0 {
 					busyUntil.Store(time.Now().Add(delay).UnixMilli())
 				}
 			}
 		}
 	}()
 	return func(session chatdomain.Session, message roomdomain.Message, ip string) {
-		if !message.Inserted || !strings.HasPrefix(message.Body, "Хичкок,") {
+		persona, addressed := botdomain.Addressed(message.Body)
+		if !message.Inserted || !addressed || message.Kind == "private" {
 			return
 		}
 		select {
-		case queue <- work{session, message, ip}:
+		case queue <- work{session, message, ip, persona}:
 		default:
 			slog.Info("bot queue full")
 		}
 	}, available
 }
 func answerBot(pool *pgxpool.Pool, service bot.Service, session chatdomain.Session, message roomdomain.Message, ip string) time.Duration {
+	return answerPersona(pool, service, botdomain.Hitchcock(), session, message, ip, nil)
+}
+
+func answerPersona(pool *pgxpool.Pool, service bot.Service, persona botdomain.Persona, session chatdomain.Session, message roomdomain.Message, ip string, media *bot.Media) time.Duration {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*botTimeout())
 	defer cancel()
 	id := "public:" + strconv.FormatInt(message.ID, 10)
-	result, err := service.Answer(ctx, bot.Request{ID: id, Identity: botIdentity(session, ip), Nickname: session.Nickname, Body: strings.TrimSpace(strings.TrimPrefix(message.Body, "Хичкок,"))}, func(reply botdomain.Result) error {
-		_, err := rooms.NewService(roompg.NewStore(pool)).Send(ctx, roomdomain.Author{Recipient: session.Nickname, RoomID: session.RoomID, Identity: "bot:hitchcock", Nickname: "Хичкок"}, id, session.Nickname+", "+reply.Text)
+	identity := botIdentity(session, ip)
+	if persona.ID == "claire" {
+		identity = "claire:" + identity
+		id = "claire:" + id
+	}
+	result, err := service.Answer(ctx, bot.Request{ID: id, Identity: identity, Nickname: session.Nickname, Body: strings.TrimSpace(strings.TrimPrefix(message.Body, persona.Name+","))}, func(reply botdomain.Result) error {
+		text, kind, query := botdomain.MediaSuggestion(reply.Text)
+		_, err := sendBotMessage(ctx, pool, roomdomain.Author{Recipient: session.Nickname, RoomID: session.RoomID, Identity: "bot:" + persona.ID, Nickname: persona.Name}, id, session.Nickname+", "+text)
+		if err == nil && persona.ID == "claire" && media != nil {
+			media.Suggest(ctx, session.RoomID, id, kind, query, nil)
+		}
 		return err
 	})
 	if err != nil {
@@ -84,8 +111,8 @@ func answerBot(pool *pgxpool.Pool, service bot.Service, session chatdomain.Sessi
 		}
 		return 0
 	}
-	if result.PlanningDate != "" {
-		_, err = rooms.NewService(roompg.NewStore(pool)).Send(ctx, roomdomain.Author{RoomID: session.RoomID, Identity: "bot:hitchcock", Nickname: "Хичкок"}, "planning:"+result.PlanningDate, "Господа, я ухожу на планёрку. Даже саспенсу нужен бюджет. Вернусь завтра.")
+	if result.PlanningDate != "" && persona.ID == "hitchcock" {
+		_, err = sendBotMessage(ctx, pool, roomdomain.Author{RoomID: session.RoomID, Identity: "bot:hitchcock", Nickname: "Хичкок"}, "planning:"+result.PlanningDate, "Господа, я ухожу на планёрку. Даже саспенсу нужен бюджет. Вернусь завтра.")
 		if err != nil {
 			slog.Warn("publish bot planning failed", "error", err)
 		}

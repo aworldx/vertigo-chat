@@ -84,7 +84,7 @@ func sendRoomMessage(pool *pgxpool.Pool) chathttp.SendMessage {
 			if err != nil {
 				return err
 			}
-			names := []string{"Хичкок"}
+			names := []string{"Хичкок", "Клэр"}
 			for _, peer := range peers {
 				names = append(names, peer.Nickname)
 			}

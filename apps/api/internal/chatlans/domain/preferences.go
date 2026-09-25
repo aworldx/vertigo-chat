@@ -11,9 +11,10 @@ type Colors struct {
 	Text     string `json:"text_color"`
 }
 type Appearance struct {
-	Dark  Colors `json:"dark"`
-	Light Colors `json:"light"`
-	Frame *bool  `json:"message_frame,omitempty"`
+	Dark       Colors `json:"dark"`
+	Light      Colors `json:"light"`
+	Frame      *bool  `json:"message_frame,omitempty"`
+	HideKarmik bool   `json:"hide_karmik"`
 }
 type Preferences struct {
 	Theme      string     `json:"theme_id"`
@@ -33,11 +34,11 @@ func color(value, fallback string) string {
 }
 func Normalize(p Preferences) Preferences {
 	switch p.Theme {
-	case "dark", "night_sky", "newspaper":
+	case "vertigo", "dark", "night_sky", "autumn", "autumn_sunny", "newspaper":
 	case "light":
 		p.Theme = "newspaper"
 	default:
-		p.Theme = "vertigo"
+		p.Theme = "autumn"
 	}
 	switch p.Font {
 	case "sans", "display", "serif":

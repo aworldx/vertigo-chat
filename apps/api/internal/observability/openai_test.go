@@ -27,6 +27,7 @@ func TestOpenAIOutcomesAreBoundedAndConcurrent(t *testing.T) {
 	m := NewMetrics()
 	observe := m.OpenAIObserver("hitchcock")
 	m.OpenAIObserver("karmik")
+	m.OpenAIObserver("claire")(200, nil)
 	cases := []struct {
 		status  int
 		err     error
@@ -48,7 +49,7 @@ func TestOpenAIOutcomesAreBoundedAndConcurrent(t *testing.T) {
 			t.Fatal(body)
 		}
 	}
-	if !strings.Contains(body, `chat_openai_requests_total{bot="karmik",outcome="success"} 0`) || strings.Contains(body, "private provider detail") {
+	if !strings.Contains(body, `chat_openai_requests_total{bot="claire",outcome="success"} 1`) || !strings.Contains(body, `chat_openai_requests_total{bot="karmik",outcome="success"} 0`) || strings.Contains(body, "private provider detail") {
 		t.Fatal(body)
 	}
 }

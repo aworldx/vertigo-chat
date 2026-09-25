@@ -30,13 +30,13 @@ func NewAccounts(pool Database) Accounts { return Accounts{pool: pool} }
 
 func (a Accounts) FindByNickname(ctx context.Context, nickname string) (domain.Principal, string, error) {
 	const query = `SELECT id, nickname, is_admin, can_moderate_emojis, password_hash
-		FROM registered_users WHERE nickname = $1 AND NOT is_game_guest`
+		FROM registered_users WHERE nickname = $1 AND NOT is_game_guest AND NOT is_bot`
 	return a.scanCredential(ctx, query, nickname)
 }
 
 func (a Accounts) FindPrincipal(ctx context.Context, userID int64) (domain.Principal, error) {
 	const query = `SELECT id, nickname, is_admin, can_moderate_emojis
-		FROM registered_users WHERE id = $1 AND NOT is_game_guest`
+		FROM registered_users WHERE id = $1 AND NOT is_game_guest AND NOT is_bot`
 	var principal domain.Principal
 	if err := a.pool.QueryRow(ctx, query, userID).Scan(&principal.UserID, &principal.Nickname, &principal.Admin, &principal.CanModerateEmojis); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -79,7 +79,7 @@ func (PBKDF2Verifier) Hash(password string) (string, error) {
 
 func (a Accounts) Create(ctx context.Context, nickname, email, passwordHash, networkIdentity string) (domain.Principal, error) {
 	const query = `INSERT INTO registered_users (nickname, email, password_hash, is_admin, can_moderate_emojis, is_game_guest, theme_id, appearance, font_id, font_style, message_sound_enabled, public_message_count, chat_seconds, karma, inserted_at, updated_at)
-	VALUES ($1, NULLIF($2, ''), $3, NOT EXISTS (SELECT 1 FROM registered_users WHERE NOT is_game_guest), false, false, 'vertigo', '{}'::jsonb, 'theme', 'normal', false, 0, 0, 0, NOW(), NOW())
+	VALUES ($1, NULLIF($2, ''), $3, NOT EXISTS (SELECT 1 FROM registered_users WHERE NOT is_game_guest AND NOT is_bot), false, false, 'autumn', '{}'::jsonb, 'theme', 'normal', false, 0, 0, 0, NOW(), NOW())
 	RETURNING id, nickname, is_admin, can_moderate_emojis`
 	fingerprint, err := registrationFingerprint(networkIdentity)
 	if err != nil {

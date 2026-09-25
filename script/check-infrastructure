@@ -17,3 +17,4 @@ docker run --rm -i -v "$repository_root:/work:ro" -w /work hadolint/hadolint:v2.
 docker run --rm -v "$repository_root:/work:ro" -w /work redocly/cli:1.34.5 lint contracts/openapi/*.yaml
 
 docker compose -f deploy/compose.yaml --env-file deploy/quality.env config --quiet
+docker compose -f deploy/compose.yaml -f deploy/compose.local.yaml --env-file deploy/quality.env config --quiet

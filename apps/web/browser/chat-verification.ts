@@ -53,8 +53,20 @@ try {
   await expect(second.locator("#messages")).toContainText("Привет из первой вкладки")
   await first.locator("#toggle-settings").click()
   await first.locator("#font-id").selectOption("serif")
+  await first.locator("#hide-karmik").check()
   await first.locator("#save-preferences").click()
   await expect(first.locator("#settings-modal")).toHaveCount(0)
+  await expect(first.locator("#karmik")).toHaveCount(0)
+  await expect(second.locator("#karmik")).toHaveCount(1)
+  await first.reload()
+  await expect(first.locator("#current-chatlan-online")).toHaveText("В сети")
+  await expect(first.locator("#karmik")).toHaveCount(0)
+  await first.locator("#toggle-settings").click()
+  await expect(first.locator("#hide-karmik")).toBeChecked()
+  await first.locator("#hide-karmik").uncheck()
+  await first.locator("#save-preferences").click()
+  await expect(first.locator("#settings-modal")).toHaveCount(0)
+  await expect(first.locator("#karmik")).toHaveCount(1)
   await first.locator("#message-body").fill("^browser-guest-two, Секрет только адресату")
   await first.locator("#send-message").click()
   await expect(second.locator('[data-message-kind="private"]')).toContainText("Секрет только адресату")
@@ -180,7 +192,23 @@ try {
   await page.locator("#register-user").click()
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
   await expect(page.locator("#online-list")).toContainText("browser-registered")
-  await expect(page.locator('[id^="profile-link-"]')).toHaveCount(1)
+  await expect(page.locator('[id^="profile-link-"]')).toHaveCount(3)
+  await expect(page.locator('#profile-link-bot-claire [data-icon="hero-star"]')).toHaveCount(1)
+  for (const [id, nickname] of [
+    ["claire", "Клэр"],
+    ["hitchcock", "Хичкок"],
+  ] as const) {
+    await page.locator(`#profile-link-bot-${id}`).click()
+    await expect(page.locator("#profile-title")).toHaveText(nickname)
+    const image = page.locator("#profile-avatar-image")
+    await expect(image).toHaveAttribute("src", `/profiles/${nickname}/photo`)
+    await expect(image).toHaveJSProperty("complete", true)
+    expect(await image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0)
+    await expect(page.locator("#edit-profile")).toHaveCount(0)
+    await page.locator("#open-room-profile-photo").click()
+    await page.getByRole("button", { name: "Закрыть увеличенное фото", exact: true }).click()
+    await page.locator("#close-profile").click()
+  }
   {
     const recipientContext = await browser.newContext()
     let releaseAudio: (() => void) | undefined

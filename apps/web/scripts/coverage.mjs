@@ -18,7 +18,17 @@ const included = (file) => {
 const map = coverage.createCoverageMap(JSON.parse(await readFile(resolve(output, "unit/coverage-final.json"), "utf8")))
 const files = (await readdir(browserDirectory)).filter((name) => name.endsWith(".json"))
 const entries = []
-for (const name of files) entries.push(...JSON.parse(await readFile(resolve(browserDirectory, name), "utf8")))
+const sources = new Map()
+for (const name of files) {
+  const batch = JSON.parse(await readFile(resolve(browserDirectory, name), "utf8"))
+  for (const entry of batch) {
+    if (!entry.url?.endsWith("/assets/app.js") || !entry.source?.includes("sourceMappingURL=data:")) continue
+    // Every browser delta repeats the full bundle and inline source map. Keep
+    // one string per bundle instead of retaining hundreds of identical copies.
+    if (!sources.has(entry.source)) sources.set(entry.source, entry.source)
+    entries.push({ ...entry, source: sources.get(entry.source) })
+  }
+}
 const merged = mergeBrowserScripts(entries)
 const converter = v8ToIstanbul(resolve(root, "dist/assets/app.js"), 0, { source: merged.source })
 await converter.load()

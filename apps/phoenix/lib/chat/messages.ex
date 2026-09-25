@@ -273,7 +273,7 @@ defmodule Chat.Messages do
 
   def announce_karmik_assessment(nickname, room_id, 1)
       when is_binary(nickname) and is_binary(room_id) do
-    announce_system(room_id, "Кармик варит для #{nickname} сердечко — рейтинг повышен на 1.")
+    announce_system(room_id, "Кармик дарит для #{nickname} сердечко — рейтинг повышен на 1.")
   end
 
   def announce_karmik_assessment(nickname, room_id, -1)

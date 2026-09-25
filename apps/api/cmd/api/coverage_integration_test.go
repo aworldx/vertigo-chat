@@ -148,8 +148,13 @@ func (f *chatFixture) accountPreferences(t *testing.T) {
 		t.Fatal(err)
 	}
 	current.Style = "italic"
+	current.Appearance.HideKarmik = true
 	if _, err := preferences.Save(ctx, "user:1", current); err != nil {
 		t.Fatal(err)
+	}
+	restored, err := preferences.Get(ctx, "user:1")
+	if err != nil || !restored.Appearance.HideKarmik {
+		t.Fatal("Karmik visibility was not persisted", restored, err)
 	}
 }
 

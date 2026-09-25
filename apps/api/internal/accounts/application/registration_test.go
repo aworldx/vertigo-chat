@@ -14,6 +14,8 @@ func TestRegistrationValidationRejectsBeforeHashingOrWriting(t *testing.T) {
 		name, nickname, email, password string
 		want                            error
 	}{
+		{"reserved Claire", "клэр", "", "secret123", ErrRegistrationNickname},
+		{"reserved Hitchcock", "Хичкок", "", "secret123", ErrRegistrationNickname},
 		{"invalid nickname", "!", "", "secret123", ErrRegistrationNickname},
 		{"short password", "чатланин", "", "пять!", ErrRegistrationPassword},
 		{"long password", "чатланин", "", strings.Repeat("я", 129), ErrRegistrationPassword},

@@ -1,0 +1,195 @@
+/* A quiet woodland backdrop; only large panels reveal the illustration. */
+.chat-shell[data-chat-theme="autumn"] {
+  background: #241e18 url("/images/autumn-forest.svg") center / cover no-repeat;
+  color: #f5ead9;
+}
+
+.chat-shell[data-chat-theme="autumn"] header,
+.chat-shell[data-chat-theme="autumn"] .bg-zinc-900,
+.chat-shell[data-chat-theme="autumn"] .bg-zinc-900\/95 {
+  background-color: #30271f;
+}
+
+.chat-shell[data-chat-theme="autumn"] > header {
+  background: linear-gradient(100deg, #39291fee, #4b3529ee, #293026ee);
+  border-color: #b9824b55;
+}
+
+.chat-shell[data-chat-theme="autumn"] .bg-zinc-900\/80 {
+  background-color: rgb(40 33 26 / 84%);
+}
+
+.chat-shell[data-chat-theme="autumn"] .bg-zinc-950,
+.chat-shell[data-chat-theme="autumn"] .bg-zinc-950\/70 {
+  background-color: #241e18;
+}
+
+.chat-shell[data-chat-theme="autumn"] main.bg-zinc-950 {
+  background-color: rgb(27 24 19 / 72%);
+}
+
+.chat-shell[data-chat-theme="autumn"] .border-zinc-800,
+.chat-shell[data-chat-theme="autumn"] .border-zinc-700 {
+  border-color: #aa805042;
+}
+
+.chat-shell[data-chat-theme="autumn"] .text-zinc-100,
+.chat-shell[data-chat-theme="autumn"] .text-zinc-300 {
+  color: #f5ead9;
+}
+
+.chat-shell[data-chat-theme="autumn"] .text-zinc-400,
+.chat-shell[data-chat-theme="autumn"] .text-zinc-500 {
+  color: #c7b59e;
+}
+
+.chat-shell[data-chat-theme="autumn"] input,
+.chat-shell[data-chat-theme="autumn"] select,
+.chat-shell[data-chat-theme="autumn"] textarea {
+  background-color: #241e18;
+  color: #f5ead9;
+}
+
+.chat-shell[data-chat-theme="autumn"] input::placeholder,
+.chat-shell[data-chat-theme="autumn"] textarea::placeholder {
+  color: #b8a58e;
+}
+
+.chat-shell[data-chat-theme="autumn"] button.bg-amber-300 {
+  background-color: #e9b66b;
+  color: #2b2118;
+}
+
+.chat-shell[data-chat-theme="autumn"] button.bg-amber-300:hover {
+  background-color: #f4cc8e;
+}
+
+.chat-shell[data-chat-theme="autumn"] .hover\:bg-zinc-800:hover,
+.chat-shell[data-chat-theme="autumn"] .chat-online-row:hover,
+.chat-shell[data-chat-theme="autumn"] .chat-online-row:focus-within {
+  background-color: #b9824b26;
+}
+
+@media (max-width: 767px) {
+  .chat-shell[data-chat-theme="autumn"] {
+    background-position: 78% center;
+  }
+}
+
+/* Sunny alternative uses the light message palette while retaining the typography. */
+.chat-shell[data-chat-theme="autumn_sunny"] {
+  background: #fff3d8 url("/images/autumn-sunny.svg") center / cover no-repeat;
+  color: #493323;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] header,
+.chat-shell[data-chat-theme="autumn_sunny"] .bg-zinc-900,
+.chat-shell[data-chat-theme="autumn_sunny"] .bg-zinc-900\/95 {
+  background-color: #fff5df;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] > header {
+  background: linear-gradient(100deg, #f9dca0ed, #fff0cded, #e9edc9ed);
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .bg-zinc-900\/80 {
+  background-color: #fff3d6cc;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .bg-zinc-950,
+.chat-shell[data-chat-theme="autumn_sunny"] .bg-zinc-950\/70,
+.chat-shell[data-chat-theme="autumn_sunny"] .bg-zinc-950\/90,
+.chat-shell[data-chat-theme="autumn_sunny"] .bg-zinc-950\/95 {
+  background-color: #fff9ed;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] main.bg-zinc-950 {
+  background-color: #fff8e566;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .border-zinc-800,
+.chat-shell[data-chat-theme="autumn_sunny"] .border-zinc-700 {
+  border-color: #d9b888;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .text-zinc-100,
+.chat-shell[data-chat-theme="autumn_sunny"] .text-zinc-200,
+.chat-shell[data-chat-theme="autumn_sunny"] .text-zinc-300 {
+  color: #493323;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .text-zinc-400,
+.chat-shell[data-chat-theme="autumn_sunny"] .text-zinc-500 {
+  color: #786048;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .text-amber-100,
+.chat-shell[data-chat-theme="autumn_sunny"] .text-amber-200,
+.chat-shell[data-chat-theme="autumn_sunny"] .text-amber-300 {
+  color: #92501c;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .text-emerald-200,
+.chat-shell[data-chat-theme="autumn_sunny"] .text-emerald-300,
+.chat-shell[data-chat-theme="autumn_sunny"] .chat-presence {
+  color: #476329;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .text-red-200,
+.chat-shell[data-chat-theme="autumn_sunny"] .text-red-300 {
+  color: #ad3825;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] input,
+.chat-shell[data-chat-theme="autumn_sunny"] select,
+.chat-shell[data-chat-theme="autumn_sunny"] textarea {
+  background-color: #fffaf0;
+  color: #493323;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] input::placeholder,
+.chat-shell[data-chat-theme="autumn_sunny"] textarea::placeholder {
+  color: #856849;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] button.bg-amber-300 {
+  background-color: #edb35e;
+  color: #49301a;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] button.bg-amber-300:hover {
+  background-color: #f5c980;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .hover\:bg-zinc-800:hover,
+.chat-shell[data-chat-theme="autumn_sunny"] .chat-online-row:hover,
+.chat-shell[data-chat-theme="autumn_sunny"] .chat-online-row:focus-within {
+  background-color: #eeb65c33;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .hover\:text-white:hover,
+.chat-shell[data-chat-theme="autumn_sunny"] .hover\:text-zinc-200:hover {
+  color: #7e3f17;
+}
+
+@media (max-width: 767px) {
+  .chat-shell[data-chat-theme="autumn_sunny"] {
+    background-position: 85% center;
+  }
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] #message-form {
+  box-shadow: 0 -8px 24px rgb(139 97 39 / 10%);
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .hit-parade-button {
+  color: #87501f;
+  background: #f4d493;
+  border-color: #c38a43;
+  filter: none;
+  animation: none;
+}
+
+.chat-shell[data-chat-theme="autumn_sunny"] .hit-parade-button:focus-visible {
+  outline-color: #87501f;
+}

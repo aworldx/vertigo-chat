@@ -76,6 +76,27 @@ export function Settings({
                 <h3 className="text-sm font-semibold text-zinc-100">Интерфейс</h3>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
+                <label
+                  htmlFor="hide-karmik"
+                  aria-label="Скрывать Кармика"
+                  className="flex cursor-pointer items-start gap-3 text-sm sm:col-span-2"
+                >
+                  <input
+                    id="hide-karmik"
+                    type="checkbox"
+                    className="mt-1 size-4 shrink-0 accent-amber-300"
+                    checked={appearance.hide_karmik ?? false}
+                    onChange={(e) => {
+                      onChange({ ...value, appearance: { ...appearance, hide_karmik: e.target.checked } })
+                    }}
+                  />
+                  <span>
+                    <span className="block text-zinc-100">Скрывать Кармика</span>
+                    <span className="mt-1 block text-xs text-zinc-400">
+                      Убирает котика только у тебя. Карма продолжает работать.
+                    </span>
+                  </span>
+                </label>
                 <label className="block text-sm sm:col-span-2">
                   <span className="mb-1 block text-zinc-400">Тема</span>
                   <select

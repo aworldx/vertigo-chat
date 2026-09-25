@@ -1,3 +1,4 @@
+import { verifyLibraryEditor } from "./library-editor-verification"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
@@ -80,6 +81,7 @@ try {
   }
   await galleryFlows(pair)
   await libraryFlows(pair)
+  await verifyLibraryEditor(newPage, origin)
   await adminFlows(pair)
   await uploadAndModerate(pair)
   await failureRecovery(pair)

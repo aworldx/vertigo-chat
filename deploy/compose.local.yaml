@@ -1,0 +1,37 @@
+# Local development only; paths are relative to deploy/compose.yaml.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      target: api
+    # Rebuilt images may include new embedded migrations.
+    command: ["sh", "-c", "/app/bin/migrate && exec /app/bin/api"]
+    develop:
+      watch:
+        - path: ../apps/api
+          action: rebuild
+        - path: ../apps/web
+          action: rebuild
+          ignore:
+            - node_modules/
+            - dist/
+            - coverage/
+            - migration-results/
+            - test-results/
+        - path: ./docker/Dockerfile
+          action: rebuild
+  youtube-worker:
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      target: youtube-worker
+    develop:
+      watch:
+        - path: ../services/youtube-worker
+          action: rebuild
+        - path: ./docker/Dockerfile
+          action: rebuild
+  caddy:
+    ports: !override
+      - "127.0.0.1:4063:80"

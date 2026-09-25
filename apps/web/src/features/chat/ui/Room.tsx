@@ -67,7 +67,7 @@ export function Room({
       <section
         id="chat-room"
         data-chat-theme={state.snapshot.preferences.theme_id}
-        data-chat-mode={state.snapshot.preferences.theme_id === "newspaper" ? "light" : "dark"}
+        data-chat-mode={["newspaper", "autumn_sunny"].includes(state.snapshot.preferences.theme_id) ? "light" : "dark"}
         data-chat-joined={joined}
         className="chat-shell relative isolate flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100"
       >
@@ -176,6 +176,7 @@ export function Room({
             </main>
           )}
           <OnlineList
+            hideKarmik={state.snapshot.preferences.appearance.hide_karmik ?? false}
             mood={state.karmikMood}
             onPet={() => {
               connection.petKarmik()

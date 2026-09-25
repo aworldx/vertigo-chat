@@ -18,6 +18,7 @@ import (
 type Provider struct {
 	ObserveHeaders       func(http.Header)
 	Key, Model, Endpoint string
+	PersonaInstructions  string
 	Client               *http.Client
 	Observe              func(status int, err error)
 }
@@ -40,7 +41,10 @@ func (p Provider) request(ctx context.Context, input domain.Context) (result dom
 		return domain.Result{}, domain.ErrUnavailable
 	}
 	hash := sha256.Sum256([]byte(input.Identity))
-	instructions := domain.Instructions + "\n" + domain.Mood(input.Date)
+	instructions := p.PersonaInstructions
+	if instructions == "" {
+		instructions = domain.Instructions + "\n" + domain.Mood(input.Date)
+	}
 	tokens := 240
 	if input.Summarize {
 		instructions = "Обнови долговременную память о собеседнике на русском языке. Сохраняй только устойчивые факты, предпочтения, важные события и характер общения. Не сохраняй пароли, контакты, адреса и другие чувствительные данные. Верни только краткое резюме не длиннее 700 символов."

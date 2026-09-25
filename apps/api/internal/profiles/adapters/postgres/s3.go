@@ -128,7 +128,7 @@ func (s s3Media) objectURL(key string, public bool) (string, error) {
 	}
 	if !public && s.config.VirtualHosted {
 		uri.Host = s.config.Bucket + "." + uri.Host
-	} else {
+	} else if !public || s.config.PublicBaseURL == "" {
 		uri.Path = path.Join(uri.Path, s.config.Bucket)
 	}
 	uri.Path = path.Join(uri.Path, key)

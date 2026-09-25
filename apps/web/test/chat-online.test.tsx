@@ -106,3 +106,25 @@ test("dropping a file on the composer starts attachment delivery", () => {
   assert.deepEqual(attached, [file])
   assert.equal(view.container.querySelector("#attachment-drop-target"), null)
 })
+
+test("bot icons open profiles, Claire has a star and Hitchcock a camera", () => {
+  const profiles: string[] = []
+  const view = render(
+    <OnlineList
+      peers={[
+        { ...guest, id: "bot-claire", nickname: "Клэр", bot: true, self: false },
+        { ...guest, id: "bot-hitchcock", nickname: "Хичкок", bot: true, self: false },
+      ]}
+      reconnecting={false}
+      onAddress={() => undefined}
+      onProfile={(nickname) => profiles.push(nickname)}
+    />,
+  )
+  const claire = view.getByRole("button", { name: "Открыть анкету Клэр" })
+  const hitchcock = view.getByRole("button", { name: "Открыть анкету Хичкок" })
+  assert.ok(claire.querySelector('[data-icon="hero-star"]'))
+  assert.ok(hitchcock.querySelector('[data-icon="hero-video-camera"]'))
+  fireEvent.click(claire)
+  fireEvent.click(hitchcock)
+  assert.deepEqual(profiles, ["Клэр", "Хичкок"])
+})

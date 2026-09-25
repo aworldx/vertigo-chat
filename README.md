@@ -50,6 +50,9 @@ Docker.
 
 ## Docker Compose
 
+Локальный стенд с автоматической пересборкой: `./script/dev-docker`.
+Настройка окружения и работа наблюдателя описаны в [docs/local-docker.md](docs/local-docker.md).
+
 Создайте production environment file, замените placeholders и поднимите уже
 собранные образы:
 

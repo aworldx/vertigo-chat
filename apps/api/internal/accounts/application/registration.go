@@ -42,7 +42,7 @@ func (r Registrar) Register(ctx context.Context, nickname, email, password, netw
 	if networkIdentity == "" {
 		return domain.Principal{}, ErrInvalidRegistration
 	}
-	if !nicknamePattern.MatchString(nickname) {
+	if !nicknamePattern.MatchString(nickname) || strings.EqualFold(nickname, "Клэр") || strings.EqualFold(nickname, "Хичкок") {
 		return domain.Principal{}, ErrRegistrationNickname
 	}
 	if utf8.RuneCountInString(password) < 6 || utf8.RuneCountInString(password) > 128 {

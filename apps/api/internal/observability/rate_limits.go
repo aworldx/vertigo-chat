@@ -18,7 +18,7 @@ var rateResources = []string{"tokens", "requests", "project-tokens"}
 
 // OpenAIHeaders records only documented numeric rate-limit headers, not arbitrary response data.
 func (m *Metrics) OpenAIHeaders(bot string) func(http.Header) {
-	if bot != "hitchcock" && bot != "karmik" {
+	if bot != "hitchcock" && bot != "karmik" && bot != "claire" {
 		panic("unknown OpenAI bot")
 	}
 	return func(headers http.Header) { m.recordHeaders(bot, headers, time.Now()) }
@@ -60,7 +60,7 @@ func (m *Metrics) writeRateLimits(w io.Writer, now time.Time) {
 	} {
 		_, _ = fmt.Fprintf(w, "# HELP chat_openai_rate_%s %s\n# TYPE chat_openai_rate_%s gauge\n", metric.name, metric.help, metric.name)
 	}
-	for _, bot := range []string{"hitchcock", "karmik"} {
+	for _, bot := range []string{"hitchcock", "karmik", "claire"} {
 		for _, resource := range rateResources {
 			v, ok := values[rateLimitKey{bot, resource}]
 			if !ok {

@@ -312,7 +312,7 @@ export interface components {
         };
         Preferences: {
             /** @enum {string} */
-            theme_id: "vertigo" | "dark" | "night_sky" | "newspaper";
+            theme_id: "vertigo" | "dark" | "night_sky" | "autumn" | "autumn_sunny" | "newspaper";
             /** @enum {string} */
             font_id: "theme" | "sans" | "display" | "serif";
             /** @enum {string} */
@@ -320,6 +320,8 @@ export interface components {
             message_sound_enabled: boolean;
             appearance: components["schemas"]["MessageAppearance"] & {
                 message_frame: boolean;
+                /** @description Hide only the personal Karmik decoration; defaults to false when omitted. Karma processing remains active. */
+                hide_karmik?: boolean;
             };
         };
         Emoji: {

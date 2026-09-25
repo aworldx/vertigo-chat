@@ -18,12 +18,13 @@ export function AccountBar({
       <a
         id="site-account-settings"
         href="/account"
-        className="min-h-11 rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200 focus-visible:outline-2 focus-visible:outline-amber-300"
+        className="inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200 focus-visible:outline-2 focus-visible:outline-amber-300"
       >
         Настройки аккаунта
       </a>
       <form
         id="site-account-logout"
+        className="flex items-center"
         onSubmit={(event) => {
           event.preventDefault()
           onLogout()
@@ -33,7 +34,7 @@ export function AccountBar({
           id="site-account-logout-submit"
           type="submit"
           disabled={pending}
-          className="min-h-11 rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200 focus-visible:outline-2 focus-visible:outline-amber-300"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200 focus-visible:outline-2 focus-visible:outline-amber-300"
         >
           Выйти с сайта
         </button>
