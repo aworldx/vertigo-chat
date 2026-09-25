@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { AccountBar, useAccountSession, getSession } from "../features/accounts"
+import { getSession } from "../features/accounts"
 import { EntranceForm, readSession } from "../features/chat"
 import { Icon } from "../shared/ui/Icon"
 import { Hero } from "./landing/Hero"
@@ -11,7 +11,6 @@ export function LandingPage() {
   const [registering, setRegistering] = useState(false)
   const [entering, setEntering] = useState(false)
   const [canResume] = useState(() => readSession() !== null)
-  const { session, pending, signOut } = useAccountSession()
   const onRegister = () => {
     if (!entering) setRegistering(true)
   }
@@ -20,15 +19,6 @@ export function LandingPage() {
   }
   return (
     <main>
-      {session?.principal && (
-        <AccountBar
-          principal={session.principal}
-          pending={pending}
-          onLogout={() => {
-            void signOut()
-          }}
-        />
-      )}
       <div id="vertigo-landing" className="landing-page">
         <Hero />
         <div className="landing-container">
