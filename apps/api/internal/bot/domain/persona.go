@@ -11,7 +11,7 @@ var ClaireInstructions string
 type Persona struct{ ID, Name, Instructions, Fallback string }
 
 func Hitchcock() Persona {
-	return Persona{"hitchcock", "Хичкок", Instructions, "Моя реплика застряла в монтажной. Сформулируй вопрос ещё раз — и я отвечу без лишней драмы."}
+	return Persona{"hitchcock", "Хичкок", Instructions, "Что-то ответ не отправился. Повторишь?"}
 }
 func Claire() Persona {
 	return Persona{"claire", "Клэр", ClaireInstructions, "Ой, потеряла мысль. Повтори, пожалуйста?"}
