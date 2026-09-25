@@ -21,6 +21,8 @@ func NewStore(db Database) Store { return Store{db} }
 
 const columns = `id,COALESCE(client_id,''),kind,author,body,sent_at,appearance,font_id,font_style,reactions,COALESCE(recipient,''),COALESCE(media_url,''),COALESCE(media_artist,''),COALESCE(media_duration,''),COALESCE(media_source_url,'')`
 
+const recentMessageLimit = 100
+
 func (s Store) Send(ctx context.Context, author domain.Author, clientID, body string) (domain.Message, error) {
 	var message domain.Message
 	var appearance, reactions []byte
@@ -55,12 +57,12 @@ func (s Store) Send(ctx context.Context, author domain.Author, clientID, body st
 	return message, err
 }
 func (s Store) Recent(ctx context.Context, roomID string) ([]domain.Message, error) {
-	rows, err := s.db.Query(ctx, `SELECT `+columns+` FROM (SELECT * FROM room_messages WHERE room_id=$1 ORDER BY id DESC LIMIT 30) messages ORDER BY id`, roomID)
+	rows, err := s.db.Query(ctx, `SELECT `+columns+` FROM (SELECT * FROM room_messages WHERE room_id=$1 ORDER BY id DESC LIMIT $2) messages ORDER BY id`, roomID, recentMessageLimit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	messages := make([]domain.Message, 0, 30)
+	messages := make([]domain.Message, 0, recentMessageLimit)
 	for rows.Next() {
 		var m domain.Message
 		var appearance, reactions []byte

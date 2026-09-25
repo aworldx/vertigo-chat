@@ -16,7 +16,7 @@ Site logout does not revoke a chat session or clear its outbox.
 seconds, the client sends `{type:"resume",resume_token}`. Successful restoration
 increments the durable generation, fencing commands and disconnects from old
 connections. The server sends `ready` with session ID, nickname, generation,
-connection ID, the latest 30 messages and active/reconnecting peers.
+connection ID, the latest 100 messages and active/reconnecting peers.
 
 Commands: `{type:"heartbeat",visibility:"visible"|"hidden"}`,
 `{type:"send",client_id,body}`, `{type:"leave"}`. Server replies include

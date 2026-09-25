@@ -72,6 +72,39 @@ func TestPublicChatPostgres(t *testing.T) {
 	chatshttp.NewSocket(lifecycle, chatspg.NewStore(pool), rooms.NewService(roompg.NewStore(pool)), sendRoomMessage(pool), server.URL).WithExperience(roomExperience(pool, observability.NewMetrics())).Register(mux)
 	jar, _ := cookiejar.New(nil)
 	fixture := chatFixture{pool: pool, server: server, client: &http.Client{Jar: jar, Timeout: 5 * time.Second}}
+
+	t.Run("latest 100 messages retain chronological order and stored history", func(t *testing.T) {
+		const room = "history-limit-regression"
+		_, err := pool.Exec(ctx, `INSERT INTO room_messages(room_id,kind,author,body,theme_id,sent_at,inserted_at,updated_at)
+			SELECT $1,'text','history-test',n::text,'vertigo',NOW(),NOW(),NOW() FROM generate_series(1,105) AS series(n) ORDER BY series.n`, room)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if _, err := pool.Exec(ctx, `DELETE FROM room_messages WHERE room_id=$1`, room); err != nil {
+				t.Error(err)
+			}
+		})
+		messages, err := roompg.NewStore(pool).Recent(ctx, room)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(messages) != 100 {
+			t.Fatalf("history length = %d, want 100", len(messages))
+		}
+		for i, message := range messages {
+			if message.Body != fmt.Sprint(i+6) {
+				t.Fatalf("message %d body = %q, want %d", i, message.Body, i+6)
+			}
+		}
+		var stored int
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM room_messages WHERE room_id=$1`, room).Scan(&stored); err != nil {
+			t.Fatal(err)
+		}
+		if stored != 105 {
+			t.Fatalf("stored messages = %d, want 105", stored)
+		}
+	})
 	t.Run("recent visit history and non-UTC cutoff", fixture.visitHistory)
 	t.Run("guest protection and atomic registration", fixture.registration)
 	t.Run("socket resume fencing outbox and terminal leave", fixture.socket)
