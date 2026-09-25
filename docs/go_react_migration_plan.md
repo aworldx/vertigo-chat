@@ -81,9 +81,53 @@ pagination/polling; A10: legacy Grafana panels) не объявляются ис
 мониторинг проверяются отдельно при переключении. A2 query-budget test
 не заменяет нагрузочный профиль production.
 
-Репетиция Go-миграций ещё выполняется; production-трафик пока не переключён.
-Следующий шаг — проверенный release, публикация в обе удалённые ветки,
-CI-образы, репетиция на восстановленной БД и переключение с готовым откатом.
+### Production переключён (2026-09-25, 07:44 UTC)
+
+- Выпущен `v0.11.0`, commit `1878f3d3d35866b300b2699fd916d436a8ef4dfa`.
+  Все 33 накопленных коммита и тег отправлены в GitHub и GitLab. Финальный
+  `mix precommit` прошёл: 411 Phoenix tests, Go race/static/integration,
+  TypeScript/lint/unit/visual и browser checks. API coverage 90,27%.
+- CI pipeline `2881390792` опубликовал образы с тегами `api-<commit>` и
+  `youtube-worker-<commit>`. Сборка на VPS не выполнялась.
+  API digest: `sha256:133b6a826c57a992ff585feef5f7077688341737be1f2731ef25de4dcb678a17`;
+  worker: `sha256:d5200dac200de40502db4716464eed9fde863c14d512911943d8961503a46e8a`.
+- На восстановленной БД миграции выполнены дважды: 16 аккаунтов, 6 анкет,
+  30 исходных сообщений; добавлены только два бот-аккаунта с анкетами.
+  Проверены guest entrance, WebSocket room, reload/restore и terminal leave.
+- Первая попытка остановилась до миграций: после git update исчез исходный
+  bind source `/opt/apps/vertigo-chat/Caddyfile`, поэтому Docker отказал при
+  обращении к старому контейнеру. Автоматический rollback восстановил Phoenix
+  и Caddy со стабильным mount из сохранённого legacy checkout. Повторная
+  попытка прошла. При будущих переносах bind sources сначала переводить
+  контейнеры на стабильные пути, затем обновлять checkout.
+- Перед миграциями закрыта одна legacy chat-session через её application
+  lifecycle, остановлены app/admin и сделан дополнительный frozen backup:
+  `s3://vertigo/backups/postgresql/postgres-20260925T074400Z.dump.enc`.
+  Размер исходного dump — 159789 байт; SHA-256
+  `86a26b9b9232d2e8f9654923884d66defd6d5e23e20ad4c7c39688db8b7d1472`.
+  Encrypted SHA-256:
+  `129cb8993276ab1f1f4bc34d93c8c62af3399a34732f831a3ea3047c627ae29d`.
+  Скачивание и расшифровка проверены; ключ отдельно на сервере в
+  `/root/.config/vertigo-backup/postgres-20260925T074400Z.key` (0600).
+- Production обслуживает Go API + React; api/worker healthy, PostgreSQL том
+  сохранён, применены все шесть Go migrations. Phoenix app/admin остановлены.
+  Health, profiles/gallery/library/music-chart/ranks/visits API возвращают 200,
+  публичный `/internal/metrics` — 404. Prometheus `up{instance="api:4020"}=1`.
+  В production браузере проверены guest entrance, reload/restore и leave,
+  анкеты и загрузка изображений; ошибок console нет. Тестовые сообщения не
+  отправлялись. Все три активных Prometheus targets (`chat`, `vps`, `cadvisor`)
+  имеют статус up. Временный canary и восстановленная тестовая БД удалены.
+- `API_TRUSTED_PROXY_CIDRS=172.18.0.8/32` — текущий точный адрес Caddy.
+  После пересоздания Caddy обязательно сверять его IP и обновлять API;
+  доверять всей Docker subnet нельзя, иначе ломаются прямые metrics scrapes.
+- Откат: `/opt/backups/vertigo-chat/cutover-20260925/rollback.sh`.
+  Он останавливает Go writer, удаляет provisioning trigger и запись миграции
+  `0000` (старый Phoenix создаёт profile сам), запускает сохранённые legacy
+  images/config. Новые данные сохраняются; dump поверх работающей БД не
+  восстанавливать. Старые контейнеры, образы и бэкапы пока сохранять.
+
+Следующий этап: пользовательская приёмка production и отдельные задачи P2,
+перечисленные выше. После перехода требуется заново войти в чат.
 
 ### Личная видимость Кармика (2026-09-25)
 
