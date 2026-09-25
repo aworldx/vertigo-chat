@@ -38,8 +38,17 @@ legacy-ветке и не является fallback или proxy целевой 
 сообщений при входе/переподключении, без удаления данных и миграции схемы.
 Добавлена PostgreSQL regression: из 105 записей возвращаются последние 100
 в хронологическом порядке, все 105 остаются в БД. Полный `mix precommit`
-прошёл, включая эту regression и 411 Phoenix tests. Изменение пока локальное,
-на production продолжает работать прежний релиз с окном 30 сообщений.
+прошёл, включая эту regression и 411 Phoenix tests.
+
+По отдельному указанию пользователя изменение закоммичено и отправлено в
+GitHub/GitLab: `d5d807f27c055761107749be8b5c30cdbc3d217a`. После CI pipeline
+`2881510998` production API обновлён 2026-09-25 в 08:28 UTC; миграции схемы
+не требовались, worker и PostgreSQL не пересоздавались. Digest API:
+`sha256:c8f1f7a2db6c4cbf73c31f07106499968f02fb1a184a5fbffa4fd46d9b1ddb2a`.
+Production browser smoke: 53 сообщения при входе и после reload, восстановление
+сессии и выход работают. API healthy, все активные Prometheus targets up.
+Для отката этого обновления вернуть `CHAT_API_IMAGE_TAG` к
+`api-1878f3d3d35866b300b2699fd916d436a8ef4dfa` и пересоздать только `api`.
 
 ### Подготовка production cutover (2026-09-25)
 
