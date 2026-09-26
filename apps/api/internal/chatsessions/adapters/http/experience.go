@@ -21,13 +21,15 @@ type Presentation struct {
 type SendMedia func(context.Context, domain.Session, string, media.Item) (rooms.Message, error)
 type BotReply func(domain.Session, rooms.Message, string)
 type Experience struct {
-	BotAvailable func(context.Context) bool
-	Bot          BotReply
-	Media        SendMedia
-	React        func(context.Context, domain.Session, int64, string, bool) error
-	Delete       func(context.Context, domain.Session, int64) error
-	Present      func(context.Context, domain.Session) (Presentation, error)
-	Save         func(context.Context, domain.Session, application.Preferences) (application.Preferences, error)
+	HelpTopics      func(string) []string
+	BotPresentation func(context.Context, string) (Presentation, error)
+	BotAvailable    func(context.Context) bool
+	Bot             BotReply
+	Media           SendMedia
+	React           func(context.Context, domain.Session, int64, string, bool) error
+	Delete          func(context.Context, domain.Session, int64) error
+	Present         func(context.Context, domain.Session) (Presentation, error)
+	Save            func(context.Context, domain.Session, application.Preferences) (application.Preferences, error)
 }
 
 func (h Socket) WithExperience(experience Experience) Socket { h.experience = experience; return h }

@@ -374,10 +374,14 @@ func (f *chatFixture) presence(t *testing.T) {
 		t.Fatalf("guest incorrectly classified: %+v", p)
 	}
 	id := p.ID
+	before := f.ambientHumans(t)
 	if err := guestConn.CloseNow(); err != nil {
 		t.Fatal(err)
 	}
 	f.awaitPeer(t, observer, "presence-guest", "reconnecting")
+	if reconnecting := f.ambientHumans(t); reconnecting != before {
+		t.Fatalf("ambient forgot reconnecting human: before=%d after=%d", before, reconnecting)
+	}
 	restored, _ := f.connect(t, guest)
 	p = f.awaitPeer(t, observer, "presence-guest", "active")
 	if p.ID != id {
@@ -386,6 +390,9 @@ func (f *chatFixture) presence(t *testing.T) {
 	f.send(t, restored, map[string]string{"type": "leave"})
 	f.frame(t, restored, "left")
 	f.awaitPeer(t, observer, "presence-guest", "")
+	if after := f.ambientHumans(t); after != before-1 {
+		t.Fatalf("ambient departure count: before=%d after=%d", before, after)
+	}
 	f.send(t, observer, map[string]string{"type": "leave"})
 	f.frame(t, observer, "left")
 }
@@ -453,4 +460,13 @@ func (f *chatFixture) upgrade(t *testing.T) {
 	newer, _ := f.connect(t, newToken)
 	f.send(t, newer, map[string]string{"type": "leave"})
 	f.frame(t, newer, "left")
+}
+
+func (f *chatFixture) ambientHumans(t *testing.T) int {
+	t.Helper()
+	audience, err := ambientAudience(f.pool)(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return audience.Humans
 }

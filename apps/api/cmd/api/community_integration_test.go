@@ -67,8 +67,10 @@ func TestCommunityPostgres(t *testing.T) {
 		communityRequest(t, &f, "GET", "/api/v1/gallery", "", 200, false)
 		communityRequest(t, &f, "POST", "/api/v1/library", `{"title":"x","body":"y"}`, 401, false)
 		communityRequest(t, &f, "GET", "/api/v1/admin/database", "", 401, false)
+		communityRequest(t, &f, "GET", "/api/v1/admin/bots", "", 401, false)
 	})
 	f.post(t, "/api/v1/auth/login", `{"nickname":"fixture01","password":"secret123"}`, 200)
+	t.Run("bot settings permissions persistence and budget enforcement", f.botManagement)
 	t.Run("registered feedback identity and CSRF", f.registeredFeedback)
 	t.Run("library normalization ownership and validation", func(t *testing.T) {
 		communityRequest(t, &f, "POST", "/api/v1/library", `{"title":"x","body":"y"}`, 403, false)

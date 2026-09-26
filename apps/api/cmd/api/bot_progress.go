@@ -16,7 +16,12 @@ import (
 
 func sendBotMessage(ctx context.Context, pool *pgxpool.Pool, author roomdomain.Author, clientID, body string) (roomdomain.Message, error) {
 	var message roomdomain.Message
-	err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+	var err error
+	author, err = botAuthor(ctx, pool, author)
+	if err != nil {
+		return message, err
+	}
+	err = pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		account := accountspg.NewAccounts(tx)
 		id, err := accounts.NewBotProgress(account).UserID(ctx, author.Nickname)
 		if err != nil {

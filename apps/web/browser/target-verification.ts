@@ -1,3 +1,5 @@
+import { verifyChatGuide } from "./chat-guide-verification"
+import { verifyBotAdmin } from "./bot-admin-verification"
 import { verifyLibraryEditor } from "./library-editor-verification"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
@@ -40,6 +42,7 @@ function fixtures(populated: boolean) {
 
 const browser = await launchBrowser({ headless: true })
 try {
+  await verifyChatGuide(browser, origin)
   await articlesWithoutJS(browser, origin)
   const first = await browser.newContext(),
     second = await browser.newContext()
@@ -83,6 +86,7 @@ try {
   await libraryFlows(pair)
   await verifyLibraryEditor(newPage, origin)
   await adminFlows(pair)
+  await verifyBotAdmin(newPage, origin)
   await uploadAndModerate(pair)
   await failureRecovery(pair)
   await first.close()

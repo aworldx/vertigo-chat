@@ -46,22 +46,22 @@ func TestAmbientPacesAlternatesAndYields(t *testing.T) {
 		t.Fatal("rushed closing")
 	}
 	step(30 * time.Second)
-	if len(turns) != 3 || !turns[2].Closing {
+	if len(turns) != 2 {
 		t.Fatal(turns)
 	}
 	step(time.Hour)
-	if len(turns) != 3 {
+	if len(turns) != 2 {
 		t.Fatal("kept talking over people")
 	}
 	audience.Humans = 1
 	step(0)
 	step(90 * time.Second)
-	if len(turns) != 4 || turns[3].Speaker.ID != "claire" {
+	if len(turns) != 3 || turns[2].Speaker.ID != "claire" {
 		t.Fatal(turns)
 	}
 	audience.Humans = 0
 	step(time.Hour)
-	if len(turns) != 4 {
+	if len(turns) != 3 {
 		t.Fatal("empty room chatter")
 	}
 }
@@ -156,5 +156,49 @@ func TestMediaCooldown(t *testing.T) {
 	m.Suggest(context.Background(), "lobby", "3", "youtube", "song", nil)
 	if calls != 2 {
 		t.Fatal(calls)
+	}
+}
+
+func TestAmbientDepartureWithTwoHumansDoesNotResumeHistory(t *testing.T) {
+	now := time.Now()
+	audience := Audience{Humans: 3, History: []AmbientMessage{{Speaker: "claire", Body: "Старая беседа", SentAt: now.Add(-2 * time.Minute)}}}
+	calls := 0
+	a := NewAmbient(AmbientPorts{Now: func() time.Time { return now }, Delay: func() time.Duration { return time.Minute }, Audience: func(context.Context) (Audience, error) { return audience, nil }, Talk: func(_ context.Context, _ Turn, allowed func() bool) (string, error) {
+		calls++
+		if !allowed() {
+			t.Fatal("unexpected audience")
+		}
+		return "Привет", nil
+	}})
+	tick := func() {
+		t.Helper()
+		if err := a.Tick(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tick()
+	audience.Humans = 2
+	now = now.Add(time.Hour)
+	tick()
+	if calls != 0 {
+		t.Fatal("resumed old conversation when three people became two")
+	}
+	audience.Humans = 1
+	tick()
+	now = now.Add(89 * time.Second)
+	tick()
+	if calls != 0 {
+		t.Fatal("did not wait after the last departure")
+	}
+	now = now.Add(time.Second)
+	tick()
+	if calls != 1 {
+		t.Fatal("did not resume for one person")
+	}
+	audience.Humans = 2
+	now = now.Add(time.Hour)
+	tick()
+	if calls != 1 {
+		t.Fatal("posted a closing reply over two people")
 	}
 }

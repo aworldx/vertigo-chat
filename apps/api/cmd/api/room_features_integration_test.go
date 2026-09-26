@@ -131,14 +131,14 @@ func (f *chatFixture) karmikQuota(t *testing.T) {
 	var first int64
 	for i := range 3 {
 		var id int64
-		if err := f.pool.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES('lobby','text','fixture03','Спасибо за помощь','vertigo','{}','{}','theme','normal',NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC') RETURNING id`).Scan(&id); err != nil {
+		if err := f.pool.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES('lobby','text','fixture03','Открой настройки, выбери шрифт и сохрани изменения.','vertigo','{}','{}','theme','normal',NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC') RETURNING id`).Scan(&id); err != nil {
 			t.Fatal(err)
 		}
 		if i == 0 {
 			first = id
 		}
-		m := karmik.Message{ID: id, UserID: user, Author: "fixture03", Body: "Спасибо за помощь"}
-		a := karmik.Assessment{MessageID: id, Verdict: "good", Reason: "Искренняя благодарность"}
+		m := karmik.Message{ID: id, UserID: user, Author: "fixture03", Body: "Открой настройки, выбери шрифт и сохрани изменения."}
+		a := karmik.Assessment{MessageID: id, Verdict: "good", Reason: "Конкретная инструкция по настройке шрифта"}
 		for range 2 {
 			if err := store.Apply(ctx, m, a, 1); err != nil {
 				t.Fatal(err)

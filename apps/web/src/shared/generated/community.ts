@@ -230,6 +230,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/bots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * readAdminBots
+         * @description Administrator only. Mutations require account cookie, same origin and CSRF. Changes apply without restart. Styles affect future messages and online presence.
+         */
+        get: operations["readAdminBots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/bots/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * updateBotBudget
+         * @description Administrator only. Mutations require account cookie, same origin and CSRF. Changes apply without restart. Styles affect future messages and online presence.
+         */
+        put: operations["updateBotBudget"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/bots/{id}/style": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * updateBotStyle
+         * @description Administrator only. Mutations require account cookie, same origin and CSRF. Changes apply without restart. Styles affect future messages and online presence.
+         */
+        put: operations["updateBotStyle"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -342,6 +402,36 @@ export interface components {
             code: string;
             /** Format: binary */
             image: string;
+        };
+        BotLimits: {
+            /** @description Shared daily budget; 0 means unlimited. */
+            daily_tokens: number;
+            stop_percent: number;
+        };
+        BotColors: {
+            nickname_color: string;
+            text_color: string;
+        };
+        BotStyle: {
+            dark: components["schemas"]["BotColors"];
+            light: components["schemas"]["BotColors"];
+            /** @enum {string} */
+            font_id: "theme" | "sans" | "display" | "serif";
+            /** @enum {string} */
+            font_style: "normal" | "italic";
+        };
+        AdminBot: {
+            /** @enum {string} */
+            id: "hitchcock" | "claire";
+            name: string;
+            style: components["schemas"]["BotStyle"];
+        };
+        AdminBots: {
+            limits: components["schemas"]["BotLimits"];
+            used_tokens: number;
+            stop_threshold: number;
+            utc_offset_minutes: number;
+            bots: components["schemas"]["AdminBot"][];
         };
     };
     responses: never;
@@ -1510,6 +1600,188 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    readAdminBots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBots"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateBotBudget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BotLimits"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                    };
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateBotStyle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: "hitchcock" | "claire";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BotStyle"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                    };
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Request rejected or dependency unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
             };
         };
     };

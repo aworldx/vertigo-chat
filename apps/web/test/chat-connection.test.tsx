@@ -272,3 +272,17 @@ test("stopping the connection rejects a pending preferences save", async () => {
   connection.stop()
   await assert.rejects(saving, /закрыто/)
 })
+
+test("assistance belongs to the sender ack, is deduplicated and ignores private messages", () => {
+  const { connection, receive } = fixture()
+  receive({ type: "ack", message: message("help", 42), help_topics: ["font"] })
+  receive({ type: "ack", message: message("help", 42), help_topics: ["font"] })
+  assert.deepEqual(connection.getSnapshot().help, [{ messageID: 42, topics: ["font"] }])
+  receive({ type: "ack", message: { ...message("other", 43), author: "Bob" }, help_topics: ["music"] })
+  receive({
+    type: "ack",
+    message: { ...message("private-help", -4), kind: "private", recipient: "Bob" },
+    help_topics: ["music"],
+  })
+  assert.equal(connection.getSnapshot().help.length, 1)
+})

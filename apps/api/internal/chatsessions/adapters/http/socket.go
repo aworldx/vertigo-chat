@@ -246,8 +246,8 @@ func (h Socket) snapshot(ctx context.Context, session domain.Session) (snapshot,
 	if !current {
 		return snapshot{}, domain.ErrInvalidSession
 	}
-	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-hitchcock", Nickname: "Хичкок", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
-	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-claire", Nickname: "Клэр", Status: domain.StatusActive, Preferences: chatlans.Default(), Bot: true})
+	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-hitchcock", Nickname: "Хичкок", Status: domain.StatusActive, Preferences: shared.bots["hitchcock"].Preferences, Rank: shared.bots["hitchcock"].Rank, Bot: true})
+	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-claire", Nickname: "Клэр", Status: domain.StatusActive, Preferences: shared.bots["claire"].Preferences, Rank: shared.bots["claire"].Rank, Bot: true})
 	sort.Slice(peers, func(i, j int) bool { return peers[i].Nickname < peers[j].Nickname })
 	messages := shared.messages
 	encoded := make([]messageDTO, 0, len(messages))
@@ -342,7 +342,15 @@ func (h Socket) sendCommand(ctx context.Context, conn *websocket.Conn, session d
 	if h.experience.Bot != nil {
 		h.experience.Bot(session, message, h.clientIP)
 	}
-	return socketWrite(ctx, conn, map[string]any{"type": "ack", "message": encodeMessage(message, session.IdentityKey)}) == nil
+	ack := map[string]any{"type": "ack", "message": encodeMessage(message, session.IdentityKey)}
+	// Only this authenticated sender's connection receives assistance. Never put
+	// help metadata in the public message, shared snapshot or presence hub.
+	if h.experience.HelpTopics != nil && message.Kind == "text" {
+		if topics := h.experience.HelpTopics(message.Body); len(topics) > 0 {
+			ack["help_topics"] = topics
+		}
+	}
+	return socketWrite(ctx, conn, ack) == nil
 }
 
 func (h Socket) messageLimited(session domain.Session, cmd command) bool {

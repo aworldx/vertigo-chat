@@ -1427,6 +1427,250 @@
           }
         }
       }
+    },
+    "/api/v1/admin/bots": {
+      "get": {
+        "operationId": "readAdminBots",
+        "summary": "readAdminBots",
+        "description": "Administrator only. Mutations require account cookie, same origin and CSRF. Changes apply without restart. Styles affect future messages and online presence.",
+        "security": [
+          {
+            "accountSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBots"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bots/budget": {
+      "put": {
+        "operationId": "updateBotBudget",
+        "summary": "updateBotBudget",
+        "description": "Administrator only. Mutations require account cookie, same origin and CSRF. Changes apply without restart. Styles affect future messages and online presence.",
+        "security": [
+          {
+            "accountSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BotLimits"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bots/{id}/style": {
+      "put": {
+        "operationId": "updateBotStyle",
+        "summary": "updateBotStyle",
+        "description": "Administrator only. Mutations require account cookie, same origin and CSRF. Changes apply without restart. Styles affect future messages and online presence.",
+        "security": [
+          {
+            "accountSession": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Request rejected or dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BotStyle"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hitchcock",
+                "claire"
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1920,6 +2164,134 @@
           "image": {
             "type": "string",
             "format": "binary"
+          }
+        }
+      },
+      "BotLimits": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "daily_tokens",
+          "stop_percent"
+        ],
+        "properties": {
+          "daily_tokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000,
+            "description": "Shared daily budget; 0 means unlimited."
+          },
+          "stop_percent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "BotColors": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nickname_color",
+          "text_color"
+        ],
+        "properties": {
+          "nickname_color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "text_color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        }
+      },
+      "BotStyle": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dark",
+          "light",
+          "font_id",
+          "font_style"
+        ],
+        "properties": {
+          "dark": {
+            "$ref": "#/components/schemas/BotColors"
+          },
+          "light": {
+            "$ref": "#/components/schemas/BotColors"
+          },
+          "font_id": {
+            "type": "string",
+            "enum": [
+              "theme",
+              "sans",
+              "display",
+              "serif"
+            ]
+          },
+          "font_style": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "italic"
+            ]
+          }
+        }
+      },
+      "AdminBot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "style"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "hitchcock",
+              "claire"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BotStyle"
+          }
+        }
+      },
+      "AdminBots": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "limits",
+          "used_tokens",
+          "stop_threshold",
+          "utc_offset_minutes",
+          "bots"
+        ],
+        "properties": {
+          "limits": {
+            "$ref": "#/components/schemas/BotLimits"
+          },
+          "used_tokens": {
+            "type": "integer"
+          },
+          "stop_threshold": {
+            "type": "integer"
+          },
+          "utc_offset_minutes": {
+            "type": "integer"
+          },
+          "bots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminBot"
+            }
           }
         }
       }

@@ -1,6 +1,7 @@
-import type { ReactNode } from "react"
+import { Fragment, type ReactNode } from "react"
 import type { Emoji } from "../api/emojis"
-import type { Peer } from "../api/protocol"
+import { KarmikHelp } from "./KarmikHelp"
+import type { HelpTopic, Peer } from "../api/protocol"
 import type { TimelineEntry } from "../model/timeline"
 import { useMessageScroll } from "../model/useMessageScroll"
 import { MessageEntry } from "./MessageEntry"
@@ -9,6 +10,8 @@ import { mergeMediaTimeline, type PositionedFile } from "../model/mediaTimeline"
 import { FeedContentContext } from "./feedContent"
 
 export function MessageFeed({
+  help = [],
+  onSettings,
   entries,
   nickname,
   onAddress,
@@ -23,6 +26,8 @@ export function MessageFeed({
   onRetry,
   onCancel,
 }: {
+  help?: { messageID: number; topics: HelpTopic[] }[]
+  onSettings?: () => void
   onReaction?: (id: number, emoji: string, active: boolean) => void
   onRetry: (id: string) => void
   onCancel: (id: string) => void
@@ -53,33 +58,47 @@ export function MessageFeed({
             return <SharedMedia key={item.key} file={item.file} onRequest={() => onRequestFile?.(item.file.id)} />
           const { entry } = item
           return (
-            <MessageEntry
-              key={entry.key}
-              message={entry.message}
-              frame={frame}
-              emojis={emojis}
-              peers={peers}
-              nickname={nickname}
-              onAddress={onAddress}
-              onReaction={onReaction}
-              onDelete={onDelete}
-              delivery={entry.message.author === nickname ? entry.delivery : undefined}
-              domID={entry.message.author === nickname && entry.message.client_id ? entry.message.client_id : undefined}
-              onRetry={
-                entry.delivery === "failed"
-                  ? () => {
-                      onRetry(entry.message.client_id)
-                    }
-                  : undefined
-              }
-              onCancel={
-                entry.delivery === "failed"
-                  ? () => {
-                      onCancel(entry.message.client_id)
-                    }
-                  : undefined
-              }
-            />
+            <Fragment key={entry.key}>
+              <MessageEntry
+                message={entry.message}
+                frame={frame}
+                emojis={emojis}
+                peers={peers}
+                nickname={nickname}
+                onAddress={onAddress}
+                onReaction={onReaction}
+                onDelete={onDelete}
+                delivery={entry.message.author === nickname ? entry.delivery : undefined}
+                domID={
+                  entry.message.author === nickname && entry.message.client_id ? entry.message.client_id : undefined
+                }
+                onRetry={
+                  entry.delivery === "failed"
+                    ? () => {
+                        onRetry(entry.message.client_id)
+                      }
+                    : undefined
+                }
+                onCancel={
+                  entry.delivery === "failed"
+                    ? () => {
+                        onCancel(entry.message.client_id)
+                      }
+                    : undefined
+                }
+              />
+              {entry.message.author === nickname &&
+                help
+                  .filter((hint) => hint.messageID === entry.message.id)
+                  .map((hint) => (
+                    <KarmikHelp
+                      key={hint.messageID}
+                      messageID={hint.messageID}
+                      topics={hint.topics}
+                      onSettings={onSettings}
+                    />
+                  ))}
+            </Fragment>
           )
         })}
         {children}

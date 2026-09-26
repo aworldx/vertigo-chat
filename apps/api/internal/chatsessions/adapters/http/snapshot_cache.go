@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	chatlans "chat/api/internal/chatlans/application"
 	"chat/api/internal/chatsessions/domain"
 	rooms "chat/api/internal/rooms/domain"
 )
@@ -17,6 +18,7 @@ type roomSnapshot struct {
 	presentations map[string]Presentation
 	messages      []rooms.Message
 	botBusy       bool
+	bots          map[string]Presentation
 }
 
 type snapshotCache struct {
@@ -72,6 +74,17 @@ func (h Socket) loadSnapshot(ctx context.Context, room string) (roomSnapshot, er
 	value.messages, err = h.history.Recent(ctx, room)
 	if err != nil {
 		return value, err
+	}
+	value.bots = map[string]Presentation{}
+	for _, id := range []string{"hitchcock", "claire"} {
+		p := Presentation{Preferences: chatlans.Default()}
+		if h.experience.BotPresentation != nil {
+			p, err = h.experience.BotPresentation(ctx, id)
+			if err != nil {
+				return value, err
+			}
+		}
+		value.bots[id] = p
 	}
 	value.botBusy = h.experience.BotAvailable != nil && !h.experience.BotAvailable(ctx)
 	return value, nil

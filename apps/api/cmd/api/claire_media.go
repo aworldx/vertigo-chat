@@ -44,7 +44,11 @@ func claireMedia(pool *pgxpool.Pool) *bot.Media {
 		if !media.Allowed(item.Kind, item.URL) {
 			return nil
 		}
-		_, err = roompg.NewStore(pool).SendMedia(ctx, roomdomain.Author{RoomID: room, Identity: "bot:claire", Nickname: "Клэр"}, "media:"+id, item.Kind, item.Title, item.URL, item.Artist, item.Duration, item.Source)
+		author, err := botAuthor(ctx, pool, roomdomain.Author{RoomID: room, Identity: "bot:claire", Nickname: "Клэр"})
+		if err != nil {
+			return err
+		}
+		_, err = roompg.NewStore(pool).SendMedia(ctx, author, "media:"+id, item.Kind, item.Title, item.URL, item.Artist, item.Duration, item.Source)
 		return err
 	}}
 }

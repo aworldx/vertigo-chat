@@ -98,6 +98,8 @@ export function Room({
                 </div>
               )}
               <MessageFeed
+                help={state.help}
+                onSettings={settings.show}
                 files={media.files}
                 onRequestFile={media.request}
                 entries={feedEntries.filter((entry) => command.isVisible(entry.message))}

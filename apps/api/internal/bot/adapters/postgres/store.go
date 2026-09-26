@@ -39,6 +39,10 @@ func (s Store) Exchange(ctx context.Context, r domain.Request, generate func(dom
 		defer cancel()
 		_, _ = conn.Exec(unlock, `SELECT pg_advisory_unlock(8420931)`)
 	}()
+	s, err = s.configured(ctx, conn)
+	if err != nil {
+		return result, err
+	}
 	date := time.Now().UTC().Add(time.Duration(s.offset) * time.Minute).Format("2006-01-02")
 	var conversation int64
 	var input domain.Context

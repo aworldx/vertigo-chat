@@ -1,6 +1,9 @@
+import { chatHelp } from "../../../shared/chatHelp"
 import type { components } from "../../../shared/generated/chat"
 import { colors, isPreferences, type Preferences } from "./preferences"
 import { record } from "./entrance"
+export type HelpTopic = components["schemas"]["HelpTopic"]
+const helpTopics: readonly string[] = Object.keys(chatHelp)
 export type Message = components["schemas"]["Message"]
 export type Peer = components["schemas"]["Peer"]
 export type Snapshot = components["schemas"]["Snapshot"]
@@ -8,7 +11,7 @@ export type Frame =
   | { type: "signal"; sender: string; body: string }
   | { type: "ready"; snapshot: Snapshot; connection_id: string; generation: number }
   | { type: "snapshot"; snapshot: Snapshot }
-  | { type: "ack"; message: Message }
+  | { type: "ack"; message: Message; help_topics?: HelpTopic[] }
   | { type: "private"; message: Message }
   | { type: "left" }
   | { type: "preferences"; preferences: Preferences }
@@ -88,7 +91,16 @@ export function decodeFrame(raw: string): Frame | null {
     return { type: "signal", sender: value.sender, body: value.body }
   if (value.type === "snapshot" && snapshot(value.snapshot)) return { type: "snapshot", snapshot: value.snapshot }
   if (value.type === "private" && message(value.message)) return { type: "private", message: value.message }
-  if (value.type === "ack" && message(value.message)) return { type: "ack", message: value.message }
+  if (value.type === "ack" && message(value.message))
+    return {
+      type: "ack",
+      message: value.message,
+      help_topics: Array.isArray(value.help_topics)
+        ? value.help_topics
+            .filter((topic: unknown): topic is HelpTopic => typeof topic === "string" && helpTopics.includes(topic))
+            .slice(0, helpTopics.length)
+        : [],
+    }
   if (value.type === "preferences" && isPreferences(value.preferences))
     return { type: "preferences", preferences: value.preferences }
   if (value.type === "left") return { type: "left" }

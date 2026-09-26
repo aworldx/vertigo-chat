@@ -1,3 +1,4 @@
+import { chatCommands } from "../../../shared/chatCommands"
 import { Icon } from "../../../shared/ui/Icon"
 export function Commands() {
   return (
@@ -17,72 +18,14 @@ export function Commands() {
       </div>
 
       <dl id="commands-list" className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/помощь</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">Показывает список команд.</dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/кто</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">
-            Показывает до 10 чатлан онлайн; на ник можно нажать для обращения.
-          </dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/выход</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">Выводит из чата.</dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/инфо ник</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">Открывает анкету чатланина.</dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/игнор ник</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">Скрывает сообщения чатланина; повтор команды возвращает их.</dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/игноры</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">Показывает список игнорируемых чатлан.</dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/очистить</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">Очищает окно чата только у тебя.</dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/гиф запрос</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">Ищет GIF, которую можно выбрать и отправить в чат.</dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/музыка запрос</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">
-            Ищет 10 треков: прослушай вариант и отправь его в общую комнату.
-          </dd>
-        </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-          <dt>
-            <code className="font-semibold text-amber-200">/ютуб ссылка или запрос</code>
-          </dt>
-          <dd className="mt-2 text-sm text-zinc-400">
-            По запросу покажет до пяти коротких роликов; по ссылке сразу отправит компактный плеер.
-          </dd>
-        </div>
+        {chatCommands.map((command) => (
+          <div key={command.input} className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
+            <dt>
+              <code className="font-semibold text-amber-200">{command.label}</code>
+            </dt>
+            <dd className="mt-2 text-sm text-zinc-400">{command.description}</dd>
+          </div>
+        ))}
       </dl>
       <p className="mt-3 text-xs leading-5 text-zinc-500">
         Ответы на команды видны только тебе, оформлены как служебные сообщения и не влияют на прогресс звания.

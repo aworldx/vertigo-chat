@@ -14,6 +14,7 @@ import (
 
 func (f *chatFixture) botProfiles(t *testing.T) {
 	f.checkBotAccounts(t)
+	f.checkBotRanks(t)
 	before := f.readBotProfile(t)
 	f.recordBotProgress(t)
 	after := f.readBotProfile(t)
@@ -115,5 +116,23 @@ func (f *chatFixture) checkBotRetention(t *testing.T, after profiledomain.Profil
 	runBotPresence(cancelled, f.pool)
 	if _, err := sendBotMessage(ctx, f.pool, roomdomain.Author{Nickname: "missing"}, "missing", "missing"); err == nil {
 		t.Fatal("unregistered bot published")
+	}
+}
+
+func (f *chatFixture) checkBotRanks(t *testing.T) {
+	ctx := context.Background()
+	for id, name := range map[string]string{"claire": "Клэр", "hitchcock": "Хичкок"} {
+		profile, err := profiles.NewCatalog(profilespg.NewCatalogue(f.pool)).Get(ctx, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		title, icon := profiles.Rank(profile.PublicMessageCount, profile.ChatSeconds)
+		presentation, err := botPresentation(f.pool)(ctx, id)
+		if err != nil || presentation.Rank == nil {
+			t.Fatal(presentation, err)
+		}
+		if presentation.Rank.Title != title || presentation.Rank.Icon != "/images/ranks/"+icon+".svg" {
+			t.Fatal(presentation.Rank)
+		}
 	}
 }

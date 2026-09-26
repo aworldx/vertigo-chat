@@ -1,3 +1,4 @@
+import { verifyMessageScroll } from "./message-scroll-verification"
 import { launchBrowser } from "./coverage"
 import { verifyVisits } from "./visits-flow"
 import { readFileSync } from "node:fs"
@@ -20,6 +21,7 @@ async function enter(page: Page, nickname: string, password = "") {
 try {
   await verifyLandingFlow(browser, origin)
   await verifyDeliveryStates(browser, origin)
+  await verifyMessageScroll(browser, origin)
   const context = await browser.newContext()
   const first = await context.newPage(),
     second = await context.newPage()
@@ -44,14 +46,29 @@ try {
   const observer = await context.newPage()
   await enter(observer, "browser-observer")
   await expect(first.locator("#online-list")).toContainText("browser-guest-two")
-  await expect(first.locator("#current-chatlan-online")).toHaveText("В сети")
+  await expect(first.locator("#online-row-bot-claire .chat-rank-icon")).toBeVisible()
+  await expect(first.locator("#online-row-bot-hitchcock .chat-rank-icon")).toBeVisible()
+  await expect(first.locator("#online-list")).toContainText("browser-guest-one")
+  await expect(first.locator("#online-list")).not.toContainText("В сети")
   await first.locator("#online-list button").filter({ hasText: "browser-guest-two" }).click()
   await expect(first.locator("#message-body")).toHaveValue("browser-guest-two, ")
   await expect(first.locator("#message-body")).toBeFocused()
   await first.locator("#message-body").fill("Привет из первой вкладки")
   await first.locator("#send-message").click()
   await expect(second.locator("#messages")).toContainText("Привет из первой вкладки")
-  await first.locator("#toggle-settings").click()
+  await first.locator("#message-body").fill("как заказать видео, музыку и поменять шрифт?")
+  await first.locator("#send-message").click()
+  const help = first.getByLabel("Подсказка Кармика")
+  await expect(help).toBeVisible()
+  await expect(help.getByText("Как заказать музыку", { exact: true })).toHaveCount(0)
+  await help.getByRole("button", { name: "Раскрыть подробную инструкцию" }).click()
+  await expect(help.getByText("Как заказать музыку", { exact: true })).toBeVisible()
+  await expect(help.getByText("Как поменять шрифт", { exact: true })).toBeVisible()
+  await expect(help.getByText("Как заказать видео", { exact: true })).toBeVisible()
+  await expect(second.locator("#messages")).toContainText("как заказать видео, музыку и поменять шрифт?")
+  await expect(second.getByLabel("Подсказка Кармика")).toHaveCount(0)
+  await expect(observer.getByLabel("Подсказка Кармика")).toHaveCount(0)
+  await help.getByRole("button", { name: "Открыть настройки" }).click()
   await first.locator("#font-id").selectOption("serif")
   await first.locator("#hide-karmik").check()
   await first.locator("#save-preferences").click()
@@ -59,7 +76,8 @@ try {
   await expect(first.locator("#karmik")).toHaveCount(0)
   await expect(second.locator("#karmik")).toHaveCount(1)
   await first.reload()
-  await expect(first.locator("#current-chatlan-online")).toHaveText("В сети")
+  await expect(first.locator("#online-list")).toContainText("browser-guest-one")
+  await expect(first.locator("#online-list")).not.toContainText("В сети")
   await expect(first.locator("#karmik")).toHaveCount(0)
   await first.locator("#toggle-settings").click()
   await expect(first.locator("#hide-karmik")).toBeChecked()
@@ -82,7 +100,15 @@ try {
   assert.ok(toggleBefore)
   await reactionToggle.click()
   await expect(reactionToggle).toHaveAttribute("aria-expanded", "true")
-  assert.deepEqual(await reactionToggle.boundingBox(), toggleBefore, "Opening reactions must not move the trigger")
+  const toggleAfter = await reactionToggle.boundingBox()
+  assert.ok(toggleAfter)
+  // Chromium can round a fractional scroll offset by one CSS pixel.
+  assert.ok(
+    Math.abs(toggleAfter.x - toggleBefore.x) <= 1 && Math.abs(toggleAfter.y - toggleBefore.y) <= 1,
+    "Opening reactions must not move the trigger",
+  )
+  assert.equal(toggleAfter.width, toggleBefore.width)
+  assert.equal(toggleAfter.height, toggleBefore.height)
   const reactionPicker = received.getByRole("group", { name: "Выбор реакции" })
   const pickerBox = await reactionPicker.boundingBox()
   assert.ok(pickerBox && pickerBox.y + pickerBox.height < toggleBefore.y, "Reactions open above the trigger")

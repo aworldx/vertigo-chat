@@ -15,7 +15,6 @@ type Audience struct {
 type Turn struct {
 	Speaker domain.Persona
 	Body    string
-	Closing bool
 }
 type AmbientPorts struct {
 	Audience   func(context.Context) (Audience, error)
@@ -51,14 +50,11 @@ func (a *Ambient) Tick(ctx context.Context) error {
 	if !a.due(now, audience) {
 		return nil
 	}
-	turn := a.turn(audience.Humans > 1)
+	turn := a.turn()
 	a.mediaOpportunity(ctx, &turn)
 	allowed := func() bool {
 		current, err := a.ports.Audience(ctx)
-		if err != nil || current.Humans == 0 || ctx.Err() != nil {
-			return false
-		}
-		if !turn.Closing && current.Humans != 1 {
+		if err != nil || current.Humans != 1 || ctx.Err() != nil {
 			return false
 		}
 		return !current.LastHuman.After(audience.LastHuman)
@@ -81,11 +77,6 @@ func (a *Ambient) Tick(ctx context.Context) error {
 	a.lastSpeaker = turn.Speaker.ID
 	a.remember(AmbientMessage{Speaker: turn.Speaker.ID, Body: text, SentAt: a.ports.Now()})
 	a.turns++
-	if turn.Closing {
-		a.crowded = true
-		a.turns = 0
-		a.last = ""
-	}
 	if a.turns >= 6 {
 		a.turns = 0
 		a.last = ""
@@ -101,7 +92,9 @@ func (a *Ambient) due(now time.Time, audience Audience) bool {
 		a.crowded = false
 		return false
 	}
-	if audience.Humans > 1 && (a.turns == 0 || a.crowded) {
+	if audience.Humans > 1 {
+		a.turns = 0
+		a.last = ""
 		a.crowded = true
 		return false
 	}
@@ -111,7 +104,7 @@ func (a *Ambient) due(now time.Time, audience Audience) bool {
 	}
 	return !now.Before(a.next) && now.Sub(audience.LastHuman) >= 90*time.Second
 }
-func (a *Ambient) turn(closing bool) Turn {
+func (a *Ambient) turn() Turn {
 	p := domain.Claire()
 	if a.last != "" && a.lastSpeaker == "claire" {
 		p = domain.Hitchcock()
@@ -121,14 +114,11 @@ func (a *Ambient) turn(closing bool) Turn {
 		body = "Отреагируй на последнюю реплику одной простой фразой на 3–15 слов. Не пересказывай её, не добавляй новую историю, сравнение или мораль. Вопрос необязателен."
 	}
 	body += a.recentContext()
-	if closing {
-		body += " Теперь закончи одной короткой реакцией без вопроса. Не подводи красивый итог и не объявляй об уходе."
-	}
-	return Turn{Speaker: p, Body: body, Closing: closing}
+	return Turn{Speaker: p, Body: body}
 }
 
 func (a *Ambient) mediaOpportunity(ctx context.Context, turn *Turn) {
-	if !turn.Closing && turn.Speaker.ID == "claire" && a.turns >= 2 && a.ports.MediaReady != nil && a.ports.MediaReady(ctx) {
+	if turn.Speaker.ID == "claire" && a.turns >= 2 && a.ports.MediaReady != nil && a.ports.MediaReady(ctx) {
 		turn.Body += "\nУказание для твоего ответа: подбери одну уместную песню или видео и добавь отдельной строкой /music исполнитель - песня либо /video запрос. Не спрашивай разрешения и не обещай воспроизведение."
 	}
 }

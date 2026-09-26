@@ -150,8 +150,9 @@ try {
       await newPeerContext.setOffline(false)
       await oldPeer.goto(`${legacy}/chat`)
       await newPeer.goto(`${origin}/chat`)
-      for (const page of [oldPage, newPage])
-        await expect(row(page, nickname).locator(".chat-presence:visible")).toHaveText(/В сети/u, { timeout: 15000 })
+      await expect(row(oldPage, nickname).locator(".chat-presence:visible")).toHaveText(/В сети/u, { timeout: 15000 })
+      await expect(row(newPage, nickname).getByRole("button", { name: nickname, exact: true })).toBeVisible()
+      await expect(row(newPage, nickname).locator(".chat-presence:visible")).toHaveCount(0)
       await compare("restored")
     }
     await oldPeer.locator("#leave-chat").click()

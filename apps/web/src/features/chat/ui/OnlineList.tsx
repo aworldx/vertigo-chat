@@ -9,6 +9,7 @@ const defaultAppearance: CSSProperties & Record<`--${string}`, string> = {
 }
 
 function Presence({ peer, reconnecting }: { peer: Peer; reconnecting: boolean }) {
+  if (!reconnecting && !(peer.bot && peer.bot_busy)) return null
   return (
     <span
       className="shrink-0 text-[10px] font-medium"
@@ -19,21 +20,13 @@ function Presence({ peer, reconnecting }: { peer: Peer; reconnecting: boolean })
         <span className="chat-presence inline-flex items-center gap-1 text-amber-300">
           <span className="chat-presence-dot size-1.5 rounded-full bg-amber-300" /> Занят
         </span>
-      ) : reconnecting ? (
+      ) : (
         <span
           id={peer.self ? "current-chatlan-reconnecting" : undefined}
           className="chat-presence inline-flex items-center gap-1 text-amber-300"
           aria-label={`${peer.nickname}: нет связи`}
         >
           <Icon name="arrow-path" className="size-3 motion-safe:animate-spin" /> Нет связи
-        </span>
-      ) : (
-        <span
-          id={peer.self ? "current-chatlan-online" : undefined}
-          className="chat-presence inline-flex items-center gap-1 text-emerald-300"
-        >
-          <span className="chat-presence-dot size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_currentColor]" />В
-          сети
         </span>
       )}
     </span>

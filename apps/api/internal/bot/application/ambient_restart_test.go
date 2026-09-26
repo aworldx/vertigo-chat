@@ -93,7 +93,7 @@ func TestAmbientRestoresIntermissionAndOldContext(t *testing.T) {
 	}
 	a := NewAmbient(AmbientPorts{Delay: func() time.Duration { return time.Minute }})
 	a.restore(history, now)
-	if a.turn(false).Speaker.ID != "hitchcock" {
+	if a.turn().Speaker.ID != "hitchcock" {
 		t.Fatal("lost pending question")
 	}
 }

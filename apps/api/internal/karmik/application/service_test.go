@@ -67,7 +67,7 @@ func TestReviewValidatesProviderResultsAndAppliesOnlyEligibleChanges(t *testing.
 				}
 				return err
 			})
-			err := NewService(store, provider, budget).Review(context.Background(), []Message{{ID: 1, UserID: 1}, {ID: 2, UserID: 0}}, nil)
+			err := NewService(store, provider, budget).Review(context.Background(), []Message{{ID: 1, UserID: 1, Body: "Открой настройки и выбери шрифт, затем сохрани изменения."}, {ID: 2, UserID: 0}}, nil)
 			if (err != nil) != tc.wantError {
 				t.Fatal(err)
 			}
@@ -98,5 +98,30 @@ func TestReviewBoundsTheBatchToLatestTwelve(t *testing.T) {
 	budget := spendFunc(func(_ context.Context, call func() (Usage, error)) error { _, err := call(); return err })
 	if err := NewService(&reviewStore{eligible: true}, provider, budget).Review(context.Background(), messages, []Message{{ID: 100}}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestReviewCannotRewardGreetingEvenWhenProviderSaysGood(t *testing.T) {
+	for _, tc := range []struct {
+		body, verdict string
+		changes       int
+	}{
+		{"Маша, ку", "good", 0}, {"Спасибо за помощь", "good", 0}, {"👍", "good", 0},
+		{"Маша, открой Настройки, выбери шрифт и сохрани изменения.", "good", 1},
+		{"направленное оскорбление", "bad", 1},
+	} {
+		t.Run(tc.body, func(t *testing.T) {
+			store := &reviewStore{eligible: true}
+			provider := assessFunc(func(context.Context, domain.Input) ([]Assessment, Usage, error) {
+				return []Assessment{{MessageID: 1, Verdict: tc.verdict, Reason: "Оценка модели"}}, Usage{}, nil
+			})
+			budget := spendFunc(func(_ context.Context, call func() (Usage, error)) error { _, err := call(); return err })
+			if err := NewService(store, provider, budget).Review(context.Background(), []Message{{ID: 1, UserID: 1, Body: tc.body}}, nil); err != nil {
+				t.Fatal(err)
+			}
+			if len(store.changes) != tc.changes {
+				t.Fatalf("changes=%v", store.changes)
+			}
+		})
 	}
 }

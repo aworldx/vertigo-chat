@@ -6,7 +6,6 @@ import (
 	botdomain "chat/api/internal/bot/domain"
 	chatpg "chat/api/internal/chatsessions/adapters/postgres"
 	chats "chat/api/internal/chatsessions/application"
-	chatdomain "chat/api/internal/chatsessions/domain"
 	roompg "chat/api/internal/rooms/adapters/postgres"
 	rooms "chat/api/internal/rooms/application"
 	roomdomain "chat/api/internal/rooms/domain"
@@ -31,11 +30,9 @@ func ambientAudience(pool *pgxpool.Pool) func(context.Context) (bot.Audience, er
 		if err != nil {
 			return audience, err
 		}
-		for _, session := range sessions {
-			if session.Status == chatdomain.StatusActive {
-				audience.Humans++
-			}
-		}
+		// Presence includes reconnecting humans: they still occupy the room and
+		// must not temporarily make the bots believe somebody is alone.
+		audience.Humans = len(sessions)
 		messages, err := history.Recent(ctx, "lobby")
 		for _, message := range messages {
 			if strings.HasPrefix(message.ClientID, "ambient:") && message.Kind == "text" {
@@ -118,7 +115,7 @@ func ambientTalk(pool *pgxpool.Pool, hitchcock, claire bot.Service, media *bot.M
 				return err
 			}
 			spoken = text
-			if turn.Speaker.ID == "claire" && !turn.Closing {
+			if turn.Speaker.ID == "claire" {
 				media.Suggest(ctx, "lobby", id, kind, query, allowed)
 			}
 			return nil

@@ -189,6 +189,7 @@ func (f *chatFixture) karmikReview(t *testing.T) {
 	if err != nil || budget.Used != 3 {
 		t.Fatal(budget, err)
 	}
+	f.karmikGreetingNoReward(t)
 }
 
 func (f *chatFixture) deleteMedia(t *testing.T, id int64) {
@@ -224,5 +225,32 @@ func (f *chatFixture) sessionStartRollback(t *testing.T) {
 	}
 	if err := f.pool.QueryRow(ctx, `SELECT count(*) FROM visits`).Scan(&after); err != nil || before != after {
 		t.Fatal("failed start left an orphan visit", before, after, err)
+	}
+}
+
+func (f *chatFixture) karmikGreetingNoReward(t *testing.T) {
+	t.Helper()
+	ctx := context.Background()
+	var user, id int64
+	var before, after int
+	if err := f.pool.QueryRow(ctx, `SELECT id, karma FROM registered_users WHERE nickname='fixture05'`).Scan(&user, &before); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.pool.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,theme_id,appearance,reactions,font_id,font_style,sent_at,inserted_at,updated_at) VALUES('lobby','text','fixture05','fixture01, ку','vertigo','{}','{}','theme','normal',NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC') RETURNING id`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	provider := karmikAssessFunc(func(context.Context, karmikdomain.Input) ([]karmik.Assessment, karmik.Usage, error) {
+		return []karmik.Assessment{{MessageID: id, Verdict: "good", Reason: "Доброжелательное приветствие"}}, karmik.Usage{Total: 1}, nil
+	})
+	service := karmik.NewService(karmikStore{f.pool}, provider, karmikBudget{botpg.NewStore(f.pool, 10000, 180)})
+	if err := service.Review(ctx, []karmik.Message{{ID: id, UserID: user, Author: "fixture05", Body: "fixture01, ку"}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	var assessments, announcements int
+	if err := f.pool.QueryRow(ctx, `SELECT karma,(SELECT count(*) FROM karmik_assessments WHERE room_message_id=$2),(SELECT count(*) FROM room_messages WHERE kind='system' AND body LIKE 'Кармик%fixture05%') FROM registered_users WHERE id=$1`, user, id).Scan(&after, &assessments, &announcements); err != nil {
+		t.Fatal(err)
+	}
+	if after != before || assessments != 0 || announcements != 0 {
+		t.Fatalf("greeting rewarded: karma %d→%d, assessments=%d announcements=%d", before, after, assessments, announcements)
 	}
 }

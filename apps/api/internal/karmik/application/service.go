@@ -62,6 +62,9 @@ func (s Service) Review(ctx context.Context, messages, history []domain.Message)
 	}
 	for _, a := range assessments {
 		delta := domain.Delta(a.Verdict)
+		if delta > 0 && !domain.PositiveEvidence(eligible[a.MessageID].Body) {
+			continue
+		}
 		if delta != 0 {
 			if err := s.store.Apply(ctx, eligible[a.MessageID], a, delta); err != nil {
 				return err

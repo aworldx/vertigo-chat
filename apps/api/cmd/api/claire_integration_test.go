@@ -79,7 +79,7 @@ func (f *chatFixture) checkAmbientReplies(t *testing.T, claire bot.Service, medi
 		t.Fatal(audience, err)
 	}
 	var humans int
-	if err := f.pool.QueryRow(ctx, `SELECT count(*) FROM chat_sessions WHERE room_id='lobby' AND status='active'`).Scan(&humans); err != nil || humans != audience.Humans {
+	if err := f.pool.QueryRow(ctx, `SELECT count(*) FROM chat_sessions WHERE room_id='lobby' AND status IN ('active','reconnecting')`).Scan(&humans); err != nil || humans != audience.Humans {
 		t.Fatal(humans, audience, err)
 	}
 }

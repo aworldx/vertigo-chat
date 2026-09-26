@@ -22,6 +22,10 @@ func (s Store) Spend(ctx context.Context, generate func() (domain.Result, error)
 		defer cancel()
 		_, _ = conn.Exec(unlock, `SELECT pg_advisory_unlock(8420931)`)
 	}()
+	s, err = s.configured(ctx, conn)
+	if err != nil {
+		return err
+	}
 	date := time.Now().UTC().Add(time.Duration(s.offset) * time.Minute).Format("2006-01-02")
 	var total int
 	if err := conn.QueryRow(ctx, `SELECT COALESCE((SELECT total_tokens FROM bot_daily_usages WHERE usage_date=$1),0)`, date).Scan(&total); err != nil {
@@ -52,20 +56,19 @@ func (s Store) threshold() int {
 }
 
 func (s Store) Available(ctx context.Context) bool {
-	if s.limit <= 0 {
-		return true
-	}
-	date := time.Now().UTC().Add(time.Duration(s.offset) * time.Minute).Format("2006-01-02")
-	var total int
-	err := s.pool.QueryRow(ctx, `SELECT COALESCE((SELECT total_tokens FROM bot_daily_usages WHERE usage_date=$1),0)`, date).Scan(&total)
-	return err == nil && total < s.threshold()
+	budget, err := s.ReadBudget(ctx, time.Now())
+	return err == nil && (budget.Limit <= 0 || budget.Used < budget.StopThreshold)
 }
 
 // ReadBudget uses the same ledger, day boundary and stop threshold as Spend and Exchange.
 func (s Store) ReadBudget(ctx context.Context, now time.Time) (domain.Budget, error) {
+	s, err := s.configured(ctx, s.pool)
+	if err != nil {
+		return domain.Budget{}, err
+	}
 	date := now.UTC().Add(time.Duration(s.offset) * time.Minute).Format("2006-01-02")
 	var used int
-	err := s.pool.QueryRow(ctx, `SELECT COALESCE((SELECT total_tokens FROM bot_daily_usages WHERE usage_date=$1),0)`, date).Scan(&used)
+	err = s.pool.QueryRow(ctx, `SELECT COALESCE((SELECT total_tokens FROM bot_daily_usages WHERE usage_date=$1),0)`, date).Scan(&used)
 	if err != nil {
 		return domain.Budget{}, err
 	}

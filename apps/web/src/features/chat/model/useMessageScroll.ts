@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef } from "react"
+import { feedOffsets, retainedOffset } from "./feedAnchor"
 
 type FeedPosition = "following" | "detached"
 
@@ -10,6 +11,8 @@ const smoothScrollDuration = 440
 export function useMessageScroll(entryVersion: string) {
   const list = useRef<HTMLDivElement>(null)
   const position = useRef<FeedPosition>("following")
+  const offsets = useRef(new Map<Element, number>())
+  const previousScroll = useRef(0)
   const previousEntries = useRef<string | undefined>(undefined)
   const followingTarget = useRef<number | null>(null)
   const animationFrame = useRef<number | undefined>(undefined)
@@ -22,6 +25,7 @@ export function useMessageScroll(entryVersion: string) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       followingTarget.current = null
       element.scrollTop = target
+      previousScroll.current = element.scrollTop
       return
     }
     followingTarget.current = target
@@ -31,6 +35,7 @@ export function useMessageScroll(entryVersion: string) {
     const follow = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / smoothScrollDuration)
       element.scrollTop = start + distance * (1 - (1 - progress) ** 3)
+      previousScroll.current = element.scrollTop
       if (progress < 1) animationFrame.current = requestAnimationFrame(follow)
       else {
         animationFrame.current = undefined
@@ -44,7 +49,17 @@ export function useMessageScroll(entryVersion: string) {
   useLayoutEffect(() => {
     const previous = previousEntries.current
     previousEntries.current = entryVersion
-    if (previous !== undefined && previous !== entryVersion) publishContent()
+    const element = list.current
+    if (!element) return
+    if (previous !== undefined && previous !== entryVersion) {
+      // Replacing the oldest row can leave scrollHeight unchanged. Keep the
+      // retained content in place first, then follow the newly appended row.
+      const shift = retainedOffset(element, offsets.current, previousScroll.current)
+      if (Math.abs(shift) > 0.5) element.scrollTop = previousScroll.current + shift
+      previousScroll.current = element.scrollTop
+      publishContent()
+    }
+    offsets.current = feedOffsets(element)
   }, [entryVersion, publishContent])
 
   useLayoutEffect(() => {
@@ -52,6 +67,7 @@ export function useMessageScroll(entryVersion: string) {
     if (!element) return
 
     const updatePosition = () => {
+      previousScroll.current = element.scrollTop
       const target = followingTarget.current
       if (target !== null) {
         if (Math.abs(element.scrollTop - target) <= 1) {
@@ -69,6 +85,7 @@ export function useMessageScroll(entryVersion: string) {
     }
 
     element.scrollTop = element.scrollHeight
+    previousScroll.current = element.scrollTop
     element.addEventListener("scroll", updatePosition, { passive: true })
     element.addEventListener("wheel", cancelFollowing, { passive: true })
     element.addEventListener("touchstart", cancelFollowing, { passive: true })

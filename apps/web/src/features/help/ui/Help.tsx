@@ -1,4 +1,5 @@
 import { Icon } from "../../../shared/ui/Icon"
+import { ChatGuide } from "./ChatGuide"
 import { Commands } from "./Commands"
 import { useRanks } from "../model/useRanks"
 const formatNumber = (value: number) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, " ")
@@ -23,11 +24,12 @@ export function Help() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-300">Карьера в Vertigo</p>
           <h1 className="mt-2 text-4xl font-semibold sm:text-5xl">Помощь</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-            Здесь собраны команды чата и система званий для зарегистрированных чатлан.
+            Здесь собраны инструкции по возможностям чата, команды и система званий.
           </p>
         </div>
 
         <Commands />
+        <ChatGuide />
         <section className="mt-12" aria-labelledby="ranks-title">
           <div className="border-b border-zinc-800 pb-5">
             <h2 id="ranks-title" className="text-2xl font-semibold">

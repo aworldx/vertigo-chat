@@ -7,6 +7,8 @@ import (
 	adminhttp "chat/api/internal/admin/adapters/http"
 	adminpg "chat/api/internal/admin/adapters/postgres"
 	admin "chat/api/internal/admin/application"
+	bothttp "chat/api/internal/bot/adapters/http"
+	bot "chat/api/internal/bot/application"
 	emojihttp "chat/api/internal/emojis/adapters/http"
 	emojiimages "chat/api/internal/emojis/adapters/images"
 	emojipg "chat/api/internal/emojis/adapters/postgres"
@@ -27,6 +29,7 @@ func registerAdmin(mux *http.ServeMux, pool *pgxpool.Pool, auth accountshttp.Han
 		}
 	}
 	adminhttp.Register(mux, admin.NewDatabase(adminpg.NewReader(pool), role("admin")), auth.AccountIdentity)
+	bothttp.Register(mux, bot.NewSettings(botStore(pool), role("admin")), auth.AccountIdentity, botUTCOffset())
 	store := emojipg.NewStore(pool)
 	management := emojis.NewManagement(store, role("emoji_moderator"), emojis.NewUploader(store, emojiimages.Inspector{}))
 	if os.Getenv("S3_ENABLED") == "true" {

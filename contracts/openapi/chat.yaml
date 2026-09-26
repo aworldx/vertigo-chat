@@ -428,6 +428,15 @@ components:
         messages: {type: array, items: {$ref: '#/components/schemas/Message'}}
         peers: {type: array, items: {$ref: '#/components/schemas/Peer'}}
 
+    HelpTopic:
+      type: string
+      enum: [music, video, font, colors, files, private, commands, gif, emoji, address, ignore, clear, online, appearance, profile, account, ranks, karma, bots, gallery, library, chart, connection, leave, games, admin]
+    HelpTopics:
+      type: array
+      maxItems: 26
+      uniqueItems: true
+      items: {$ref: '#/components/schemas/HelpTopic'}
+      description: Sender-only assistance on public-message acknowledgement; never included in room snapshots.
     Rank:
       type: object
       required: [title, icon_url]

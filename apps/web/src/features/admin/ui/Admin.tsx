@@ -2,6 +2,7 @@ import { Notice } from "../../../shared/ui/Notice"
 import { useState, useCallback, type ReactNode } from "react"
 import { usePageQuery } from "../../../shared/model/usePageQuery"
 import { useAdminData } from "../model/useAdminData"
+import { Bots } from "./Bots"
 import { Database } from "./Database"
 import { Tags } from "./Tags"
 import { Emojis } from "./Emojis"
@@ -33,11 +34,12 @@ export function AdminShell({
               {(
                 [
                   ["database", "Данные"],
+                  ["bots", "Боты"],
                   ["emojis", "Смайлы"],
                   ["tags", "Теги"],
                 ] as const
               )
-                .filter(([s]) => s !== "database" || isAdmin)
+                .filter(([s]) => (s !== "database" && s !== "bots") || isAdmin)
                 .map(([s, title]) => (
                   <a
                     key={s}
@@ -63,7 +65,14 @@ export function Admin({ nickname, isAdmin, csrf }: { nickname: string; isAdmin: 
   const { query, navigate } = usePageQuery(),
     params = new URLSearchParams(query),
     requested = params.get("section"),
-    section = requested === "tags" || requested === "emojis" ? requested : isAdmin ? "database" : "emojis",
+    section =
+      requested === "bots" && isAdmin
+        ? "bots"
+        : requested === "tags" || requested === "emojis"
+          ? requested
+          : isAdmin
+            ? "database"
+            : "emojis",
     { content, database, error, refresh } = useAdminData(section, params.get("table") ?? ""),
     selected = Number(params.get("emoji_id")),
     emoji = content?.emojis.find((e) => e.id === selected)
@@ -97,6 +106,7 @@ export function Admin({ nickname, isAdmin, csrf }: { nickname: string; isAdmin: 
           </button>
         </p>
       )}
+      {section === "bots" && <Bots csrf={csrf} />}
       {section === "database" && database && <Database data={database} nickname={nickname} navigate={go} />}
       {section === "tags" && content && <Tags tags={content.tags} csrf={csrf} onSaved={saved} />}
       {section === "emojis" && content && (

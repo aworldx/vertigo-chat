@@ -58,7 +58,7 @@ Presence presentation (2026-09-22): each Peer includes `registered` (the
 authenticated account identity of the durable chat session) and `self` (session
 ID matches the viewer). Identity keys and user IDs are never exposed. Peers
 include active and reconnecting sessions, in nickname order; ended sessions
-are absent. React shows exactly one presence label per row. During local
+are absent. React shows presence labels only for reconnecting participants or busy bots. During local
 transport loss only the viewer's row shows reconnecting immediately; other
 rows retain their last server snapshot until reconnection. Public/private addressing, registered appearance/ranks, profile actions and bot
 activity are included. Peers expose listening title and bot busy state.
@@ -123,3 +123,16 @@ relay chunk максимум 18000 bytes/24000 base64 characters. Изображ
 Поиск медиа использует authenticated HTTP и ограниченную очередь сервера,
 список прокси читается только сервером. Хит-парад использует отдельные Go HTTP
 контракты с account-cookie/CSRF, owner checks и существующими таблицами.
+
+## Личные подсказки Кармика (2026-09-26)
+
+`ack` принятого публичного текстового сообщения может содержать `help_topics`
+(массив ключей из перечисления `HelpTopic` в `contracts/openapi/chat.yaml`). Поле отправляется только
+в соединение автора; в `Message`, `snapshot`, БД общей истории и broadcast его нет.
+Повтор с тем же `client_id` возвращает тот же ID сообщения; React хранит одну
+карточку на ID, ограничивает память последними 100 подсказками и не использует
+localStorage. Карточка появляется под вопросом, свёрнута по умолчанию, с кнопкой
+раскрытия проверенных инструкций. После перезагрузки уже подтверждённые подсказки
+не восстанавливаются. Личные сообщения, медиа и отклонённые отправки их не создают.
+Локальный распознаватель явных вопросов о функциях чата работает для гостей и
+аккаунтов сразу, независимо от трёхминутной оценки кармы, её квот и OpenAI.

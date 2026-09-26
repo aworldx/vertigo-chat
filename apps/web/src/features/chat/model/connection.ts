@@ -1,12 +1,13 @@
 import { newID } from "../../../shared/id"
 import type { MediaItem } from "../api/media"
 import { defaultPreferences, type Preferences } from "../api/preferences"
-import { type Frame, type Snapshot } from "../api/protocol"
+import { type Frame, type Snapshot, type HelpTopic } from "../api/protocol"
 import { readSession, clearSession, readOutbox, saveOutbox, type PendingMessage } from "./storage"
 import { transitionPendingDelivery } from "./delivery"
 import { addTimelineEntry, publishTimeline, setTimelineDelivery, timelineKey, type TimelineEntry } from "./timeline"
 import { SocketTransport } from "./socketTransport"
 export type RoomState = {
+  help: { messageID: number; topics: HelpTopic[] }[]
   karmikMood: "resting" | "happy" | "angry"
   status: "loading" | "ready" | "reconnecting" | "ended" | "duplicate"
   nickname: string
@@ -19,6 +20,7 @@ export type RoomState = {
 }
 export class ChatConnection {
   private state: RoomState = {
+    help: [],
     karmikMood: "resting",
     status: "loading",
     nickname: "",
@@ -264,6 +266,13 @@ export class ChatConnection {
         saveOutbox(outbox)
         this.update({
           outbox,
+          help:
+            frame.help_topics && frame.help_topics.length > 0 && frame.message.author === this.state.nickname
+              ? [
+                  ...this.state.help.filter((hint) => hint.messageID !== frame.message.id),
+                  { messageID: frame.message.id, topics: frame.help_topics },
+                ].slice(-100)
+              : this.state.help,
           timeline: addTimelineEntry(this.state.timeline, {
             key: timelineKey(frame.message),
             message: frame.message,
