@@ -73,6 +73,8 @@ func TestPublicChatPostgres(t *testing.T) {
 	jar, _ := cookiejar.New(nil)
 	fixture := chatFixture{pool: pool, server: server, client: &http.Client{Jar: jar, Timeout: 5 * time.Second}}
 
+	t.Run("moderation preserves permissions and system messages", func(t *testing.T) { testModerationStore(t, pool) })
+
 	t.Run("latest 100 messages retain chronological order and stored history", func(t *testing.T) {
 		const room = "history-limit-regression"
 		_, err := pool.Exec(ctx, `INSERT INTO room_messages(room_id,kind,author,body,theme_id,sent_at,inserted_at,updated_at)

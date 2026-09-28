@@ -223,7 +223,7 @@ export class ChatConnection {
           status: "ready",
           error: "",
           snapshot: frame.snapshot,
-          timeline: publishTimeline(this.state.timeline, frame.snapshot.messages),
+          timeline: publishTimeline(this.state.timeline, frame.snapshot.messages, frame.snapshot.deleted_message_ids),
           generation: frame.generation,
         })
         this.reconcile(frame.snapshot)
@@ -239,7 +239,7 @@ export class ChatConnection {
         this.observeKarmik(frame.snapshot)
         this.update({
           snapshot: frame.snapshot,
-          timeline: publishTimeline(this.state.timeline, frame.snapshot.messages),
+          timeline: publishTimeline(this.state.timeline, frame.snapshot.messages, frame.snapshot.deleted_message_ids),
         })
         this.reconcile(frame.snapshot)
         break

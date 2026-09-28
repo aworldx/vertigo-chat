@@ -6,9 +6,9 @@ import { useTetrisAudio } from "../model/useTetrisAudio"
 import { useControls } from "../model/useControls"
 import { Board } from "./Board"
 import { AudioControls } from "./AudioControls"
+import { PiecePreview } from "./PiecePreview"
 import type { Action, Game as GameState } from "../api/protocol"
 
-const names = ["—", "I", "O", "T", "S", "Z", "J", "L"]
 export function TetrisGame({
   id,
   token,
@@ -26,6 +26,7 @@ export function TetrisGame({
   const sound = useTetrisAudio(game)
   const playInput = sound.input
   const [focus, setFocus] = useState("")
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const prominent = game?.self || focus || game?.players[0]?.id || ""
   const self = game?.players.find((p) => p.id === game.self)
   const action = (value: Action) => {
@@ -50,14 +51,27 @@ export function TetrisGame({
         <header className="tetris-header">
           <div>
             <span className="tetris-eyebrow">VERTIGO / БЛОКИ</span>
-            <h1 id="tetris-heading">{game?.mode === "solo" ? "Свой ритм. Новый рекорд." : "Один победитель."}</h1>
+            <h1 id="tetris-heading">{game?.mode === "solo" ? "Тетрис · соло" : "Тетрис · матч"}</h1>
           </div>
+          <button
+            id="tetris-settings-toggle"
+            type="button"
+            aria-expanded={settingsOpen}
+            aria-controls="tetris-settings"
+            aria-label="Настройки"
+            title="Настройки"
+            onClick={() => {
+              setSettingsOpen(!settingsOpen)
+            }}
+          >
+            ⋯
+          </button>
           <button id="tetris-close" type="button" onClick={leave}>
             Выйти
           </button>
         </header>
         <div className="tetris-toolbar">
-          <span>
+          <span hidden={game?.mode === "solo"}>
             Код <strong>{game?.code ?? "…"}</strong>
           </span>
           <button id="tetris-audio-toggle" type="button" aria-pressed={sound.enabled} onClick={sound.toggle}>
@@ -126,13 +140,24 @@ export function TetrisGame({
                 ))}
             </div>
             {self && game.status !== "finished" && (
-              <div className="tetris-piece-info">
-                <span>
-                  Резерв: <b>{names[self.hold]}</b>
-                </span>
-                <span>Далее: {self.next.map((n) => names[n]).join(" · ")}</span>
+              <aside className="tetris-piece-info" aria-label="Подсказки фигур">
+                <section className="tetris-held">
+                  <h2>Отложенная</h2>
+                  <PiecePreview kind={self.hold} />
+                  <p>Кнопка «Отложить» или C меняет текущую фигуру на эту. Один раз за ход.</p>
+                </section>
+                <section className="tetris-upcoming">
+                  <h2>Следующие</h2>
+                  <ol aria-label="Следующие фигуры по порядку">
+                    {self.next.slice(0, 5).map((kind, index) => (
+                      <li key={index} aria-label={`Фигура ${String(index + 1)}`}>
+                        <PiecePreview kind={kind} />
+                      </li>
+                    ))}
+                  </ol>
+                </section>
                 {game.mode === "versus" && <span>Цель: {self.target || "—"}</span>}
-              </div>
+              </aside>
             )}
             {enabled && (
               <div className="tetris-controls" role="group" aria-label="Управление фигурами">
@@ -143,7 +168,7 @@ export function TetrisGame({
                     ["right", "→"],
                     ["down", "↓"],
                     ["drop", "Сброс"],
-                    ["hold", "Резерв"],
+                    ["hold", "Отложить"],
                   ] as const
                 ).map(([value, label]) => (
                   <button
@@ -165,18 +190,25 @@ export function TetrisGame({
                       if (e.detail === 0) action(value)
                     }}
                   >
-                    {label}
+                    <span className="tetris-control-label">{label}</span>
+                    <span className="tetris-control-symbol" aria-hidden="true">
+                      {value === "rotate" ? "↻" : value === "drop" ? "⤓" : value === "hold" ? "⇄" : label}
+                    </span>
                   </button>
                 ))}
                 {game.mode === "solo" && (
                   <button
                     id="tetris-pause"
+                    aria-label={game.paused ? "Продолжить" : "Пауза"}
                     type="button"
                     onClick={() => {
                       action("pause")
                     }}
                   >
-                    {game.paused ? "Продолжить" : "Пауза"}
+                    <span className="tetris-control-label">{game.paused ? "Продолжить" : "Пауза"}</span>
+                    <span className="tetris-control-symbol" aria-hidden="true">
+                      {game.paused ? "▶" : "Ⅱ"}
+                    </span>
                   </button>
                 )}
               </div>
@@ -210,8 +242,12 @@ export function TetrisGame({
             )}
           </>
         )}
-        <footer className="tetris-bottom">
-          <p>← → движение · ↑ / X поворот · Z обратный поворот · пробел сброс · C резерв · P пауза в соло</p>
+        <footer id="tetris-settings" className="tetris-bottom" data-open={settingsOpen}>
+          <p className="tetris-mobile-help">
+            «Отложить» сохраняет фигуру или меняет её на отложенную, один раз за ход. Справа — следующие фигуры сверху
+            вниз.
+          </p>
+          <p>← → движение · ↑ / X поворот · Z обратный поворот · пробел сброс · C отложить фигуру · P пауза в соло</p>
           <AudioControls sound={sound} />
         </footer>
       </section>

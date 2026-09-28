@@ -46,6 +46,12 @@ function snapshot(value: unknown): value is Snapshot {
     record(value) &&
     isPreferences(value.preferences) &&
     typeof value.admin === "boolean" &&
+    (value.deleted_message_ids === undefined ||
+      (Array.isArray(value.deleted_message_ids) &&
+        value.deleted_message_ids.length <= 1024 &&
+        value.deleted_message_ids.every(
+          (id: unknown) => typeof id === "number" && Number.isSafeInteger(id) && id > 0,
+        ))) &&
     Array.isArray(value.typing) &&
     value.typing.every((nickname: unknown) => typeof nickname === "string") &&
     Array.isArray(value.messages) &&

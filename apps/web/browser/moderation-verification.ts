@@ -1,0 +1,60 @@
+import assert from "node:assert/strict"
+import { expect, type Browser } from "@playwright/test"
+
+export async function verifyModeration(browser: Browser, origin: string) {
+  const adminContext = await browser.newContext()
+  const guestContext = await browser.newContext()
+  try {
+    const admin = await adminContext.newPage()
+    const guest = await guestContext.newPage()
+    for (const [page, nickname, password] of [
+      [admin, "fixture13", "secret123"],
+      [guest, "moderation-guest", ""],
+    ] as const) {
+      await page.goto(`${origin}/`)
+      await page.locator("#entrance-nickname").fill(nickname)
+      await page.locator("#entrance-password").fill(password)
+      await page.locator("#enter-chat").click()
+      await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
+    }
+    for (const width of [390, 1440]) {
+      for (const frame of [true, false]) {
+        await admin.setViewportSize({ width: 1440, height: 900 })
+        await admin.locator("#toggle-settings").click()
+        await admin.locator("#message-frame").selectOption(String(frame))
+        await admin.locator("#save-preferences").click()
+        await expect(admin.locator("#settings-modal")).toHaveCount(0)
+        await admin.setViewportSize({ width, height: 900 })
+        const body = `moderation ${String(width)} ${String(frame)}`
+        await guest.locator("#message-body").fill(body)
+        await guest.locator("#send-message").click()
+        const message = admin.locator(".chat-message-entry").filter({ hasText: body })
+        await expect(message).toHaveAttribute("data-message-frame", String(frame))
+        const remove = message.getByRole("button", { name: "Удалить сообщение" })
+        await expect(remove).toBeVisible()
+        assert.equal(await remove.evaluate((el) => getComputedStyle(el).opacity), "1")
+        await admin.screenshot({ path: `test-results/moderation-${String(width)}-${String(frame)}.png` })
+        await expect(guest.getByRole("button", { name: "Удалить сообщение" })).toHaveCount(0)
+        admin.once("dialog", (dialog) => {
+          void dialog.dismiss()
+        })
+        await remove.click()
+        await expect(message).toBeVisible()
+        admin.once("dialog", (dialog) => {
+          void dialog.accept()
+        })
+        await remove.click()
+        await expect(message).toHaveCount(0)
+        await expect(guest.locator(".chat-message-entry").filter({ hasText: body })).toHaveCount(0)
+      }
+    }
+    await admin.locator("#leave-chat").click()
+    await guest.locator("#leave-chat").click()
+    console.log(
+      "Moderation verified: visible admin deletion in both layouts and widths, confirmation, cancellation and removal for all participants.",
+    )
+  } finally {
+    await adminContext.close()
+    await guestContext.close()
+  }
+}

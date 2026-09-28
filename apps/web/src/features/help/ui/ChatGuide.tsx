@@ -1,10 +1,13 @@
+import { HelpContent } from "../../../shared/ui/HelpContent"
 import { useState } from "react"
 import { chatHelp } from "../../../shared/chatHelp"
 export function ChatGuide() {
   const [query, setQuery] = useState("")
   const search = query.trim().toLocaleLowerCase("ru")
   const topics = Object.entries(chatHelp).filter(([, topic]) =>
-    `${topic.title} ${topic.body}`.toLocaleLowerCase("ru").includes(search),
+    `${topic.title} ${topic.body} ${topic.more?.title ?? ""} ${topic.more?.body ?? ""}`
+      .toLocaleLowerCase("ru")
+      .includes(search),
   )
   return (
     <section id="chat-guide" className="mt-12" aria-labelledby="chat-guide-title">
@@ -31,7 +34,7 @@ export function ChatGuide() {
         {topics.map(([key, topic]) => (
           <details id={`help-topic-${key}`} key={key} className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
             <summary className="cursor-pointer font-medium text-amber-200">{topic.title}</summary>
-            <p className="mt-3 text-sm leading-6 text-zinc-300">{topic.body}</p>
+            <HelpContent instruction={topic} />
           </details>
         ))}
       </div>

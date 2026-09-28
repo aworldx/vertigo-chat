@@ -76,11 +76,12 @@ type peer struct {
 	Rank           *Rank                `json:"rank"`
 }
 type snapshot struct {
-	Typing      []string             `json:"typing"`
-	Messages    []messageDTO         `json:"messages"`
-	Peers       []peer               `json:"peers"`
-	Preferences chatlans.Preferences `json:"preferences"`
-	Admin       bool                 `json:"admin"`
+	DeletedMessageIDs []int64              `json:"deleted_message_ids,omitempty"`
+	Typing            []string             `json:"typing"`
+	Messages          []messageDTO         `json:"messages"`
+	Peers             []peer               `json:"peers"`
+	Preferences       chatlans.Preferences `json:"preferences"`
+	Admin             bool                 `json:"admin"`
 }
 
 func (h Socket) serve(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +266,7 @@ func (h Socket) snapshot(ctx context.Context, session domain.Session) (snapshot,
 	for _, message := range messages {
 		encoded = append(encoded, encodeMessage(message, session.IdentityKey))
 	}
-	return snapshot{Typing: h.hub.typing(session), Messages: encoded, Peers: peers, Preferences: own.Preferences, Admin: own.Admin}, err
+	return snapshot{DeletedMessageIDs: h.hub.deletions(session.RoomID), Typing: h.hub.typing(session), Messages: encoded, Peers: peers, Preferences: own.Preferences, Admin: own.Admin}, err
 }
 func socketWrite(ctx context.Context, conn *websocket.Conn, value any) error {
 	write, done := context.WithTimeout(ctx, 5*time.Second)

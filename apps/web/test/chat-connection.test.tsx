@@ -286,3 +286,14 @@ test("assistance belongs to the sender ack, is deduplicated and ignores private 
   })
   assert.equal(connection.getSnapshot().help.length, 1)
 })
+
+test("moderation removes an acknowledged message before its first history snapshot", () => {
+  const { connection, receive } = fixture()
+  const accepted = message("quick-delete", 53)
+  receive({ type: "ack", message: accepted })
+  assert.ok(connection.getSnapshot().timeline.some((entry) => entry.message.id === 53))
+  receive({ type: "snapshot", snapshot: { ...snapshot, deleted_message_ids: [53] } })
+  assert.ok(!connection.getSnapshot().timeline.some((entry) => entry.message.id === 53))
+  receive({ type: "snapshot", snapshot: { ...snapshot, messages: [accepted], deleted_message_ids: [53] } })
+  assert.ok(!connection.getSnapshot().timeline.some((entry) => entry.message.id === 53))
+})

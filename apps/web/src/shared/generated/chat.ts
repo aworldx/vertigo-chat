@@ -303,6 +303,8 @@ export interface components {
             preferences: components["schemas"]["Preferences"];
             admin: boolean;
             typing: string[];
+            /** @description Recent room deletions; removes acknowledged messages even before their first history snapshot. */
+            deleted_message_ids?: number[];
             messages: components["schemas"]["Message"][];
             peers: components["schemas"]["Peer"][];
         };

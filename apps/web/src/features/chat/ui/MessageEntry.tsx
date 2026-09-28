@@ -136,6 +136,7 @@ export function MessageEntry({
   const failedDelivery = delivery === "failed"
   if (privateMessage) frame = true
   const entryID = domID ?? String(message.id)
+  const canDelete = !!onDelete && message.id > 0 && !system && !privateMessage
   return (
     <div
       id={`message-${entryID}`}
@@ -147,7 +148,7 @@ export function MessageEntry({
       data-message-font={message.font_id}
       data-message-font-style={message.font_style}
       data-message-frame={frame}
-      className={`chat-message-entry group/message relative transition-colors ${system ? "px-3 py-0.5 text-center" : message.kind === "music" ? `ml-auto w-full max-w-xl ${frame ? "border-zinc-700 bg-zinc-950/90 px-3 py-2.5" : "px-1"}` : message.kind === "youtube" ? "ml-auto w-full max-w-sm" : frame ? `rounded border px-3 pb-2 ${failedDelivery ? "pt-11" : "pt-5"} shadow-sm ${addressed ? "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30" : privateMessage ? "border-sky-400/50 bg-sky-400/10" : "border-zinc-800 bg-zinc-900"}` : addressed ? "px-1 rounded bg-amber-300/20" : "px-1"} ${message.kind === "gif" ? "ml-auto w-fit max-w-full" : ""}`}
+      className={`chat-message-entry group/message relative transition-colors ${canDelete && !frame ? "pr-9" : ""} ${system ? "px-3 py-0.5 text-center" : message.kind === "music" ? `ml-auto w-full max-w-xl ${frame ? "border-zinc-700 bg-zinc-950/90 px-3 py-2.5" : "px-1"}` : message.kind === "youtube" ? "ml-auto w-full max-w-sm" : frame ? `rounded border px-3 pb-2 ${failedDelivery ? "pt-11" : "pt-5"} shadow-sm ${addressed ? "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30" : privateMessage ? "border-sky-400/50 bg-sky-400/10" : "border-zinc-800 bg-zinc-900"}` : addressed ? "px-1 rounded bg-amber-300/20" : "px-1"} ${message.kind === "gif" ? "ml-auto w-fit max-w-full" : ""}`}
     >
       {message.kind === "tetris" ? (
         <GameInvitation body={message.body} author={message.author} />
@@ -219,9 +220,11 @@ export function MessageEntry({
           )}
         </>
       )}
-      {!system && !privateMessage && frame && (
-        <div className="absolute -bottom-2.5 right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1">
-          {Object.entries(message.reactions)
+      {!system && !privateMessage && (frame || canDelete) && (
+        <div
+          className={`absolute right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1 ${frame ? "-bottom-2.5" : "top-0"}`}
+        >
+          {Object.entries(frame ? message.reactions : {})
             .filter(([, count]) => count > 0)
             .map(([emoji, count]) => (
               <button
@@ -239,7 +242,7 @@ export function MessageEntry({
                 {emoji} {count}
               </button>
             ))}
-          {onReaction && message.author !== nickname && (
+          {frame && onReaction && message.author !== nickname && (
             <div className="relative">
               <button
                 id={`reaction-toggle-${entryID}`}
@@ -280,15 +283,16 @@ export function MessageEntry({
               )}
             </div>
           )}
-          {onDelete && (
+          {canDelete && (
             <button
               type="button"
+              id={`message-delete-${entryID}`}
               aria-label="Удалить сообщение"
               title="Удалить для всех"
               onClick={() => {
                 if (window.confirm("Удалить это сообщение для всех?")) onDelete(message.id)
               }}
-              className="flex size-5 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 opacity-0 shadow-sm transition hover:border-red-300/60 hover:text-red-300 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+              className="chat-message-delete flex size-6 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-red-300/60 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
             >
               <Icon name="trash" className="size-3" />
             </button>

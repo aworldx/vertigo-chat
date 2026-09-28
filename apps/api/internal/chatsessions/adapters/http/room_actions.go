@@ -23,6 +23,9 @@ func (h Socket) roomAction(ctx context.Context, conn *websocket.Conn, session do
 	if err != nil {
 		return socketWrite(ctx, conn, map[string]string{"type": "error", "code": "action_rejected"}) == nil
 	}
+	if cmd.Type == "delete" {
+		h.hub.rememberDeletion(session.RoomID, cmd.MessageID)
+	}
 	current, err := h.snapshot(ctx, session)
 	if err != nil {
 		return false

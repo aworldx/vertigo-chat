@@ -28,10 +28,14 @@ export function addTimelineEntry(entries: TimelineEntry[], entry: TimelineEntry)
   )
 }
 
-export function publishTimeline(entries: TimelineEntry[], messages: Message[]) {
+export function publishTimeline(entries: TimelineEntry[], messages: Message[], deletedIDs: number[] = []) {
+  const deleted = new Set(deletedIDs)
   const published = new Set(messages.map(timelineKey))
-  let next = entries.filter((entry) => entry.delivery !== "published" || published.has(entry.key))
+  let next = entries.filter(
+    (entry) => !deleted.has(entry.message.id) && (entry.delivery !== "published" || published.has(entry.key)),
+  )
   for (const message of messages) {
+    if (deleted.has(message.id)) continue
     const key = timelineKey(message)
     next = addTimelineEntry(next, { key, message, delivery: "published" })
   }

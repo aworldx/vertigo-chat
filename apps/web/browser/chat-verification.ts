@@ -1,3 +1,4 @@
+import { verifyModeration } from "./moderation-verification"
 import { verifyChatControls } from "./chat-controls-verification"
 import { verifyPlayer } from "./player-verification"
 import { verifyMessageScroll } from "./message-scroll-verification"
@@ -21,6 +22,7 @@ async function enter(page: Page, nickname: string, password = "") {
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
 }
 try {
+  await verifyModeration(browser, origin)
   await verifyChatControls(browser, origin)
   await verifyPlayer(browser, origin)
   await verifyLandingFlow(browser, origin)

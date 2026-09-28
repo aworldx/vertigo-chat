@@ -20,10 +20,11 @@ type hub struct {
 	listeners map[string]*subscription
 	sent      map[string]messageDTO
 	sequence  int64
+	deleted   map[string][]int64
 }
 
 func newHub() *hub {
-	return &hub{listeners: map[string]*subscription{}, sent: map[string]messageDTO{}}
+	return &hub{listeners: map[string]*subscription{}, sent: map[string]messageDTO{}, deleted: map[string][]int64{}}
 }
 func (h *hub) subscribe(session domain.Session) (<-chan messageDTO, func()) {
 	sub := &subscription{session: session, events: make(chan messageDTO, 64)}

@@ -425,6 +425,11 @@ components:
         preferences: {$ref: '#/components/schemas/Preferences'}
         admin: {type: boolean}
         typing: {type: array, items: {type: string}}
+        deleted_message_ids:
+          type: array
+          maxItems: 1024
+          items: {type: integer, minimum: 1}
+          description: Recent room deletions; removes acknowledged messages even before their first history snapshot.
         messages: {type: array, items: {$ref: '#/components/schemas/Message'}}
         peers: {type: array, items: {$ref: '#/components/schemas/Peer'}}
 

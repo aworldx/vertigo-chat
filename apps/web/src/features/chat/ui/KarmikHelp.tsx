@@ -1,3 +1,4 @@
+import { HelpContent } from "../../../shared/ui/HelpContent"
 import { Button } from "../../../shared/ui/Button"
 import { DismissTool, ToolCard } from "./ToolCard"
 import { useState } from "react"
@@ -64,7 +65,7 @@ export function KarmikHelp({
           {[...new Set(topics)].map((topic) => (
             <div key={topic}>
               <p className="font-medium">{instructions[topic].title}</p>
-              <p className="mt-1 leading-relaxed">{instructions[topic].body}</p>
+              <HelpContent instruction={instructions[topic]} />
             </div>
           ))}
           <a

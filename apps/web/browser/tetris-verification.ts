@@ -107,6 +107,8 @@ try {
   await host.keyboard.press("ArrowUp")
   await host.locator("#tetris-control-left").click()
   await host.locator("#tetris-control-rotate").click()
+  await host.locator("#tetris-control-hold").click()
+  await expect(host.locator(".tetris-held svg")).toHaveCount(1)
   await host.locator("#tetris-control-drop").click()
   await expect(host.locator(".tetris-mine .tetris-player-footer")).not.toContainText(/^0 очков/u)
   await leave(third)
@@ -124,6 +126,22 @@ try {
   await expect(host.locator("#tetris-pause")).toBeVisible({ timeout: 10000 })
   await host.locator("#tetris-pause").click()
   await expect(host.locator(".tetris-match-state")).toHaveText("Пауза")
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
+  ]) {
+    await host.setViewportSize(viewport)
+    const board = await host.locator(".tetris-mine .tetris-board").boundingBox()
+    assert.ok(
+      board && board.height > viewport.height * 0.55,
+      `solo board ${String(board?.height)} should use most of ${String(viewport.width)}x${String(viewport.height)}`,
+    )
+    await expect(host.locator(".tetris-upcoming svg")).toHaveCount(5)
+    await expect(host.locator(".tetris-held")).toContainText("Пока пусто")
+    await host.screenshot({ path: `${screenshots}/solo-${String(viewport.width)}.png` })
+  }
+  await host.setViewportSize({ width: 1440, height: 900 })
   const canvas = await host.locator(".tetris-mine canvas").elementHandle()
   await host.context().setOffline(true)
   await expect(host.locator(".tetris-connection")).toContainText("Синхронизация", { timeout: 15000 })
@@ -132,6 +150,8 @@ try {
   await expect(host.locator(".tetris-connection")).toHaveText("", { timeout: 10000 })
   assert.ok(await canvas?.evaluate((element) => element.isConnected), "reconnect must preserve the canvas")
   await host.locator("#tetris-pause").click()
+  await host.locator("#tetris-control-hold").click()
+  await expect(host.locator(".tetris-held svg")).toHaveCount(1)
   await host.locator("#tetris-control-drop").click()
   await expect(host.locator(".tetris-mine .tetris-player-footer")).not.toContainText(/^0 очков/u)
   assert.equal(await third.locator(".chat-game-invitation").count(), before)
