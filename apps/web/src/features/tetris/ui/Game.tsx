@@ -33,11 +33,11 @@ export function TetrisGame({
     const player = current?.players.find((p) => p.id === current.self)
     if (send(value) && current?.status === "running" && !current.paused && player && !player.dead) playInput(value)
   }
-  const enabled = connected && game?.status === "running" && !!self && !self.dead
+  const enabled = game?.status === "running" && !!self && !self.dead
   const controls = useControls(enabled, action)
   const keyboard = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (enabled) keyboard.current?.focus()
+    if (enabled) keyboard.current?.focus({ preventScroll: true })
   }, [enabled])
   const leave = useCallback(() => {
     if (enabled && !window.confirm("Выйти из игры? Будет засчитано поражение.")) return
@@ -67,12 +67,9 @@ export function TetrisGame({
             Таблица лидеров ↗
           </a>
         </div>
-        {!connected && <p role="status">{game ? "Восстанавливаем связь…" : "Подключаем игру…"}</p>}
-        {error && (
-          <p role="alert" className="tetris-error">
-            {error}
-          </p>
-        )}
+        <div className="tetris-connection" role="status" aria-live="polite">
+          {error || (!connected ? (game ? "Синхронизация…" : "Подключаем игру…") : "")}
+        </div>
         {game?.status === "lobby" && <Lobby game={game} send={action} connected={connected} />}
         {game?.status === "cancelled" && <p role="status">Игра отменена.</p>}
         {game && game.status !== "lobby" && game.status !== "cancelled" && (

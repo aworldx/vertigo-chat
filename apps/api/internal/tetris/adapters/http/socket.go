@@ -87,11 +87,16 @@ func send(ctx context.Context, conn *websocket.Conn, value any) error {
 	return wsjson.Write(work, conn, value)
 }
 func (h *Handler) run(ctx context.Context, conn *websocket.Conn, a domain.Actor, id, token string) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	incoming := commands(ctx, conn)
 	ticks := time.NewTicker(50 * time.Millisecond)
 	defer ticks.Stop()
 	auth := time.NewTicker(10 * time.Second)
 	defer auth.Stop()
+	// Ping waits for the reader to consume a pong. Keep draining commands
+	// concurrently, or input arriving before that pong deadlocks the reader.
+	probe := make(chan bool, 1)
 	window, count := time.Now(), 0
 	previous := ""
 	for {
@@ -99,14 +104,9 @@ func (h *Handler) run(ctx context.Context, conn *websocket.Conn, a domain.Actor,
 		case <-ctx.Done():
 			return
 		case <-auth.C:
-			ping, done := context.WithTimeout(ctx, 2*time.Second)
-			err := conn.Ping(ping)
-			done()
-			if err != nil {
-				return
-			}
-			if _, err := h.authenticate(ctx, token); err != nil {
-				_ = conn.Close(websocket.StatusPolicyViolation, "Сессия чата завершена")
+			go func() { probe <- h.checkConnection(ctx, conn, token) }()
+		case healthy := <-probe:
+			if !healthy {
 				return
 			}
 		case c, ok := <-incoming:
@@ -160,4 +160,17 @@ func actionError(err error) string {
 	default:
 		return "Действие недоступно. Для старта все игроки должны быть готовы."
 	}
+}
+
+func (h *Handler) checkConnection(ctx context.Context, conn *websocket.Conn, token string) bool {
+	ping, done := context.WithTimeout(ctx, 2*time.Second)
+	defer done()
+	if conn.Ping(ping) != nil {
+		return false
+	}
+	if _, err := h.authenticate(ping, token); err != nil {
+		_ = conn.Close(websocket.StatusPolicyViolation, "Сессия чата завершена")
+		return false
+	}
+	return true
 }

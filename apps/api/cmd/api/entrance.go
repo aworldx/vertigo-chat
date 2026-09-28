@@ -13,6 +13,7 @@ import (
 	roomapp "chat/api/internal/rooms/application"
 	roomdomain "chat/api/internal/rooms/domain"
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"strconv"
@@ -26,15 +27,12 @@ func entranceWork(pool *pgxpool.Pool) entrance.UnitOfWork {
 	return func(ctx context.Context, nickname string, action func(entrance.Accounts, entrance.Sessions) error) error {
 		return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 			store := chatspg.NewStore(tx)
-			available, err := store.ReserveNickname(ctx, nickname)
-			if err != nil {
-				return err
-			}
-			if !available {
+			accountStore := accountspg.NewAccounts(tx)
+			err := action(entranceAccounts{accounts.NewAuthenticator(accountStore, accountspg.PBKDF2Verifier{}), accounts.NewRegistrar(accountStore, accountspg.PBKDF2Verifier{}), accounts.NewSessions(accountStore), store}, chats.NewAdmission(store, chats.NewService(store, chatsessionsPolicy())))
+			if errors.Is(err, chats.ErrNicknameOccupied) {
 				return entrance.ErrNicknameOnline
 			}
-			accountStore := accountspg.NewAccounts(tx)
-			return action(entranceAccounts{accounts.NewAuthenticator(accountStore, accountspg.PBKDF2Verifier{}), accounts.NewRegistrar(accountStore, accountspg.PBKDF2Verifier{}), accounts.NewSessions(accountStore)}, chats.NewService(store, chatsessionsPolicy()))
+			return err
 		})
 	}
 }
@@ -42,7 +40,19 @@ func entranceWork(pool *pgxpool.Pool) entrance.UnitOfWork {
 type entranceAccounts struct {
 	accounts.Authenticator
 	accounts.Registrar
-	sessions accounts.Sessions
+	sessions    accounts.Sessions
+	reservation chatspg.Store
+}
+
+func (a entranceAccounts) Register(ctx context.Context, nickname, email, password, network string) (accountdomain.Principal, error) {
+	available, err := a.reservation.ReserveNickname(ctx, nickname)
+	if err != nil {
+		return accountdomain.Principal{}, err
+	}
+	if !available {
+		return accountdomain.Principal{}, entrance.ErrNicknameOnline
+	}
+	return a.Registrar.Register(ctx, nickname, email, password, network)
 }
 
 func (a entranceAccounts) Issue(ctx context.Context, previous string, userID int64, now time.Time) (string, time.Time, error) {

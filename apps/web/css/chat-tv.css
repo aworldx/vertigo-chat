@@ -242,6 +242,7 @@
 
 @media (min-width: 768px) {
   .chat-room-content {
+    container-type: size;
     grid-template-columns: minmax(0, 1fr) 19rem;
     grid-template-rows: minmax(0, 1fr) auto;
   }
@@ -269,7 +270,7 @@
   }
   .chat-tv-panel {
     position: static;
-    max-height: min(60dvh, 520px);
+    max-height: min(60dvh, 520px, 100cqh);
     border-radius: 0;
     box-shadow: none;
     padding: 4px var(--control-card-padding) var(--control-card-padding);
@@ -306,10 +307,8 @@
     margin: 0;
   }
   .chat-tv-queue ol {
-    max-height: 140px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
+    max-height: none;
+    overflow: visible;
     padding: 4px;
   }
   .chat-tv .chat-tv-queue-title {

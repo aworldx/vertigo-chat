@@ -81,9 +81,21 @@ try {
     [1440, 900],
     [768, 1024],
     [390, 844],
+    [320, 568],
+    [844, 390],
   ] as const) {
     await host.setViewportSize({ width, height })
     await expect.poll(() => host.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await expect
+      .poll(() => host.locator("#tetris-dialog").evaluate((el) => el.scrollHeight <= el.clientHeight + 1))
+      .toBe(true)
+    for (const target of [".tetris-mine .tetris-board", "#tetris-control-drop"]) {
+      const box = await host.locator(target).boundingBox()
+      assert.ok(
+        box && box.y >= 0 && box.y + box.height <= height,
+        `${target} must fit ${String(width)}x${String(height)}`,
+      )
+    }
     await host.screenshot({ path: `${screenshots}/match-${String(width)}.png`, fullPage: true })
   }
   await host.setViewportSize({ width: 1440, height: 1100 })
@@ -112,6 +124,13 @@ try {
   await expect(host.locator("#tetris-pause")).toBeVisible({ timeout: 10000 })
   await host.locator("#tetris-pause").click()
   await expect(host.locator(".tetris-match-state")).toHaveText("Пауза")
+  const canvas = await host.locator(".tetris-mine canvas").elementHandle()
+  await host.context().setOffline(true)
+  await expect(host.locator(".tetris-connection")).toContainText("Синхронизация", { timeout: 15000 })
+  await expect(host.locator("#tetris-control-left")).toBeVisible()
+  await host.context().setOffline(false)
+  await expect(host.locator(".tetris-connection")).toHaveText("", { timeout: 10000 })
+  assert.ok(await canvas?.evaluate((element) => element.isConnected), "reconnect must preserve the canvas")
   await host.locator("#tetris-pause").click()
   await host.locator("#tetris-control-drop").click()
   await expect(host.locator(".tetris-mine .tetris-player-footer")).not.toContainText(/^0 очков/u)

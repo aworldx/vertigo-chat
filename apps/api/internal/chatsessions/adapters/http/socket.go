@@ -143,6 +143,7 @@ func (h Socket) run(ctx context.Context, conn *websocket.Conn, session domain.Se
 	defer heartbeat.Stop()
 	previous, _ := json.Marshal(initial)
 	visibility := "visible"
+	probe := make(chan bool, 1)
 	for {
 		select {
 		case event := <-events:
@@ -162,25 +163,35 @@ func (h Socket) run(ctx context.Context, conn *websocket.Conn, session domain.Se
 				return
 			}
 		case <-heartbeat.C:
-			if !h.heartbeat(ctx, conn, session, visibility) {
+			// Continue draining input while Ping waits for the reader's pong.
+			go func(currentVisibility string) { probe <- h.heartbeat(ctx, conn, session, currentVisibility) }(visibility)
+		case healthy := <-probe:
+			if !healthy {
 				return
 			}
 		case <-updates.C:
-			current, err := h.snapshot(ctx, session)
-			if err != nil {
-				closeSessionError(conn, err)
+			if !h.refreshSnapshot(ctx, conn, session, &previous) {
 				return
-			}
-			encoded, _ := json.Marshal(current)
-			if string(encoded) != string(previous) {
-				if socketWrite(ctx, conn, map[string]any{"type": "snapshot", "snapshot": current}) != nil {
-					return
-				}
-				previous = encoded
 			}
 		}
 	}
 }
+func (h Socket) refreshSnapshot(ctx context.Context, conn *websocket.Conn, session domain.Session, previous *[]byte) bool {
+	current, err := h.snapshot(ctx, session)
+	if err != nil {
+		closeSessionError(conn, err)
+		return false
+	}
+	encoded, _ := json.Marshal(current)
+	if string(encoded) != string(*previous) {
+		if socketWrite(ctx, conn, map[string]any{"type": "snapshot", "snapshot": current}) != nil {
+			return false
+		}
+		*previous = encoded
+	}
+	return true
+}
+
 func (h Socket) command(ctx context.Context, conn *websocket.Conn, session domain.Session, cmd command, visibility string) bool {
 	switch cmd.Type {
 	case "send", "media", "reaction", "delete", "preferences", "leave":

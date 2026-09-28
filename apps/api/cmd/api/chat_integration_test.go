@@ -191,10 +191,28 @@ func (f *chatFixture) registration(t *testing.T) {
 	f.send(t, conn, map[string]string{"type": "leave"})
 	f.frame(t, conn, "left")
 	_ = conn.CloseNow()
-	f.post(t, "/api/v1/chat/register", `{"nickname":"chat-registered","password":"secret123"}`, 200)
+	oldToken := f.post(t, "/api/v1/chat/register", `{"nickname":"chat-registered","password":"secret123"}`, 200)
 	if err := f.pool.QueryRow(context.Background(), `SELECT count(*) FROM visits WHERE nickname='chat-registered' AND user_id IS NOT NULL`).Scan(&count); err != nil || count != 1 {
 		t.Fatalf("registered entrance visit count=%d err=%v", count, err)
 	}
+	// Wrong passwords must not evict the owner; verified login replaces them.
+	f.post(t, "/api/v1/chat/enter", `{"nickname":"chat-registered","password":"wrong"}`, 401)
+	old, err := chatshttp.DecodeResume(oldToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lifecycle := chats.NewService(chatspg.NewStore(f.pool))
+	if _, err := lifecycle.Restore(context.Background(), old.SessionID, old.IdentityKey, old.Secret, time.Now()); err != nil {
+		t.Fatal("incorrect password evicted owner", err)
+	}
+	f.post(t, "/api/v1/chat/enter", `{"nickname":"chat-registered","password":"secret123"}`, 200)
+	if _, err := lifecycle.Restore(context.Background(), old.SessionID, old.IdentityKey, old.Secret, time.Now()); err == nil {
+		t.Fatal("replaced session restored")
+	}
+	if err := f.pool.QueryRow(context.Background(), `SELECT count(*) FROM chat_sessions WHERE nickname='chat-registered' AND status='active'`).Scan(&count); err != nil || count != 1 {
+		t.Fatal("replacement did not preserve one active owner", count, err)
+	}
+
 }
 
 type serverPeer struct {

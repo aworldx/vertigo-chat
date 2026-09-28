@@ -345,11 +345,23 @@ export async function verifyPlayer(browser: Browser, origin: string) {
       if (width >= 768) {
         for (let index = 0; index < 7; index++) await page.locator("#media-search-0-enqueue").click()
         await page.locator("#chat-tv-toggle").click()
-        const queue = page.locator("#chat-tv-queue ol")
+        const queue = page.locator("#chat-tv-panel")
         await expect(queue).toBeVisible()
         assert.equal(await queue.evaluate((element) => element.scrollHeight > element.clientHeight), true)
         const panel = await page.locator("#chat-tv-panel").boundingBox()
         assert.ok(panel && panel.height <= 521, "long queues stay bounded within the chatlan column")
+        for (const height of [480, 640, 900]) {
+          await page.setViewportSize({ width, height })
+          await queue.evaluate((element) => {
+            element.scrollTop = element.scrollHeight
+          })
+          const last = await page.locator(".chat-tv-queue li").last().boundingBox()
+          const viewport = await queue.boundingBox()
+          assert.ok(
+            last && viewport && last.y >= viewport.y && last.y + last.height <= viewport.y + viewport.height + 1,
+            "the final queue item is fully reachable without scrolling another container",
+          )
+        }
         await page.locator('[id^="tv-queue-remove-"]').last().click()
         await expect(page.locator(".chat-tv-queue li")).toHaveCount(7)
         await page.locator("#chat-tv-collapse").click()

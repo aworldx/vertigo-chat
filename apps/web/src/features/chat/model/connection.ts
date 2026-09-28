@@ -108,7 +108,7 @@ export class ChatConnection {
     })
     if ("locks" in navigator) {
       void navigator.locks
-        .request(`vertigo-chat-${session.nickname}`, { ifAvailable: true }, async (lock) => {
+        .request(`vertigo-chat-${session.resume_token}`, { ifAvailable: true }, async (lock) => {
           if (this.stopped) return
           if (!lock) {
             this.update({

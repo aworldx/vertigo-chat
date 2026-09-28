@@ -9,13 +9,20 @@ export function useGame(id: string, token: string, join: boolean) {
   const [connected, setConnected] = useState(false)
   const socket = useRef<WebSocket | null>(null)
   const sequence = useRef(0)
+  const readyToSend = useRef(false)
+  const terminal = useRef(false)
+  const sent = useRef(new Set<number>())
   const pending = useRef<{ sequence: number; action: Action }[]>([])
   const latest = useRef<Game | null>(null)
   useEffect(() => {
+    terminal.current = false
     let stopped = false,
       joined = false,
       timer: ReturnType<typeof setTimeout> | undefined
     function connect() {
+      if (stopped || !navigator.onLine) return
+      readyToSend.current = false
+      sent.current.clear()
       const url = new URL(`/api/v1/tetris/${encodeURIComponent(id)}/socket`, window.location.origin)
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
       let ready = false
@@ -25,7 +32,7 @@ export function useGame(id: string, token: string, join: boolean) {
         if (!stopped) ws.send(JSON.stringify({ type: "auth", token }))
       }
       ws.onmessage = (event: MessageEvent<unknown>) => {
-        if (stopped || typeof event.data !== "string") return
+        if (stopped || socket.current !== ws || typeof event.data !== "string") return
         let value: unknown
         try {
           value = JSON.parse(event.data)
@@ -42,6 +49,7 @@ export function useGame(id: string, token: string, join: boolean) {
         if (!ready) {
           setError("")
           ready = true
+          readyToSend.current = true
         }
         const next = value.game
         const acknowledged = next.players.find((p) => p.id === next.self)?.sequence ?? 0
@@ -57,19 +65,46 @@ export function useGame(id: string, token: string, join: boolean) {
         }
       }
       ws.onclose = (event) => {
-        if (stopped) return
+        if (stopped || socket.current !== ws) return
         setConnected(false)
-        pending.current = []
+        readyToSend.current = false
         if (event.code === 1008 || event.code === 1000) {
+          terminal.current = true
           setError(event.reason || "Соединение закрыто. Открой игру заново.")
           return
         }
-        setError("Восстанавливаем связь. На возвращение есть 20 секунд.")
+        setError("")
         timer = setTimeout(connect, 1000)
       }
     }
+    const offline = () => {
+      clearTimeout(timer)
+      readyToSend.current = false
+      setConnected(false)
+      const previous = socket.current
+      socket.current = null
+      previous?.close()
+    }
+    const online = () => {
+      if (terminal.current || readyToSend.current) return
+      clearTimeout(timer)
+      connect()
+    }
+    window.addEventListener("offline", offline)
+    window.addEventListener("online", online)
     connect()
+    // Network delivery is paced independently from immediate local input.
+    const delivery = setInterval(() => {
+      if (!readyToSend.current || socket.current?.readyState !== WebSocket.OPEN) return
+      const input = pending.current.find((item) => !sent.current.has(item.sequence))
+      if (!input) return
+      socket.current.send(JSON.stringify({ type: input.action, sequence: input.sequence }))
+      sent.current.add(input.sequence)
+    }, 35)
     return () => {
+      clearInterval(delivery)
+      window.removeEventListener("offline", offline)
+      window.removeEventListener("online", online)
       stopped = true
       clearTimeout(timer)
       socket.current?.close()
@@ -77,16 +112,20 @@ export function useGame(id: string, token: string, join: boolean) {
     }
   }, [id, token, join])
   const send = useCallback((action: Action) => {
-    if (socket.current?.readyState !== WebSocket.OPEN) return false
+    if (terminal.current || pending.current.length >= 600) return false
     setError("")
     const seq = ++sequence.current
-    if (["left", "right", "down", "rotate", "counterrotate", "drop"].includes(action))
-      pending.current.push({ sequence: seq, action })
+    if (["join", "ready", "unready", "start", "leave"].includes(action)) {
+      if (!readyToSend.current || socket.current?.readyState !== WebSocket.OPEN) return false
+      socket.current.send(JSON.stringify({ type: action, sequence: seq }))
+      return true
+    }
+    pending.current.push({ sequence: seq, action })
     if (latest.current) {
       latest.current = predict(latest.current, action)
       setGame(latest.current)
     }
-    socket.current.send(JSON.stringify({ type: action, sequence: seq }))
+
     return true
   }, [])
   return { game, error, connected, send, latest }

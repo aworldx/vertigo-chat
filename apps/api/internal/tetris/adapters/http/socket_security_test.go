@@ -171,3 +171,40 @@ func TestGameReadAndRematchDoNotBypassAuthentication(t *testing.T) {
 		})
 	}
 }
+
+// A player can send input immediately before the browser answers a ping. The
+// command reader must remain drained while the server waits for that pong.
+func TestInputDuringHeartbeatKeepsGameConnected(t *testing.T) {
+	base, id := socketFixture(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	var conn *websocket.Conn
+	var err error
+	conn, _, err = websocket.Dial(ctx, base+id+"/socket", &websocket.DialOptions{
+		HTTPHeader: http.Header{"Origin": {"http" + strings.TrimPrefix(strings.Split(base, "/api/")[0], "ws")}},
+		OnPingReceived: func(ctx context.Context, _ []byte) bool {
+			if err := wsjson.Write(ctx, conn, command{Type: "unknown-action", Sequence: 1}); err != nil {
+				t.Error(err)
+			}
+			return true
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.CloseNow() }()
+	if err := wsjson.Write(ctx, conn, command{Type: "auth", Token: "member"}); err != nil {
+		t.Fatal(err)
+	}
+	for {
+		var frame struct {
+			Type string `json:"type"`
+		}
+		if err := wsjson.Read(ctx, conn, &frame); err != nil {
+			t.Fatalf("input blocked heartbeat: %v", err)
+		}
+		if frame.Type == "error" {
+			return
+		}
+	}
+}

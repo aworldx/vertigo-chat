@@ -191,3 +191,95 @@ test("slash commands dispatch solo, memorable code and rankings without becoming
   })
   assert.deepEqual(commands, ["", "соло", "ЛИСА-27", "топ"])
 })
+
+test("reconnect preserves local input and resends only unacknowledged sequences", async (t) => {
+  const { useGame } = await import("../src/features/tetris/model/useGame")
+  const onlineDescriptor = Object.getOwnPropertyDescriptor(navigator, "onLine")
+  Object.defineProperty(navigator, "onLine", { value: true, configurable: true })
+  t.after(() => {
+    if (onlineDescriptor) Object.defineProperty(navigator, "onLine", onlineDescriptor)
+    else Reflect.deleteProperty(navigator, "onLine")
+  })
+  const sockets: FakeSocket[] = []
+  class FakeSocket {
+    static OPEN = 1
+    readyState = 1
+    onopen: (() => void) | null = null
+    onmessage: ((event: { data: string }) => void) | null = null
+    onclose: ((event: { code: number; reason: string }) => void) | null = null
+    sent: { type: string; sequence?: number }[] = []
+    constructor() {
+      sockets.push(this)
+    }
+    send(value: string) {
+      this.sent.push(JSON.parse(value) as { type: string; sequence?: number })
+    }
+    close() {
+      this.readyState = 3
+    }
+    state(value: Game) {
+      this.onmessage?.({ data: JSON.stringify({ type: "state", game: value }) })
+    }
+  }
+  const originalSocket = globalThis.WebSocket
+  Object.defineProperty(globalThis, "WebSocket", { value: FakeSocket, configurable: true, writable: true })
+  t.after(() => {
+    Object.defineProperty(globalThis, "WebSocket", { value: originalSocket, configurable: true, writable: true })
+  })
+  t.mock.timers.enable({ apis: ["setTimeout", "setInterval"] })
+  const view = renderHook(() => useGame("a".repeat(32), "token", false))
+  const first = sockets[0]
+  assert.ok(first)
+  act(() => {
+    first.onopen?.()
+    first.state(game())
+    view.result.current.send("left")
+  })
+  assert.equal(view.result.current.game?.players[0]?.active.x, 2)
+  act(() => {
+    t.mock.timers.tick(35)
+  })
+  assert.equal(first.sent.filter((entry) => entry.type === "left").length, 1)
+  act(() => {
+    first.close()
+    first.onclose?.({ code: 1006, reason: "" })
+    view.result.current.send("left")
+  })
+  assert.equal(view.result.current.game.players[0].active.x, 1)
+  act(() => {
+    t.mock.timers.tick(1000)
+  })
+  const second = sockets[1]
+  assert.ok(second)
+  const confirmed = game()
+  const self = confirmed.players[0]
+  assert.ok(self)
+  self.sequence = 1
+  self.active.x = 2
+  act(() => {
+    second.onopen?.()
+    second.state(confirmed)
+    t.mock.timers.tick(35)
+  })
+  assert.equal(view.result.current.game.players[0].active.x, 1)
+  assert.deepEqual(
+    second.sent.filter((entry) => entry.type === "left"),
+    [{ type: "left", sequence: 2 }],
+  )
+  view.unmount()
+})
+
+test("changing a dialog callback does not steal game focus", async () => {
+  const { Modal } = await import("../src/shared/ui/Modal")
+  const show = () => (
+    <Modal id="test-dialog" labelId="title" className="" onClose={() => undefined}>
+      <button>Close</button>
+      <button data-testid="field">Field</button>
+    </Modal>
+  )
+  const view = render(show())
+  const field = view.getByTestId("field")
+  field.focus()
+  view.rerender(show())
+  assert.equal(document.activeElement, field)
+})
