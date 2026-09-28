@@ -10,6 +10,9 @@ func TestHelpTopics(t *testing.T) {
 		body string
 		want []string
 	}{
+		{"как найти фразы кому?", []string{"history"}},
+		{"где фильтр по автору?", []string{"history"}},
+		{"как поставить фильтр для воды?", nil},
 		{"где история сообщений?", []string{"history"}},
 		{"как посмотреть старые сообщения?", []string{"history"}},
 		{"хочу найти сообщения за вчера", []string{"history"}},

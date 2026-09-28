@@ -2,6 +2,7 @@ package http
 
 import (
 	rooms "chat/api/internal/rooms/application"
+	"chat/api/internal/rooms/domain"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -30,7 +31,7 @@ func (h MessageHistoryHandler) list(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"invalid_period"}`, http.StatusBadRequest)
 		return
 	}
-	messages, err := h.history.List(r.Context(), "lobby", r.URL.Query().Get("from"), r.URL.Query().Get("through"), after, time.Now())
+	messages, err := h.history.List(r.Context(), "lobby", r.URL.Query().Get("from"), r.URL.Query().Get("through"), after, time.Now(), domain.HistoryFilters{Author: r.URL.Query().Get("author"), Recipient: r.URL.Query().Get("recipient")})
 	if errors.Is(err, rooms.ErrInvalidPeriod) {
 		http.Error(w, `{"error":"invalid_period"}`, http.StatusBadRequest)
 		return

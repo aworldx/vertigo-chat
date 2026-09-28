@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Public room messages and system events for a selected period
-         * @description Three calendar months retained. Inclusive Moscow dates; oldest ID first, 100 messages per page. Private messages and personal hints are excluded. The next cursor is null on the last page. No-store response.
+         * @description Three calendar months retained. Inclusive Moscow dates; oldest ID first, 100 messages per page. Private messages and personal hints are excluded. Author and recipient filters are optional, trimmed, case-insensitive, and combined with AND before pagination. With either filter, system events are excluded. Recipient matches the saved public addressee, not arbitrary mentions or private messages. The next cursor is null on the last page. No-store response.
          */
         get: operations["listMessageHistory"];
         put?: never;
@@ -423,6 +423,10 @@ export interface operations {
                 from: string;
                 through: string;
                 after?: number;
+                /** @description Optional exact author nickname */
+                author?: string;
+                /** @description Optional exact saved public addressee nickname */
+                recipient?: string;
             };
             header?: never;
             path?: never;

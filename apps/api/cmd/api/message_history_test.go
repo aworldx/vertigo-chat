@@ -3,6 +3,7 @@ package main
 import (
 	roompg "chat/api/internal/rooms/adapters/postgres"
 	rooms "chat/api/internal/rooms/application"
+	"chat/api/internal/rooms/domain"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"testing"
@@ -48,7 +49,7 @@ func testMessageHistory(t *testing.T, pool *pgxpool.Pool) {
 	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
-	if _, err := store.History(cancelled, room, cutoff, now, 0, 101); err == nil {
+	if _, err := store.History(cancelled, room, cutoff, now, 0, 101, domain.HistoryFilters{}); err == nil {
 		t.Fatal("cancel ignored")
 	}
 	if err := store.Prune(cancelled, cutoff); err == nil {
@@ -59,14 +60,14 @@ func testMessageHistory(t *testing.T, pool *pgxpool.Pool) {
 func assertArchivePages(t *testing.T, store roompg.Store, room string, cutoff, now time.Time, first int64) {
 	t.Helper()
 	ctx := context.Background()
-	messages, err := store.History(ctx, room, cutoff, now, 0, 101)
+	messages, err := store.History(ctx, room, cutoff, now, 0, 101, domain.HistoryFilters{})
 	if err != nil || len(messages) != 101 {
 		t.Fatal(len(messages), err)
 	}
 	if messages[0].ID != first || messages[0].Appearance.Dark.Nickname != "#aabbcc" || messages[0].FontID != "serif" || messages[0].FontStyle != "italic" {
 		t.Fatal(messages[0])
 	}
-	next, err := store.History(ctx, room, cutoff, now, messages[99].ID, 101)
+	next, err := store.History(ctx, room, cutoff, now, messages[99].ID, 101, domain.HistoryFilters{})
 	if err != nil || len(next) != 4 {
 		t.Fatal(len(next), err)
 	}

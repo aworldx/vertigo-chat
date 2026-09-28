@@ -51,9 +51,11 @@ test("history requires a selected period, renders stored styling and paginates t
   const view = render(<MessageHistory />)
   assert.equal(requests.length, 0)
   fireEvent.change(view.getByLabelText("С"), { target: { value: "2026-09-01" } })
+  fireEvent.change(view.getByLabelText("Фразы от кого"), { target: { value: " Styled " } })
+  fireEvent.change(view.getByLabelText("Фразы кому"), { target: { value: "Кому" } })
   fireEvent.submit(view.container.querySelector("form") ?? assert.fail("form"))
   await waitFor(() => {
-    assert.ok(view.getByText("Styled"))
+    assert.ok(view.getByText("Styled:"))
   })
   assert.ok(requests[0]?.includes("from=2026-09-01"))
   assert.equal(view.container.querySelector("li")?.getAttribute("data-message-font"), "serif")
@@ -61,13 +63,20 @@ test("history requires a selected period, renders stored styling and paginates t
   assert.ok(view.container.querySelector("strong"))
   assert.equal(view.container.querySelector("script"), null)
   fireEvent.change(view.getByLabelText("С"), { target: { value: "2026-09-10" } })
+  fireEvent.change(view.getByLabelText("Фразы от кого"), { target: { value: "Другой" } })
+  fireEvent.change(view.getByLabelText("Фразы кому"), { target: { value: "" } })
   fireEvent.click(view.getByText("Следующие 100"))
   await waitFor(() => {
     assert.ok(view.getByText("Гость вошёл"))
   })
   assert.ok(requests[1]?.includes("from=2026-09-01"))
   assert.ok(requests[1]?.includes("after=1"))
-  assert.ok(!view.queryByText("Styled"))
+  for (const url of requests) {
+    const query = new URL(url, "https://local.test").searchParams
+    assert.equal(query.get("author"), "Styled")
+    assert.equal(query.get("recipient"), "Кому")
+  }
+  assert.ok(!view.queryByText("Styled:"))
   assert.equal(view.queryByText("Следующие 100"), null)
 })
 test("history reports loading failures and empty results on retry", async () => {
@@ -131,11 +140,11 @@ test("administrator confirms archive deletion; system events are protected and f
     await waitFor(() => {
       assert.ok(view.getByRole("alert"))
     })
-    assert.ok(view.getByText("Styled"))
+    assert.ok(view.getByText("Styled:"))
     fail = false
     fireEvent.click(view.getByRole("button", { name: "Удалить сообщение" }))
     await waitFor(() => {
-      assert.ok(!view.queryByText("Styled"))
+      assert.ok(!view.queryByText("Styled:"))
     })
     assert.ok(view.getByText("Вход"))
   } finally {

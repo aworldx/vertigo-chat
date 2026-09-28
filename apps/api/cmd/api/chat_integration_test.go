@@ -73,6 +73,8 @@ func TestPublicChatPostgres(t *testing.T) {
 	jar, _ := cookiejar.New(nil)
 	fixture := chatFixture{pool: pool, server: server, client: &http.Client{Jar: jar, Timeout: 5 * time.Second}}
 
+	t.Run("optional archive nickname filters", func(t *testing.T) { testHistoryFilters(t, pool) })
+
 	t.Run("message archive retention privacy and pagination", func(t *testing.T) { testMessageHistory(t, pool) })
 
 	t.Run("moderation preserves permissions and system messages", func(t *testing.T) { testModerationStore(t, pool) })

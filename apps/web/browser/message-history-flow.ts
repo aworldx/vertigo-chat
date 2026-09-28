@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { mkdir } from "node:fs/promises"
-import { expect, type Browser } from "@playwright/test"
+import { expect, type Browser, type Page } from "@playwright/test"
 export async function verifyMessageHistory(browser: Browser, origin: string) {
   const context = await browser.newContext({ timezoneId: "Pacific/Honolulu" })
   const room = await context.newPage()
@@ -11,7 +11,14 @@ export async function verifyMessageHistory(browser: Browser, origin: string) {
   await room.locator("#toggle-settings").click()
   await room.locator("#font-id").selectOption("serif")
   await room.locator("#save-preferences").click()
-  await room.locator("#message-body").fill("Архив: **стилизованная фраза**")
+  const peer = await context.newPage()
+  await peer.goto(origin + "/")
+  await peer.locator("#entrance-nickname").fill("archive-target")
+  await peer.locator("#enter-chat").click()
+  await expect(room.locator("#online-list")).toContainText("archive-target")
+  await peer.locator("#message-body").fill("Фраза без адресата")
+  await peer.locator("#send-message").click()
+  await room.locator("#message-body").fill("archive-target, Архив: **стилизованная фраза**")
   await room.locator("#send-message").click()
   await expect(room.locator("#messages")).toContainText("стилизованная фраза")
   await room.locator("#about-main-menu summary").click()
@@ -34,6 +41,8 @@ export async function verifyMessageHistory(browser: Browser, origin: string) {
   assert.match(await phrase.evaluate((node) => getComputedStyle(node).fontFamily), /Georgia/u)
   await expect(history.locator('[data-message-kind="private"]')).toHaveCount(0)
   await expect(history.getByLabel("Подсказка Кармика")).toHaveCount(0)
+  await expect(phrase).toHaveCSS("border-top-width", "0px")
+  await verifyHistoryFilters(history)
   await mkdir("migration-results", { recursive: true })
   for (const width of [390, 1440]) {
     await history.setViewportSize({ width, height: 900 })
@@ -48,6 +57,27 @@ export async function verifyMessageHistory(browser: Browser, origin: string) {
   await room.locator("#mobile-main-menu summary").first().click()
   await room.locator("#mobile-about-menu summary").click()
   await expect(room.locator("#mobile-menu-history")).toBeVisible()
+  await peer.locator("#leave-chat").click()
   await room.locator("#leave-chat").click()
   await context.close()
+}
+
+async function verifyHistoryFilters(history: Page) {
+  await history.locator("#history-author").fill("ARCHIVE-READER")
+  await history.locator("#history-search").click()
+  await expect(history.locator("#history-messages li")).toHaveCount(1)
+  await history.locator("#history-recipient").fill("ARCHIVE-TARGET")
+  await history.locator("#history-search").click()
+  await expect(history.locator("#history-messages li")).toHaveCount(1)
+  await expect(history.locator("#history-messages")).toContainText("стилизованная фраза")
+  await history.locator("#history-author").fill("")
+  await history.locator("#history-search").click()
+  await expect(history.locator("#history-messages li")).toHaveCount(1)
+  await history.locator("#history-recipient").fill("нет-такого-адресата")
+  await history.locator("#history-search").click()
+  await expect(history.getByText(/За этот период сообщений нет/)).toBeVisible()
+  await history.locator("#history-recipient").fill("")
+  await history.locator("#history-search").click()
+  await expect(history.locator('#history-messages [data-message-kind="system"]').first()).toBeVisible()
+  await expect(history.locator("#history-messages")).toContainText("Фраза без адресата")
 }

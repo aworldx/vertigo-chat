@@ -9,12 +9,14 @@ paths:
     get:
       operationId: listMessageHistory
       summary: Public room messages and system events for a selected period
-      description: Three calendar months retained. Inclusive Moscow dates; oldest ID first, 100 messages per page. Private messages and personal hints are excluded. The next cursor is null on the last page. No-store response.
+      description: Three calendar months retained. Inclusive Moscow dates; oldest ID first, 100 messages per page. Private messages and personal hints are excluded. Author and recipient filters are optional, trimmed, case-insensitive, and combined with AND before pagination. With either filter, system events are excluded. Recipient matches the saved public addressee, not arbitrary mentions or private messages. The next cursor is null on the last page. No-store response.
       security: []
       parameters:
         - {name: from, in: query, required: true, schema: {type: string, format: date}}
         - {name: through, in: query, required: true, schema: {type: string, format: date}}
         - {name: after, in: query, schema: {type: integer, minimum: 0}}
+        - {name: author, in: query, description: Optional exact author nickname, schema: {type: string, maxLength: 24}}
+        - {name: recipient, in: query, description: Optional exact saved public addressee nickname, schema: {type: string, maxLength: 24}}
       responses:
         '200':
           description: Public message history

@@ -4,6 +4,7 @@ import (
 	"chat/api/internal/rooms/domain"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -14,9 +15,11 @@ type historySpy struct {
 	limit              int
 	calls              int
 	err                error
+	filters            domain.HistoryFilters
 }
 
-func (s *historySpy) History(_ context.Context, _ string, start, end time.Time, after int64, limit int) ([]domain.Message, error) {
+func (s *historySpy) History(_ context.Context, _ string, start, end time.Time, after int64, limit int, filters domain.HistoryFilters) ([]domain.Message, error) {
+	s.filters = filters
 	s.start = start
 	s.end = end
 	s.after = after
@@ -39,11 +42,11 @@ func TestHistoryPeriod(t *testing.T) {
 		t.Fatal(got)
 	}
 	for _, period := range [][2]string{{"", ""}, {"2026-02-30", "2026-03-01"}, {"2026-04-02", "2026-04-01"}} {
-		if _, err := h.List(context.Background(), "lobby", period[0], period[1], 0, now); !errors.Is(err, ErrInvalidPeriod) {
+		if _, err := h.List(context.Background(), "lobby", period[0], period[1], 0, now, domain.HistoryFilters{}); !errors.Is(err, ErrInvalidPeriod) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := h.List(context.Background(), "lobby", "2026-04-01", "2026-04-01", -1, now); !errors.Is(err, ErrInvalidPeriod) {
+	if _, err := h.List(context.Background(), "lobby", "2026-04-01", "2026-04-01", -1, now, domain.HistoryFilters{}); !errors.Is(err, ErrInvalidPeriod) {
 		t.Fatal(err)
 	}
 }
@@ -51,13 +54,13 @@ func TestHistoryMoscowDatesAndWindow(t *testing.T) {
 	s := &historySpy{}
 	h := NewHistory(s)
 	now := time.Date(2026, 5, 31, 12, 0, 0, 0, time.UTC)
-	if _, err := h.List(context.Background(), "lobby", "2026-04-01", "2026-04-01", 12, now); err != nil {
+	if _, err := h.List(context.Background(), "lobby", "2026-04-01", "2026-04-01", 12, now, domain.HistoryFilters{}); err != nil {
 		t.Fatal(err)
 	}
 	if s.start.Format(time.RFC3339) != "2026-03-31T21:00:00Z" || s.end.Format(time.RFC3339) != "2026-04-01T21:00:00Z" || s.after != 12 || s.limit != 101 {
 		t.Fatal(s)
 	}
-	if _, err := h.List(context.Background(), "lobby", "2020-01-01", "2026-06-01", 0, now); err != nil {
+	if _, err := h.List(context.Background(), "lobby", "2020-01-01", "2026-06-01", 0, now, domain.HistoryFilters{}); err != nil {
 		t.Fatal(err)
 	}
 	if !s.start.Equal(HistoryCutoff(now)) || !s.end.Equal(now) {
@@ -70,7 +73,7 @@ func TestHistoryEmptyPeriodsAndFailures(t *testing.T) {
 	now := time.Date(2026, 5, 31, 12, 0, 0, 0, time.UTC)
 	calls := s.calls
 	for _, date := range []string{"2020-01-01", "2027-01-01"} {
-		values, err := h.List(context.Background(), "lobby", date, date, 0, now)
+		values, err := h.List(context.Background(), "lobby", date, date, 0, now, domain.HistoryFilters{})
 		if err != nil || len(values) != 0 || s.calls != calls {
 			t.Fatal(values, err)
 		}
@@ -79,7 +82,24 @@ func TestHistoryEmptyPeriodsAndFailures(t *testing.T) {
 		t.Fatal(s, err)
 	}
 	s.err = errors.New("database")
-	if _, err := h.List(context.Background(), "lobby", "2026-04-01", "2026-04-01", 0, now); err == nil {
+	if _, err := h.List(context.Background(), "lobby", "2026-04-01", "2026-04-01", 0, now, domain.HistoryFilters{}); err == nil {
 		t.Fatal("missing error")
+	}
+}
+
+func TestHistoryOptionalFilters(t *testing.T) {
+	s := &historySpy{}
+	h := NewHistory(s)
+	now := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
+	if _, err := h.List(context.Background(), "lobby", "2026-09-01", "2026-09-28", 17, now, domain.HistoryFilters{Author: "  Автор ", Recipient: " Кому  "}); err != nil {
+		t.Fatal(err)
+	}
+	if s.filters.Author != "Автор" || s.filters.Recipient != "Кому" || s.after != 17 {
+		t.Fatal(s)
+	}
+	for _, filter := range []domain.HistoryFilters{{Author: strings.Repeat("я", 25)}, {Recipient: strings.Repeat("я", 25)}} {
+		if _, err := h.List(context.Background(), "lobby", "2026-09-01", "2026-09-28", 0, now, filter); !errors.Is(err, ErrInvalidPeriod) {
+			t.Fatal(err)
+		}
 	}
 }

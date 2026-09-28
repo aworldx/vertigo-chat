@@ -14,7 +14,7 @@ import (
 
 type archiveStub struct{ fail bool }
 
-func (s archiveStub) History(context.Context, string, time.Time, time.Time, int64, int) ([]domain.Message, error) {
+func (s archiveStub) History(context.Context, string, time.Time, time.Time, int64, int, domain.HistoryFilters) ([]domain.Message, error) {
 	if s.fail {
 		return nil, errors.New("database")
 	}

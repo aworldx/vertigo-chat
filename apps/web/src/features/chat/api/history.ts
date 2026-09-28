@@ -2,7 +2,7 @@ import type { paths } from "../../../shared/generated/chat"
 import { record, requestJSON, jsonMutation } from "../../../shared/api/json"
 import { message, type Message } from "./protocol"
 export type HistoryPage = paths["/api/v1/chat/history"]["get"]["responses"][200]["content"]["application/json"]
-export type HistoryPeriod = { from: string; through: string }
+export type HistoryPeriod = Omit<NonNullable<paths["/api/v1/chat/history"]["get"]["parameters"]["query"]>, "after">
 export async function loadHistory(period: HistoryPeriod, after: number, signal: AbortSignal): Promise<HistoryPage> {
   const query = new URLSearchParams({ ...period, after: String(after) })
   const value = await requestJSON(`/api/v1/chat/history?${query.toString()}`, { signal })

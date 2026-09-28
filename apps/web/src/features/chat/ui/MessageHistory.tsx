@@ -32,26 +32,25 @@ function HistoryEntry({
       data-message-kind={message.kind}
       data-message-font={message.font_id}
       data-message-font-style={message.font_style}
-      className="chat-message-entry min-w-0 rounded-lg border border-zinc-800 bg-zinc-900 p-3"
+      className="chat-message-entry flex min-w-0 items-start gap-2 py-0.5 text-sm leading-5"
     >
-      <time dateTime={message.sent_at} className="mb-1 block text-xs text-zinc-500">
-        {timestamp.format(new Date(message.sent_at))} МСК
-      </time>
-      {message.kind === "system" ? (
-        <p className="text-sm text-zinc-400">{message.body}</p>
-      ) : (
-        <>
-          <span className="chat-message-author font-semibold" style={appearanceStyle(message.appearance)}>
-            {message.author}
-          </span>
-          <p
-            className="chat-message-body whitespace-pre-wrap break-words text-sm"
-            style={appearanceStyle(message.appearance)}
-          >
-            {message.kind === "tetris" ? "Приглашение в Тетрис" : <MessageBody body={message.body} emojis={[]} />}
-          </p>
-        </>
-      )}
+      <div className="min-w-0 flex-1 break-words">
+        <time dateTime={message.sent_at} className="mr-2 text-[11px] not-italic text-zinc-500">
+          {timestamp.format(new Date(message.sent_at))} МСК
+        </time>
+        {message.kind === "system" ? (
+          <span className="text-xs text-zinc-500">{message.body}</span>
+        ) : (
+          <>
+            <span className="chat-message-author mr-1 font-semibold" style={appearanceStyle(message.appearance)}>
+              {message.author}:
+            </span>
+            <span className="chat-message-body whitespace-pre-wrap" style={appearanceStyle(message.appearance)}>
+              {message.kind === "tetris" ? "Приглашение в Тетрис" : <MessageBody body={message.body} emojis={[]} />}
+            </span>
+          </>
+        )}
+      </div>
       {onDelete && message.kind !== "system" && (
         <button
           type="button"
@@ -62,7 +61,7 @@ function HistoryEntry({
           onClick={() => {
             onDelete(message.id)
           }}
-          className="mt-2 flex size-8 items-center justify-center rounded border border-zinc-700 text-zinc-400 hover:border-red-300 hover:text-red-300 disabled:opacity-50"
+          className="flex size-6 shrink-0 items-center justify-center rounded text-zinc-500 hover:bg-zinc-800 hover:text-red-300 disabled:opacity-50"
         >
           <Icon name="trash" className="size-4" />
         </button>
@@ -73,6 +72,8 @@ function HistoryEntry({
 export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
   const [from, setFrom] = useState(today)
   const [through, setThrough] = useState(today)
+  const [author, setAuthor] = useState("")
+  const [recipient, setRecipient] = useState("")
   const { page, period, loading, error, search, removed } = useMessageHistory()
   const moderation = useHistoryModeration(csrf, removed)
   return (
@@ -94,7 +95,7 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
           className="my-5 flex flex-wrap items-end gap-3"
           onSubmit={(event) => {
             event.preventDefault()
-            void search({ from, through })
+            void search({ from, through, author: author.trim(), recipient: recipient.trim() })
           }}
         >
           <label className="grid gap-1 text-sm" htmlFor="history-from">
@@ -126,6 +127,40 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
               className="rounded border border-zinc-700 bg-zinc-900 p-2"
             />
           </label>
+          <label className="grid min-w-0 gap-1 text-sm" htmlFor="history-author">
+            Фразы от кого
+            <input
+              id="history-author"
+              type="text"
+              maxLength={24}
+              value={author}
+              placeholder="Любой автор"
+              aria-describedby="history-filter-help"
+              onChange={(event) => {
+                setAuthor(event.target.value)
+              }}
+              className="w-full rounded border border-zinc-700 bg-zinc-900 p-2"
+            />
+          </label>
+          <label className="grid min-w-0 gap-1 text-sm" htmlFor="history-recipient">
+            Фразы кому
+            <input
+              id="history-recipient"
+              type="text"
+              maxLength={24}
+              value={recipient}
+              placeholder="Любой адресат"
+              aria-describedby="history-filter-help"
+              onChange={(event) => {
+                setRecipient(event.target.value)
+              }}
+              className="w-full rounded border border-zinc-700 bg-zinc-900 p-2"
+            />
+          </label>
+          <p id="history-filter-help" className="w-full text-xs text-zinc-400">
+            Ники целиком, без учёта регистра. Оба поля необязательны и работают вместе. «Кому» — адресат публичного
+            обращения. Очисти поле, чтобы снять фильтр, и нажми «Показать историю».
+          </p>
           <button
             id="history-search"
             type="submit"
@@ -156,11 +191,13 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
           <section aria-label="Сообщения за выбранный период" aria-busy={loading}>
             <p className="mb-3 text-sm text-zinc-400">
               Период: {period.from} — {period.through} (МСК)
+              {period.author && <> · От: {period.author}</>}
+              {period.recipient && <> · Кому: {period.recipient}</>}
             </p>
             {page.data.length === 0 ? (
               <p>За этот период сообщений нет. Сообщения старше трёх месяцев и удалённые сообщения недоступны.</p>
             ) : (
-              <ol id="history-messages" className="space-y-3">
+              <ol id="history-messages" className="space-y-1">
                 {page.data.map((message) => (
                   <HistoryEntry
                     key={message.id}
