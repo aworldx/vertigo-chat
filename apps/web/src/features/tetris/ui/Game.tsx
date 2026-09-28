@@ -1,0 +1,296 @@
+import { Modal } from "../../../shared/ui/Modal"
+import { createPortal } from "react-dom"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useGame } from "../model/useGame"
+import { useTetrisAudio } from "../model/useTetrisAudio"
+import { useControls } from "../model/useControls"
+import { Board } from "./Board"
+import { AudioControls } from "./AudioControls"
+import type { Action, Game as GameState } from "../api/protocol"
+
+const names = ["—", "I", "O", "T", "S", "Z", "J", "L"]
+export function TetrisGame({
+  id,
+  token,
+  join,
+  onClose,
+  onRematch,
+}: {
+  id: string
+  token: string
+  join: boolean
+  onClose: () => void
+  onRematch: () => void
+}) {
+  const { game, error, connected, send, latest } = useGame(id, token, join)
+  const sound = useTetrisAudio(game)
+  const playInput = sound.input
+  const [focus, setFocus] = useState("")
+  const prominent = game?.self || focus || game?.players[0]?.id || ""
+  const self = game?.players.find((p) => p.id === game.self)
+  const action = (value: Action) => {
+    const current = latest.current
+    const player = current?.players.find((p) => p.id === current.self)
+    if (send(value) && current?.status === "running" && !current.paused && player && !player.dead) playInput(value)
+  }
+  const enabled = connected && game?.status === "running" && !!self && !self.dead
+  const controls = useControls(enabled, action)
+  const keyboard = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (enabled) keyboard.current?.focus()
+  }, [enabled])
+  const leave = useCallback(() => {
+    if (enabled && !window.confirm("Выйти из игры? Будет засчитано поражение.")) return
+    send("leave")
+    onClose()
+  }, [enabled, send, onClose])
+  return createPortal(
+    <Modal id="tetris-dialog" labelId="tetris-heading" onClose={leave} className="tetris-overlay">
+      <section className="tetris-shell" id="tetris-game">
+        <header className="tetris-header">
+          <div>
+            <span className="tetris-eyebrow">VERTIGO / БЛОКИ</span>
+            <h1 id="tetris-heading">{game?.mode === "solo" ? "Свой ритм. Новый рекорд." : "Один победитель."}</h1>
+          </div>
+          <button id="tetris-close" type="button" onClick={leave}>
+            Выйти
+          </button>
+        </header>
+        <div className="tetris-toolbar">
+          <span>
+            Код <strong>{game?.code ?? "…"}</strong>
+          </span>
+          <button id="tetris-audio-toggle" type="button" aria-pressed={sound.enabled} onClick={sound.toggle}>
+            {sound.enabled ? "Выключить звук" : "Включить звук"}
+          </button>
+          <a href="/games/tetris/leaderboard" target="_blank" rel="noreferrer">
+            Таблица лидеров ↗
+          </a>
+        </div>
+        {!connected && <p role="status">{game ? "Восстанавливаем связь…" : "Подключаем игру…"}</p>}
+        {error && (
+          <p role="alert" className="tetris-error">
+            {error}
+          </p>
+        )}
+        {game?.status === "lobby" && <Lobby game={game} send={action} connected={connected} />}
+        {game?.status === "cancelled" && <p role="status">Игра отменена.</p>}
+        {game && game.status !== "lobby" && game.status !== "cancelled" && (
+          <>
+            <div className="tetris-match-state" role="status">
+              {game.status === "countdown"
+                ? `Начинаем через ${String(game.countdown)}…`
+                : game.status === "finished"
+                  ? "Раунд завершён"
+                  : game.paused
+                    ? "Пауза"
+                    : self?.dead
+                      ? "Ты выбыл. Наблюдай за финалом."
+                      : !self
+                        ? "Режим наблюдателя"
+                        : `Уровень ${String(self.level)}`}
+            </div>
+            {!self && (
+              <label className="tetris-spectator">
+                Крупное поле{" "}
+                <select
+                  id="tetris-spectator-focus"
+                  value={prominent}
+                  onChange={(event) => {
+                    setFocus(event.target.value)
+                  }}
+                >
+                  {game.players.map((player) => (
+                    <option key={player.id} value={player.id}>
+                      {player.nickname}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <div
+              ref={keyboard}
+              id="tetris-keyboard"
+              role="application"
+              tabIndex={-1}
+              aria-label="Игровые поля. Стрелки — движение, пробел — сброс."
+              className="tetris-fields"
+              data-count={game.players.length}
+            >
+              {[...game.players]
+                .sort((a, b) => Number(b.id === prominent) - Number(a.id === prominent))
+                .map((player) => (
+                  <Board
+                    key={player.id}
+                    player={player}
+                    mine={player.id === game.self}
+                    prominent={player.id === prominent}
+                  />
+                ))}
+            </div>
+            {self && game.status !== "finished" && (
+              <div className="tetris-piece-info">
+                <span>
+                  Резерв: <b>{names[self.hold]}</b>
+                </span>
+                <span>Далее: {self.next.map((n) => names[n]).join(" · ")}</span>
+                {game.mode === "versus" && <span>Цель: {self.target || "—"}</span>}
+              </div>
+            )}
+            {enabled && (
+              <div className="tetris-controls" role="group" aria-label="Управление фигурами">
+                {(
+                  [
+                    ["left", "←"],
+                    ["rotate", "Поворот"],
+                    ["right", "→"],
+                    ["down", "↓"],
+                    ["drop", "Сброс"],
+                    ["hold", "Резерв"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    id={`tetris-control-${value}`}
+                    type="button"
+                    aria-label={
+                      value === "left" ? "Влево" : value === "right" ? "Вправо" : value === "down" ? "Вниз" : label
+                    }
+                    onPointerDown={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.setPointerCapture(e.pointerId)
+                      controls.press(value)
+                    }}
+                    onPointerUp={controls.stop}
+                    onPointerCancel={controls.stop}
+                    onLostPointerCapture={controls.stop}
+                    onClick={(e) => {
+                      if (e.detail === 0) action(value)
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+                {game.mode === "solo" && (
+                  <button
+                    id="tetris-pause"
+                    type="button"
+                    onClick={() => {
+                      action("pause")
+                    }}
+                  >
+                    {game.paused ? "Продолжить" : "Пауза"}
+                  </button>
+                )}
+              </div>
+            )}
+            {game.status === "finished" && (
+              <div className="tetris-results">
+                <h2>Результаты</h2>
+                <ol>
+                  {[...game.players]
+                    .sort((a, b) => a.place - b.place)
+                    .map((p) => (
+                      <li key={p.id}>
+                        {p.place}. {p.nickname} <strong>{p.score.toLocaleString("ru-RU")} очков</strong>
+                      </li>
+                    ))}
+                </ol>
+                <p>Очки подтверждены сервером. Таблица лидеров обновляется после сохранения.</p>
+                {self && (
+                  <button
+                    id="tetris-rematch"
+                    className="tetris-primary"
+                    type="button"
+                    onClick={() => {
+                      onRematch()
+                    }}
+                  >
+                    Реванш
+                  </button>
+                )}
+              </div>
+            )}
+          </>
+        )}
+        <footer className="tetris-bottom">
+          <p>← → движение · ↑ / X поворот · Z обратный поворот · пробел сброс · C резерв · P пауза в соло</p>
+          <AudioControls sound={sound} />
+        </footer>
+      </section>
+    </Modal>,
+    document.body,
+  )
+}
+function Lobby({ game, send, connected }: { game: GameState; send: (action: Action) => void; connected: boolean }) {
+  const self = game.players.find((p) => p.id === game.self),
+    ready = game.players.length >= 2 && game.players.every((p) => p.ready)
+  return (
+    <div className="tetris-lobby">
+      <h2>
+        Собираем компанию <span>{game.players.length}/3</span>
+      </h2>
+      <ul>
+        {game.players.map((p) => (
+          <li key={p.id}>
+            <span>
+              {p.nickname}
+              {p.id === game.host ? " · создатель" : ""}
+            </span>
+            <span>{p.ready ? "Готов" : "Готовится"}</span>
+          </li>
+        ))}
+        {Array.from({ length: 3 - game.players.length }, (_, i) => (
+          <li key={`empty-${String(i)}`} className="tetris-empty">
+            Свободное место
+          </li>
+        ))}
+      </ul>
+      <p>Приглашение опубликовано в чате. Набор закрывается после третьего игрока или старта.</p>
+      <div className="tetris-lobby-actions">
+        {!self && game.players.length < 3 && (
+          <button
+            id="tetris-join"
+            disabled={!connected}
+            type="button"
+            onClick={() => {
+              send("join")
+            }}
+          >
+            Присоединиться
+          </button>
+        )}
+        {self && (
+          <button
+            id="tetris-ready"
+            disabled={!connected}
+            type="button"
+            aria-pressed={self.ready}
+            onClick={() => {
+              send(self.ready ? "unready" : "ready")
+            }}
+          >
+            {self.ready ? "Не готов" : "Я готов"}
+          </button>
+        )}
+        {self?.id === game.host && (
+          <button
+            id="tetris-start"
+            disabled={!connected || !ready}
+            className="tetris-primary"
+            type="button"
+            onClick={() => {
+              send("start")
+            }}
+          >
+            {game.players.length === 2 ? "Начать вдвоём" : "Начать втроём"}
+          </button>
+        )}
+      </div>
+      <p className="tetris-muted">
+        {!self ? "Ты наблюдаешь за лобби." : "Создатель запускает игру, когда все участники готовы."} Матчи с гостями —
+        без изменения рейтинга.
+      </p>
+    </div>
+  )
+}

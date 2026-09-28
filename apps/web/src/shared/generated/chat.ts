@@ -324,6 +324,8 @@ export interface components {
             message_sound_enabled: boolean;
             appearance: components["schemas"]["MessageAppearance"] & {
                 message_frame: boolean;
+                /** @description Opt into the desktop shared player; defaults to false when omitted. Mobile always uses inline media. */
+                use_player?: boolean;
                 /** @description Hide only the personal Karmik decoration; defaults to false when omitted. Karma processing remains active. */
                 hide_karmik?: boolean;
             };

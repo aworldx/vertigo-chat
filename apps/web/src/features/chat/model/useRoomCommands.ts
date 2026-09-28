@@ -8,6 +8,7 @@ export function useRoomCommands(
   onProfile: (nickname: string) => void,
   onLeave: () => void,
   search: (kind: MediaItem["kind"], query: string) => void,
+  onGame?: (argument: string) => void,
 ) {
   const sequence = useRef(0)
   const [results, setResults] = useState<CommandResult[]>([]),
@@ -34,6 +35,9 @@ export function useRoomCommands(
       return true
     }
     switch (command) {
+      case "/тетрис":
+        onGame?.(argument)
+        break
       case "/музыка":
       case "/гиф":
       case "/ютуб":

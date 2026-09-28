@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --import=tsx --test test/*.test.tsx",
-    "test:browser": "playwright test",
+    "test:browser": "sh ../../script/verify-go-accounts && sh ../../script/verify-go-chat && sh ../../script/verify-go-tetris && sh ../../script/verify-target-web",
     "browsers:install": "playwright install chromium",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src scripts/render-articles.tsx js/profiles.tsx js/account_login.tsx test browser playwright.config.ts && node scripts/check-architecture.mjs",
@@ -15,13 +15,16 @@
     "generate:chat-types": "openapi-typescript ../../contracts/openapi/chat.yaml -o src/shared/generated/chat.ts",
     "generate:community-types": "openapi-typescript ../../contracts/openapi/community.yaml -o src/shared/generated/community.ts",
     "test:coverage": "c8 --all --include=\"src/**/*.ts\" --include=\"src/**/*.tsx\" --exclude=\"src/shared/generated/**\" --reporter=json --reporter=text --reports-dir=coverage/unit node --import=tsx --test test/*.test.tsx",
-    "coverage:check": "node scripts/coverage.mjs"
+    "coverage:check": "node scripts/coverage.mjs",
+    "generate:tetris-types": "openapi-typescript ../../contracts/openapi/tetris.yaml -o src/shared/generated/tetris.ts",
+    "test:browser:legacy": "playwright test"
   },
   "dependencies": {
     "@tiptap/markdown": "^3.31.3",
     "@tiptap/pm": "^3.31.3",
     "@tiptap/react": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
+    "phaser": "3.90.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",

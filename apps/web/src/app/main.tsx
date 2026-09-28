@@ -1,3 +1,4 @@
+import { TetrisPage } from "../pages/TetrisPage"
 import { AdminPage } from "../pages/AdminPage"
 import { ArticlesPage } from "../pages/ArticlesPage"
 import { LibraryPage } from "../pages/LibraryPage"
@@ -20,7 +21,9 @@ if (!path.startsWith("/articles"))
   document.title = `${path === "/admin" ? "Админка" : path === "/library" ? "Библиотека" : path === "/gallery" ? "Фотоальбом" : path === "/visits" ? "Кто был" : path === "/account" ? "Настройки аккаунта" : help ? "Помощь" : login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
 if (container)
   createRoot(container).render(
-    path === "/admin" ? (
+    path.startsWith("/games/tetris") ? (
+      <TetrisPage />
+    ) : path === "/admin" ? (
       <AdminPage />
     ) : path.startsWith("/articles") ? (
       <ArticlesPage />

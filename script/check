@@ -1,8 +1,53 @@
 #!/bin/sh
-# Repository-wide quality gate. Service-specific checks remain available separately.
+# Reproducible Go + React release gate. Only Docker is required on the host.
 set -eu
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+cd "$repository_root"
+run_id="chat-quality-$$"
+network="$run_id"
+database="$run_id-postgres"
+runner="$run_id-runner"
+image_file="$(mktemp)"
+# ShellCheck 0.10 does not follow EXIT callbacks; remove when upgrading the pinned linter.
+# shellcheck disable=SC2317
+cleanup() {
+  docker rm -fv "$runner" "$database" >/dev/null 2>&1 || true
+  docker network rm "$network" >/dev/null 2>&1 || true
+  rm -f "$image_file"
+}
+trap cleanup EXIT HUP INT TERM
 
-cd "$(dirname "$0")/../apps/phoenix"
-mix precommit
-# Accounts browser checks already run inside precommit coverage.
-exec ../../script/check-infrastructure
+docker build --target quality --tag chat-quality:local --iidfile "$image_file" -f deploy/docker/Dockerfile .
+docker network create "$network" >/dev/null
+docker run -d --name "$database" --network "$network" --network-alias postgres \
+  -e POSTGRES_USER=quality -e POSTGRES_PASSWORD=quality -e POSTGRES_DB=postgres postgres:17 >/dev/null
+attempt=0
+until docker exec "$database" pg_isready -U quality -d postgres >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 30 ]; then docker logs "$database"; exit 1; fi
+  sleep 1
+done
+docker create --name "$runner" --network "$network" --shm-size=1g \
+  -v chat-quality-go-1.27.1:/root/.cache/go-build \
+  -e CHAT_QUALITY_CONTAINER=1 \
+  -e COVERAGE_DATABASE_URL=postgresql://quality:quality@postgres/postgres \
+  "$(cat "$image_file")" sh script/check-target >/dev/null
+status=0
+docker start -a "$runner" || status=$?
+container_status="$(docker inspect --format '{{.State.ExitCode}}' "$runner")"
+if [ "$container_status" -ne 0 ]; then status="$container_status"; fi
+report_dir="$repository_root/coverage/quality"
+mkdir -p "$report_dir"
+docker logs "$runner" >"$report_dir/check.log" 2>&1 || true
+for directory in coverage apps/web/migration-results apps/web/test-results; do
+  destination="$report_dir/$(printf '%s' "$directory" | tr / -)"
+  mkdir -p "$destination"
+  docker cp "$runner:/app/$directory/." "$destination/" 2>/dev/null || true
+done
+# Raw browser coverage deltas can exceed several GB; export aggregated reports only.
+mkdir -p "$report_dir/apps-web-coverage"
+for report in coverage-final.json coverage-summary.json; do
+  docker cp "$runner:/app/apps/web/coverage/$report" "$report_dir/apps-web-coverage/$report" 2>/dev/null || true
+done
+printf 'Quality reports: %s\n' "$report_dir"
+exit "$status"

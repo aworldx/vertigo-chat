@@ -47,6 +47,9 @@ export function useMediaSearch(generation: number, publish: (item: MediaItem) =>
   return {
     result,
     search,
+    retry: () => {
+      if (result) search(result.kind, result.query)
+    },
     close: () => {
       active.current?.abort()
       setResult(null)

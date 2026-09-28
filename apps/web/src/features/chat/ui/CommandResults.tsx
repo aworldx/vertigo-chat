@@ -16,6 +16,10 @@ export function CommandResults({
     <CommandResult
       key={result.id}
       result={result}
+      onDismiss={() => {
+        onDismiss(result.id)
+        document.getElementById("message-body")?.focus()
+      }}
       onAddress={(nickname) => {
         onAddress(nickname)
         if (result.command === "who") onDismiss(result.id)

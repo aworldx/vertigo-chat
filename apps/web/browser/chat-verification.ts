@@ -1,3 +1,5 @@
+import { verifyChatControls } from "./chat-controls-verification"
+import { verifyPlayer } from "./player-verification"
 import { verifyMessageScroll } from "./message-scroll-verification"
 import { launchBrowser } from "./coverage"
 import { verifyVisits } from "./visits-flow"
@@ -19,6 +21,8 @@ async function enter(page: Page, nickname: string, password = "") {
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
 }
 try {
+  await verifyChatControls(browser, origin)
+  await verifyPlayer(browser, origin)
   await verifyLandingFlow(browser, origin)
   await verifyDeliveryStates(browser, origin)
   await verifyMessageScroll(browser, origin)
@@ -323,21 +327,24 @@ try {
     })
     await page.locator('#room-action-form button[type="submit"]').click()
     const streamed = recipientPage.locator('[id^="shared-media-"]').filter({ hasText: "purr.mp3" })
-    await streamed.getByRole("button", { name: "Слушать", exact: true }).click()
+    await streamed.getByRole("button", { name: "Получить аудио", exact: true }).click()
     await expect.poll(() => !!releaseAudio, { timeout: 45000 }).toBe(true)
     const streamedAudio = streamed.locator("audio")
+    await streamedAudio.evaluate(async (element) => {
+      if (element instanceof HTMLMediaElement) await element.play()
+    })
     await expect
-      .poll(() => streamedAudio.evaluate((element) => element instanceof HTMLAudioElement && element.readyState >= 2))
+      .poll(() => streamedAudio.evaluate((element) => element instanceof HTMLMediaElement && element.readyState >= 2))
       .toBe(true)
     await expect(streamed.getByRole("status")).toContainText("Получаем файл")
     await streamedAudio.evaluate(async (element) => {
-      if (element instanceof HTMLAudioElement) await element.play()
+      if (element instanceof HTMLMediaElement) await element.play()
     })
     assert.ok(releaseAudio)
     releaseAudio()
     await expect(streamed.getByRole("status")).toHaveCount(0, { timeout: 15000 })
     await streamedAudio.evaluate((element) => {
-      if (element instanceof HTMLAudioElement) element.pause()
+      if (element instanceof HTMLMediaElement) element.pause()
     })
     const chartPage = await registered.newPage()
     await chartPage.goto(`${origin}/music-chart`)
@@ -376,12 +383,12 @@ try {
     assert.equal(range.status(), 206)
     assert.equal((await range.body()).length, 44)
     await audio.evaluate(async (element) => {
-      if (element instanceof HTMLAudioElement) await element.play()
+      if (element instanceof HTMLMediaElement) await element.play()
     })
     const listening = recipientPage.locator('[data-peer-nickname="browser-registered"] [id^="listening-chatlan-"]')
     await expect(listening).toHaveAttribute("title", "Слушает: Проверка музыки — новое название")
     await audio.evaluate((element) => {
-      if (element instanceof HTMLAudioElement) element.pause()
+      if (element instanceof HTMLMediaElement) element.pause()
     })
     await expect(listening).toHaveCount(0)
     await chartPage.close()
@@ -390,7 +397,7 @@ try {
     const guestChart = await popup
     const guestAudio = guestChart.locator("#music-chart-tracks audio").first()
     await guestAudio.evaluate(async (element) => {
-      if (element instanceof HTMLAudioElement) await element.play()
+      if (element instanceof HTMLMediaElement) await element.play()
     })
     const guestListening = page.locator('[data-peer-nickname="file-recipient"] [id^="listening-chatlan-"]')
     await expect(guestListening).toHaveAttribute("title", "Слушает: Проверка музыки — новое название")

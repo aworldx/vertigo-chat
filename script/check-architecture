@@ -1,19 +1,6 @@
 #!/bin/sh
-# Enforces architecture rules that are not expressible in language linters yet.
+# React boundaries; Go domain/application boundaries are enforced by check-go depguard.
 set -eu
-
 repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
-phoenix_root="$repository_root/apps/phoenix"
-cd "$phoenix_root"
-
-actual_file="$(mktemp "${TMPDIR:-/tmp}/chat-architecture.XXXXXX")"
-expected_file="$(mktemp "${TMPDIR:-/tmp}/chat-architecture.XXXXXX")"
-trap 'rm -f "$actual_file" "$expected_file"' EXIT HUP INT TERM
-
-rg -l '\bChatWeb\b' lib/chat --glob '*.ex' | sort > "$actual_file" || true
-grep -v '^#' .architecture-baseline | sed '/^$/d' | sort > "$expected_file"
-
-if ! diff -u "$expected_file" "$actual_file"; then
-  echo "Chat must not depend on ChatWeb outside the documented composition-root exception." >&2
-  exit 1
-fi
+cd "$repository_root/apps/web"
+exec node scripts/check-architecture.mjs

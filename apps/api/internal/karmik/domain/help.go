@@ -12,7 +12,7 @@ var helpSubjects = []struct {
 	words *regexp.Regexp
 }{
 	{"video", regexp.MustCompile(`видео|ролик|клип|ют[ую]б|youtube`)},
-	{"music", regexp.MustCompile(`музык|песн|трек`)},
+	{"music", regexp.MustCompile(`музык|песн|трек|плеер|плейлист|чатлан тв|(сверну|скрыть|выключ|откры|разверну).*телевизор`)},
 	{"font", regexp.MustCompile(`шрифт|курсив|начертани`)},
 	{"colors", regexp.MustCompile(`цвет`)},
 	{"files", regexp.MustCompile(`файл|фото|картинк|изображен|вложени|аудио`)},
@@ -34,7 +34,7 @@ var helpSubjects = []struct {
 	{"chart", regexp.MustCompile(`хит.?парад|топ.*(музык|трек)|коммент.*трек`)},
 	{"connection", regexp.MustCompile(`связ|соединени|не отправ|не достав|не уход|переподключ|другой вклад|лимит|ошибк`)},
 	{"leave", regexp.MustCompile(`выйти|выход|покинуть`)},
-	{"games", regexp.MustCompile(`(^|[^\p{L}])игр|шашк|балда|морской бой|дурак`)},
+	{"games", regexp.MustCompile(`(^|[^\p{L}])игр|тетрис|лидерборд|таблиц.*лидер|шашк|балда|морской бой|дурак`)},
 	{"admin", regexp.MustCompile(`админ|модерац`)},
 	{"commands", regexp.MustCompile(`команд|пользоваться чатом|работает чат`)},
 }

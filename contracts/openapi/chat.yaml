@@ -458,6 +458,7 @@ components:
               required: [message_frame]
               properties:
                 message_frame: {type: boolean}
+                use_player: {type: boolean, description: Opt into the desktop shared player; defaults to false when omitted. Mobile always uses inline media.}
                 hide_karmik: {type: boolean, description: Hide only the personal Karmik decoration; defaults to false when omitted. Karma processing remains active.}
 
     Emoji:

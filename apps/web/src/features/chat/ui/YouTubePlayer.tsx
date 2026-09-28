@@ -1,7 +1,18 @@
+import { Button } from "../../../shared/ui/Button"
 import { useVideoPlayback } from "../model/useVideoPlayback"
 import { Icon } from "../../../shared/ui/Icon"
-export function YouTubePlayer({ source, author, id }: { source: string; author: string; id: string }) {
-  const { videoRef, state, start, retry, playing } = useVideoPlayback(source)
+export function YouTubePlayer({
+  source,
+  author,
+  id,
+  autoStart = false,
+}: {
+  source: string
+  author: string
+  id: string
+  autoStart?: boolean
+}) {
+  const { videoRef, state, start, retry, playing } = useVideoPlayback(source, autoStart)
   return (
     <div className="relative">
       <video
@@ -19,15 +30,16 @@ export function YouTubePlayer({ source, author, id }: { source: string; author: 
         <track kind="captions" label="Субтитры" />
       </video>
       {(state === "idle" || state === "failed") && (
-        <button
+        <Button
           id={`youtube-message-play-${id}`}
           type="button"
           onClick={start}
-          className="absolute inset-0 m-auto flex h-11 w-fit items-center gap-2 self-center rounded-full bg-zinc-100 px-5 text-sm font-semibold text-zinc-950 shadow-lg transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          variant="primary"
+          className="absolute inset-0 m-auto h-11 w-fit"
         >
           <Icon name="play" className="size-4" />
           <span>{state === "failed" ? "Повторить" : "Воспроизвести"}</span>
-        </button>
+        </Button>
       )}
       {state === "preparing" && (
         <div

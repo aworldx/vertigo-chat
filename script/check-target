@@ -1,0 +1,12 @@
+#!/bin/sh
+# Native Linux steps inside the pinned quality image; no Phoenix or host SDK.
+set -eu
+cd "$(dirname "$0")/.."
+script/check-contracts
+npm --prefix apps/web run typecheck
+npm --prefix apps/web run lint
+npm --prefix apps/web run format:check
+script/check-go
+# Includes unit coverage, production frontend builds and all target browser flows.
+script/check-coverage
+script/check-infrastructure

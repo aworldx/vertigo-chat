@@ -11,13 +11,16 @@ try {
   await page.locator("#entrance-nickname").fill("media-live-reader")
   await page.locator("#enter-chat").click()
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
+  await page.locator("#toggle-settings").click()
+  await page.locator("#use-player").check()
+  await page.locator("#save-preferences").click()
   const command = async (body: string) => {
     await page.locator("#message-body").fill(body)
     await page.locator("#send-message").click()
   }
   await command("/музыка Radiohead")
   const results = page.locator("#media-search-results")
-  await expect(results.locator("audio")).toHaveCount(5, { timeout: 45000 })
+  await expect(results.locator('[id$="-play"]')).toHaveCount(5, { timeout: 45000 })
   await expect
     .poll(() =>
       page.locator("#messages").evaluate((element) => element.scrollHeight - element.clientHeight - element.scrollTop),
@@ -26,20 +29,21 @@ try {
   await results.getByRole("button", { name: "2", exact: true }).click()
   await expect(results.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page")
   await results.getByRole("button", { name: "1", exact: true }).click()
-  const audio = results.locator("audio").first()
+  await results.locator('[id$="-play"]').first().click()
+  const audio = page.locator("#chat-tv-media")
   await audio.evaluate(async (element) => {
-    if (element instanceof HTMLAudioElement) await element.play()
+    if (element instanceof HTMLMediaElement) await element.play()
   })
   await expect
-    .poll(() => audio.evaluate((element) => element instanceof HTMLAudioElement && element.currentTime > 0), {
+    .poll(() => audio.evaluate((element) => element instanceof HTMLMediaElement && element.currentTime > 0), {
       timeout: 30000,
     })
     .toBe(true)
   await expect(page.locator('[data-peer-nickname="media-live-reader"] [id^="listening-chatlan-"]')).toBeVisible()
   await audio.evaluate((element) => {
-    if (element instanceof HTMLAudioElement) element.pause()
+    if (element instanceof HTMLMediaElement) element.pause()
   })
-  await results.getByRole("button", { name: "В чат", exact: true }).first().click()
+  await results.getByRole("button", { name: "Отправить в чат", exact: true }).first().click()
   await expect(page.locator('[data-message-kind="music"]')).toHaveCount(1)
   await results.getByRole("button", { name: "Закрыть поиск музыки" }).click()
   await command("/гиф hello")
@@ -58,12 +62,12 @@ try {
   const videoMessage = page.locator('[data-message-kind="youtube"]')
   await expect(videoMessage).toBeVisible({ timeout: 35000 })
   await videoMessage.getByRole("button", { name: "Воспроизвести", exact: true }).click()
-  await expect(videoMessage.getByRole("status")).toContainText("Подготавливаю")
+  await page.locator("#chat-tv-toggle").click()
   await expect
     .poll(
       () =>
-        videoMessage
-          .locator("video")
+        page
+          .locator("#chat-tv-media")
           .evaluate((element) => element instanceof HTMLVideoElement && element.currentTime > 0),
       { timeout: 145000 },
     )

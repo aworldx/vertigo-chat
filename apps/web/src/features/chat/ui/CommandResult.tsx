@@ -1,34 +1,50 @@
-import { Icon } from "../../../shared/ui/Icon"
+import { Button } from "../../../shared/ui/Button"
+import { DismissTool, ToolCard } from "./ToolCard"
 import type { CommandResult as Result } from "../model/commands"
-export function CommandResult({ result, onAddress }: { result: Result; onAddress: (nickname: string) => void }) {
+export function CommandResult({
+  result,
+  onAddress,
+  onDismiss,
+}: {
+  result: Result
+  onAddress: (nickname: string) => void
+  onDismiss: () => void
+}) {
   return (
     <div id={`command-${String(result.id)}`} className="chat-message-entry px-1 py-1" data-message-kind="command">
-      <section
-        className="rounded-xl border border-amber-300/35 bg-zinc-900/95 px-4 py-3 shadow-lg shadow-black/20"
+      <ToolCard
         data-command-result={result.command}
+        title={result.title}
+        description="Только ты видишь результат команды"
+        actions={
+          <DismissTool
+            id={`dismiss-command-${String(result.id)}`}
+            label="Закрыть результат команды"
+            onClick={onDismiss}
+          />
+        }
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.stopPropagation()
+            onDismiss()
+          }
+        }}
       >
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-200">
-          <Icon name="command-line" className="size-4" />
-          <span>{result.title}</span>
-          <time className="ml-auto text-[10px] font-normal normal-case tracking-normal text-zinc-500">
-            {new Date(result.id).toLocaleTimeString()}
-          </time>
-        </div>
-        <p className="mt-2 text-sm leading-5 text-zinc-300">{result.body}</p>
+        <p className="chat-tool-body">{result.body}</p>
         {result.items.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {result.items.map((item, index) =>
               item.nickname ? (
-                <button
+                <Button
                   key={index}
                   type="button"
                   onClick={() => {
                     if (item.nickname) onAddress(item.nickname)
                   }}
-                  className="rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-sm font-semibold text-amber-200 transition hover:border-amber-300"
+                  id={`command-${String(result.id)}-item-${String(index)}`}
                 >
                   {item.nickname}
-                </button>
+                </Button>
               ) : (
                 <div key={index} className="w-full text-sm">
                   <span className="font-semibold text-amber-200">{item.label}</span>
@@ -38,7 +54,7 @@ export function CommandResult({ result, onAddress }: { result: Result; onAddress
             )}
           </div>
         )}
-      </section>
+      </ToolCard>
     </div>
   )
 }

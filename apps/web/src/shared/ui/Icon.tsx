@@ -1,4 +1,28 @@
 const icons = {
+  pause: <path d="M8 5v14M16 5v14" strokeWidth="3" strokeLinecap="round" />,
+  "forward-step": (
+    <>
+      <path d="m5 5 11 7-11 7V5Z" fill="currentColor" strokeLinejoin="round" />
+      <path d="M19 5v14" strokeWidth="2" strokeLinecap="round" />
+    </>
+  ),
+  "arrow-up": <path d="M12 20V4m-7 7 7-7 7 7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
+
+  "speaker-wave": (
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M11 4 6 8H3v8h3l5 4V4Zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"
+    />
+  ),
+  power: <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v8m-5.5-5a8 8 0 1 0 11 0" />,
+  "picture-in-picture": (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <rect x="12" y="11" width="6" height="6" rx="1" fill="currentColor" stroke="none" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m6 7 3 3m-3 0h3V7" />
+    </>
+  ),
   pencil: (
     <>
       <path

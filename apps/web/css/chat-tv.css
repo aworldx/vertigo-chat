@@ -1,0 +1,389 @@
+/* One mounted player; the cabinet can fold away without replacing its media node. */
+.chat-room-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  flex: 1;
+}
+.chat-room-sidebar {
+  display: contents;
+}
+.chat-tv {
+  --tv-text: var(--tool-text);
+  --tv-muted: var(--tool-muted);
+  --tv-surface: var(--tool-surface);
+  --tv-border: var(--tool-border);
+  flex: none;
+  min-width: 0;
+  position: relative;
+  z-index: var(--chat-layer-player);
+  color: var(--tv-text);
+  background: var(--tv-surface);
+  font-family: inherit;
+}
+
+.chat-tv[data-mode="off"] {
+  display: none;
+}
+
+.chat-tv-mini {
+  display: flex;
+  align-items: center;
+  gap: var(--control-gap);
+  padding: 7px 10px;
+  border-top: 1px solid var(--tv-border);
+}
+.chat-tv .chat-tv-mini-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.chat-tv-mini-title > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-tv small {
+  display: block;
+  font-size: 11px;
+  color: var(--tv-muted);
+  font-weight: 400;
+}
+.chat-tv-panel {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  max-height: min(75dvh, 650px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border-top: 1px solid var(--tv-border);
+  border-radius: 16px 16px 0 0;
+  background: var(--tv-surface);
+  box-shadow: 0 -12px 40px #0005;
+}
+.chat-tv[data-mode="compact"] .chat-tv-panel {
+  display: none;
+}
+.chat-tv-heading {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  touch-action: pan-x;
+  position: relative;
+  z-index: 2;
+  padding: 2px 0;
+  margin-bottom: 2px;
+  background: var(--tv-surface);
+}
+.chat-tv-grip {
+  flex: 1;
+}
+
+.chat-player-screen {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  aspect-ratio: var(--media-ratio, 16 / 9);
+  border-radius: var(--control-radius);
+  background: #080b10;
+}
+.chat-player-screen video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.chat-player-screen[data-music="true"] video {
+  opacity: 0;
+  pointer-events: none;
+}
+.chat-tv-visualizer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #183f47, #050c16 75%);
+}
+.chat-tv-aurora {
+  position: absolute;
+  inset: -35%;
+  background: conic-gradient(from 45deg, transparent, #45d9c366, transparent, #9673db66, transparent);
+  filter: blur(16px);
+  animation: chat-tv-aurora 12s linear infinite paused;
+}
+.chat-tv-spectrum {
+  position: absolute;
+  inset: 20% 9%;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  filter: drop-shadow(0 0 5px #60e5c977);
+}
+.chat-tv-spectrum span {
+  flex: 1;
+  height: 85%;
+  border-radius: 5px;
+  background: linear-gradient(#b6a4ee, #65d9d2 45%, #94dfad);
+  transform: scaleY(0.55);
+  animation: chat-tv-spectrum 1s ease-in-out infinite alternate paused;
+}
+.chat-player-screen[data-playing="true"] .chat-tv-aurora,
+.chat-player-screen[data-playing="true"] .chat-tv-spectrum span {
+  animation-play-state: running;
+}
+@keyframes chat-tv-spectrum {
+  from {
+    transform: scaleY(0.12);
+  }
+  to {
+    transform: scaleY(0.9);
+  }
+}
+@keyframes chat-tv-aurora {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.chat-tv-title {
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+}
+
+.chat-tv-controls {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  margin-top: 0;
+}
+.chat-tv-volume {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex: none;
+}
+.chat-tv-volume-popup {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-top: 8px;
+  z-index: 3;
+}
+.chat-tv-volume-slider {
+  display: flex;
+  justify-content: center;
+  padding: 12px 8px;
+  border: 1px solid var(--tv-border);
+  border-radius: var(--control-card-radius);
+  background: var(--tv-surface);
+  box-shadow: 0 4px 18px #0005;
+}
+.chat-tv input {
+  accent-color: #c19a53;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+.chat-tv #chat-tv-volume {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 24px;
+  height: 96px;
+  margin: 0;
+}
+.chat-tv-progress {
+  margin-left: 10px;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--tv-muted);
+}
+.chat-tv-progress span {
+  white-space: nowrap;
+}
+
+#chat-tv-status:empty {
+  display: none;
+}
+
+.chat-tv-queue {
+  font-size: 12px;
+  margin-top: 8px;
+}
+.chat-tv-queue li {
+  display: flex;
+  gap: var(--control-gap);
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid var(--tv-border);
+}
+.chat-tv .chat-tv-queue-title {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.chat-tv-queue-actions {
+  display: flex;
+  gap: 0;
+}
+
+@media (min-width: 768px) {
+  .chat-room-content {
+    grid-template-columns: minmax(0, 1fr) 19rem;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .chat-room-content > main {
+    grid-column: 1;
+    grid-row: 1 / -1;
+  }
+  .chat-room-sidebar {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .chat-room-sidebar #chat-online-sidebar {
+    flex: 1;
+    min-width: 0;
+  }
+  .chat-room-content:has(> .chat-tv:not([data-mode="off"])) #karmik {
+    display: none;
+  }
+  .chat-tv {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .chat-tv-panel {
+    position: static;
+    max-height: min(60dvh, 520px);
+    border-radius: 0;
+    box-shadow: none;
+    padding: 4px var(--control-card-padding) var(--control-card-padding);
+  }
+  .chat-player-screen {
+    height: auto;
+    width: calc(100% + 2 * var(--control-card-padding));
+    margin-left: calc(-1 * var(--control-card-padding));
+    border-radius: 0;
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
+  .chat-tv-dashboard {
+    min-width: 0;
+  }
+  .chat-tv .chat-tv-title {
+    justify-content: flex-start;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    min-height: 0;
+    margin-top: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .chat-tv-controls {
+    display: flex;
+  }
+  .chat-tv-progress {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 0;
+  }
+  .chat-tv-queue ol {
+    max-height: 140px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 4px;
+  }
+  .chat-tv .chat-tv-queue-title {
+    min-height: 28px;
+    padding: 2px 4px;
+    font-size: 11px;
+  }
+  .chat-tv-queue-title small {
+    font-size: 10px;
+  }
+  .chat-tv-queue li {
+    padding-block: 2px;
+  }
+  .chat-tv[data-mode="expanded"] .chat-tv-mini {
+    display: none;
+  }
+}
+@media (pointer: coarse) {
+  .chat-tv input {
+    min-height: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-player-screen .chat-tv-aurora,
+  .chat-player-screen .chat-tv-spectrum span {
+    animation: none;
+  }
+}
+
+/* Bound the expanded panel to the space between navigation and composer. */
+@media (max-width: 767px) {
+  .chat-room-content {
+    position: relative;
+  }
+  .chat-room-content > main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .chat-tv {
+    grid-column: 1;
+    grid-row: 2;
+    position: static;
+  }
+  .chat-tv-panel {
+    z-index: var(--chat-layer-player);
+    max-height: 55%;
+    padding: 6px 10px 10px;
+  }
+
+  .chat-tv-grip::after {
+    content: "";
+    display: block;
+    width: 32px;
+    height: 3px;
+    margin: auto;
+    border-radius: 3px;
+    background: var(--tv-border);
+  }
+  .chat-player-screen {
+    height: auto;
+    width: min(100%, calc(min(18dvh, 120px) * var(--media-ratio, 1.7778)));
+    max-width: 100%;
+    margin: 0 auto 8px;
+  }
+  .chat-tv-queue ol {
+    max-height: 96px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .chat-tv-controls {
+    margin-top: 4px;
+  }
+  .chat-tv-queue {
+    margin-top: 5px;
+    padding-top: 4px;
+  }
+}

@@ -40,19 +40,13 @@ npm --prefix apps/web test
 script/check-infrastructure
 ```
 
-`script/check-go` использует установленный Go или закреплённый Docker-образ
-Go, поэтому локальная проверка не требует отдельной установки SDK при наличии
-Docker.
-
-Пока Phoenix остаётся в репозитории для legacy-сравнений, обязательный общий
-локальный gate из [AGENTS.md](AGENTS.md) также запускается командой
-`cd apps/phoenix && mix precommit`.
-
-Перед push запускайте полный локальный gate: `script/check`. Он включает
-`mix precommit` (Go/React/Phoenix, покрытие, browser regression и контракты),
-затем ShellCheck, Hadolint, OpenAPI lint и проверку Compose. Нужны локальные
-Node >=24.8, Go, Elixir, PostgreSQL, установленный Playwright Chromium и Docker.
-Accounts browser regression уже входит в проверку покрытия и повторно не запускается.
+Перед push запускайте `script/check`. Он собирает закреплённую Linux-среду,
+проверяет Go + React, покрытие, реальные браузерные сценарии, контракты и
+инфраструктуру. На хосте нужен только Docker; локальные Go/Node/Elixir/PostgreSQL
+не используются. Phoenix исключён из обязательного gate. Зависимости и Go build
+cache сохраняются между запусками, тестовые БД изолированы и удаляются автоматически.
+Подробности и расположение отчётов: [Проверки Go + React](docs/quality_checks.md).
+Отдельные команды выше требуют соответствующего локального окружения.
 
 GitLab CI только собирает и публикует production-образы после push в `main`;
 полного quality job в CI нет. Проверки обязательны локально перед отправкой.

@@ -1,6 +1,12 @@
 import type { HelpTopic } from "./chatHelp"
 // Menu, autocomplete and public help use the same command inventory.
 export const chatCommands: readonly { input: string; label: string; description: string; topic: HelpTopic }[] = [
+  {
+    input: "/тетрис",
+    label: "/тетрис [соло / код / топ]",
+    description: "Создаёт игру до трёх участников; соло — без приглашения, топ — таблица лидеров.",
+    topic: "games",
+  },
   { input: "/помощь", label: "/помощь", description: "Показывает список команд.", topic: "commands" },
   {
     input: "/кто",
@@ -31,7 +37,7 @@ export const chatCommands: readonly { input: string; label: string; description:
   {
     input: "/ютуб ",
     label: "/ютуб ссылка или запрос",
-    description: "По запросу покажет до пяти коротких роликов; по ссылке сразу отправит компактный плеер.",
+    description: "По запросу покажет до пяти коротких роликов; по ссылке сразу отправит карточку видео.",
     topic: "video",
   },
   { input: "/очистить", label: "/очистить", description: "Очищает окно чата только у тебя.", topic: "clear" },

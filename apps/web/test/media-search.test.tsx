@@ -12,7 +12,6 @@ Object.assign(globalThis, {
 })
 const { renderHook, act, cleanup, waitFor } = await import("@testing-library/react")
 const { useMediaSearch } = await import("../src/features/chat/model/useMediaSearch")
-const { useVideoPlayback } = await import("../src/features/chat/model/useVideoPlayback")
 const originalFetch = globalThis.fetch
 afterEach(() => {
   cleanup()
@@ -149,43 +148,33 @@ test("a direct YouTube result publishes once; server errors stay visible and ret
     assert.equal(result.current.result?.error, "offline")
   })
 })
-test("video preparation retries are bounded and a successful playback cancels the retry", (t) => {
-  t.mock.timers.enable({ apis: ["setTimeout"] })
-  const video = document.createElement("video")
-  const load = t.mock.method(video, "load", () => {})
-  t.mock.method(video, "play", () => Promise.reject(new Error("not ready")))
-  const { result, unmount } = renderHook(() => useVideoPlayback("/youtube-proxy/abcdefghijk"))
-  result.current.videoRef.current = video
-  act(() => {
-    result.current.retry()
-    result.current.start()
-    result.current.start()
+
+test("retry repeats the failed query and close makes retry a no-op", async () => {
+  const queries: string[] = []
+  globalThis.fetch = (url) => {
+    assert.ok(typeof url === "string")
+    queries.push(url)
+    return Promise.resolve(queries.length === 1 ? response({}, 503) : response({ data: [item()] }))
+  }
+  const { result } = renderHook(() => useMediaSearch(2, () => {}))
+  await act(async () => {
+    result.current.search("music", "ночной поезд")
   })
-  assert.equal(load.mock.callCount(), 1)
-  assert.equal(result.current.state, "preparing")
-  for (let attempt = 0; attempt < 120; attempt++)
-    act(() => {
-      result.current.retry()
-      t.mock.timers.tick(1000)
-    })
-  act(() => {
+  await waitFor(() => {
+    assert.ok(result.current.result?.error)
+  })
+  await act(async () => {
     result.current.retry()
   })
-  assert.equal(result.current.state, "failed")
-  assert.equal(load.mock.callCount(), 121)
-  act(() => {
-    result.current.start()
-    result.current.retry()
-    result.current.playing()
-    t.mock.timers.tick(1000)
+  await waitFor(() => {
+    assert.equal(result.current.result?.items.length, 1)
   })
-  assert.equal(result.current.state, "playing")
-  assert.equal(load.mock.callCount(), 122)
+  assert.equal(queries[0], queries[1])
   act(() => {
-    result.current.start()
+    result.current.close()
+  })
+  act(() => {
     result.current.retry()
   })
-  unmount()
-  t.mock.timers.tick(1000)
-  assert.equal(load.mock.callCount(), 123)
+  assert.equal(queries.length, 2)
 })

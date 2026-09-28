@@ -1,4 +1,5 @@
-import { ListeningAudio } from "./ListeningAudio"
+import { Button } from "../../../shared/ui/Button"
+import { MediaActions } from "./player/MediaActions"
 import type { SharedFile } from "../model/mediaTransfer"
 import { useFeedContentEvent } from "./feedContent"
 import { useState } from "react"
@@ -23,17 +24,19 @@ export function SharedMedia({ file, onRequest }: { file: SharedFile; onRequest: 
                 : "Файл хранится на устройстве автора и доступен 15 минут.")}
           </p>
           {(!opened || !file.url) && (
-            <button
+            <Button
               type="button"
               disabled={file.status === "loading"}
               onClick={() => {
                 setOpened(true)
                 if (!file.url) onRequest()
               }}
-              className="mt-2 rounded bg-amber-300 px-3 py-2 text-zinc-950"
+              id={`receive-media-${file.id}`}
+              variant="primary"
+              className="mt-2"
             >
-              {file.type.startsWith("image/") ? "Показать изображение" : "Слушать"}
-            </button>
+              {file.type.startsWith("image/") ? "Показать изображение" : "Получить аудио"}
+            </Button>
           )}
         </div>
       ) : file.type.startsWith("image/") ? (
@@ -42,9 +45,10 @@ export function SharedMedia({ file, onRequest }: { file: SharedFile; onRequest: 
         </a>
       ) : null}
       {opened && file.type.startsWith("audio/") && file.url && (
-        <ListeningAudio title={file.name} controls src={file.url} className="max-w-full">
-          <track kind="captions" label="Субтитры" />
-        </ListeningAudio>
+        <MediaActions
+          id={`shared-media-${file.id}`}
+          track={{ source: file.url, title: file.name, author: file.author, kind: "music" }}
+        />
       )}
     </article>
   )

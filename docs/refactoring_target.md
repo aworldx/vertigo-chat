@@ -173,9 +173,9 @@ Docker/Compose/monitoring — в `deploy`. Смена каталогов сам�
 
 | Область | Фактическое состояние |
 | --- | --- |
-| React | Строгие TypeScript, ESLint (включая cycles и границы entry point), Prettier, interaction- и browser/screenshot-тесты входят в `mix precommit` |
+| React | Строгие TypeScript, ESLint (включая cycles и границы entry point), Prettier, interaction- и target browser/screenshot-тесты входят в `script/check` |
 | Go worker | `script/check-go` выполняет `gofmt`, `go vet`, golangci-lint 2.13.2 (`staticcheck`, `errcheck`, `ineffassign`, `unused`, `govet`, `depguard`, `gocyclo`), race-тесты и сборку; `depguard` заранее закрепляет направление для будущих Go слоёв |
-| Elixir | `cd apps/phoenix && mix precommit`: компиляция с warnings-as-errors, форматирование, Go/React/ExUnit-тесты, Dialyzer и строгий Credo через `script/check-credo`; 100 legacy-замечаний зафиксированы в проверяемом baseline, новые нарушения блокируют проверку |
+| Elixir (legacy, вне release gate) | Только при явной работе над legacy: `cd apps/phoenix && mix precommit`: компиляция с warnings-as-errors, форматирование, Go/React/ExUnit-тесты, Dialyzer и строгий Credo через `script/check-credo`; 100 legacy-замечаний зафиксированы в проверяемом baseline, новые нарушения блокируют проверку |
 | CI | Quality target с закреплёнными инструментами запускается для merge requests и default branch перед production image build; тесты используют изолированную PostgreSQL |
 | Контракты / инфраструктура | Генерация DTO проверяется без зависимости от Git, Redocly 1.34.5 lint проверяет OpenAPI; ShellCheck 0.10.0, Hadolint 2.12.0 и `docker compose config` с test-значениями входят в `script/check` |
 
@@ -187,7 +187,7 @@ Docker/Compose/monitoring — в `deploy`. Смена каталогов сам�
 2. Подключить проверки оставшихся сервисов, контрактов и границ; разобрать
    найденный долг. Сделать общий `script/check` и CI quality для merge requests
    и default branch обязательными перед сборкой релизных образов.
-   До появления этой команды текущая точка входа — `cd apps/phoenix && mix precommit`.
+   Текущая точка входа — контейнерный `script/check`; Phoenix исключён из release gate.
 3. Переносить каталоги отдельными изменениями с рабочими локальным стендом,
    сборками и проверками. Сначала web/worker, затем Phoenix по необходимости.
 4. Переносить следующие UI-сценарии и только затем отдельные backend-контексты

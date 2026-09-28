@@ -30,3 +30,13 @@ func TestNormalizePreservesSunnyAutumn(t *testing.T) {
 		t.Fatal("sunny autumn selection must be preserved")
 	}
 }
+
+func TestSharedPlayerIsOptIn(t *testing.T) {
+	if Normalize(Preferences{}).Appearance.UsePlayer {
+		t.Fatal("shared player must default to disabled")
+	}
+	p := Normalize(Preferences{Appearance: Appearance{UsePlayer: true}})
+	if !p.Appearance.UsePlayer {
+		t.Fatal("normalization must preserve the explicit player preference")
+	}
+}

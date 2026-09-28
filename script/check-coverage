@@ -36,6 +36,7 @@ WEB_COVERAGE_DIR="$repo_root/apps/web/coverage/browser"
 export GOCOVERDIR WEB_COVERAGE_DIR
 "$repo_root/script/verify-go-accounts"
 "$repo_root/script/verify-go-chat"
+"$repo_root/script/verify-go-tetris"
 "$repo_root/script/verify-target-web"
 cd "$repo_root/apps/api"
 "$go_command" tool covdata textfmt -i="$GOCOVERDIR" -o="$repo_root/coverage/go/api-browser.cover"

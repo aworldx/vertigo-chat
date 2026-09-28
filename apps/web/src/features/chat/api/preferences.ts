@@ -11,6 +11,7 @@ export const defaultPreferences: Preferences = {
     light: { nickname_color: "#9a3412", text_color: "#1f2937" },
     message_frame: true,
     hide_karmik: false,
+    use_player: false,
   },
 }
 export function colors(value: unknown) {
@@ -33,6 +34,7 @@ export function isPreferences(value: unknown): value is Preferences {
     colors(value.appearance.dark) &&
     colors(value.appearance.light) &&
     typeof value.appearance.message_frame === "boolean" &&
+    (value.appearance.use_player === undefined || typeof value.appearance.use_player === "boolean") &&
     (value.appearance.hide_karmik === undefined || typeof value.appearance.hide_karmik === "boolean")
   )
 }

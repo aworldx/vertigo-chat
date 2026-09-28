@@ -1,6 +1,9 @@
+@import "./chat-tv.css";
+@import "./tetris.css";
 @import "./library-editor.css";
 @import "tailwindcss" source(none);
 @import "./landing.css";
 @import "./site.css";
 @import "./autumn.css";
+@import "./controls.css";
 @source "../src";

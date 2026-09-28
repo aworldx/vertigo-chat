@@ -1,5 +1,5 @@
 #!/bin/sh
-# Go quality gate used by mix precommit and available independently.
+# Go quality gate used by script/check-target and available independently.
 set -eu
 repo_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
 go_command="${GO:-go}"

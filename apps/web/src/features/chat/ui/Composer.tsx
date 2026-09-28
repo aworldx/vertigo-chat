@@ -1,3 +1,5 @@
+import { PlayerToggle } from "./player/PlayerToggle"
+import { Button } from "../../../shared/ui/Button"
 import { useState, type DragEvent, type RefObject } from "react"
 import { Icon } from "../../../shared/ui/Icon"
 import { commands } from "../model/commands"
@@ -69,6 +71,13 @@ export function Composer({
   return (
     <form
       id="message-form"
+      onBlur={(event) => {
+        if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
+          setMenu(false)
+          setDismissed(true)
+          setPicker(false)
+        }
+      }}
       onSubmit={(e) => {
         e.preventDefault()
         setMenu(false)
@@ -93,7 +102,7 @@ export function Composer({
         const [file] = Array.from(event.dataTransfer.files)
         if (registered && file) onAttachFile(file)
       }}
-      className={`relative z-20 shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition ${
+      className={`chat-composer relative shrink-0 border-t border-zinc-800 bg-zinc-900 p-3 shadow-[0_-14px_28px_rgb(9_9_11_/_0.42)] transition ${
         dragDepth > 0 ? "ring-2 ring-inset ring-amber-300" : ""
       }`}
     >
@@ -208,40 +217,44 @@ export function Composer({
         </div>
         <div
           id="emoji-composer-controls"
-          className="grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] gap-3 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto]"
+          className="grid min-w-0 items-center grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] gap-3 md:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto_auto_auto]"
         >
-          <button
+          <Button
             id="toggle-emoji-picker"
             type="button"
             aria-label="Выбрать смайл"
             aria-controls="emoji-picker"
             aria-expanded={picker}
             onClick={() => {
+              setMenu(false)
+              setDismissed(true)
               setPicker((p) => !p)
             }}
-            className="flex min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300"
+            className="ui-icon-button col-start-1 row-start-2 md:row-start-1"
           >
             <Icon name="face-smile" className="size-5" />
-          </button>
-          <button
+          </Button>
+          <Button
             id="show-command-menu"
             type="button"
             aria-label="Открыть меню команд"
             aria-controls="command-autocomplete-menu"
+            aria-expanded={showCommands}
             title="Команды"
             onClick={() => {
+              setPicker(false)
               setMenu((p) => !p)
               setSelected(0)
               setDismissed(false)
               input.current?.focus()
             }}
-            className="col-start-2 row-start-2 flex min-h-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 font-mono text-base font-semibold text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 sm:row-start-1"
+            className="ui-icon-button col-start-2 row-start-2 md:row-start-1"
           >
             / <span className="sr-only">Команды</span>
-          </button>
+          </Button>
           <div
             id="command-autocomplete"
-            className="relative col-span-3 row-start-1 min-w-0 sm:col-span-1 sm:col-start-3"
+            className="relative col-span-4 row-start-1 min-w-0 md:col-span-1 md:col-start-3"
           >
             <label htmlFor="message-body" className="sr-only">
               Сообщение
@@ -256,6 +269,11 @@ export function Composer({
                 setSelected(0)
                 setDismissed(false)
               }}
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={showCommands}
+              aria-controls="command-autocomplete-menu"
+              aria-activedescendant={showCommands ? `command-option-${String(selected)}` : undefined}
               autoComplete="off"
               maxLength={1000}
               placeholder="Напиши сообщение..."
@@ -283,11 +301,12 @@ export function Composer({
                 id="command-autocomplete-menu"
                 role="listbox"
                 aria-label="Команды чата"
-                className="absolute bottom-full left-0 z-40 mb-2 w-full overflow-hidden rounded-xl border border-amber-300/40 bg-zinc-900 shadow-2xl"
+                className="chat-command-menu absolute bottom-full left-0 z-40 mb-2 w-full max-h-64 overflow-y-auto shadow-2xl"
               >
                 {filtered.map(([command, description], index) => (
                   <button
                     key={command}
+                    id={`command-option-${String(index)}`}
                     type="button"
                     role="option"
                     aria-selected={selected === index}
@@ -295,47 +314,49 @@ export function Composer({
                     onClick={() => {
                       choose(command)
                     }}
-                    className="command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-amber-300/15"
+                    className="chat-command-option command-autocomplete-item flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
                   >
-                    <span className="font-semibold text-amber-200">{command}</span>
-                    <span className="text-zinc-400">{description}</span>
+                    <span className="shrink-0 whitespace-nowrap font-semibold text-amber-200">{command}</span>
+                    <span className="min-w-0 flex-1 whitespace-normal">{description}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <button
+          <Button
             id="send-message"
+            variant="primary"
             type="submit"
             aria-label="Отправить сообщение"
             title="Отправить сообщение"
-            className="col-start-4 row-start-1 flex size-10 shrink-0 items-center justify-center rounded bg-amber-300 text-zinc-950 transition hover:bg-amber-200 sm:col-start-4"
+            className="ui-icon-button col-start-5 row-start-1 md:col-start-4"
           >
             <Icon name="paper-airplane" className="size-5" />
-          </button>
-          <div id="media-share-controls" className="col-start-3 row-start-2 shrink-0 sm:col-start-5 sm:row-start-1">
-            <button
+          </Button>
+          <div id="media-share-controls" className="col-start-3 row-start-2 shrink-0 md:col-start-5 md:row-start-1">
+            <Button
               id="attach-media"
               type="button"
               disabled={!registered}
               aria-label={registered ? "Прикрепить изображение или музыку" : "Вложения доступны после регистрации"}
               title={registered ? "Прикрепить изображение или аудиофайл" : "Только для зарегистрированных чатлан"}
               onClick={onAttach}
-              className="flex min-h-10 items-center justify-center rounded border border-zinc-700 bg-zinc-950 px-3 text-zinc-400 transition hover:border-amber-300 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-400"
+              className="ui-icon-button"
             >
               <Icon name="paper-clip" className="size-5" />
-            </button>
+            </Button>
           </div>
-          <button
+          <PlayerToggle className="col-start-4 row-start-2 justify-self-start md:col-start-6 md:row-start-1" />
+          <Button
             id="leave-chat"
             type="button"
             onClick={onLeave}
             aria-label="Выйти из чата"
-            className="col-start-4 row-start-2 flex shrink-0 items-center justify-center rounded border border-zinc-700 px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-300 hover:text-red-200 sm:col-start-6 sm:row-start-1 sm:px-4"
+            className="ui-icon-button col-start-5 row-start-2 md:col-start-7 md:row-start-1"
           >
-            <Icon name="arrow-right-start-on-rectangle" className="size-5 sm:hidden" />
-            <span className="hidden sm:inline">Выход</span>
-          </button>
+            <Icon name="arrow-right-start-on-rectangle" className="size-5 md:hidden" />
+            <span className="hidden md:inline">Выход</span>
+          </Button>
         </div>
       </fieldset>
     </form>

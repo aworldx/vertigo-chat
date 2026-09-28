@@ -14,6 +14,7 @@ type Appearance struct {
 	Dark       Colors `json:"dark"`
 	Light      Colors `json:"light"`
 	Frame      *bool  `json:"message_frame,omitempty"`
+	UsePlayer  bool   `json:"use_player"`
 	HideKarmik bool   `json:"hide_karmik"`
 }
 type Preferences struct {

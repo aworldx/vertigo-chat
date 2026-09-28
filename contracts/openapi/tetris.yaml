@@ -1,0 +1,161 @@
+openapi: 3.1.0
+info:
+  title: Vertigo Tetris
+  version: 1.0.0
+  description: Server-authoritative solo and multiplayer falling-block game. Socket protocol is documented in docs/tetris.md.
+servers: [{url: /}]
+security: [{chatCredential: []}]
+paths:
+  /api/v1/tetris:
+    post:
+      operationId: createTetris
+      summary: Create a solo game or a public lobby
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              additionalProperties: false
+              properties:
+                mode: {type: string, enum: [solo, versus]}
+      responses:
+        '200':
+          description: Existing active game or newly created game
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TetrisGame'}
+        '4XX': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /api/v1/tetris/{id}:
+    get:
+      operationId: getTetris
+      summary: Resolve an immutable game ID or case-insensitive memorable code
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Game visible to this chat member
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TetrisGame'}
+        '4XX': {$ref: '#/components/responses/Error'}
+  /api/v1/tetris/{id}/rematch:
+    post:
+      operationId: rematchTetris
+      summary: Reuse the next lobby for participants of a finished match
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: New or existing rematch with readiness reset
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TetrisGame'}
+        '4XX': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /api/v1/tetris/leaderboard:
+    get:
+      operationId: listTetrisLeaders
+      summary: Up to 100 registered players, ordered by rating or best solo score
+      security: []
+      parameters:
+        - {name: mode, in: query, schema: {type: string, enum: [solo, versus], default: versus}}
+        - {name: period, in: query, schema: {type: string, enum: [all, month], default: all}}
+      responses:
+        '200':
+          description: Rankings; month boundaries are UTC
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/TetrisLeader'}}
+        '4XX': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    chatCredential: {type: http, scheme: bearer, description: 'Existing chat resume credential, verified without changing the chat generation'}
+  responses:
+    Error:
+      description: Authentication, access, validation or service failure
+      content:
+        text/plain:
+          schema: {type: string}
+  schemas:
+    TetrisPiece:
+      type: object
+      additionalProperties: false
+      required: [kind, rotation, x, y]
+      properties:
+        kind: {type: integer, minimum: 1, maximum: 7}
+        rotation: {type: integer, minimum: 0, maximum: 3}
+        x: {type: integer}
+        y: {type: integer}
+    TetrisPlayer:
+      type: object
+      additionalProperties: false
+      required: [id, nickname, registered, ready, connected, dead, place, score, lines, level, cells, active, ghost, next, hold, can_hold, incoming, target, sequence]
+      properties:
+        id: {type: string}
+        nickname: {type: string}
+        registered: {type: boolean}
+        ready: {type: boolean}
+        connected: {type: boolean}
+        dead: {type: boolean}
+        place: {type: integer, minimum: 0, maximum: 3}
+        score: {type: integer, minimum: 0}
+        lines: {type: integer, minimum: 0}
+        level: {type: integer, minimum: 1}
+        cells:
+          type: array
+          minItems: 20
+          maxItems: 20
+          items:
+            type: array
+            minItems: 10
+            maxItems: 10
+            items: {type: integer, minimum: 0, maximum: 8}
+        active: {$ref: '#/components/schemas/TetrisPiece'}
+        ghost: {$ref: '#/components/schemas/TetrisPiece'}
+        next: {type: array, minItems: 5, maxItems: 6, items: {type: integer, minimum: 1, maximum: 7}}
+        hold: {type: integer, minimum: 0, maximum: 7}
+        can_hold: {type: boolean}
+        incoming: {type: integer, minimum: 0}
+        target: {type: string}
+        sequence: {type: integer, minimum: 0}
+    TetrisGame:
+      type: object
+      additionalProperties: false
+      required: [id, code, mode, status, self, host, paused, countdown, elapsed_ms, players]
+      properties:
+        id: {type: string}
+        code: {type: string}
+        mode: {type: string, enum: [solo, versus]}
+        status: {type: string, enum: [lobby, countdown, running, finished, cancelled]}
+        self: {type: string}
+        host: {type: string}
+        paused: {type: boolean}
+        countdown: {type: integer, minimum: 0, maximum: 3}
+        elapsed_ms: {type: integer, minimum: 0}
+        players: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/TetrisPlayer'}}
+    TetrisInvitation:
+      type: object
+      additionalProperties: false
+      required: [id, code, status, players]
+      properties:
+        id: {type: string}
+        code: {type: string}
+        status: {type: string, enum: [lobby, countdown, running, finished, cancelled]}
+        players: {type: array, maxItems: 3, items: {type: string}}
+    TetrisLeader:
+      type: object
+      additionalProperties: false
+      required: [nickname, rating, score, lines, level, matches, wins, achieved_at]
+      properties:
+        nickname: {type: string}
+        rating: {type: integer}
+        score: {type: integer, minimum: 0}
+        lines: {type: integer, minimum: 0}
+        level: {type: integer, minimum: 0}
+        matches: {type: integer, minimum: 0}
+        wins: {type: integer, minimum: 0}
+        achieved_at: {type: string, format: date-time}

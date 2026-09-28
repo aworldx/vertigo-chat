@@ -77,6 +77,28 @@ export function Settings({
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label
+                  htmlFor="use-player"
+                  aria-label="Использовать плеер"
+                  className="flex cursor-pointer items-start gap-3 text-sm sm:col-span-2"
+                >
+                  <input
+                    id="use-player"
+                    type="checkbox"
+                    className="mt-1 size-4 shrink-0 accent-amber-300"
+                    checked={appearance.use_player ?? false}
+                    onChange={(event) => {
+                      onChange({ ...value, appearance: { ...appearance, use_player: event.target.checked } })
+                    }}
+                  />
+                  <span>
+                    <span className="block text-zinc-100">Использовать плеер</span>
+                    <span className="mt-1 block text-xs text-zinc-400">
+                      На компьютере — плеер с очередью внизу списка чатлан вместо Кармика. По умолчанию и на телефоне
+                      музыка и видео играют прямо в ленте. Смена режима останавливает воспроизведение.
+                    </span>
+                  </span>
+                </label>
+                <label
                   htmlFor="hide-karmik"
                   aria-label="Скрывать Кармика"
                   className="flex cursor-pointer items-start gap-3 text-sm sm:col-span-2"
