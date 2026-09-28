@@ -49,8 +49,8 @@ export async function verifyModeration(browser: Browser, origin: string) {
       }
     }
     await verifyArchiveDeletion(admin, guest, origin)
-    await admin.locator("#leave-chat").click()
-    await guest.locator("#leave-chat").click()
+    await Promise.all([admin.waitForURL(origin + "/", { waitUntil: "load" }), admin.locator("#leave-chat").click()])
+    await Promise.all([guest.waitForURL(origin + "/", { waitUntil: "load" }), guest.locator("#leave-chat").click()])
     console.log(
       "Moderation verified: visible admin deletion in both layouts and widths, confirmation, cancellation and removal for all participants.",
     )

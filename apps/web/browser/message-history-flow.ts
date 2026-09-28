@@ -20,7 +20,8 @@ export async function verifyMessageHistory(browser: Browser, origin: string) {
   await peer.locator("#send-message").click()
   await room.locator("#message-body").fill("archive-target, Архив: **стилизованная фраза**")
   await room.locator("#send-message").click()
-  await expect(room.locator("#messages")).toContainText("стилизованная фраза")
+  // The sender renders optimistic messages before persistence; observe public delivery.
+  await expect(peer.locator("#messages")).toContainText("стилизованная фраза")
   await room.locator("#about-main-menu summary").click()
   const popup = context.waitForEvent("page")
   await room.locator("#menu-history").click()
@@ -57,8 +58,8 @@ export async function verifyMessageHistory(browser: Browser, origin: string) {
   await room.locator("#mobile-main-menu summary").first().click()
   await room.locator("#mobile-about-menu summary").click()
   await expect(room.locator("#mobile-menu-history")).toBeVisible()
-  await peer.locator("#leave-chat").click()
-  await room.locator("#leave-chat").click()
+  await Promise.all([peer.waitForURL(origin + "/", { waitUntil: "load" }), peer.locator("#leave-chat").click()])
+  await Promise.all([room.waitForURL(origin + "/", { waitUntil: "load" }), room.locator("#leave-chat").click()])
   await context.close()
 }
 
