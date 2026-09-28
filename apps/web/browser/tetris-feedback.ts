@@ -31,8 +31,10 @@ export async function installFeedbackProbe(page: Page) {
     })
   })
   return async () => {
+    await page.locator("#tetris-settings-toggle").click()
     await page.locator("#tetris-music-volume").focus()
     await page.keyboard.press("Home")
+    await page.locator("#tetris-settings-toggle").click()
     await page.locator("#tetris-audio-toggle").click()
     await expect(page.locator("#tetris-audio-toggle")).toHaveAttribute("aria-pressed", "true")
     await expect.poll(() => page.evaluate(() => Reflect.get(window, "tetrisSoundStarts") as number[])).toContain(1046.5)

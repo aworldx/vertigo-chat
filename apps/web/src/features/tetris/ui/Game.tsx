@@ -47,7 +47,7 @@ export function TetrisGame({
   }, [enabled, send, onClose])
   return createPortal(
     <Modal id="tetris-dialog" labelId="tetris-heading" onClose={leave} className="tetris-overlay">
-      <section className="tetris-shell" id="tetris-game">
+      <section className="tetris-shell" id="tetris-game" data-player-count={game?.players.length ?? 0}>
         <header className="tetris-header">
           <div>
             <span className="tetris-eyebrow">VERTIGO / БЛОКИ</span>
@@ -144,7 +144,9 @@ export function TetrisGame({
                 <section className="tetris-held">
                   <h2>Отложенная</h2>
                   <PiecePreview kind={self.hold} />
-                  <p>Кнопка «Отложить» или C меняет текущую фигуру на эту. Один раз за ход.</p>
+                  <span className="tetris-held-shortcut" aria-hidden="true">
+                    C · обмен
+                  </span>
                 </section>
                 <section className="tetris-upcoming">
                   <h2>Следующие</h2>
@@ -244,8 +246,8 @@ export function TetrisGame({
         )}
         <footer id="tetris-settings" className="tetris-bottom" data-open={settingsOpen}>
           <p className="tetris-mobile-help">
-            «Отложить» сохраняет фигуру или меняет её на отложенную, один раз за ход. Справа — следующие фигуры сверху
-            вниз.
+            «Отложить» сохраняет фигуру или меняет её на отложенную, один раз за ход. «Следующие» показывает порядок
+            появления фигур; первая выделена.
           </p>
           <p>← → движение · ↑ / X поворот · Z обратный поворот · пробел сброс · C отложить фигуру · P пауза в соло</p>
           <AudioControls sound={sound} />

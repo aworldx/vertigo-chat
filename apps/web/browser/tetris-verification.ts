@@ -128,6 +128,8 @@ try {
   await expect(host.locator(".tetris-match-state")).toHaveText("Пауза")
   for (const viewport of [
     { width: 1440, height: 900 },
+    { width: 1280, height: 660 },
+    { width: 768, height: 650 },
     { width: 390, height: 844 },
     { width: 320, height: 568 },
   ]) {
@@ -138,6 +140,13 @@ try {
       `solo board ${String(board?.height)} should use most of ${String(viewport.width)}x${String(viewport.height)}`,
     )
     await expect(host.locator(".tetris-upcoming svg")).toHaveCount(5)
+    const preview = await host.locator(".tetris-upcoming li").last().boundingBox()
+    const controls = await host.locator(".tetris-controls").boundingBox()
+    assert.ok(
+      preview && controls && preview.y + preview.height <= controls.y,
+      "all next pieces must fit above controls",
+    )
+    await expect(host.locator("#tetris-settings")).not.toBeVisible()
     await expect(host.locator(".tetris-held")).toContainText("Пока пусто")
     await host.screenshot({ path: `${screenshots}/solo-${String(viewport.width)}.png` })
   }
