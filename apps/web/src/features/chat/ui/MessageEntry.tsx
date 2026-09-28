@@ -59,7 +59,7 @@ function DeliveryStatus({
   )
 }
 
-function MessageBody({ body, emojis }: { body: string; emojis: Emoji[] }) {
+export function MessageBody({ body, emojis }: { body: string; emojis: Emoji[] }) {
   const codes = new Map(
     emojis.flatMap((e) => [
       [emojiToken(e.code), e],

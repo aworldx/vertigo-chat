@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"chat/api/internal/rooms/application"
 	"chat/api/internal/rooms/domain"
 	"context"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Database interface {
@@ -57,10 +59,14 @@ func (s Store) Send(ctx context.Context, author domain.Author, clientID, body st
 	return message, err
 }
 func (s Store) Recent(ctx context.Context, roomID string) ([]domain.Message, error) {
-	rows, err := s.db.Query(ctx, `SELECT `+columns+` FROM (SELECT * FROM room_messages WHERE room_id=$1 ORDER BY id DESC LIMIT $2) messages ORDER BY id`, roomID, recentMessageLimit)
+	rows, err := s.db.Query(ctx, `SELECT `+columns+` FROM (SELECT * FROM room_messages WHERE room_id=$1 AND sent_at >= $3 AND kind IN ('text','gif','music','youtube','tetris','system') ORDER BY id DESC LIMIT $2) messages ORDER BY id`, roomID, recentMessageLimit, application.HistoryCutoff(time.Now()))
 	if err != nil {
 		return nil, err
 	}
+	return readMessages(rows)
+}
+
+func readMessages(rows pgx.Rows) ([]domain.Message, error) {
 	defer rows.Close()
 	messages := make([]domain.Message, 0, recentMessageLimit)
 	for rows.Next() {

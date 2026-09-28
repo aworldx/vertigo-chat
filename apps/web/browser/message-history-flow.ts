@@ -1,0 +1,53 @@
+import assert from "node:assert/strict"
+import { mkdir } from "node:fs/promises"
+import { expect, type Browser } from "@playwright/test"
+export async function verifyMessageHistory(browser: Browser, origin: string) {
+  const context = await browser.newContext({ timezoneId: "Pacific/Honolulu" })
+  const room = await context.newPage()
+  await room.goto(origin + "/")
+  await room.locator("#entrance-nickname").fill("archive-reader")
+  await room.locator("#enter-chat").click()
+  await expect(room.locator("#message-body")).toBeVisible()
+  await room.locator("#toggle-settings").click()
+  await room.locator("#font-id").selectOption("serif")
+  await room.locator("#save-preferences").click()
+  await room.locator("#message-body").fill("Архив: **стилизованная фраза**")
+  await room.locator("#send-message").click()
+  await expect(room.locator("#messages")).toContainText("стилизованная фраза")
+  await room.locator("#about-main-menu summary").click()
+  const popup = context.waitForEvent("page")
+  await room.locator("#menu-history").click()
+  const history = await popup
+  await expect(history.locator("#message-history-page")).toBeVisible()
+  await expect(history.locator("#history-messages")).toHaveCount(0)
+  await history.locator("#history-search").click()
+  await expect(history.getByRole("status")).toContainText("На странице")
+  const phrase = history.locator("li").filter({ hasText: "стилизованная фраза" })
+  // Earlier browser scenarios may have filled more than one page.
+  while ((await phrase.count()) === 0) {
+    await expect(history.locator("#history-next")).toBeVisible()
+    await history.locator("#history-next").click()
+    await expect(history.getByRole("status")).not.toContainText("Загружаем")
+  }
+  await expect(phrase).toHaveAttribute("data-message-font", "serif")
+  await expect(phrase.locator("strong")).toHaveText("стилизованная фраза")
+  assert.match(await phrase.evaluate((node) => getComputedStyle(node).fontFamily), /Georgia/u)
+  await expect(history.locator('[data-message-kind="private"]')).toHaveCount(0)
+  await expect(history.getByLabel("Подсказка Кармика")).toHaveCount(0)
+  await mkdir("migration-results", { recursive: true })
+  for (const width of [390, 1440]) {
+    await history.setViewportSize({ width, height: 900 })
+    assert.equal(await history.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
+    await history.screenshot({ path: `migration-results/history-${String(width)}.png`, fullPage: false })
+  }
+  await history.locator("#history-from").fill("2000-01-01")
+  await history.locator("#history-through").fill("2000-01-01")
+  await history.locator("#history-search").click()
+  await expect(history.getByText(/За этот период сообщений нет/)).toBeVisible()
+  await room.setViewportSize({ width: 390, height: 844 })
+  await room.locator("#mobile-main-menu summary").first().click()
+  await room.locator("#mobile-about-menu summary").click()
+  await expect(room.locator("#mobile-menu-history")).toBeVisible()
+  await room.locator("#leave-chat").click()
+  await context.close()
+}

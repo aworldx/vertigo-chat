@@ -121,8 +121,13 @@ func main() {
 	entrancehttp.NewHandler(entranceapp.NewService(entranceWork(pool)), auth.AuthorizeMutation, auth.SetSessionCookie, func(result entranceapp.Result) string {
 		return chatsessionshttp.EncodeResume(chatsessionshttp.Resume{SessionID: result.Session.ID, IdentityKey: result.Session.IdentityKey, Secret: result.ResumeSecret})
 	}).WithUpgrade(upgradeChatAccount(pool)).Register(mux)
-	chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).WithExperience(roomExperience(pool, metrics, ctx)).Register(mux)
+	socket := chatsessionshttp.NewSocket(chatSessions, chatsessionspostgres.NewStore(pool), roomsapp.NewService(roomspg.NewStore(pool)), sendRoomMessage(pool), env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")).WithExperience(roomExperience(pool, metrics, ctx))
+	socket.Register(mux)
+	registerHistoryModeration(mux, pool, auth, socket)
 	go reapChatSessions(ctx, chatSessions)
+	messageHistory := roomsapp.NewHistory(roomspg.NewStore(pool))
+	chatsessionshttp.NewMessageHistoryHandler(messageHistory).Register(mux)
+	go pruneMessageHistory(ctx, messageHistory)
 	handler, err := clientip.Wrap(metrics.Wrap(mux), os.Getenv("API_TRUSTED_PROXY_CIDRS"))
 	if err != nil {
 		slog.Error("configure trusted proxies", "error", err)

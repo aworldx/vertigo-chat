@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/v1/chat/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public room messages and system events for a selected period
+         * @description Three calendar months retained. Inclusive Moscow dates; oldest ID first, 100 messages per page. Private messages and personal hints are excluded. The next cursor is null on the last page. No-store response.
+         */
+        get: operations["listMessageHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat/history/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Administrator removes a public message from history and the room
+         * @description System events and private messages cannot be deleted here. Account admin role, same origin and CSRF are required.
+         */
+        delete: operations["deleteHistoryMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/visits": {
         parameters: {
             query?: never;
@@ -309,7 +349,7 @@ export interface components {
             peers: components["schemas"]["Peer"][];
         };
         /** @enum {string} */
-        HelpTopic: "music" | "video" | "font" | "colors" | "files" | "private" | "commands" | "gif" | "emoji" | "address" | "ignore" | "clear" | "online" | "appearance" | "profile" | "account" | "ranks" | "karma" | "bots" | "gallery" | "library" | "chart" | "connection" | "leave" | "games" | "admin";
+        HelpTopic: "music" | "video" | "font" | "colors" | "files" | "private" | "commands" | "gif" | "emoji" | "address" | "ignore" | "clear" | "online" | "appearance" | "profile" | "account" | "ranks" | "karma" | "bots" | "gallery" | "library" | "chart" | "connection" | "leave" | "games" | "admin" | "history";
         /** @description Sender-only assistance on public-message acknowledgement; never included in room snapshots. */
         HelpTopics: components["schemas"]["HelpTopic"][];
         Rank: {
@@ -377,6 +417,64 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listMessageHistory: {
+        parameters: {
+            query: {
+                from: string;
+                through: string;
+                after?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public message history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Message"][];
+                        next: number | null;
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
+    deleteHistoryMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Message deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        deleted: true;
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
     listVisits: {
         parameters: {
             query?: never;

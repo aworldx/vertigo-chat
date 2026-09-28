@@ -5,6 +5,51 @@ info:
   description: Same-origin atomic chat entrance. WebSocket commands and lifecycle are specified in docs/go_chat_protocol.md.
 servers: [{url: /}]
 paths:
+  /api/v1/chat/history:
+    get:
+      operationId: listMessageHistory
+      summary: Public room messages and system events for a selected period
+      description: Three calendar months retained. Inclusive Moscow dates; oldest ID first, 100 messages per page. Private messages and personal hints are excluded. The next cursor is null on the last page. No-store response.
+      security: []
+      parameters:
+        - {name: from, in: query, required: true, schema: {type: string, format: date}}
+        - {name: through, in: query, required: true, schema: {type: string, format: date}}
+        - {name: after, in: query, schema: {type: integer, minimum: 0}}
+      responses:
+        '200':
+          description: Public message history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, next]
+                properties:
+                  data: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/Message'}}
+                  next: {type: [integer, 'null'], minimum: 1}
+        '400': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /api/v1/chat/history/{id}:
+    delete:
+      operationId: deleteHistoryMessage
+      summary: Administrator removes a public message from history and the room
+      description: System events and private messages cannot be deleted here. Account admin role, same origin and CSRF are required.
+      security: [{accountSession: [], csrfToken: []}]
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer, minimum: 1}}
+      responses:
+        '200':
+          description: Message deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: {type: boolean, const: true}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
   /api/v1/visits:
     get:
       operationId: listVisits
@@ -435,10 +480,10 @@ components:
 
     HelpTopic:
       type: string
-      enum: [music, video, font, colors, files, private, commands, gif, emoji, address, ignore, clear, online, appearance, profile, account, ranks, karma, bots, gallery, library, chart, connection, leave, games, admin]
+      enum: [music, video, font, colors, files, private, commands, gif, emoji, address, ignore, clear, online, appearance, profile, account, ranks, karma, bots, gallery, library, chart, connection, leave, games, admin, history]
     HelpTopics:
       type: array
-      maxItems: 26
+      maxItems: 27
       uniqueItems: true
       items: {$ref: '#/components/schemas/HelpTopic'}
       description: Sender-only assistance on public-message acknowledgement; never included in room snapshots.

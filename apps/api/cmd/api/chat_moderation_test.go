@@ -18,7 +18,7 @@ func testModerationStore(t *testing.T, pool *pgxpool.Pool) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	actions := rooms.NewActions(roompg.NewStore(tx))
-	for _, kind := range []string{"text", "system"} {
+	for _, kind := range []string{"text", "system", "private"} {
 		var id int64
 		err = tx.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,theme_id,sent_at,inserted_at,updated_at) VALUES('moderation-test',$1,'author','message','vertigo',NOW(),NOW(),NOW()) RETURNING id`, kind).Scan(&id)
 		if err != nil {
@@ -31,7 +31,7 @@ func testModerationStore(t *testing.T, pool *pgxpool.Pool) {
 			t.Fatal("wrong room deletion allowed")
 		}
 		err = actions.Delete(ctx, "moderation-test", id, true)
-		if kind == "system" && !errors.Is(err, rooms.ErrActionDenied) {
+		if kind != "text" && !errors.Is(err, rooms.ErrActionDenied) {
 			t.Fatal("system deletion allowed")
 		}
 		if kind == "text" && err != nil {

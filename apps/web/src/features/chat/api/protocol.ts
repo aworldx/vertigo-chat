@@ -16,7 +16,7 @@ export type Frame =
   | { type: "left" }
   | { type: "preferences"; preferences: Preferences }
   | { type: "error"; code: string; client_id: string }
-function message(value: unknown): value is Message {
+export function message(value: unknown): value is Message {
   return (
     record(value) &&
     typeof value.recipient === "string" &&

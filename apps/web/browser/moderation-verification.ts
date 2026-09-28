@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { expect, type Browser } from "@playwright/test"
+import { expect, type Browser, type Page } from "@playwright/test"
 
 export async function verifyModeration(browser: Browser, origin: string) {
   const adminContext = await browser.newContext()
@@ -48,6 +48,7 @@ export async function verifyModeration(browser: Browser, origin: string) {
         await expect(guest.locator(".chat-message-entry").filter({ hasText: body })).toHaveCount(0)
       }
     }
+    await verifyArchiveDeletion(admin, guest, origin)
     await admin.locator("#leave-chat").click()
     await guest.locator("#leave-chat").click()
     console.log(
@@ -57,4 +58,41 @@ export async function verifyModeration(browser: Browser, origin: string) {
     await adminContext.close()
     await guestContext.close()
   }
+}
+
+async function verifyArchiveDeletion(admin: Page, guest: Page, origin: string) {
+  const body = "Удаление из архива для всех"
+  await guest.locator("#message-body").fill(body)
+  await guest.locator("#send-message").click()
+  await expect(admin.locator("#messages")).toContainText(body)
+  const archive = await admin.context().newPage()
+  await archive.goto(origin + "/history")
+  await archive.locator("#history-search").click()
+  const row = archive.locator("li").filter({ hasText: body })
+  await expect(row).toBeVisible()
+  const button = row.getByRole("button", { name: "Удалить сообщение" })
+  await expect(button).toBeVisible()
+  await archive.screenshot({ path: "test-results/history-admin.png" })
+  const id = (await button.getAttribute("id"))?.replace("history-delete-", "")
+  assert.ok(id)
+  assert.equal((await admin.request.delete(origin + "/api/v1/chat/history/" + id)).status(), 403)
+  assert.equal((await guest.request.delete(origin + "/api/v1/chat/history/" + id)).status(), 401)
+  await expect(archive.locator('[data-message-kind="system"] button')).toHaveCount(0)
+  archive.once("dialog", (dialog) => {
+    void dialog.dismiss()
+  })
+  await button.click()
+  await expect(row).toBeVisible()
+  archive.once("dialog", (dialog) => {
+    void dialog.accept()
+  })
+  await button.click()
+  await expect(row).toHaveCount(0)
+  await expect(guest.locator(".chat-message-entry").filter({ hasText: body })).toHaveCount(0)
+  await expect(admin.locator(".chat-message-entry").filter({ hasText: body })).toHaveCount(0)
+  await archive.reload()
+  await archive.locator("#history-search").click()
+  await expect(archive.getByRole("status")).toContainText("На странице")
+  await expect(row).toHaveCount(0)
+  await archive.close()
 }

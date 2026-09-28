@@ -60,6 +60,14 @@ export function TopMenu({
           </summary>
           <div className="absolute right-0 top-7 z-50 w-48 rounded-xl border border-zinc-700 bg-zinc-900 p-2 shadow-2xl shadow-black/50">
             <a
+              id="menu-history"
+              href="/history"
+              target="vertigo-history"
+              className="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
+            >
+              История сообщений
+            </a>
+            <a
               href="/articles"
               target="vertigo-articles"
               className="block rounded-lg px-3 py-2 transition hover:bg-zinc-800 hover:text-amber-200"
@@ -105,6 +113,14 @@ export function TopMenu({
                 О чате
               </summary>
               <div className="border-l border-zinc-700 pl-2">
+                <a
+                  id="mobile-menu-history"
+                  href="/history"
+                  target="vertigo-history"
+                  className="block rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200"
+                >
+                  История сообщений
+                </a>
                 <a
                   id="mobile-menu-articles"
                   href="/articles"

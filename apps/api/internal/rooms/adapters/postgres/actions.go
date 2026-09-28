@@ -37,7 +37,7 @@ func (s Store) Reaction(ctx context.Context, room string, id int64, identity, ni
 	return err
 }
 func (s Store) Delete(ctx context.Context, room string, id int64) error {
-	result, err := s.db.Exec(ctx, `DELETE FROM room_messages WHERE room_id=$1 AND id=$2 AND kind!='system'`, room, id)
+	result, err := s.db.Exec(ctx, `DELETE FROM room_messages WHERE room_id=$1 AND id=$2 AND kind IN ('text','gif','music','youtube','tetris')`, room, id)
 	if err == nil && result.RowsAffected() == 0 {
 		return application.ErrActionDenied
 	}

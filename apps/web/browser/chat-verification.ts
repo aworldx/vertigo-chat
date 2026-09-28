@@ -1,3 +1,4 @@
+import { verifyMessageHistory } from "./message-history-flow"
 import { verifyModeration } from "./moderation-verification"
 import { verifyChatControls } from "./chat-controls-verification"
 import { verifyPlayer } from "./player-verification"
@@ -22,6 +23,7 @@ async function enter(page: Page, nickname: string, password = "") {
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
 }
 try {
+  await verifyMessageHistory(browser, origin)
   await verifyModeration(browser, origin)
   await verifyChatControls(browser, origin)
   await verifyPlayer(browser, origin)
