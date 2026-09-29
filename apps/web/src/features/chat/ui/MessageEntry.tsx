@@ -148,7 +148,7 @@ export function MessageEntry({
       data-message-font={message.font_id}
       data-message-font-style={message.font_style}
       data-message-frame={frame}
-      className={`chat-message-entry group/message relative transition-colors ${canDelete && !frame ? "pr-9" : ""} ${system ? "px-3 py-0.5 text-center" : message.kind === "music" ? `ml-auto w-full max-w-xl ${frame ? "border-zinc-700 bg-zinc-950/90 px-3 py-2.5" : "px-1"}` : message.kind === "youtube" ? "ml-auto w-full max-w-sm" : frame ? `rounded border px-3 pb-2 ${failedDelivery ? "pt-11" : "pt-5"} shadow-sm ${addressed ? "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30" : privateMessage ? "border-sky-400/50 bg-sky-400/10" : "border-zinc-800 bg-zinc-900"}` : addressed ? "px-1 rounded bg-amber-300/20" : "px-1"} ${message.kind === "gif" ? "ml-auto w-fit max-w-full" : ""}`}
+      className={`chat-message-entry group/message relative transition-colors ${system ? "px-3 py-0.5 text-center" : message.kind === "music" ? `ml-auto w-full max-w-xl ${frame ? "border-zinc-700 bg-zinc-950/90 px-3 py-2.5" : "px-1"}` : message.kind === "youtube" ? "ml-auto w-full max-w-sm" : frame ? `rounded border px-3 pb-2 ${failedDelivery ? "pt-11" : "pt-5"} shadow-sm ${addressed ? "border-amber-300 bg-amber-300/20 ring-1 ring-inset ring-amber-200/30" : privateMessage ? "border-sky-400/50 bg-sky-400/10" : "border-zinc-800 bg-zinc-900"}` : addressed ? "px-1 rounded bg-amber-300/20" : "px-1"} ${message.kind === "gif" ? "ml-auto w-fit max-w-full" : ""}`}
     >
       {message.kind === "tetris" ? (
         <GameInvitation body={message.body} author={message.author} />
@@ -220,11 +220,11 @@ export function MessageEntry({
           )}
         </>
       )}
-      {!system && !privateMessage && (frame || canDelete) && (
+      {!system && !privateMessage && (onReaction || canDelete || Object.keys(message.reactions).length > 0) && (
         <div
-          className={`absolute right-2 z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1 ${frame ? "-bottom-2.5" : "top-0"}`}
+          className={`chat-message-actions z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1 ${frame ? "absolute right-2 -bottom-2.5" : "relative ml-auto"}`}
         >
-          {Object.entries(frame ? message.reactions : {})
+          {Object.entries(message.reactions)
             .filter(([, count]) => count > 0)
             .map(([emoji, count]) => (
               <button
@@ -242,7 +242,7 @@ export function MessageEntry({
                 {emoji} {count}
               </button>
             ))}
-          {frame && onReaction && message.author !== nickname && (
+          {onReaction && message.author !== nickname && (
             <div className="relative">
               <button
                 id={`reaction-toggle-${entryID}`}

@@ -42,7 +42,7 @@ export function useGame(id: string, token: string, join: boolean) {
         if (!record(value)) return
         if (value.type === "error" && typeof value.message === "string") {
           pending.current = []
-          setError(value.message)
+          if (latest.current?.status !== "finished" && latest.current?.status !== "cancelled") setError(value.message)
           return
         }
         if (value.type !== "state" || !isGame(value.game)) return
@@ -52,6 +52,15 @@ export function useGame(id: string, token: string, join: boolean) {
           readyToSend.current = true
         }
         const next = value.game
+        if (
+          next.status === "finished" ||
+          next.status === "cancelled" ||
+          next.players.find((p) => p.id === next.self)?.dead
+        ) {
+          pending.current = []
+          sent.current.clear()
+          setError("")
+        }
         const acknowledged = next.players.find((p) => p.id === next.self)?.sequence ?? 0
         pending.current = pending.current.filter((input) => input.sequence > acknowledged)
         const predicted = pending.current.reduce((state, input) => predict(state, input.action), next)
@@ -120,6 +129,9 @@ export function useGame(id: string, token: string, join: boolean) {
       socket.current.send(JSON.stringify({ type: action, sequence: seq }))
       return true
     }
+    const current = latest.current
+    const player = current?.players.find((p) => p.id === current.self)
+    if (current?.status !== "running" || !player || player.dead) return false
     pending.current.push({ sequence: seq, action })
     if (latest.current) {
       latest.current = predict(latest.current, action)

@@ -5,6 +5,7 @@ import { useGame } from "../model/useGame"
 import { useTetrisAudio } from "../model/useTetrisAudio"
 import { useControls } from "../model/useControls"
 import { useGameWindow, type GameWindow } from "../model/useGameWindow"
+import { TetrisResults } from "./TetrisResults"
 import { Board } from "./Board"
 import { AudioControls } from "./AudioControls"
 import { PiecePreview } from "./PiecePreview"
@@ -52,7 +53,12 @@ export function TetrisGame({
   }, [enabled, send, onClose, keyboardWindow])
   const view = createPortal(
     <Modal id="tetris-dialog" labelId="tetris-heading" onClose={leave} className="tetris-overlay">
-      <section className="tetris-shell" id="tetris-game" data-player-count={game?.players.length ?? 0}>
+      <section
+        className="tetris-shell"
+        id="tetris-game"
+        data-player-count={game?.players.length ?? 0}
+        data-status={game?.status}
+      >
         <header className="tetris-header">
           <div>
             <span className="tetris-eyebrow">VERTIGO / БЛОКИ</span>
@@ -96,20 +102,18 @@ export function TetrisGame({
         </div>
         {game?.status === "lobby" && <Lobby game={game} send={action} connected={connected} />}
         {game?.status === "cancelled" && <p role="status">Игра отменена.</p>}
-        {game && game.status !== "lobby" && game.status !== "cancelled" && (
+        {game && (game.status === "running" || game.status === "countdown") && (
           <>
             <div className="tetris-match-state" role="status">
               {game.status === "countdown"
                 ? `Начинаем через ${String(game.countdown)}…`
-                : game.status === "finished"
-                  ? "Раунд завершён"
-                  : game.paused
-                    ? "Пауза"
-                    : self?.dead
-                      ? "Ты выбыл. Наблюдай за финалом."
-                      : !self
-                        ? "Режим наблюдателя"
-                        : `Уровень ${String(self.level)}`}
+                : game.paused
+                  ? "Пауза"
+                  : self?.dead
+                    ? "Ты выбыл. Наблюдай за финалом."
+                    : !self
+                      ? "Режим наблюдателя"
+                      : `Уровень ${String(self.level)}`}
             </div>
             {!self && (
               <label className="tetris-spectator">
@@ -149,7 +153,7 @@ export function TetrisGame({
                   />
                 ))}
             </div>
-            {self && game.status !== "finished" && (
+            {self && (
               <aside className="tetris-piece-info" aria-label="Подсказки фигур">
                 <section className="tetris-held">
                   <h2>Отложенная</h2>
@@ -225,35 +229,9 @@ export function TetrisGame({
                 )}
               </div>
             )}
-            {game.status === "finished" && (
-              <div className="tetris-results">
-                <h2>Результаты</h2>
-                <ol>
-                  {[...game.players]
-                    .sort((a, b) => a.place - b.place)
-                    .map((p) => (
-                      <li key={p.id}>
-                        {p.place}. {p.nickname} <strong>{p.score.toLocaleString("ru-RU")} очков</strong>
-                      </li>
-                    ))}
-                </ol>
-                <p>Очки подтверждены сервером. Таблица лидеров обновляется после сохранения.</p>
-                {self && (
-                  <button
-                    id="tetris-rematch"
-                    className="tetris-primary"
-                    type="button"
-                    onClick={() => {
-                      onRematch()
-                    }}
-                  >
-                    Реванш
-                  </button>
-                )}
-              </div>
-            )}
           </>
         )}
+        {game?.status === "finished" && <TetrisResults game={game} onRematch={onRematch} />}
         <footer id="tetris-settings" className="tetris-bottom" data-open={settingsOpen}>
           <p className="tetris-mobile-help">
             «Отложить» сохраняет фигуру или меняет её на отложенную, один раз за ход. «Следующие» показывает порядок

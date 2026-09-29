@@ -40,6 +40,24 @@ async function leave(page: Page) {
     page.off("dialog", accept)
   }
 }
+async function verifyResults(page: Page, mode: string) {
+  await expect(page.locator("#tetris-keyboard")).toHaveCount(0)
+  await expect(page.locator(".tetris-controls")).toHaveCount(0)
+  await expect(page.locator(".tetris-connection")).toHaveText("")
+  for (const [width, height] of [
+    [1440, 900],
+    [390, 844],
+    [320, 568],
+  ] as const) {
+    await page.setViewportSize({ width, height })
+    const box = await page.locator("#tetris-game").boundingBox()
+    assert.ok(box && box.height < 550 && box.y >= 0 && box.y + box.height <= height, "result must be compact and fit")
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await expect(page.locator("#tetris-rematch")).toBeInViewport()
+    await page.screenshot({ path: screenshots + "/result-" + mode + "-" + String(width) + ".png" })
+  }
+  await page.setViewportSize({ width: 1440, height: 900 })
+}
 try {
   const contexts = await Promise.all(
     Array.from({ length: 4 }, () =>
@@ -122,6 +140,7 @@ try {
   await leave(second)
   await expect(host.locator(".tetris-results")).toContainText("fixture01")
   await expect(observer.locator(".tetris-results")).toBeVisible()
+  await verifyResults(host, "match")
   await openTetrisAndReturn(host, () => host.locator("#tetris-rematch").click())
   await expect(host.locator(".tetris-lobby")).toContainText("3/3")
   await expect(host.locator("#tetris-start")).toBeDisabled()
@@ -173,6 +192,19 @@ try {
   await host.locator("#tetris-control-drop").click()
   await expect(host.locator(".tetris-mine .tetris-player-footer")).not.toContainText(/^0 очков/u)
   assert.equal(await third.locator(".chat-game-invitation").count(), before)
+  await host.locator("#tetris-keyboard").focus()
+  await expect
+    .poll(
+      async () => {
+        if (await host.locator(".tetris-results").count()) return true
+        await host.keyboard.press("Space")
+        return false
+      },
+      { timeout: 15000, intervals: [100] },
+    )
+    .toBe(true)
+  await expect(host.locator("#tetris-rematch")).toHaveText("Сыграть ещё")
+  await verifyResults(host, "solo")
   await leave(host)
   const ranking = await contexts[0]?.newPage()
   assert.ok(ranking)

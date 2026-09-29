@@ -71,7 +71,11 @@ export function Room({
   }
   return (
     <ListeningContext.Provider value={connection}>
-      <PlayerProvider enabled={usePlayer} key={`${state.nickname}:${String(joined)}`}>
+      <PlayerProvider
+        enabled={usePlayer}
+        nickname={joined ? state.nickname : ""}
+        key={`${state.nickname}:${String(joined)}`}
+      >
         <section
           id="chat-room"
           data-chat-theme={state.snapshot.preferences.theme_id}

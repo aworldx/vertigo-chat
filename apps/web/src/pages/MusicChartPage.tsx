@@ -63,6 +63,7 @@ export function MusicChartPage() {
           </a>
         </header>
         <MusicChart
+          nickname={chatSession?.nickname ?? session?.principal?.nickname ?? ""}
           csrf={session?.csrf_token ?? ""}
           registered={!!session?.principal}
           login={

@@ -256,3 +256,27 @@ test("disabled player restores inline audio and video and hides the shared contr
   assert.equal(view.container.querySelectorAll("audio").length, 1)
   assert.equal(view.container.querySelector("#chat-tv"), null)
 })
+
+test("bulk chart enqueue appends in ranking order without duplicates or interrupting playback", () => {
+  const current = { ...track, source: "/music-chart/tracks/1" }
+  let state = playerReducer(initialPlayer, { type: "play", track: current })
+  state = playerReducer(state, { type: "enqueue", track })
+  const additions = [
+    current,
+    { ...track, source: "/music-chart/tracks/3" },
+    { ...track, source: "/music-chart/tracks/2" },
+  ]
+  const next = playerReducer(state, { type: "enqueue-many", tracks: [...additions, ...additions] })
+  assert.equal(next.current, state.current)
+  assert.equal(next.requested, true)
+  assert.deepEqual(
+    next.queue.map((item) => item.source),
+    [track.source, "/music-chart/tracks/3", "/music-chart/tracks/2"],
+  )
+  assert.equal(new Set(next.queue.map((item) => item.key)).size, 3)
+  assert.equal(playerReducer(next, { type: "enqueue-many", tracks: additions }), next)
+  const idle = playerReducer(initialPlayer, { type: "enqueue-many", tracks: additions })
+  assert.equal(idle.requested, false)
+  assert.equal(idle.current, null)
+  assert.equal(idle.mode, "compact")
+})

@@ -677,14 +677,6 @@
   min-height: 0;
   margin: 12px auto;
 }
-#tetris-game .tetris-results {
-  position: absolute;
-  inset: 70px 20px 20px;
-  z-index: 2;
-  background: #111520f5;
-  overflow: auto;
-  padding: 16px;
-}
 #tetris-game .tetris-spectator {
   position: absolute;
   top: 60px;
@@ -1020,4 +1012,63 @@
   #tetris-game .tetris-controls button {
     font-size: 11px;
   }
+}
+
+
+#tetris-game[data-status="finished"] {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 640px);
+  height: auto;
+  max-height: calc(100dvh - 24px);
+  padding: clamp(16px, 4vw, 28px);
+  gap: 16px;
+  overflow: auto;
+  border-radius: 24px;
+}
+#tetris-game[data-status="finished"] .tetris-toolbar,
+#tetris-game[data-status="finished"] .tetris-bottom,
+#tetris-game[data-status="finished"] #tetris-settings-toggle,
+#tetris-game[data-status="finished"] .tetris-connection:empty {
+  display: none;
+}
+#tetris-game[data-status="finished"] .tetris-header {
+  flex-shrink: 0;
+}
+#tetris-game[data-status="finished"] .tetris-results {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+.tetris-result-score {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px 16px;
+  margin-top: 16px;
+  border-radius: 16px;
+  background: #1d2436;
+  text-align: center;
+}
+.tetris-result-score strong {
+  font-size: clamp(32px, 7vw, 48px);
+  line-height: 1.15;
+}
+.tetris-result-stats {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin: 20px 0;
+}
+.tetris-result-stats div { text-align: center; }
+.tetris-result-stats dt { color: #a8b3ca; font-size: 13px; }
+.tetris-result-stats dd { margin: 4px 0 0; font-size: 22px; font-weight: 700; }
+.tetris-result-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 20px; }
+#tetris-game[data-status="finished"] button { min-height: 44px; }
+#tetris-game .tetris-result-actions button { min-height: 48px; }
+.tetris-result-actions a { color: #b9c3ff; text-underline-offset: 4px; }
+#tetris-game .tetris-results li { flex-wrap: wrap; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  #tetris-game[data-status="finished"] { width: calc(100% - 24px); }
+  .tetris-result-actions { flex-direction: column; align-items: stretch; text-align: center; }
 }

@@ -28,6 +28,8 @@ func TestOpenAIOutcomesAreBoundedAndConcurrent(t *testing.T) {
 	observe := m.OpenAIObserver("hitchcock")
 	m.OpenAIObserver("karmik")
 	m.OpenAIObserver("claire")(200, nil)
+	m.OpenAIObserver("history-summary")(200, nil)
+	m.OpenAIHeaders("history-summary")(http.Header{"X-Ratelimit-Limit-Tokens": {"100"}, "X-Ratelimit-Remaining-Tokens": {"90"}})
 	cases := []struct {
 		status  int
 		err     error
@@ -44,6 +46,11 @@ func TestOpenAIOutcomesAreBoundedAndConcurrent(t *testing.T) {
 	}
 	group.Wait()
 	body := scrape(t, m)
+	for _, want := range []string{`chat_openai_requests_total{bot="history-summary",outcome="success"} 1`, `chat_openai_rate_remaining{bot="history-summary",resource="tokens"} 90`} {
+		if !strings.Contains(body, want) {
+			t.Fatal(body)
+		}
+	}
 	for _, c := range cases {
 		if !strings.Contains(body, `chat_openai_requests_total{bot="hitchcock",outcome="`+c.outcome+`"} 1`) {
 			t.Fatal(body)

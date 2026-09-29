@@ -2,18 +2,22 @@ import type { ReactNode } from "react"
 import { useChart } from "../model/useChart"
 import type { Track } from "../api/chart"
 import { TrackCard } from "./TrackCard"
+import { useChartQueue } from "../model/useChartQueue"
 export function MusicChart({
   csrf,
   registered,
   login,
   player,
+  nickname = "",
 }: {
   csrf: string
   registered: boolean
   login: ReactNode
   player: (track: Track) => ReactNode
+  nickname?: string
 }) {
   const chart = useChart(csrf)
+  const queue = useChartQueue(nickname)
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8">
       <section className="music-chart-hero rounded-3xl border border-fuchsia-300/25 px-6 py-10 sm:px-10">
@@ -30,9 +34,26 @@ export function MusicChart({
       )}
       <section className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div>
-          <div className="mb-4 flex items-baseline justify-between gap-4">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-4">
             <h2 className="text-2xl font-semibold">Любимые треки чата</h2>
             <span className="text-sm text-zinc-500">Сначала больше всего сердечек</span>
+          </div>
+          <div className="mb-5 space-y-2">
+            <button
+              id="music-chart-enqueue-all"
+              type="button"
+              className="hit-parade-button min-h-11 w-full justify-center disabled:opacity-50 sm:w-auto"
+              disabled={!chart.tracks.length || queue.pending}
+              onClick={() => {
+                void queue.enqueue(chart.tracks)
+              }}
+            >
+              {queue.pending ? "Добавляем…" : "Добавить всё в очередь"}
+            </button>
+            <p className="text-sm text-zinc-400">В личный плеер открытого чата на компьютере, по порядку рейтинга.</p>
+            <p id="music-chart-queue-notice" role="status" className="text-sm text-amber-200">
+              {queue.notice}
+            </p>
           </div>
           <div id="music-chart-tracks" className="space-y-3">
             {chart.tracks.map((track) => (

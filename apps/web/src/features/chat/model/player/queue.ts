@@ -17,6 +17,7 @@ export type PlayerState = {
 export const initialPlayer: PlayerState = { current: null, queue: [], mode: "off", requested: false, serial: 0 }
 export type PlayerAction =
   | { type: "play" | "enqueue"; track: Track }
+  | { type: "enqueue-many"; tracks: Track[] }
   | { type: "mode"; mode: PlayerState["mode"] }
   | { type: "request"; value: boolean }
   | { type: "next" }
@@ -24,6 +25,25 @@ export type PlayerAction =
   | { type: "move"; key: number; direction: -1 | 1 }
 export function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
   switch (action.type) {
+    case "enqueue-many": {
+      const sources = new Set([...state.queue, ...(state.current ? [state.current] : [])].map((entry) => entry.source))
+      let serial = state.serial
+      const additions = action.tracks
+        .filter((entry) => {
+          if (sources.has(entry.source)) return false
+          sources.add(entry.source)
+          return true
+        })
+        .map((entry) => ({ ...entry, key: ++serial }))
+      return additions.length
+        ? {
+            ...state,
+            serial,
+            queue: [...state.queue, ...additions],
+            mode: state.mode === "off" ? "compact" : state.mode,
+          }
+        : state
+    }
     case "play":
     case "enqueue": {
       const track = { ...action.track, key: state.serial + 1 }

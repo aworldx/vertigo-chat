@@ -171,8 +171,8 @@ export function Settings({
                       onChange({ ...value, appearance: { ...appearance, message_frame: e.target.value === "true" } })
                     }}
                   >
-                    <option value="true">В рамке · с реакциями</option>
-                    <option value="false">Строкой · без реакций</option>
+                    <option value="true">В рамке</option>
+                    <option value="false">Без рамок</option>
                   </select>
                 </label>
               </div>

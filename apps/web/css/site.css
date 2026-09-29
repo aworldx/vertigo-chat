@@ -847,9 +847,8 @@ html[data-chat-session-restore-timed-out] #chat-session-restore-timeout {
   scroll-behavior: auto;
 }
 
-/* The reaction button sits just beneath a framed message. A quiet hover halo
-   makes its owner unambiguous without changing the card's layout. */
-#messages > .chat-message-entry[data-message-frame="true"]::after {
+/* Highlight the message owning the focused or hovered reaction controls. */
+#messages > .chat-message-entry[data-message-frame]::after {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -861,8 +860,8 @@ html[data-chat-session-restore-timed-out] #chat-session-restore-timeout {
   transition: opacity 150ms ease;
 }
 
-#messages > .chat-message-entry[data-message-frame="true"]:hover::after,
-#messages > .chat-message-entry[data-message-frame="true"]:focus-within::after {
+#messages > .chat-message-entry[data-message-frame]:hover::after,
+#messages > .chat-message-entry[data-message-frame]:focus-within::after {
   opacity: 1;
 }
 
@@ -1672,3 +1671,23 @@ a:hover .vertigo-mark {
 @media (prefers-reduced-motion: reduce) {
   .karmik *, .karmik { animation: none !important; }
 }
+
+
+#messages > .chat-message-entry[data-message-frame="false"][data-message-kind="text"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: 8px;
+}
+#messages > .chat-message-entry[data-message-frame="false"] [data-compact-message] {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+#messages > .chat-message-entry[data-message-frame="false"]::after {
+  box-shadow: none;
+  background: rgb(253 224 71 / 9%);
+  border-radius: 4px;
+}
+
+#messages[data-message-frame="false"] { gap: 6px; }
+#messages[data-message-frame="false"] > .chat-message-entry[data-message-frame="true"] { margin-block: 4px; }

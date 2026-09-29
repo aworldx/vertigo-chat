@@ -195,3 +195,36 @@ test("administrator confirms archive deletion; system events are protected and f
     window.confirm = originalConfirm
   }
 })
+
+test("AI summary uses current form filters, keeps its window label and renders text safely", async () => {
+  let sent: unknown
+  let csrf: string | null = null
+  globalThis.fetch = async (input, init) => {
+    if (typeof input === "string" && input.endsWith("/summary")) {
+      assert.equal(typeof init?.body, "string")
+      sent = JSON.parse(init?.body as string) as unknown
+      csrf = new Headers(init?.headers).get("X-CSRF-Token")
+      return new Response(JSON.stringify({ summary: "<script>plain text</script>\n• Обсудили кино", messages: 205 }))
+    }
+    return new Response(JSON.stringify({ data: [], next: null }))
+  }
+  const view = render(<MessageHistory summaryCSRF="summary-token" />)
+  fireEvent.change(view.getByLabelText("С", { exact: true }), { target: { value: "2026-09-28T10:15" } })
+  fireEvent.change(view.getByLabelText("По", { exact: true }), { target: { value: "2026-09-28T11:45" } })
+  fireEvent.change(view.getByLabelText("Фразы от кого"), { target: { value: " Автор " } })
+  fireEvent.change(view.getByLabelText("Фразы кому"), { target: { value: "Кому" } })
+  fireEvent.click(view.getByRole("button", { name: "Сделать AI-саммари" }))
+  await waitFor(() => {
+    assert.ok(view.container.querySelector("#history-summary"))
+  })
+  assert.deepEqual(sent, { from: "2026-09-28T10:15", through: "2026-09-28T11:45", author: "Автор", recipient: "Кому" })
+  assert.equal(csrf, "summary-token")
+  assert.ok(view.getByText(/Сообщений: 205/))
+  assert.equal(view.container.querySelector("script"), null)
+  fireEvent.change(view.getByLabelText("Фразы от кого"), { target: { value: "Другой" } })
+  assert.ok(view.container.querySelector("#history-summary")?.textContent.includes("От: Автор"))
+  fireEvent.click(view.getByRole("button", { name: "Показать историю" }))
+  await waitFor(() => {
+    assert.equal(view.container.querySelector("#history-summary"), null)
+  })
+})

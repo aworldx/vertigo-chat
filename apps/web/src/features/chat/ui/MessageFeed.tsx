@@ -47,6 +47,7 @@ export function MessageFeed({
   return (
     <div
       id="messages"
+      data-message-frame={frame}
       ref={list}
       role="log"
       aria-label="Сообщения чата"

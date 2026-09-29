@@ -1,4 +1,6 @@
 import { HistoryPeriodFields } from "./HistoryPeriodFields"
+import { HistorySummary } from "./HistorySummary"
+import { useHistorySummary } from "../model/useHistorySummary"
 import { historyPreset } from "../model/historyPeriod"
 import { Icon } from "../../../shared/ui/Icon"
 import { useHistoryModeration } from "../model/useHistoryModeration"
@@ -64,13 +66,17 @@ function HistoryEntry({
     </li>
   )
 }
-export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
+export function MessageHistory({ csrf, summaryCSRF }: { csrf?: string | undefined; summaryCSRF?: string | undefined }) {
   const [from, setFrom] = useState(() => historyPreset("today").from)
   const [through, setThrough] = useState(() => historyPreset("today").through)
   const [author, setAuthor] = useState("")
   const [recipient, setRecipient] = useState("")
   const { page, period, loading, error, search, removed } = useMessageHistory()
-  const moderation = useHistoryModeration(csrf, removed)
+  const summary = useHistorySummary(summaryCSRF)
+  const moderation = useHistoryModeration(csrf, (id) => {
+    removed(id)
+    summary.clear()
+  })
   return (
     <div className="min-h-screen bg-zinc-950">
       <main id="message-history-page" className="mx-auto min-h-screen max-w-4xl px-4 py-6 text-zinc-200">
@@ -90,7 +96,12 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
           className="my-5 flex flex-wrap items-end gap-3"
           onSubmit={(event) => {
             event.preventDefault()
-            void search({ from, through, author: author.trim(), recipient: recipient.trim() })
+            const selected = { from, through, author: author.trim(), recipient: recipient.trim() }
+            if (event.nativeEvent.submitter?.id === "history-summarize") void summary.run(selected)
+            else {
+              summary.clear()
+              void search(selected)
+            }
           }}
         >
           <HistoryPeriodFields from={from} through={through} onFrom={setFrom} onThrough={setThrough} />
@@ -136,7 +147,29 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
           >
             Показать историю
           </button>
+          <button
+            id="history-summarize"
+            type="submit"
+            disabled={loading || summary.loading || !summaryCSRF}
+            className="min-h-11 rounded border border-amber-300/50 px-4 py-2 text-sm font-semibold text-amber-200 hover:bg-amber-300/10 disabled:opacity-50"
+          >
+            {summary.loading ? "Готовим саммари…" : "Сделать AI-саммари"}
+          </button>
+          <p className="w-full text-xs text-zinc-400">
+            {summaryCSRF ? (
+              "Сводка всего выбранного периода с учётом фильтров, только для тебя. До 500 записей, не чаще раза в минуту; используется общий AI-бюджет чата."
+            ) : (
+              <>
+                Для AI-саммари{" "}
+                <a href="/#landing-login" className="text-amber-300 underline">
+                  войди на сайт
+                </a>
+                .
+              </>
+            )}
+          </p>
         </form>
+        <HistorySummary summary={summary} />
         <div role="status" aria-live="polite" className="mb-4 text-sm text-zinc-400">
           {loading
             ? "Загружаем историю…"

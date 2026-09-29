@@ -304,6 +304,16 @@ test("reconnect preserves local input and resends only unacknowledged sequences"
     second.sent.filter((entry) => entry.type === "left"),
     [{ type: "left", sequence: 2 }],
   )
+  act(() => {
+    view.result.current.send("right")
+    second.onmessage?.({ data: JSON.stringify({ type: "error", message: "Действие недоступно" }) })
+    second.state({ ...confirmed, status: "finished" })
+    second.onmessage?.({ data: JSON.stringify({ type: "error", message: "Действие недоступно" }) })
+    assert.equal(view.result.current.send("drop"), false)
+    t.mock.timers.tick(100)
+  })
+  assert.equal(view.result.current.error, "")
+  assert.equal(second.sent.filter((entry) => entry.type === "right" || entry.type === "drop").length, 0)
   view.unmount()
 })
 

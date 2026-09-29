@@ -1,3 +1,5 @@
+import { verifyHistorySummary } from "./history-summary"
+import { verifyChartQueue } from "./chart-queue"
 import { verifyPersonalSettings } from "./personal-settings"
 import { verifyMessageHistory } from "./message-history-flow"
 import { verifyTypingPreference } from "./typing-preference"
@@ -25,11 +27,13 @@ async function enter(page: Page, nickname: string, password = "") {
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
 }
 try {
+  await verifyHistorySummary(browser, origin)
   await verifyPersonalSettings(browser, origin)
   await verifyMessageHistory(browser, origin)
   await verifyModeration(browser, origin)
   await verifyChatControls(browser, origin)
   await verifyPlayer(browser, origin)
+  await verifyChartQueue(browser, origin)
   await verifyLandingFlow(browser, origin)
   await verifyDeliveryStates(browser, origin)
   await verifyMessageScroll(browser, origin)

@@ -25,11 +25,27 @@ export async function verifyModeration(browser: Browser, origin: string) {
         await admin.locator("#save-preferences").click()
         await expect(admin.locator("#settings-modal")).toHaveCount(0)
         await admin.setViewportSize({ width, height: 900 })
+        assert.equal(
+          await admin.locator("#messages").evaluate((el) => getComputedStyle(el).rowGap),
+          frame ? "12px" : "6px",
+        )
         const body = `moderation ${String(width)} ${String(frame)}`
         await guest.locator("#message-body").fill(body)
         await guest.locator("#send-message").click()
         const message = admin.locator(".chat-message-entry").filter({ hasText: body })
         await expect(message).toHaveAttribute("data-message-frame", String(frame))
+        await message.hover()
+        await expect.poll(() => message.evaluate((el) => getComputedStyle(el, "::after").opacity)).toBe("1")
+        await message.getByRole("button", { name: "Добавить реакцию" }).click()
+        await message.getByRole("button", { name: "Поставить реакцию 👍", exact: true }).click()
+        const reaction = message.getByRole("button", { name: "👍 1", exact: true })
+        await expect(reaction).toHaveAttribute("aria-pressed", "true")
+        const authored = guest.locator(".chat-message-entry").filter({ hasText: body })
+        await expect(authored.getByRole("button", { name: "👍 1", exact: true })).toBeDisabled()
+        await expect(authored.getByRole("button", { name: "Добавить реакцию" })).toHaveCount(0)
+        assert.equal(await message.evaluate((el) => el.scrollWidth > el.clientWidth), false)
+        await reaction.click()
+        await expect(reaction).toHaveCount(0)
         const remove = message.getByRole("button", { name: "Удалить сообщение" })
         await expect(remove).toBeVisible()
         assert.equal(await remove.evaluate((el) => getComputedStyle(el).opacity), "1")

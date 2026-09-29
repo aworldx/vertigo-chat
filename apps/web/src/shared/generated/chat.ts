@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chat/history/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Private AI summary of the entire selected public history window
+         * @description Account login, same-origin and CSRF required. Same Moscow boundaries, retention and nickname filters as history. Reads every page; rejects windows over 500 archive entries or 60000 UTF-8 bytes of transcript, never silently truncates. Private messages, system events and game invitations are not sent to AI. Uses the shared bot token budget, at most one request per account per minute and one summary at a time. Does not publish to the room or modify bot memory. No-store response.
+         */
+        post: operations["summarizeMessageHistory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chat/history/{id}": {
         parameters: {
             query?: never;
@@ -451,6 +471,44 @@ export interface operations {
                 };
             };
             400: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
+    summarizeMessageHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    from: string;
+                    through: string;
+                    author?: string;
+                    recipient?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description AI summary visible only to the requester */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        summary: string;
+                        messages: number;
+                    };
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["Error"];
             503: components["responses"]["Error"];
         };
     };

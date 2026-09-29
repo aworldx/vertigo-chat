@@ -19,6 +19,8 @@ type Provider struct {
 	ObserveHeaders       func(http.Header)
 	Key, Model, Endpoint string
 	PersonaInstructions  string
+	OutputTokens         int
+	DisableEmptyRetry    bool
 	Client               *http.Client
 	Observe              func(status int, err error)
 }
@@ -28,7 +30,7 @@ func NewProvider(key, model string) Provider {
 }
 func (p Provider) Generate(ctx context.Context, input domain.Context) (domain.Result, error) {
 	result, err := p.request(ctx, input)
-	if errors.Is(err, domain.ErrEmptyResponse) && !input.Summarize {
+	if errors.Is(err, domain.ErrEmptyResponse) && !input.Summarize && !p.DisableEmptyRetry {
 		if len(input.Messages) > 0 {
 			input.Messages = input.Messages[len(input.Messages)-1:]
 		}
@@ -46,6 +48,9 @@ func (p Provider) request(ctx context.Context, input domain.Context) (result dom
 		instructions = domain.Instructions + "\n" + domain.Mood(input.Date)
 	}
 	tokens := 240
+	if p.OutputTokens > 0 {
+		tokens = p.OutputTokens
+	}
 	if input.Summarize {
 		instructions = "Обнови долговременную память о собеседнике на русском языке. Сохраняй только устойчивые факты, предпочтения, важные события и характер общения. Не сохраняй пароли, контакты, адреса и другие чувствительные данные. Верни только краткое резюме не длиннее 700 символов."
 		tokens = 220

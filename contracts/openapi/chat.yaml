@@ -30,6 +30,43 @@ paths:
                   next: {type: [integer, 'null'], minimum: 1}
         '400': {$ref: '#/components/responses/Error'}
         '503': {$ref: '#/components/responses/Error'}
+  /api/v1/chat/history/summary:
+    post:
+      operationId: summarizeMessageHistory
+      summary: Private AI summary of the entire selected public history window
+      description: Account login, same-origin and CSRF required. Same Moscow boundaries, retention and nickname filters as history. Reads every page; rejects windows over 500 archive entries or 60000 UTF-8 bytes of transcript, never silently truncates. Private messages, system events and game invitations are not sent to AI. Uses the shared bot token budget, at most one request per account per minute and one summary at a time. Does not publish to the room or modify bot memory. No-store response.
+      security: [{accountSession: [], csrfToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [from, through]
+              properties:
+                from: {type: string, pattern: '^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$'}
+                through: {type: string, pattern: '^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$'}
+                author: {type: string, maxLength: 24}
+                recipient: {type: string, maxLength: 24}
+      responses:
+        '200':
+          description: AI summary visible only to the requester
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [summary, messages]
+                properties:
+                  summary: {type: string, minLength: 1}
+                  messages: {type: integer, minimum: 1, maximum: 500}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
   /api/v1/chat/history/{id}:
     delete:
       operationId: deleteHistoryMessage
