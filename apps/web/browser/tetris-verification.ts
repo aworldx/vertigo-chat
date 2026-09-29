@@ -1,3 +1,4 @@
+import { verifyFirstSoloWindow } from "./tetris-first-open"
 import { launchBrowser } from "./coverage"
 import { expect, type Dialog, type Page } from "@playwright/test"
 import assert from "node:assert/strict"
@@ -59,6 +60,7 @@ async function verifyResults(page: Page, mode: string) {
   await page.setViewportSize({ width: 1440, height: 900 })
 }
 try {
+  await verifyFirstSoloWindow(browser, origin, screenshots)
   const contexts = await Promise.all(
     Array.from({ length: 4 }, () =>
       browser.newContext({ viewport: { width: 1440, height: 1100 }, reducedMotion: "reduce" }),
