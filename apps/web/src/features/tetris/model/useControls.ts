@@ -13,7 +13,7 @@ const keys: Record<string, Action> = {
   ShiftLeft: "hold",
   KeyP: "pause",
 }
-export function useControls(enabled: boolean, send: (action: Action) => void) {
+export function useControls(enabled: boolean, send: (action: Action) => void, keyboardWindow: Window = window) {
   const sendRef = useRef(send)
   useLayoutEffect(() => {
     sendRef.current = send
@@ -43,14 +43,9 @@ export function useControls(enabled: boolean, send: (action: Action) => void) {
   )
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      if (
-        !enabled ||
-        event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLSelectElement ||
-        event.target instanceof HTMLTextAreaElement
-      )
-        return
-      if (event.code === "Space" && event.target instanceof HTMLButtonElement) return
+      const tag = event.target && "nodeName" in event.target ? event.target.nodeName : ""
+      if (!enabled || ["INPUT", "SELECT", "TEXTAREA"].includes(String(tag))) return
+      if (event.code === "Space" && tag === "BUTTON") return
       const action = keys[event.code]
       if (!action) return
       event.preventDefault()
@@ -59,15 +54,15 @@ export function useControls(enabled: boolean, send: (action: Action) => void) {
     const up = (event: KeyboardEvent) => {
       if (keys[event.code]) stop()
     }
-    window.addEventListener("keydown", down)
-    window.addEventListener("keyup", up)
-    window.addEventListener("blur", stop)
+    keyboardWindow.addEventListener("keydown", down)
+    keyboardWindow.addEventListener("keyup", up)
+    keyboardWindow.addEventListener("blur", stop)
     return () => {
       stop()
-      window.removeEventListener("keydown", down)
-      window.removeEventListener("keyup", up)
-      window.removeEventListener("blur", stop)
+      keyboardWindow.removeEventListener("keydown", down)
+      keyboardWindow.removeEventListener("keyup", up)
+      keyboardWindow.removeEventListener("blur", stop)
     }
-  }, [enabled, press, stop])
+  }, [enabled, press, stop, keyboardWindow])
   return { press, stop }
 }

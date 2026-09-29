@@ -3,7 +3,7 @@ import { Modal } from "../../../shared/ui/Modal"
 import { fonts, themes, type Preferences } from "../api/preferences"
 import type { CSSProperties } from "react"
 const selectClass =
-  "w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-amber-300"
+  "min-h-11 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-base sm:text-sm text-zinc-100 outline-none transition focus:border-amber-300"
 export function Settings({
   value,
   nickname,
@@ -33,7 +33,7 @@ export function Settings({
       id="settings-modal"
       labelId="settings-modal-title"
       onClose={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-2 backdrop-blur-sm sm:p-4"
     >
       <button
         id="settings-modal-backdrop"
@@ -42,8 +42,11 @@ export function Settings({
         className="absolute inset-0 cursor-default"
         aria-label="Закрыть настройки"
       />
-      <section className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-zinc-700 bg-zinc-900 shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-zinc-800 px-5 py-5 sm:px-6">
+      <section
+        id="settings-panel"
+        className="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900 shadow-2xl sm:max-h-[92dvh] sm:rounded-3xl"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-800 px-4 py-3 sm:px-6 sm:py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Личный стиль</p>
             <h2 id="settings-modal-title" className="mt-1 text-2xl font-semibold text-zinc-100">
@@ -55,13 +58,13 @@ export function Settings({
             id="close-settings"
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-700 p-2 text-zinc-400 transition hover:border-zinc-500 hover:text-white"
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-zinc-700 p-2 text-zinc-400 transition hover:border-zinc-500 hover:text-white"
             aria-label="Закрыть настройки"
           >
             <Icon name="x-mark" className="size-5" />
           </button>
         </div>
-        <div className="p-5 sm:p-6">
+        <div id="settings-content" className="min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6">
           <form
             id="preferences-form"
             className="space-y-4"
@@ -77,14 +80,35 @@ export function Settings({
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label
+                  htmlFor="show-typing"
+                  aria-label="Показывать, кто печатает"
+                  className="flex min-h-11 cursor-pointer items-start gap-3 text-sm sm:col-span-2"
+                >
+                  <input
+                    id="show-typing"
+                    type="checkbox"
+                    className="mt-0.5 size-5 shrink-0 accent-amber-300"
+                    checked={!appearance.hide_typing}
+                    onChange={(event) => {
+                      onChange({ ...value, appearance: { ...appearance, hide_typing: !event.target.checked } })
+                    }}
+                  />
+                  <span>
+                    <span className="block text-zinc-100">Показывать, кто печатает</span>
+                    <span className="mt-1 block text-xs text-zinc-400">
+                      Надпись под сообщениями. Отключение скрывает её только у тебя.
+                    </span>
+                  </span>
+                </label>
+                <label
                   htmlFor="use-player"
                   aria-label="Использовать плеер"
-                  className="flex cursor-pointer items-start gap-3 text-sm sm:col-span-2"
+                  className="flex min-h-11 cursor-pointer items-start gap-3 text-sm sm:col-span-2"
                 >
                   <input
                     id="use-player"
                     type="checkbox"
-                    className="mt-1 size-4 shrink-0 accent-amber-300"
+                    className="mt-0.5 size-5 shrink-0 accent-amber-300"
                     checked={appearance.use_player ?? false}
                     onChange={(event) => {
                       onChange({ ...value, appearance: { ...appearance, use_player: event.target.checked } })
@@ -101,12 +125,12 @@ export function Settings({
                 <label
                   htmlFor="hide-karmik"
                   aria-label="Скрывать Кармика"
-                  className="flex cursor-pointer items-start gap-3 text-sm sm:col-span-2"
+                  className="flex min-h-11 cursor-pointer items-start gap-3 text-sm sm:col-span-2"
                 >
                   <input
                     id="hide-karmik"
                     type="checkbox"
-                    className="mt-1 size-4 shrink-0 accent-amber-300"
+                    className="mt-0.5 size-5 shrink-0 accent-amber-300"
                     checked={appearance.hide_karmik ?? false}
                     onChange={(e) => {
                       onChange({ ...value, appearance: { ...appearance, hide_karmik: e.target.checked } })
@@ -200,7 +224,7 @@ export function Settings({
               <label
                 htmlFor="message-sound-enabled"
                 aria-label="Звук новых сообщений"
-                className="flex cursor-pointer items-center gap-3"
+                className="flex min-h-11 cursor-pointer items-center gap-3"
               >
                 <input
                   id="message-sound-enabled"
@@ -221,7 +245,7 @@ export function Settings({
               </label>
             </section>
             <details id="appearance-colors" className="group rounded-2xl border border-zinc-800 bg-zinc-950/70">
-              <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-zinc-100 marker:content-none">
+              <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 text-sm font-semibold text-zinc-100 marker:content-none">
                 <Icon name="paint-brush" className="size-4 text-amber-300" />
                 Цвета моих сообщений<span className="ml-auto text-xs font-normal text-zinc-500">Дополнительно</span>
                 <Icon name="chevron-down" className="size-4 text-zinc-500 transition group-open:rotate-180" />
@@ -250,7 +274,7 @@ export function Settings({
                                 },
                               })
                             }}
-                            className="h-9 w-full cursor-pointer rounded-lg border border-zinc-700 bg-zinc-950"
+                            className="h-11 w-full cursor-pointer rounded-lg border border-zinc-700 bg-zinc-950"
                           />
                         </label>
                       ))}
@@ -274,20 +298,23 @@ export function Settings({
                 пример текста
               </span>
             </section>
-            {error && (
-              <p role="alert" className="text-sm text-red-300">
-                {error}
-              </p>
-            )}
-            <button
-              id="save-preferences"
-              type="submit"
-              disabled={saving}
-              className="w-full rounded-xl bg-amber-300 px-3 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 disabled:opacity-60"
-            >
-              {saving ? "Сохраняем…" : "Сохранить изменения"}
-            </button>
           </form>
+        </div>
+        <div className="shrink-0 border-t border-zinc-800 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+          {error && (
+            <p role="alert" className="mb-2 text-sm text-red-300">
+              {error}
+            </p>
+          )}
+          <button
+            id="save-preferences"
+            form="preferences-form"
+            type="submit"
+            disabled={saving}
+            className="min-h-11 w-full rounded-xl bg-amber-300 px-3 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-200 disabled:opacity-60"
+          >
+            {saving ? "Сохраняем…" : "Сохранить изменения"}
+          </button>
         </div>
       </section>
     </Modal>

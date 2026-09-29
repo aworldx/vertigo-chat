@@ -12,6 +12,7 @@ const React = (await import("react")).default
 const { render, fireEvent, cleanup, waitFor } = await import("@testing-library/react")
 const { MessageHistory } = await import("../src/features/chat/ui/MessageHistory")
 const { loadHistory } = await import("../src/features/chat/api/history")
+const { historyPreset } = await import("../src/features/chat/model/historyPeriod")
 const original = globalThis.fetch
 afterEach(() => {
   cleanup()
@@ -34,6 +35,45 @@ const message = {
   font_id: "serif",
   font_style: "italic",
 }
+test("history presets use Moscow dates across midnight and month boundaries", () => {
+  const now = new Date("2026-02-28T21:30:00Z")
+  assert.deepEqual(historyPreset("today", now), { from: "2026-03-01T00:00", through: "2026-03-01T23:59" })
+  assert.deepEqual(historyPreset("yesterday", now), { from: "2026-02-28T00:00", through: "2026-02-28T23:59" })
+  assert.deepEqual(historyPreset("hour", now), { from: "2026-02-28T23:30", through: "2026-03-01T00:30" })
+})
+test("history offers editable minute fields, calendar buttons and quick periods without submitting", () => {
+  globalThis.fetch = () => assert.fail("presets must not submit the search")
+  const view = render(<MessageHistory />)
+  const from = view.getByLabelText("С")
+  const through = view.getByLabelText("По")
+  assert.ok(from instanceof dom.window.HTMLInputElement)
+  assert.ok(through instanceof dom.window.HTMLInputElement)
+  assert.equal(from.type, "datetime-local")
+  assert.equal(from.step, "60")
+  for (const [label, preset] of [
+    ["Последний час", "hour"],
+    ["Вчера", "yesterday"],
+    ["Сегодня", "today"],
+  ] as const) {
+    fireEvent.click(view.getByRole("button", { name: label }))
+    const expected = historyPreset(preset)
+    assert.equal(from.value, expected.from)
+    assert.equal(through.value, expected.through)
+    assert.equal(from.max, through.value)
+    assert.equal(through.min, from.value)
+  }
+  let opened = 0
+  from.showPicker = () => {
+    opened++
+  }
+  fireEvent.click(view.getByRole("button", { name: "Выбрать дату и время: С" }))
+  assert.equal(opened, 1)
+  through.showPicker = () => {
+    throw new Error("unsupported")
+  }
+  fireEvent.click(view.getByRole("button", { name: "Выбрать дату и время: По" }))
+  assert.equal(document.activeElement, through)
+})
 test("history requires a selected period, renders stored styling and paginates the applied period", async () => {
   const requests: string[] = []
   globalThis.fetch = (url) => {
@@ -50,7 +90,8 @@ test("history requires a selected period, renders stored styling and paginates t
   }
   const view = render(<MessageHistory />)
   assert.equal(requests.length, 0)
-  fireEvent.change(view.getByLabelText("С"), { target: { value: "2026-09-01" } })
+  fireEvent.change(view.getByLabelText("С"), { target: { value: "2026-09-01T09:15" } })
+  fireEvent.change(view.getByLabelText("По"), { target: { value: "2026-09-02T18:45" } })
   fireEvent.change(view.getByLabelText("Фразы от кого"), { target: { value: " Styled " } })
   fireEvent.change(view.getByLabelText("Фразы кому"), { target: { value: "Кому" } })
   fireEvent.submit(view.container.querySelector("form") ?? assert.fail("form"))
@@ -62,7 +103,8 @@ test("history requires a selected period, renders stored styling and paginates t
   assert.equal(view.container.querySelector(".chat-message-author")?.getAttribute("style")?.includes("#aabbcc"), true)
   assert.ok(view.container.querySelector("strong"))
   assert.equal(view.container.querySelector("script"), null)
-  fireEvent.change(view.getByLabelText("С"), { target: { value: "2026-09-10" } })
+  fireEvent.change(view.getByLabelText("С"), { target: { value: "2026-09-10T16:30" } })
+  fireEvent.change(view.getByLabelText("По"), { target: { value: "2026-09-11T20:30" } })
   fireEvent.change(view.getByLabelText("Фразы от кого"), { target: { value: "Другой" } })
   fireEvent.change(view.getByLabelText("Фразы кому"), { target: { value: "" } })
   fireEvent.click(view.getByText("Следующие 100"))
@@ -73,6 +115,8 @@ test("history requires a selected period, renders stored styling and paginates t
   assert.ok(requests[1]?.includes("after=1"))
   for (const url of requests) {
     const query = new URL(url, "https://local.test").searchParams
+    assert.equal(query.get("from"), "2026-09-01T09:15")
+    assert.equal(query.get("through"), "2026-09-02T18:45")
     assert.equal(query.get("author"), "Styled")
     assert.equal(query.get("recipient"), "Кому")
   }

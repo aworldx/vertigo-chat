@@ -7,6 +7,7 @@ export const chatCommands: readonly { input: string; label: string; description:
     description: "Создаёт игру до трёх участников; соло — без приглашения, топ — таблица лидеров.",
     topic: "games",
   },
+  { input: "/настройки", label: "/настройки", description: "Открывает личные настройки чата.", topic: "appearance" },
   { input: "/помощь", label: "/помощь", description: "Показывает список команд.", topic: "commands" },
   {
     input: "/кто",

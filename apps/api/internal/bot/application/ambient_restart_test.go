@@ -76,7 +76,7 @@ func TestAmbientRestoresIntermissionAndOldContext(t *testing.T) {
 		if calls != 0 {
 			t.Fatal("restarted too soon")
 		}
-		current = current.Add(10 * time.Minute)
+		current = now.Add(age + 15*time.Minute)
 		for range 3 {
 			if err := a.Tick(context.Background()); err != nil {
 				t.Fatal(err)
@@ -95,6 +95,26 @@ func TestAmbientRestoresIntermissionAndOldContext(t *testing.T) {
 	a.restore(history, now)
 	if a.turn().Speaker.ID != "hitchcock" {
 		t.Fatal("lost pending question")
+	}
+}
+
+func TestAmbientRestoredIntermissionLastsFifteenMinutes(t *testing.T) {
+	now := time.Now().UTC()
+	var history []AmbientMessage
+	for i := range 6 {
+		speaker := "claire"
+		if i%2 == 1 {
+			speaker = "hitchcock"
+		}
+		history = append(history, AmbientMessage{Speaker: speaker, Body: "Ответ", SentAt: now.Add(time.Duration(i-5) * 3 * time.Minute)})
+	}
+	for _, elapsed := range []time.Duration{10 * time.Minute, 14 * time.Minute, 15 * time.Minute} {
+		current := now.Add(elapsed)
+		a := NewAmbient(AmbientPorts{Delay: func() time.Duration { return 3 * time.Minute }})
+		a.restore(history, current)
+		if got := a.due(current, Audience{Humans: 1}); got != (elapsed == 15*time.Minute) {
+			t.Fatalf("after restart at %s: due = %v", elapsed, got)
+		}
 	}
 }
 

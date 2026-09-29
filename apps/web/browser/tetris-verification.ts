@@ -3,6 +3,13 @@ import { expect, type Dialog, type Page } from "@playwright/test"
 import assert from "node:assert/strict"
 import { mkdir } from "node:fs/promises"
 import { installFeedbackProbe } from "./tetris-feedback"
+import {
+  openTetrisAndReturn,
+  verifyTetrisWindow,
+  verifyMobileTetris,
+  verifyBlockedTetris,
+  verifyTouchControls,
+} from "./tetris-window"
 
 const targetOrigin = process.argv[2]
 assert.ok(targetOrigin)
@@ -19,7 +26,7 @@ async function enter(page: Page, nickname: string, password = "") {
 }
 async function command(page: Page, text: string) {
   await page.locator("#message-body").fill(text)
-  await page.locator("#send-message").click()
+  await openTetrisAndReturn(page, () => page.locator("#send-message").click())
 }
 async function leave(page: Page) {
   const accept = (dialog: Dialog) => {
@@ -59,12 +66,12 @@ try {
   await expect(invitation).toContainText("fixture01")
   const id = await invitation.getAttribute("data-game-id")
   assert.ok(id)
-  await second.locator(`#game-join-${id}`).click()
+  await openTetrisAndReturn(second, () => second.locator(`#game-join-${id}`).click())
   await expect(second.locator(".tetris-lobby")).toContainText("2/3")
-  await third.locator(`#game-join-${id}`).click()
+  await openTetrisAndReturn(third, () => third.locator(`#game-join-${id}`).click())
   await expect(host.locator(".tetris-lobby")).toContainText("3/3")
   await expect(observer.locator(`#game-join-${id}`)).toHaveCount(0)
-  await observer.locator(`#game-watch-${id}`).click()
+  await openTetrisAndReturn(observer, () => observer.locator(`#game-watch-${id}`).click())
   await expect(observer.locator(".tetris-lobby")).toContainText("Ты наблюдаешь")
   await expect(observer.locator("#tetris-start")).toHaveCount(0)
   await expect(host.locator("#tetris-start")).toBeDisabled()
@@ -115,7 +122,7 @@ try {
   await leave(second)
   await expect(host.locator(".tetris-results")).toContainText("fixture01")
   await expect(observer.locator(".tetris-results")).toBeVisible()
-  await host.locator("#tetris-rematch").click()
+  await openTetrisAndReturn(host, () => host.locator("#tetris-rematch").click())
   await expect(host.locator(".tetris-lobby")).toContainText("3/3")
   await expect(host.locator("#tetris-start")).toBeDisabled()
   await leave(host)
@@ -136,7 +143,7 @@ try {
     await host.setViewportSize(viewport)
     const board = await host.locator(".tetris-mine .tetris-board").boundingBox()
     assert.ok(
-      board && board.height > viewport.height * 0.55,
+      board && board.height > viewport.height * (viewport.width < 768 ? 0.38 : 0.55),
       `solo board ${String(board?.height)} should use most of ${String(viewport.width)}x${String(viewport.height)}`,
     )
     await expect(host.locator(".tetris-upcoming svg")).toHaveCount(5)
@@ -148,9 +155,11 @@ try {
     )
     await expect(host.locator("#tetris-settings")).not.toBeVisible()
     await expect(host.locator(".tetris-held")).toContainText("Пока пусто")
+    if (viewport.width < 768) await verifyTouchControls(host)
     await host.screenshot({ path: `${screenshots}/solo-${String(viewport.width)}.png` })
   }
   await host.setViewportSize({ width: 1440, height: 900 })
+  await verifyTetrisWindow(host, screenshots)
   const canvas = await host.locator(".tetris-mine canvas").elementHandle()
   await host.context().setOffline(true)
   await expect(host.locator(".tetris-connection")).toContainText("Синхронизация", { timeout: 15000 })
@@ -181,13 +190,26 @@ try {
   await expect(pair).toContainText("tetris-observer")
   const pairID = await pair.getAttribute("data-game-id")
   assert.ok(pairID)
-  await host.locator(`#game-join-${pairID}`).click()
+  await openTetrisAndReturn(host, () => host.locator(`#game-join-${pairID}`).click())
   await host.locator("#tetris-ready").click()
   await observer.locator("#tetris-ready").click()
   await expect(observer.locator("#tetris-start")).toHaveText("Начать вдвоём")
   await observer.locator("#tetris-start").click()
   await expect(host.locator("#tetris-control-drop")).toBeVisible({ timeout: 10000 })
   await expect(host.locator(".tetris-board canvas")).toHaveCount(2)
+  await leave(host)
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  })
+  const mobile = await mobileContext.newPage()
+  await enter(mobile, "tetris-mobile")
+  await verifyMobileTetris(mobile, screenshots)
+  await leave(mobile)
+  await mobileContext.close()
+  await verifyBlockedTetris(host)
+  await leave(host)
   assert.deepEqual(errors, [])
   console.log(
     "Tetris verified: command, invitation, 3-player cap, observer, readiness, early 2-player start, rematch, solo privacy, score, pause, audio, leaderboard, responsive screenshots.",

@@ -17,6 +17,7 @@ func testMessageHistory(t *testing.T, pool *pgxpool.Pool) {
 		t.Fatal(err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	testHistoryMinuteWindow(t, tx)
 	// The inherited schema stores sent_at at whole-second precision.
 	now := time.Now().UTC().Truncate(time.Second)
 	cutoff := rooms.HistoryCutoff(now)

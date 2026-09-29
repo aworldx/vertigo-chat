@@ -40,7 +40,7 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
         )}
         {tetris.selection && (
           <TetrisGame
-            key={tetris.selection.id}
+            key={`${tetris.selection.id}:${tetris.selection.popup?.id ?? "inline"}`}
             {...tetris.selection}
             token={chatToken()}
             onClose={tetris.close}

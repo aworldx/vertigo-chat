@@ -114,7 +114,7 @@ func TestAmbientRestAndFailures(t *testing.T) {
 	if calls != 6 {
 		t.Fatal(calls)
 	}
-	if err := step(9 * time.Minute); err != nil {
+	if err := step(14 * time.Minute); err != nil {
 		t.Fatal(err)
 	}
 	if calls != 6 {

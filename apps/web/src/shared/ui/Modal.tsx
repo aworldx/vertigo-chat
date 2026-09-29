@@ -13,9 +13,10 @@ export function Modal({
     close.current = onClose
   }, [onClose])
   useLayoutEffect(() => {
-    const previous = document.activeElement
     const root = ref.current
     if (!root) return
+    const owner = root.ownerDocument
+    const previous = owner.activeElement
     const focusable = () =>
       Array.from(
         root.querySelectorAll<HTMLElement>(
@@ -33,10 +34,10 @@ export function Modal({
       const elements = focusable(),
         first = elements[0],
         last = elements.at(-1)
-      if (event.shiftKey && document.activeElement === first) {
+      if (event.shiftKey && owner.activeElement === first) {
         event.preventDefault()
         last?.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && owner.activeElement === last) {
         event.preventDefault()
         first?.focus()
       }
@@ -44,7 +45,8 @@ export function Modal({
     root.addEventListener("keydown", key)
     return () => {
       root.removeEventListener("keydown", key)
-      if (previous instanceof HTMLElement && previous.isConnected) previous.focus({ preventScroll: true })
+      if (owner.defaultView && previous instanceof owner.defaultView.HTMLElement && previous.isConnected)
+        previous.focus({ preventScroll: true })
     }
   }, [])
   return (

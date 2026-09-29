@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { mkdir, readFile } from "node:fs/promises"
-import { expect, type Browser, type Route } from "@playwright/test"
+import { expect, type Browser, type Page, type Route } from "@playwright/test"
 import { decodeFrame, type Message, type Snapshot } from "../src/features/chat/api/protocol"
 import { defaultPreferences } from "../src/features/chat/api/preferences"
 function fixture(id: number, video = false): Message {
@@ -41,6 +41,24 @@ async function serveMedia(route: Route, bytes: Buffer, contentType: string) {
     },
   })
 }
+async function verifyStablePlayerStatus(page: Page, width: number) {
+  const video = page.locator("#chat-tv-media")
+  const screen = page.locator(".chat-player-screen")
+  const status = page.locator("#chat-tv-status")
+  await expect(status).toBeEmpty()
+  const before = await screen.boundingBox()
+  assert.ok(before)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await video.dispatchEvent("waiting")
+    await expect(status).toHaveText("Подготавливаем…")
+    assert.deepEqual(await screen.boundingBox(), before, "preparation status must not shift or resize the video")
+    if (attempt === 0) await page.screenshot({ path: `migration-results/player/${String(width)}-preparing.png` })
+    await video.dispatchEvent("playing")
+    await expect(status).toBeEmpty()
+    assert.deepEqual(await screen.boundingBox(), before, "clearing preparation status must preserve video geometry")
+  }
+}
+
 export async function verifyPlayer(browser: Browser, origin: string) {
   const bytes = await readFile(new URL("./fixtures/player.webm", import.meta.url))
   await mkdir("migration-results/player", { recursive: true })
@@ -248,6 +266,7 @@ export async function verifyPlayer(browser: Browser, origin: string) {
         element instanceof HTMLVideoElement ? element.videoWidth / element.videoHeight : 0,
       )
       assert.ok(Math.abs(screenRatio - sourceRatio) < 0.02, "video area follows the source aspect ratio")
+      await verifyStablePlayerStatus(page, width)
       if (width < 768) {
         // Opening a tall panel must never put its controls behind the chat header.
         for (const height of [568, 844]) {

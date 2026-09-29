@@ -103,6 +103,37 @@ test("held movement responds immediately and keeps repeating across state update
   assert.equal(sent.length, 3)
   unmount()
 })
+test("keyboard input follows the game window and ignores its form controls", () => {
+  const frame = document.createElement("iframe")
+  document.body.append(frame)
+  const child = frame.contentWindow
+  assert.ok(child)
+  const sent: string[] = []
+  const hook = renderHook(() =>
+    useControls(
+      true,
+      (action) => {
+        sent.push(action)
+      },
+      child,
+    ),
+  )
+  fireEvent.keyDown(window, { code: "ArrowLeft" })
+  assert.deepEqual(sent, [])
+  fireEvent.keyDown(child, { code: "ArrowRight" })
+  fireEvent.keyUp(child, { code: "ArrowRight" })
+  assert.deepEqual(sent, ["right"])
+  const input = child.document.createElement("input")
+  const button = child.document.createElement("button")
+  child.document.body.append(input, button)
+  fireEvent.keyDown(input, { code: "ArrowLeft" })
+  fireEvent.keyDown(button, { code: "Space" })
+  assert.deepEqual(sent, ["right"])
+  hook.unmount()
+  fireEvent.keyDown(child, { code: "ArrowLeft" })
+  assert.deepEqual(sent, ["right"])
+  frame.remove()
+})
 test("client piece coordinates match the server fixtures", () => {
   const fixtures: unknown = JSON.parse(
     readFileSync(new URL("../../../contracts/fixtures/tetris-pieces.json", import.meta.url), "utf8"),
@@ -180,6 +211,9 @@ test("slash commands dispatch solo, memorable code and rankings without becoming
       () => undefined,
       () => undefined,
       () => undefined,
+      () => {
+        commands.push("settings")
+      },
       (argument) => {
         commands.push(argument)
       },
@@ -189,7 +223,11 @@ test("slash commands dispatch solo, memorable code and rankings without becoming
     for (const command of ["/тетрис", "/тетрис соло", "/тетрис ЛИСА-27", "/тетрис топ"])
       assert.equal(result.current.execute(command), true)
   })
-  assert.deepEqual(commands, ["", "соло", "ЛИСА-27", "топ"])
+  act(() => {
+    assert.equal(result.current.execute("/настройки"), true)
+    assert.equal(result.current.execute("/настройки лишнее"), true)
+  })
+  assert.deepEqual(commands, ["", "соло", "ЛИСА-27", "топ", "settings"])
 })
 
 test("reconnect preserves local input and resends only unacknowledged sequences", async (t) => {

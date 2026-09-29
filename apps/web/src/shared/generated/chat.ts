@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Public room messages and system events for a selected period
-         * @description Three calendar months retained. Inclusive Moscow dates; oldest ID first, 100 messages per page. Private messages and personal hints are excluded. Author and recipient filters are optional, trimmed, case-insensitive, and combined with AND before pagination. With either filter, system events are excluded. Recipient matches the saved public addressee, not arbitrary mentions or private messages. The next cursor is null on the last page. No-store response.
+         * @description Three calendar months retained. Moscow local date and time with minute precision (YYYY-MM-DDTHH:mm); the through minute is included in full. Legacy YYYY-MM-DD boundaries include the whole day. No UTC offset or browser timezone conversion. Oldest ID first, 100 messages per page. Private messages and personal hints are excluded. Author and recipient filters are optional, trimmed, case-insensitive, and combined with AND before pagination. With either filter, system events are excluded. Recipient matches the saved public addressee, not arbitrary mentions or private messages. The next cursor is null on the last page. No-store response.
          */
         get: operations["listMessageHistory"];
         put?: never;
@@ -370,6 +370,8 @@ export interface components {
                 use_player?: boolean;
                 /** @description Hide only the personal Karmik decoration; defaults to false when omitted. Karma processing remains active. */
                 hide_karmik?: boolean;
+                /** @description Hide other participants' typing indicators for this viewer only; defaults to false when omitted. Does not suppress the viewer's own typing events. */
+                hide_typing?: boolean;
             };
         };
         Emoji: {
@@ -420,7 +422,9 @@ export interface operations {
     listMessageHistory: {
         parameters: {
             query: {
+                /** @description Inclusive start in Moscow time */
                 from: string;
+                /** @description Inclusive final minute or legacy whole day in Moscow time */
                 through: string;
                 after?: number;
                 /** @description Optional exact author nickname */

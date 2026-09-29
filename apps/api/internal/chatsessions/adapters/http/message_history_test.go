@@ -33,6 +33,8 @@ func TestMessageArchiveHTTP(t *testing.T) {
 	}{
 		{"", 400, false}, {"?from=2026-99-01&through=2026-01-01", 400, false}, {"?after=no", 400, false},
 		{"?from=2000-01-01&through=2099-01-01", 200, false}, {"?from=2000-01-01&through=2099-01-01", 503, true},
+		{"?from=2000-01-01T10:15&through=2099-01-01T10:16", 200, false},
+		{"?from=2026-09-28T10:16&through=2026-09-28T10:15", 400, false},
 	} {
 		mux := http.NewServeMux()
 		NewMessageHistoryHandler(rooms.NewHistory(archiveStub{tc.fail})).Register(mux)

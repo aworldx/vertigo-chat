@@ -1,4 +1,6 @@
+import { verifyPersonalSettings } from "./personal-settings"
 import { verifyMessageHistory } from "./message-history-flow"
+import { verifyTypingPreference } from "./typing-preference"
 import { verifyModeration } from "./moderation-verification"
 import { verifyChatControls } from "./chat-controls-verification"
 import { verifyPlayer } from "./player-verification"
@@ -23,6 +25,7 @@ async function enter(page: Page, nickname: string, password = "") {
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
 }
 try {
+  await verifyPersonalSettings(browser, origin)
   await verifyMessageHistory(browser, origin)
   await verifyModeration(browser, origin)
   await verifyChatControls(browser, origin)
@@ -93,6 +96,7 @@ try {
   await first.locator("#save-preferences").click()
   await expect(first.locator("#settings-modal")).toHaveCount(0)
   await expect(first.locator("#karmik")).toHaveCount(1)
+  await verifyTypingPreference(first, second, observer)
   await first.locator("#message-body").fill("^browser-guest-two, Секрет только адресату")
   await first.locator("#send-message").click()
   await expect(second.locator('[data-message-kind="private"]')).toContainText("Секрет только адресату")
@@ -104,6 +108,7 @@ try {
   const received = second.locator('[data-message-kind="text"]').filter({ hasText: "Привет из первой вкладки" })
   const reactionToggle = received.getByRole("button", { name: "Добавить реакцию" })
   await reactionToggle.scrollIntoViewIfNeeded()
+  await reactionToggle.click({ trial: true })
   const toggleBefore = await reactionToggle.boundingBox()
   assert.ok(toggleBefore)
   await reactionToggle.click()
@@ -113,7 +118,7 @@ try {
   // Chromium can round a fractional scroll offset by one CSS pixel.
   assert.ok(
     Math.abs(toggleAfter.x - toggleBefore.x) <= 1 && Math.abs(toggleAfter.y - toggleBefore.y) <= 1,
-    "Opening reactions must not move the trigger",
+    `Opening reactions must not move the trigger: ${JSON.stringify({ toggleBefore, toggleAfter })}`,
   )
   assert.equal(toggleAfter.width, toggleBefore.width)
   assert.equal(toggleAfter.height, toggleBefore.height)

@@ -54,6 +54,7 @@ export function Room({
       connection.leave()
     },
     search.search,
+    settings.show,
     onGame,
   )
   useNotification(
@@ -157,7 +158,9 @@ export function Room({
                   aria-live="polite"
                   className="min-h-6 shrink-0 break-words px-4 text-xs italic leading-6 text-zinc-500"
                 >
-                  {state.snapshot.typing.length > 0 ? `${state.snapshot.typing.join(", ")} печатает…` : ""}
+                  {!state.snapshot.preferences.appearance.hide_typing && state.snapshot.typing.length > 0
+                    ? `${state.snapshot.typing.join(", ")} печатает…`
+                    : ""}
                 </p>
               </main>
             ) : (

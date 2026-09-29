@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { afterEach, mock, test } from "node:test"
 import { JSDOM } from "jsdom"
-import { defaultPreferences } from "../src/features/chat/api/preferences"
+import { defaultPreferences, isPreferences } from "../src/features/chat/api/preferences"
 import { decodeFrame, type Peer } from "../src/features/chat/api/protocol"
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>")
@@ -18,6 +18,15 @@ const { render, fireEvent, cleanup } = await import("@testing-library/react")
 const { OnlineList } = await import("../src/features/chat/ui/OnlineList")
 const { Composer } = await import("../src/features/chat/ui/Composer")
 afterEach(cleanup)
+test("typing visibility accepts legacy preferences and requires a boolean when present", () => {
+  const legacy = { ...defaultPreferences.appearance }
+  delete legacy.hide_typing
+  assert.equal(isPreferences({ ...defaultPreferences, appearance: legacy }), true)
+  for (const hide_typing of [true, false]) {
+    assert.equal(isPreferences({ ...defaultPreferences, appearance: { ...legacy, hide_typing } }), true)
+  }
+  assert.equal(isPreferences({ ...defaultPreferences, appearance: { ...legacy, hide_typing: "false" } }), false)
+})
 const guest: Peer = {
   bot: false,
   preferences: defaultPreferences,

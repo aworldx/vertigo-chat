@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useGame } from "../model/useGame"
 import { useTetrisAudio } from "../model/useTetrisAudio"
 import { useControls } from "../model/useControls"
+import { useGameWindow, type GameWindow } from "../model/useGameWindow"
 import { Board } from "./Board"
 import { AudioControls } from "./AudioControls"
 import { PiecePreview } from "./PiecePreview"
@@ -15,14 +16,18 @@ export function TetrisGame({
   join,
   onClose,
   onRematch,
+  popup,
 }: {
   id: string
   token: string
   join: boolean
   onClose: () => void
   onRematch: () => void
+  popup?: GameWindow | null | undefined
 }) {
   const { game, error, connected, send, latest } = useGame(id, token, join)
+  const gameWindow = useGameWindow(popup)
+  const keyboardWindow = gameWindow.container?.ownerDocument.defaultView ?? window
   const sound = useTetrisAudio(game)
   const playInput = sound.input
   const [focus, setFocus] = useState("")
@@ -35,17 +40,17 @@ export function TetrisGame({
     if (send(value) && current?.status === "running" && !current.paused && player && !player.dead) playInput(value)
   }
   const enabled = game?.status === "running" && !!self && !self.dead
-  const controls = useControls(enabled, action)
+  const controls = useControls(enabled, action, keyboardWindow)
   const keyboard = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (enabled) keyboard.current?.focus({ preventScroll: true })
-  }, [enabled])
+  }, [enabled, gameWindow.container])
   const leave = useCallback(() => {
-    if (enabled && !window.confirm("Выйти из игры? Будет засчитано поражение.")) return
+    if (enabled && !keyboardWindow.confirm("Выйти из игры? Будет засчитано поражение.")) return
     send("leave")
     onClose()
-  }, [enabled, send, onClose])
-  return createPortal(
+  }, [enabled, send, onClose, keyboardWindow])
+  const view = createPortal(
     <Modal id="tetris-dialog" labelId="tetris-heading" onClose={leave} className="tetris-overlay">
       <section className="tetris-shell" id="tetris-game" data-player-count={game?.players.length ?? 0}>
         <header className="tetris-header">
@@ -77,12 +82,17 @@ export function TetrisGame({
           <button id="tetris-audio-toggle" type="button" aria-pressed={sound.enabled} onClick={sound.toggle}>
             {sound.enabled ? "Выключить звук" : "Включить звук"}
           </button>
+          {!gameWindow.container && (
+            <button id="tetris-popout" className="tetris-popout" type="button" onClick={gameWindow.open}>
+              В новом окне ↗
+            </button>
+          )}
           <a href="/games/tetris/leaderboard" target="_blank" rel="noreferrer">
             Таблица лидеров ↗
           </a>
         </div>
         <div className="tetris-connection" role="status" aria-live="polite">
-          {error || (!connected ? (game ? "Синхронизация…" : "Подключаем игру…") : "")}
+          {gameWindow.error || error || (!connected ? (game ? "Синхронизация…" : "Подключаем игру…") : "")}
         </div>
         {game?.status === "lobby" && <Lobby game={game} send={action} connected={connected} />}
         {game?.status === "cancelled" && <p role="status">Игра отменена.</p>}
@@ -165,21 +175,19 @@ export function TetrisGame({
               <div className="tetris-controls" role="group" aria-label="Управление фигурами">
                 {(
                   [
-                    ["left", "←"],
-                    ["rotate", "Поворот"],
-                    ["right", "→"],
-                    ["down", "↓"],
-                    ["drop", "Сброс"],
-                    ["hold", "Отложить"],
+                    ["left", "←", "←", "Влево"],
+                    ["rotate", "Поворот", "↻", "Повернуть"],
+                    ["right", "→", "→", "Вправо"],
+                    ["drop", "Сброс", "⤓", "Сбросить"],
+                    ["down", "↓", "↓", "Вниз"],
+                    ["hold", "Отложить", "⇄", "Отложить"],
                   ] as const
-                ).map(([value, label]) => (
+                ).map(([value, label, symbol, touchLabel]) => (
                   <button
                     key={value}
                     id={`tetris-control-${value}`}
                     type="button"
-                    aria-label={
-                      value === "left" ? "Влево" : value === "right" ? "Вправо" : value === "down" ? "Вниз" : label
-                    }
+                    aria-label={touchLabel}
                     onPointerDown={(e) => {
                       e.preventDefault()
                       e.currentTarget.setPointerCapture(e.pointerId)
@@ -194,8 +202,9 @@ export function TetrisGame({
                   >
                     <span className="tetris-control-label">{label}</span>
                     <span className="tetris-control-symbol" aria-hidden="true">
-                      {value === "rotate" ? "↻" : value === "drop" ? "⤓" : value === "hold" ? "⇄" : label}
+                      {symbol}
                     </span>
+                    <span className="tetris-control-touch-label">{touchLabel}</span>
                   </button>
                 ))}
                 {game.mode === "solo" && (
@@ -211,6 +220,7 @@ export function TetrisGame({
                     <span className="tetris-control-symbol" aria-hidden="true">
                       {game.paused ? "▶" : "Ⅱ"}
                     </span>
+                    <span className="tetris-control-touch-label">{game.paused ? "Продолжить" : "Пауза"}</span>
                   </button>
                 )}
               </div>
@@ -254,7 +264,25 @@ export function TetrisGame({
         </footer>
       </section>
     </Modal>,
-    document.body,
+    gameWindow.container ?? document.body,
+  )
+  return (
+    <>
+      {view}
+      {gameWindow.container &&
+        createPortal(
+          <div
+            id="tetris-window-notice"
+            className="fixed bottom-20 left-4 z-50 flex max-w-sm flex-wrap items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-sm text-zinc-100"
+          >
+            <span>Тетрис в отдельном окне</span>
+            <button type="button" className="text-amber-300 underline" onClick={gameWindow.focus}>
+              К игре
+            </button>
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }
 function Lobby({ game, send, connected }: { game: GameState; send: (action: Action) => void; connected: boolean }) {

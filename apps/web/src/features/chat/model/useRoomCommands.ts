@@ -8,6 +8,7 @@ export function useRoomCommands(
   onProfile: (nickname: string) => void,
   onLeave: () => void,
   search: (kind: MediaItem["kind"], query: string) => void,
+  onSettings: () => void,
   onGame?: (argument: string) => void,
 ) {
   const sequence = useRef(0)
@@ -30,11 +31,14 @@ export function useRoomCommands(
           : rawCommand === "/youtube"
             ? "/ютуб"
             : rawCommand
-    if (argument && ["/помощь", "/кто", "/выход", "/игноры", "/очистить"].includes(command ?? "")) {
+    if (argument && ["/настройки", "/помощь", "/кто", "/выход", "/игноры", "/очистить"].includes(command ?? "")) {
       notice("error", "Команда не выполнена", "Неизвестная команда. Напиши /помощь, чтобы увидеть список команд.")
       return true
     }
     switch (command) {
+      case "/настройки":
+        onSettings()
+        break
       case "/тетрис":
         onGame?.(argument)
         break

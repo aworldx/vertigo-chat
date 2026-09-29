@@ -35,16 +35,16 @@ func (h History) List(ctx context.Context, room, from, through string, after int
 	if utf8.RuneCountInString(filters.Author) > 24 || utf8.RuneCountInString(filters.Recipient) > 24 {
 		return nil, ErrInvalidPeriod
 	}
-	start, e1 := time.ParseInLocation("2006-01-02", from, HistoryZone)
-	end, e2 := time.ParseInLocation("2006-01-02", through, HistoryZone)
-	if e1 != nil || e2 != nil || start.After(end) || after < 0 {
+	start, _, e1 := historyBoundary(from)
+	end, precision, e2 := historyBoundary(through)
+	end = end.Add(precision)
+	if e1 != nil || e2 != nil || !start.Before(end) || after < 0 {
 		return nil, ErrInvalidPeriod
 	}
 	cutoff := HistoryCutoff(now)
 	if start.Before(cutoff) {
 		start = cutoff
 	}
-	end = end.AddDate(0, 0, 1)
 	if end.After(now) {
 		end = now
 	}
@@ -53,6 +53,20 @@ func (h History) List(ctx context.Context, room, from, through string, after int
 	}
 	return h.store.History(ctx, room, start.UTC(), end.UTC(), after, HistoryPageSize+1, filters)
 }
+
+// Minute boundaries include the entire selected minute; legacy dates include the day.
+func historyBoundary(value string) (time.Time, time.Duration, error) {
+	layout, precision := "2006-01-02T15:04", time.Minute
+	if len(value) == len("2006-01-02") {
+		layout, precision = "2006-01-02", 24*time.Hour
+	}
+	parsed, err := time.ParseInLocation(layout, value, HistoryZone)
+	if err != nil || parsed.Format(layout) != value {
+		return time.Time{}, 0, ErrInvalidPeriod
+	}
+	return parsed, precision, nil
+}
+
 func (h History) Prune(ctx context.Context, now time.Time) error {
 	return h.store.Prune(ctx, HistoryCutoff(now))
 }

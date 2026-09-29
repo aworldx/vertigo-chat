@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const ambientIntermission = 15 * time.Minute
+
 type Audience struct {
 	Humans    int
 	LastHuman time.Time
@@ -80,7 +82,7 @@ func (a *Ambient) Tick(ctx context.Context) error {
 	if a.turns >= 6 {
 		a.turns = 0
 		a.last = ""
-		a.next = a.ports.Now().Add(10 * time.Minute)
+		a.next = a.ports.Now().Add(ambientIntermission)
 	}
 	return nil
 }
@@ -109,9 +111,9 @@ func (a *Ambient) turn() Turn {
 	if a.last != "" && a.lastSpeaker == "claire" {
 		p = domain.Hitchcock()
 	}
-	body := "Начни разговор с Хичкоком одной простой фразой на 3–15 слов: бытовая реплика, без предыстории, красивого вывода и обязательного вопроса. Не переводи разговор на музыку без повода."
+	body := "Начни разговор с Хичкоком: 3–15 слов, живая мысль или вопрос. Выбери тему, отличную от недавних: кино, актёры, книги, город, отношения, планы, музыка или быт. Не повторяй завязки про потерю, нехватку, поломку или неудачу. Без предыстории и красивого вывода."
 	if a.last != "" {
-		body = "Отреагируй на последнюю реплику одной простой фразой на 3–15 слов. Не пересказывай её, не добавляй новую историю, сравнение или мораль. Вопрос необязателен."
+		body = "Ответь на последнюю реплику: 3–15 слов. Развей её тему конкретной мыслью, мнением или вопросом. Не пересказывай её, не переключайся на новую историю, не добавляй мораль. Вопрос необязателен."
 	}
 	body += a.recentContext()
 	return Turn{Speaker: p, Body: body}
@@ -119,6 +121,6 @@ func (a *Ambient) turn() Turn {
 
 func (a *Ambient) mediaOpportunity(ctx context.Context, turn *Turn) {
 	if turn.Speaker.ID == "claire" && a.turns >= 2 && a.ports.MediaReady != nil && a.ports.MediaReady(ctx) {
-		turn.Body += "\nУказание для твоего ответа: подбери одну уместную песню или видео и добавь отдельной строкой /music исполнитель - песня либо /video запрос. Не спрашивай разрешения и не обещай воспроизведение."
+		turn.Body += "\nЕсли к теме подходит песня или видео, добавь строку /music исполнитель - песня либо /video запрос. Не меняй тему ради медиа; можно обойтись без него. Не обещай воспроизведение."
 	}
 }

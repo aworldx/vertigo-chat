@@ -49,6 +49,7 @@
 }
 .chat-tv small {
   display: block;
+  min-height: 1lh;
   font-size: 11px;
   color: var(--tv-muted);
   font-weight: 400;
@@ -211,8 +212,8 @@
   white-space: nowrap;
 }
 
-#chat-tv-status:empty {
-  display: none;
+#chat-tv-status {
+  min-height: 1lh;
 }
 
 .chat-tv-queue {

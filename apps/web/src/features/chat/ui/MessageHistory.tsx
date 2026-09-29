@@ -1,3 +1,5 @@
+import { HistoryPeriodFields } from "./HistoryPeriodFields"
+import { historyPreset } from "../model/historyPeriod"
 import { Icon } from "../../../shared/ui/Icon"
 import { useHistoryModeration } from "../model/useHistoryModeration"
 import { useState } from "react"
@@ -10,13 +12,6 @@ const timestamp = new Intl.DateTimeFormat("ru-RU", {
   dateStyle: "short",
   timeStyle: "medium",
 })
-const today = () =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Moscow",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
 function HistoryEntry({
   message,
   onDelete,
@@ -70,8 +65,8 @@ function HistoryEntry({
   )
 }
 export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
-  const [from, setFrom] = useState(today)
-  const [through, setThrough] = useState(today)
+  const [from, setFrom] = useState(() => historyPreset("today").from)
+  const [through, setThrough] = useState(() => historyPreset("today").through)
   const [author, setAuthor] = useState("")
   const [recipient, setRecipient] = useState("")
   const { page, period, loading, error, search, removed } = useMessageHistory()
@@ -85,7 +80,7 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
         <h1 className="mt-4 text-2xl font-semibold">История сообщений</h1>
         <p className="mt-2 text-sm text-zinc-400">
           Публичные сообщения и системные события за три календарных месяца. Личные сообщения и персональные подсказки
-          скрыты. Даты включены целиком, время московское.
+          скрыты. Выбери даты и время по Москве.
         </p>
         <a href="/help" target="vertigo-help" className="mt-2 inline-block text-sm text-amber-300 underline">
           Помощь по просмотру истории
@@ -98,35 +93,7 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
             void search({ from, through, author: author.trim(), recipient: recipient.trim() })
           }}
         >
-          <label className="grid gap-1 text-sm" htmlFor="history-from">
-            С
-            <input
-              id="history-from"
-              type="date"
-              required
-              value={from}
-              max={through || today()}
-              onChange={(event) => {
-                setFrom(event.target.value)
-              }}
-              className="rounded border border-zinc-700 bg-zinc-900 p-2"
-            />
-          </label>
-          <label className="grid gap-1 text-sm" htmlFor="history-through">
-            По
-            <input
-              id="history-through"
-              type="date"
-              required
-              value={through}
-              min={from}
-              max={today()}
-              onChange={(event) => {
-                setThrough(event.target.value)
-              }}
-              className="rounded border border-zinc-700 bg-zinc-900 p-2"
-            />
-          </label>
+          <HistoryPeriodFields from={from} through={through} onFrom={setFrom} onThrough={setThrough} />
           <label className="grid min-w-0 gap-1 text-sm" htmlFor="history-author">
             Фразы от кого
             <input
@@ -190,7 +157,7 @@ export function MessageHistory({ csrf }: { csrf?: string | undefined }) {
         {page && period && (
           <section aria-label="Сообщения за выбранный период" aria-busy={loading}>
             <p className="mb-3 text-sm text-zinc-400">
-              Период: {period.from} — {period.through} (МСК)
+              Период: {period.from.replace("T", " ")} — {period.through.replace("T", " ")} (МСК)
               {period.author && <> · От: {period.author}</>}
               {period.recipient && <> · Кому: {period.recipient}</>}
             </p>

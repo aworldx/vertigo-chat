@@ -16,6 +16,7 @@ type Appearance struct {
 	Frame      *bool  `json:"message_frame,omitempty"`
 	UsePlayer  bool   `json:"use_player"`
 	HideKarmik bool   `json:"hide_karmik"`
+	HideTyping bool   `json:"hide_typing"`
 }
 type Preferences struct {
 	Theme      string     `json:"theme_id"`

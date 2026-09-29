@@ -70,7 +70,7 @@ func runAmbient(ctx context.Context, pool *pgxpool.Pool, store botpg.Store, hitc
 func runAmbientLeader(ctx context.Context, pool *pgxpool.Pool, hitchcock, claire bot.Service, media *bot.Media) {
 	ambient := bot.NewAmbient(bot.AmbientPorts{
 		Audience: ambientAudience(pool), Now: time.Now,
-		Delay:      func() time.Duration { return time.Duration(70+mathrand.IntN(71)) * time.Second },
+		Delay:      func() time.Duration { return time.Duration(120+mathrand.IntN(121)) * time.Second },
 		Talk:       ambientTalk(pool, hitchcock, claire, media),
 		MediaReady: func(ctx context.Context) bool { return media.Ready(ctx, "lobby") },
 	})

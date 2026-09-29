@@ -22,7 +22,7 @@ func (a *Ambient) restore(history []AmbientMessage, now time.Time) {
 	var previous time.Time
 	for _, message := range history {
 		a.remember(message)
-		if message.SentAt.Sub(previous) >= 10*time.Minute || message.Speaker == a.lastSpeaker {
+		if message.SentAt.Sub(previous) >= ambientIntermission || message.Speaker == a.lastSpeaker {
 			a.turns = 0
 		}
 		a.turns++
@@ -39,7 +39,7 @@ func (a *Ambient) restore(history []AmbientMessage, now time.Time) {
 	a.next = previous.Add(a.ports.Delay())
 	if a.turns >= 6 && a.lastSpeaker == "hitchcock" {
 		a.turns, a.last = 0, ""
-		a.next = previous.Add(10 * time.Minute)
+		a.next = previous.Add(ambientIntermission)
 	}
 	if a.turns > 5 {
 		a.turns = 5
