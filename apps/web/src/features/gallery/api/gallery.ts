@@ -32,8 +32,8 @@ export async function likePhoto(id: number, active: boolean, csrf: string) {
 }
 export async function uploadPhoto(image: Blob, thumbnail: Blob, caption: string, csrf: string) {
   const body = new FormData()
-  body.set("image", image, "photo.webp")
-  body.set("thumbnail", thumbnail, "thumbnail.webp")
+  body.set("image", image, image.type === "image/jpeg" ? "photo.jpg" : "photo.webp")
+  body.set("thumbnail", thumbnail, thumbnail.type === "image/jpeg" ? "thumbnail.jpg" : "thumbnail.webp")
   body.set("caption", caption)
   await requestJSON("/api/v1/gallery", { method: "POST", headers: { "X-CSRF-Token": csrf }, body })
 }
@@ -45,6 +45,7 @@ export function galleryError(e: unknown): string {
     daily_photo_limit_reached: "Дневной лимит — 5 фотографий. Попробуй завтра.",
     invalid_caption: "Название должно быть не длиннее 280 символов.",
     invalid_photo: "Не удалось прочитать изображение. Выберите исправный JPG, PNG или WebP.",
+    photo_too_large: "Не удалось уменьшить фотографию до допустимого размера. Выберите снимок меньшего размера.",
     forbidden: "Сессия изменилась. Обнови страницу и попробуй ещё раз.",
   }
   return messages[code] ?? "Не удалось загрузить фотоальбом. Попробуй ещё раз."
