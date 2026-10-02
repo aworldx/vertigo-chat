@@ -92,7 +92,7 @@ export function Notes({ nickname, csrf, login }: { nickname: string; csrf: strin
                   setRecipient(event.target.value)
                 }}
                 className="mt-1 w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2"
-                placeholder="Ник чатлана"
+                placeholder="Ник чатланина"
               />
               <label className="mt-4 block text-sm text-stone-300" htmlFor="note-body">
                 Записка

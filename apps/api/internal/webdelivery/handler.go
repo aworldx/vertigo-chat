@@ -14,7 +14,7 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 		return err
 	}
 	page := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/history" || r.URL.Path == "/visits" || r.URL.Path == "/admin" {
+		if r.URL.Path == "/history" || r.URL.Path == "/visits" || r.URL.Path == "/admin" || r.URL.Path == "/notes" {
 			w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -27,7 +27,7 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 		}
 		_, _ = w.Write(content)
 	}
-	for _, route := range []string{"/admin", "/articles", "/articles/chats-vs-messengers", "/articles/chat-platforms-russia", "/articles/how-vertigo-chat-works", "/about", "/library", "/gallery", "/account", "/account/login", "/account/register", "/profiles", "/music-chart", "/visits", "/history", "/help", "/ranks", "/chat", "/{$}"} {
+	for _, route := range []string{"/admin", "/articles", "/articles/chats-vs-messengers", "/articles/chat-platforms-russia", "/articles/how-vertigo-chat-works", "/about", "/library", "/gallery", "/account", "/account/login", "/account/register", "/profiles", "/music-chart", "/notes", "/visits", "/history", "/help", "/ranks", "/chat", "/{$}"} {
 		mux.HandleFunc("GET "+route, canonicalPage(origin, page))
 	}
 	files := http.FileServer(http.FS(assets))
