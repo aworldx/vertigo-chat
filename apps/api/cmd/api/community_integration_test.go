@@ -58,6 +58,7 @@ func TestCommunityPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	registerLibrary(mux, pool, auth)
+	registerNotes(mux, pool, auth)
 	if err := registerAdmin(mux, pool, auth); err != nil {
 		t.Fatal(err)
 	}
@@ -86,6 +87,7 @@ func TestCommunityPostgres(t *testing.T) {
 			t.Fatal(title, part, err)
 		}
 	})
+	t.Run("offline notes are private, read on opening and require a registered recipient", func(t *testing.T) { communityNotes(t, &f) })
 	t.Run("moderator cannot inspect database", func(t *testing.T) {
 		communityRequest(t, &f, "GET", "/api/v1/admin/database", "", 403, false)
 		communityRequest(t, &f, "GET", "/api/v1/admin/emojis", "", 200, false)
@@ -128,6 +130,42 @@ func TestCommunityPostgres(t *testing.T) {
 		}
 	})
 }
+
+func communityNotes(t *testing.T, sender *chatFixture) {
+	t.Helper()
+	sender.post(t, "/api/v1/auth/login", `{"nickname":"fixture01","password":"secret123"}`, 200)
+	communityRequest(t, sender, "GET", "/api/v1/notes/summary", "", 200, false)
+	communityRequest(t, sender, "POST", "/api/v1/notes", `{"recipient":"missing","body":"привет"}`, 404, true)
+	communityRequest(t, sender, "POST", "/api/v1/notes", `{"recipient":"fixture01","body":"самому себе"}`, 404, true)
+	communityRequest(t, sender, "POST", "/api/v1/notes", `{"recipient":"fixture02","body":"  увидимся позже  "}`, 201, true)
+	receiverJar, _ := cookiejar.New(nil)
+	receiver := chatFixture{pool: sender.pool, server: sender.server, client: &http.Client{Jar: receiverJar}}
+	receiver.post(t, "/api/v1/auth/login", `{"nickname":"fixture02","password":"secret123"}`, 200)
+	var summary struct{ Unread int }
+	if err := json.Unmarshal(communityRequest(t, &receiver, "GET", "/api/v1/notes/summary", "", 200, false), &summary); err != nil || summary.Unread != 1 {
+		t.Fatal(summary, err)
+	}
+	var listed struct {
+		Incoming []struct{ Sender, Body string }
+	}
+	if err := json.Unmarshal(communityRequest(t, &receiver, "GET", "/api/v1/notes", "", 200, false), &listed); err != nil || len(listed.Incoming) != 1 || listed.Incoming[0].Sender != "fixture01" || listed.Incoming[0].Body != "увидимся позже" {
+		t.Fatal(listed, err)
+	}
+	if err := json.Unmarshal(communityRequest(t, &receiver, "GET", "/api/v1/notes/summary", "", 200, false), &summary); err != nil || summary.Unread != 0 {
+		t.Fatal(summary, err)
+	}
+	var outgoing struct {
+		Outgoing []struct {
+			Recipient string
+			Read      bool
+		}
+	}
+	if err := json.Unmarshal(communityRequest(t, sender, "GET", "/api/v1/notes", "", 200, false), &outgoing); err != nil || len(outgoing.Outgoing) != 1 || outgoing.Outgoing[0].Recipient != "fixture02" || !outgoing.Outgoing[0].Read {
+		t.Fatal(outgoing, err)
+	}
+	sender.post(t, "/api/v1/auth/login", `{"nickname":"fixture02","password":"secret123"}`, 200)
+}
+
 func communityRequest(t *testing.T, f *chatFixture, method, path, body string, status int, csrf bool) []byte {
 	t.Helper()
 	if csrf {
