@@ -82,6 +82,8 @@ type downloader struct {
 	maxBytes      int64
 }
 
+const ytDLPJSRuntime = "deno"
+
 // Kill the process group on cancellation, including yt-dlp's ffmpeg children.
 // The worker targets Linux containers and macOS development machines.
 func command(ctx context.Context, program string, args ...string) *exec.Cmd {
@@ -98,7 +100,7 @@ func command(ctx context.Context, program string, args ...string) *exec.Cmd {
 	return cmd
 }
 func (d downloader) json(ctx context.Context, target any, args ...string) error {
-	base := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", "node", "--dump-single-json"}
+	base := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", ytDLPJSRuntime, "--dump-single-json"}
 	cmd := command(ctx, d.ytDLP, append(base, args...)...)
 	// Keep diagnostics out of JSON and never buffer unbounded subprocess output.
 	output, err := cmd.StdoutPipe()
@@ -166,7 +168,7 @@ func (d downloader) Download(ctx context.Context, id, path string) error {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 	input := filepath.Join(dir, "source.mp4")
-	args := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--no-part", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", "node", "--ffmpeg-location", d.ffmpeg,
+	args := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--no-part", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", ytDLPJSRuntime, "--ffmpeg-location", d.ffmpeg,
 		"--max-filesize", fmt.Sprint(d.maxBytes), "--format", "bestvideo[vcodec^=avc1][height<=360]+bestaudio[acodec^=mp4a]/best[ext=mp4][height<=360]", "--merge-output-format", "mp4", "--output", input, "--", sourceURL(id)}
 	if err := command(ctx, d.ytDLP, args...).Run(); err != nil {
 		return err

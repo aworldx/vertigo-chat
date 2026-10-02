@@ -3,6 +3,11 @@ ARG RUNNER_IMAGE=docker.io/debian:${DEBIAN_VERSION}
 
 FROM golang:1.27.1-trixie AS go-toolchain
 
+# YouTube's current extractor needs a supported JavaScript runtime to decode
+# player responses. Copy the pinned official standalone binary into the
+# unprivileged worker image below.
+FROM denoland/deno:bin-2.9.7 AS deno-toolchain
+
 FROM go-toolchain AS api-builder
 WORKDIR /src/apps/api
 COPY apps/api/go.mod apps/api/go.sum ./
@@ -74,11 +79,12 @@ CMD ["/app/bin/api"]
 
 FROM ${RUNNER_IMAGE} AS youtube-worker
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl nodejs python3-pip ffmpeg \
+  && apt-get install -y --no-install-recommends ca-certificates curl python3-pip ffmpeg \
   && pip3 install --break-system-packages --no-cache-dir 'yt-dlp[default]==2026.8.19' \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=youtube-builder /youtube-worker /app/bin/youtube-worker
+COPY --from=deno-toolchain /deno /usr/local/bin/deno
 ENV YOUTUBE_WORKER_HOST=0.0.0.0 YOUTUBE_CACHE_DIR=/var/cache/chat-youtube
 USER nobody
 CMD ["/app/bin/youtube-worker"]

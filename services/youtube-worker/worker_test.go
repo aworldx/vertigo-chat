@@ -40,6 +40,12 @@ func testCache(t *testing.T, download func(context.Context, string, string) erro
 	t.Cleanup(c.close)
 	return c
 }
+
+func TestYTDLPUsesDenoRuntime(t *testing.T) {
+	if ytDLPJSRuntime != "deno" {
+		t.Fatalf("yt-dlp JavaScript runtime = %q, want deno", ytDLPJSRuntime)
+	}
+}
 func TestHTTPContract(t *testing.T) {
 	media := &fakeMedia{}
 	c := testCache(t, media.Download)

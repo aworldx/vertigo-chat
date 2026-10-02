@@ -4,6 +4,7 @@ const links = [
   ["Анкеты", "/profiles", "vertigo-profiles"],
   ["Библиотека", "/library", "vertigo-library"],
   ["Записки", "/notes", "vertigo-notes"],
+  ["Опросы", "/polls", "vertigo-polls"],
   ["Фотоальбом", "/gallery", "vertigo-gallery"],
   ["Кто был", "/visits", "vertigo-visits"],
 ] as const
@@ -53,6 +54,13 @@ export function TopMenu({
           {unreadNotes > 0 && (
             <span className="rounded-full bg-amber-300 px-1.5 text-xs font-semibold text-zinc-950">{unreadNotes}</span>
           )}
+        </a>
+        <a
+          href="/polls"
+          target="vertigo-polls"
+          className="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
+        >
+          Опросы
         </a>
         <a
           href="/gallery"

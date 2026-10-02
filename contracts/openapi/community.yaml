@@ -1694,6 +1694,19 @@
           }
         ]
       }
+    },
+    "/api/v1/polls": {
+      "get": {"operationId":"listPolls","summary":"List polls","security":[],"responses":{"200":{"description":"Polls","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Polls"}}}}}}
+    },
+    "/api/v1/polls/{id}/votes": {
+      "post": {"operationId":"votePoll","summary":"Vote in a poll","description":"Chat-session token in X-Chat-Session supplies the nickname; account cookie CSRF protects the write.","security":[{"accountSession":[],"csrfToken":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","additionalProperties":false,"required":["option_id"],"properties":{"option_id":{"type":"integer","minimum":1}}}}}},"responses":{"201":{"description":"Vote recorded"},"409":{"$ref":"#/components/responses/Error"},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/polls": {
+      "get": {"operationId":"listAdminPolls","summary":"List polls for administrators","security":[{"accountSession":[]}],"responses":{"200":{"description":"Polls","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Polls"}}}}}},
+      "post": {"operationId":"createAdminPoll","summary":"Create a poll","security":[{"accountSession":[],"csrfToken":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PollInput"}}}},"responses":{"201":{"description":"Created"},"403":{"$ref":"#/components/responses/Error"},"422":{"$ref":"#/components/responses/Error"}}}
+    },
+    "/api/v1/admin/polls/{id}/close": {
+      "post": {"operationId":"closePoll","summary":"Close a poll","security":[{"accountSession":[],"csrfToken":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],"responses":{"200":{"description":"Closed"},"403":{"$ref":"#/components/responses/Error"},"404":{"$ref":"#/components/responses/Error"},"409":{"$ref":"#/components/responses/Error"}}}
     }
   },
   "components": {
@@ -1709,7 +1722,14 @@
         "name": "X-CSRF-Token"
       }
     },
+    "responses": {
+      "Error": {"description":"Request rejected or unavailable","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}}
+    },
     "schemas": {
+      "PollInput": {"type":"object","additionalProperties":false,"required":["question","options"],"properties":{"question":{"type":"string","minLength":1,"maxLength":500},"options":{"type":"array","minItems":2,"maxItems":10,"items":{"type":"string","minLength":1,"maxLength":200}}}},
+      "PollOption": {"type":"object","additionalProperties":false,"required":["id","body","position","votes"],"properties":{"id":{"type":"integer"},"body":{"type":"string"},"position":{"type":"integer"},"votes":{"type":"integer"}}},
+      "Poll": {"type":"object","additionalProperties":false,"required":["id","question","status","options","totalVotes","selectedOptionID","createdAt","closedAt"],"properties":{"id":{"type":"integer"},"question":{"type":"string"},"status":{"type":"string","enum":["open","closed"]},"options":{"type":"array","items":{"$ref":"#/components/schemas/PollOption"}},"totalVotes":{"type":"integer"},"selectedOptionID":{"type":"integer"},"createdAt":{"type":"string"},"closedAt":{"type":["string","null"]}}},
+      "Polls": {"type":"object","additionalProperties":false,"required":["polls"],"properties":{"polls":{"type":"array","items":{"$ref":"#/components/schemas/Poll"}}}},
       "NoteInput": {
         "type": "object",
         "additionalProperties": false,

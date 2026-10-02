@@ -1,5 +1,6 @@
 import { Admin, AdminShell } from "../features/admin"
 import { AdminLogin, useAccountSession } from "../features/accounts"
+import { AdminPolls } from "../features/polls"
 export function AdminPage() {
   const { session, refresh } = useAccountSession(),
     p = session?.principal,
@@ -15,5 +16,13 @@ export function AdminPage() {
         />
       </AdminShell>
     )
-  return <Admin key={p.user_id} nickname={p.nickname} isAdmin={p.roles.includes("admin")} csrf={session.csrf_token} />
+  return (
+    <Admin
+      key={p.user_id}
+      nickname={p.nickname}
+      isAdmin={p.roles.includes("admin")}
+      csrf={session.csrf_token}
+      polls={<AdminPolls csrf={session.csrf_token} />}
+    />
+  )
 }

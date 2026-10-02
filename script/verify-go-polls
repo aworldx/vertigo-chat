@@ -1,0 +1,35 @@
+#!/bin/sh
+# Fast, isolated Go + React browser check for the polls surface.
+set -eu
+repo_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+go_command="${GO:-go}"
+maintenance="${COVERAGE_DATABASE_URL:-postgresql://localhost/postgres}"
+database="chat_polls_verification_$$"
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/chat-polls-verification.XXXXXX")"
+database_url() { node -e 'const u=new URL(process.argv[1]);u.pathname=process.argv[2];console.log(u.href)' "$maintenance" "$database"; }
+cleanup() {
+  if [ -n "${api_pid:-}" ]; then kill "$api_pid" 2>/dev/null || true; wait "$api_pid" 2>/dev/null || true; fi
+  if [ -n "${database_created:-}" ]; then dropdb --maintenance-db="$maintenance" "$database"; fi
+  rm -rf "$work_dir"
+}
+trap cleanup EXIT HUP INT TERM
+createdb --maintenance-db="$maintenance" "$database"
+database_created=true
+url="$(database_url)"
+psql "$url" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/legacy-schema.sql"
+psql "$url" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/go-web.sql"
+psql "$url" -v ON_ERROR_STOP=1 -q -c "UPDATE registered_users SET is_admin=true WHERE nickname='fixture01'"
+npm --prefix "$repo_root/apps/web" run build
+cd "$repo_root/apps/api"
+DATABASE_URL="$url" "$go_command" run -buildvcs=false ./cmd/migrate
+"$go_command" build -buildvcs=false -o "$work_dir/api" ./cmd/api
+DATABASE_URL="$url" API_ADDR=127.0.0.1:4073 API_PUBLIC_ORIGIN=http://127.0.0.1:4073 WEB_ASSETS_DIR="$repo_root/apps/web/dist" "$work_dir/api" > "$work_dir/api.log" 2>&1 &
+api_pid=$!
+attempt=0
+until curl --fail --silent http://127.0.0.1:4073/health >/dev/null; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 30 ] || ! kill -0 "$api_pid" 2>/dev/null; then cat "$work_dir/api.log" >&2; exit 1; fi
+  sleep 1
+done
+cd "$repo_root/apps/web"
+node --import=tsx browser/polls-target.ts http://127.0.0.1:4073

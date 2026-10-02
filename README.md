@@ -127,5 +127,5 @@ API; для локальных thumbnail-тестов на macOS установ�
 YouTube search, preparation и MP4 cache обслуживает `services/youtube-worker/`.
 Он запускается отдельно и доступен API по внутреннему URL; Caddy передаёт
 `/youtube-proxy/*` worker-у для range streaming. Локальный worker запускается
-командой `script/youtube-worker` и требует Go 1.25+, `yt-dlp`, Node.js и
+командой `script/youtube-worker` и требует Go 1.25+, `yt-dlp`, Deno и
 `ffmpeg` в `PATH`.

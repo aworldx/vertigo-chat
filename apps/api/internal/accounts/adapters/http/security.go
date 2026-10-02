@@ -127,3 +127,24 @@ func (h Handler) AccountIdentity(r *http.Request, mutation bool) (int64, int) {
 	}
 	return record.UserID, 0
 }
+
+// SessionIdentity accepts both anonymous and registered account sessions. It is
+// suitable for mutations whose actor identity comes from another verified
+// context, while still enforcing same-origin and CSRF boundaries.
+func (h Handler) SessionIdentity(r *http.Request, mutation bool) (int64, int) {
+	if !h.sameOrigin(r) {
+		return 0, http.StatusForbidden
+	}
+	token := h.token(r)
+	record, err := h.sessions.Current(r.Context(), token, time.Now())
+	if errors.Is(err, application.ErrInvalidSession) {
+		return 0, http.StatusUnauthorized
+	}
+	if err != nil {
+		return 0, http.StatusServiceUnavailable
+	}
+	if mutation && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-CSRF-Token")), []byte(csrfToken(token))) != 1 {
+		return 0, http.StatusForbidden
+	}
+	return record.UserID, 0
+}

@@ -37,6 +37,7 @@ export function AdminShell({
                   ["bots", "Боты"],
                   ["emojis", "Смайлы"],
                   ["tags", "Теги"],
+                  ["polls", "Опросы"],
                 ] as const
               )
                 .filter(([s]) => (s !== "database" && s !== "bots") || isAdmin)
@@ -61,13 +62,23 @@ export function AdminShell({
     </main>
   )
 }
-export function Admin({ nickname, isAdmin, csrf }: { nickname: string; isAdmin: boolean; csrf: string }) {
+export function Admin({
+  nickname,
+  isAdmin,
+  csrf,
+  polls,
+}: {
+  nickname: string
+  isAdmin: boolean
+  csrf: string
+  polls?: ReactNode
+}) {
   const { query, navigate } = usePageQuery(),
     params = new URLSearchParams(query),
     requested = params.get("section"),
     section =
-      requested === "bots" && isAdmin
-        ? "bots"
+      (requested === "bots" || requested === "polls") && isAdmin
+        ? requested
         : requested === "tags" || requested === "emojis"
           ? requested
           : isAdmin
@@ -107,6 +118,7 @@ export function Admin({ nickname, isAdmin, csrf }: { nickname: string; isAdmin: 
         </p>
       )}
       {section === "bots" && <Bots csrf={csrf} />}
+      {section === "polls" && polls}
       {section === "database" && database && <Database data={database} nickname={nickname} navigate={go} />}
       {section === "tags" && content && <Tags tags={content.tags} csrf={csrf} onSaved={saved} />}
       {section === "emojis" && content && (

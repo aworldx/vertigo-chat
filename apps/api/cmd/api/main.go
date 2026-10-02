@@ -92,6 +92,7 @@ func main() {
 	}
 	registerLibrary(mux, pool, auth)
 	registerNotes(mux, pool, auth)
+	registerPolls(mux, pool, auth)
 	if err := registerGallery(mux, pool, auth); err != nil {
 		slog.Error("configure gallery", "error", err)
 		os.Exit(1)

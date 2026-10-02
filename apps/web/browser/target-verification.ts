@@ -10,6 +10,7 @@ import { launchBrowser } from "./coverage"
 import { galleryFlows, libraryFlows, adminFlows } from "./community-flows"
 import { uploadAndModerate, failureRecovery } from "./community-mutations"
 import { articlesWithoutJS } from "./community-articles"
+import { verifyPolls } from "./polls-verification"
 const [origin, legacy, ...databases] = process.argv.slice(2)
 assert.ok(origin && legacy && databases.length === 2)
 for (const database of databases) assert.match(new URL(database).pathname, /^\/chat_coverage_web_[ab]_\d+$/)
@@ -87,6 +88,7 @@ try {
   await verifyLibraryEditor(newPage, origin)
   await adminFlows(pair)
   await verifyBotAdmin(newPage, origin)
+  await verifyPolls(browser, origin)
   await uploadAndModerate(pair)
   await failureRecovery(pair)
   await first.close()
