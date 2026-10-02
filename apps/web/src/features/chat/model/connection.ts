@@ -397,9 +397,9 @@ export class ChatConnection {
       },
     }
   }
-  send(body: string) {
+  send(body: string, replyToID?: number) {
     body = body.trim()
-    if (!body) return false
+    if (!body || (replyToID !== undefined && (!Number.isSafeInteger(replyToID) || replyToID <= 0))) return false
     if (this.state.outbox.length >= 50) {
       this.update({ error: "Очередь заполнена. Дождись отправки сообщений или удали неотправленные." })
       return false
@@ -407,6 +407,7 @@ export class ChatConnection {
     const item: PendingMessage = {
       client_id: newID(),
       body,
+      ...(replyToID === undefined ? {} : { reply_to_id: replyToID }),
       sent_at: new Date().toISOString(),
       state: this.state.status === "ready" ? "sending" : "retrying",
     }

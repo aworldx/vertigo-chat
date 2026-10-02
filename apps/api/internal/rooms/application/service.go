@@ -11,18 +11,18 @@ import (
 var ErrInvalidMessage = errors.New("invalid message")
 
 type Store interface {
-	Send(context.Context, domain.Author, string, string) (domain.Message, error)
+	Send(context.Context, domain.Author, string, string, int64) (domain.Message, error)
 	Recent(context.Context, string) ([]domain.Message, error)
 }
 type Service struct{ store Store }
 
 func NewService(store Store) Service { return Service{store} }
-func (s Service) Send(ctx context.Context, author domain.Author, clientID, body string) (domain.Message, error) {
+func (s Service) Send(ctx context.Context, author domain.Author, clientID, body string, replyToID int64) (domain.Message, error) {
 	body = strings.TrimSpace(body)
-	if clientID == "" || len(clientID) > 64 || body == "" || utf8.RuneCountInString(body) > 1000 {
+	if clientID == "" || len(clientID) > 64 || body == "" || utf8.RuneCountInString(body) > 1000 || replyToID < 0 {
 		return domain.Message{}, ErrInvalidMessage
 	}
-	return s.store.Send(ctx, author, clientID, body)
+	return s.store.Send(ctx, author, clientID, body, replyToID)
 }
 func (s Service) Recent(ctx context.Context, roomID string) ([]domain.Message, error) {
 	return s.store.Recent(ctx, roomID)

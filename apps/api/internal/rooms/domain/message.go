@@ -18,6 +18,14 @@ type Message struct {
 	SentAt                                time.Time
 	Appearance                            Appearance
 	FontID, FontStyle                     string
+	Reply                                 *Reply
+}
+
+// Reply preserves the public message excerpt selected by the author.
+// It is a message property, not a separate write model.
+type Reply struct {
+	ID           int64
+	Author, Body string
 }
 type Colors struct {
 	Nickname string `json:"nickname_color"`

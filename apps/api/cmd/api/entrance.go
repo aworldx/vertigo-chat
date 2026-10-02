@@ -79,7 +79,7 @@ func (c registrationCreator) Create(ctx context.Context, nickname, email, hash, 
 }
 
 func sendRoomMessage(pool *pgxpool.Pool) chathttp.SendMessage {
-	return func(ctx context.Context, session chatdomain.Session, clientID, body string) (roomdomain.Message, error) {
+	return func(ctx context.Context, session chatdomain.Session, clientID, body string, replyToID int64) (roomdomain.Message, error) {
 		var message roomdomain.Message
 		err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 			lifecycle := chats.NewService(chatspg.NewStore(tx), chatsessionsPolicy())
@@ -100,7 +100,7 @@ func sendRoomMessage(pool *pgxpool.Pool) chathttp.SendMessage {
 			}
 			recipient := roomapp.Recipient(body, names)
 			appearance := roomdomain.Appearance{Dark: roomdomain.Colors{Nickname: preferences.Appearance.Dark.Nickname, Text: preferences.Appearance.Dark.Text}, Light: roomdomain.Colors{Nickname: preferences.Appearance.Light.Nickname, Text: preferences.Appearance.Light.Text}}
-			message, err = roomapp.NewService(roompg.NewStore(tx)).Send(ctx, roomdomain.Author{Recipient: recipient, RoomID: session.RoomID, Identity: session.IdentityKey, Nickname: session.Nickname, Appearance: &appearance, FontID: preferences.Font, FontStyle: preferences.Style}, clientID, body)
+			message, err = roomapp.NewService(roompg.NewStore(tx)).Send(ctx, roomdomain.Author{Recipient: recipient, RoomID: session.RoomID, Identity: session.IdentityKey, Nickname: session.Nickname, Appearance: &appearance, FontID: preferences.Font, FontStyle: preferences.Style}, clientID, body, replyToID)
 			if err == nil && message.Inserted && strings.HasPrefix(session.IdentityKey, "user:") {
 				userID, parseErr := strconv.ParseInt(strings.TrimPrefix(session.IdentityKey, "user:"), 10, 64)
 				if parseErr != nil {

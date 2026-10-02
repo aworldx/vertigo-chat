@@ -7,7 +7,7 @@ import (
 )
 
 func (s Store) SendMedia(ctx context.Context, author domain.Author, clientID, kind, title, address, artist, duration, source string) (domain.Message, error) {
-	message, err := application.NewService(s).Send(ctx, author, clientID, title)
+	message, err := application.NewService(s).Send(ctx, author, clientID, title, 0)
 	if err != nil || !message.Inserted {
 		return message, err
 	}

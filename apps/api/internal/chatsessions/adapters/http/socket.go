@@ -30,7 +30,7 @@ type Projection interface {
 type History interface {
 	Recent(context.Context, string) ([]rooms.Message, error)
 }
-type SendMessage func(context.Context, domain.Session, string, string) (rooms.Message, error)
+type SendMessage func(context.Context, domain.Session, string, string, int64) (rooms.Message, error)
 type Socket struct {
 	shares     *shares.Registry
 	limiter    *security.Limiter
@@ -61,6 +61,7 @@ type command struct {
 	Visibility  string               `json:"visibility"`
 	ClientID    string               `json:"client_id"`
 	Body        string               `json:"body"`
+	ReplyToID   int64                `json:"reply_to_id"`
 	Preferences chatlans.Preferences `json:"preferences"`
 }
 type peer struct {
@@ -343,7 +344,7 @@ func (h Socket) sendCommand(ctx context.Context, conn *websocket.Conn, session d
 	if strings.HasPrefix(strings.TrimSpace(cmd.Body), "^") {
 		return h.private(ctx, conn, session, cmd)
 	}
-	message, err := h.send(ctx, session, cmd.ClientID, cmd.Body)
+	message, err := h.send(ctx, session, cmd.ClientID, cmd.Body, cmd.ReplyToID)
 	if err != nil {
 		code := "message_rejected"
 		if errors.Is(err, rooms.ErrRateLimited) {

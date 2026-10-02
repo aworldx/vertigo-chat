@@ -26,6 +26,7 @@ export function clearSession() {
 export type PendingMessage = {
   client_id: string
   body: string
+  reply_to_id?: number
   sent_at: string
   state: PendingDeliveryState
 }
@@ -38,6 +39,10 @@ export function readOutbox(): PendingMessage[] {
             !record(item) ||
             typeof item.client_id !== "string" ||
             typeof item.body !== "string" ||
+            !(
+              item.reply_to_id === undefined ||
+              (typeof item.reply_to_id === "number" && Number.isSafeInteger(item.reply_to_id) && item.reply_to_id > 0)
+            ) ||
             !isPendingDeliveryState(item.state)
           )
             return []
@@ -45,6 +50,7 @@ export function readOutbox(): PendingMessage[] {
             {
               client_id: item.client_id,
               body: item.body,
+              ...(typeof item.reply_to_id === "number" ? { reply_to_id: item.reply_to_id } : {}),
               sent_at:
                 typeof item.sent_at === "string" && Number.isFinite(Date.parse(item.sent_at))
                   ? item.sent_at

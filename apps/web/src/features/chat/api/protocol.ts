@@ -20,6 +20,13 @@ export function message(value: unknown): value is Message {
   return (
     record(value) &&
     typeof value.recipient === "string" &&
+    (value.reply_to === undefined ||
+      (record(value.reply_to) &&
+        typeof value.reply_to.id === "number" &&
+        Number.isSafeInteger(value.reply_to.id) &&
+        value.reply_to.id > 0 &&
+        typeof value.reply_to.author === "string" &&
+        typeof value.reply_to.body === "string")) &&
     record(value.reactions) &&
     Object.values(value.reactions).every(
       (count) => typeof count === "number" && Number.isSafeInteger(count) && count >= 0,

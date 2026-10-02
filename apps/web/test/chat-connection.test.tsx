@@ -101,6 +101,20 @@ test("a full offline outbox rejects the next message without losing any pending 
   assert.deepEqual(readOutbox(), connection.getSnapshot().outbox)
   assert.match(connection.getSnapshot().error, /Очередь заполнена/)
 })
+test("a reply survives the outbox and is sent with its selected message ID", () => {
+  const { connection, socket } = fixture()
+  assert.equal(connection.send("Ответ", 17), true)
+  assert.equal(connection.getSnapshot().outbox[0]?.reply_to_id, 17)
+  assert.equal(readOutbox()[0]?.reply_to_id, 17)
+  const command = socket.sent
+    .map((raw) => JSON.parse(raw) as { type: string; client_id?: string; body?: string; reply_to_id?: number })
+    .at(-1)
+  assert.equal(command?.type, "send")
+  assert.equal(command.client_id, connection.getSnapshot().outbox[0]?.client_id)
+  assert.equal(command.body, "Ответ")
+  assert.equal(command.reply_to_id, 17)
+  assert.equal(connection.send("Без ссылки", 0), false)
+})
 test("acks and history reconcile only the sender's own pending message", () => {
   const { connection, receive } = fixture()
   connection.send("Hello")

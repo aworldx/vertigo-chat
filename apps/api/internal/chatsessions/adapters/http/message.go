@@ -15,6 +15,11 @@ type messageAppearance struct {
 	Dark  messageColors `json:"dark"`
 	Light messageColors `json:"light"`
 }
+type replyDTO struct {
+	ID     int64  `json:"id"`
+	Author string `json:"author"`
+	Body   string `json:"body"`
+}
 type messageDTO struct {
 	MediaURL   string            `json:"media_url"`
 	Artist     string            `json:"artist"`
@@ -32,6 +37,7 @@ type messageDTO struct {
 	Appearance messageAppearance `json:"appearance"`
 	FontID     string            `json:"font_id"`
 	FontStyle  string            `json:"font_style"`
+	Reply      *replyDTO         `json:"reply_to,omitempty"`
 }
 
 var storedVideoID = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
@@ -58,6 +64,12 @@ func encodeMessage(message rooms.Message, viewer ...string) messageDTO {
 		Appearance: messageAppearance{
 			Dark:  messageColors{message.Appearance.Dark.Nickname, message.Appearance.Dark.Text},
 			Light: messageColors{message.Appearance.Light.Nickname, message.Appearance.Light.Text},
-		}, FontID: message.FontID, FontStyle: message.FontStyle,
+		}, FontID: message.FontID, FontStyle: message.FontStyle, Reply: encodeReply(message.Reply),
 	}
+}
+func encodeReply(reply *rooms.Reply) *replyDTO {
+	if reply == nil {
+		return nil
+	}
+	return &replyDTO{ID: reply.ID, Author: reply.Author, Body: reply.Body}
 }

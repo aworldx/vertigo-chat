@@ -4,8 +4,11 @@ import { useState, type DragEvent, type RefObject } from "react"
 import { Icon } from "../../../shared/ui/Icon"
 import { commands } from "../model/commands"
 import { emojiToken, type Emoji } from "../api/emojis"
+import type { Message } from "../api/protocol"
 export function Composer({
   draft,
+  reply,
+  onCancelReply,
   onDraft,
   input,
   onSend,
@@ -20,6 +23,8 @@ export function Composer({
   onAttachFile,
 }: {
   draft: string
+  reply: Message | null
+  onCancelReply: () => void
   onDraft: (text: string) => void
   input: RefObject<HTMLInputElement | null>
   onSend: () => void
@@ -119,6 +124,27 @@ export function Composer({
         <p id="message-error" role="alert" className="mb-2 text-sm text-red-300">
           {error}
         </p>
+      )}
+      {reply && (
+        <div
+          id="message-reply-preview"
+          className="mb-2 flex min-w-0 items-center gap-2 border-l-2 border-amber-300 bg-zinc-950/70 px-3 py-2"
+        >
+          <div className="min-w-0 flex-1 text-xs leading-4">
+            <strong className="block truncate text-amber-200">Ответ для {reply.author}</strong>
+            <span className="block truncate text-zinc-300">{reply.body}</span>
+          </div>
+          <Button
+            id="cancel-message-reply"
+            type="button"
+            aria-label="Отменить ответ"
+            title="Отменить ответ"
+            onClick={onCancelReply}
+            className="ui-icon-button shrink-0"
+          >
+            <Icon name="x-mark" className="size-4" />
+          </Button>
+        </div>
       )}
       <fieldset
         id="emoji-input-controls"
@@ -279,6 +305,11 @@ export function Composer({
               placeholder="Напиши сообщение..."
               className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-base text-zinc-100 outline-none transition focus:border-amber-300"
               onKeyDown={(e) => {
+                if (e.key === "Escape" && reply) {
+                  e.preventDefault()
+                  onCancelReply()
+                  return
+                }
                 if (!showCommands) return
                 if (e.key === "Escape") {
                   setDismissed(true)

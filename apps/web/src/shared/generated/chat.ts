@@ -334,6 +334,12 @@ export interface components {
             font_id: "theme" | "sans" | "display" | "serif";
             /** @enum {string} */
             font_style: "normal" | "italic";
+            reply_to?: components["schemas"]["MessageReply"];
+        };
+        MessageReply: {
+            id: number;
+            author: string;
+            body: string;
         };
         MessageColors: {
             nickname_color: string;
@@ -369,7 +375,7 @@ export interface components {
             peers: components["schemas"]["Peer"][];
         };
         /** @enum {string} */
-        HelpTopic: "music" | "video" | "font" | "colors" | "files" | "private" | "commands" | "gif" | "emoji" | "address" | "ignore" | "clear" | "online" | "appearance" | "profile" | "account" | "ranks" | "karma" | "bots" | "gallery" | "library" | "chart" | "connection" | "leave" | "games" | "admin" | "history";
+        HelpTopic: "music" | "video" | "font" | "colors" | "files" | "private" | "commands" | "gif" | "emoji" | "address" | "reply" | "ignore" | "clear" | "online" | "appearance" | "profile" | "account" | "ranks" | "karma" | "bots" | "gallery" | "library" | "chart" | "connection" | "leave" | "games" | "admin" | "history";
         /** @description Sender-only assistance on public-message acknowledgement; never included in room snapshots. */
         HelpTopics: components["schemas"]["HelpTopic"][];
         Rank: {

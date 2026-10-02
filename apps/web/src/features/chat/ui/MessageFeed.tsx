@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react"
 import type { Emoji } from "../api/emojis"
 import { KarmikHelp } from "./KarmikHelp"
-import type { HelpTopic, Peer } from "../api/protocol"
+import type { HelpTopic, Message, Peer } from "../api/protocol"
 import type { TimelineEntry } from "../model/timeline"
 import { useMessageScroll } from "../model/useMessageScroll"
 import { MessageEntry } from "./MessageEntry"
@@ -15,6 +15,7 @@ export function MessageFeed({
   entries,
   nickname,
   onAddress,
+  onReply,
   frame = true,
   emojis = [],
   peers = [],
@@ -41,6 +42,7 @@ export function MessageFeed({
   entries: TimelineEntry[]
   nickname: string
   onAddress: (nickname: string) => void
+  onReply: (message: Message) => void
 }) {
   const entryVersion = entries.map((entry) => `${entry.key}:${entry.delivery}`).join(",")
   const { list, publishContent } = useMessageScroll(entryVersion)
@@ -67,6 +69,7 @@ export function MessageFeed({
                 peers={peers}
                 nickname={nickname}
                 onAddress={onAddress}
+                onReply={onReply}
                 onReaction={onReaction}
                 onDelete={onDelete}
                 delivery={entry.message.author === nickname ? entry.delivery : undefined}

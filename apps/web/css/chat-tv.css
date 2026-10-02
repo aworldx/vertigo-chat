@@ -47,6 +47,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.chat-tv-mini-title > span:last-child:has(small:empty) {
+  transform: translateY(0.5lh);
+}
 .chat-tv small {
   display: block;
   min-height: 1lh;

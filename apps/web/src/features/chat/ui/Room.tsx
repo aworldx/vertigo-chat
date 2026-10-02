@@ -3,6 +3,7 @@ import { PlayerProvider } from "./player/PlayerProvider"
 import { PlayerDock } from "./player/PlayerDock"
 import { ListeningContext } from "../model/listeningContext"
 import { useRef, useState, type ReactNode } from "react"
+import type { Message } from "../api/protocol"
 import { useNotification } from "../model/useNotification"
 import { useMediaSearch } from "../model/useMediaSearch"
 import { MediaSearchResults } from "./MediaSearchResults"
@@ -35,6 +36,7 @@ export function Room({
   const publishedMessages = timelineMessages(state.timeline)
   const feedEntries = feedTimeline(state.timeline, state.ephemeral)
   const [draft, setDraft] = useState("")
+  const [reply, setReply] = useState<Message | null>(null)
   const settings = usePreferences(state.snapshot.preferences, connection)
   const emoji = useEmojis()
   const media = useMediaTransfer(connection, state.snapshot.peers, state.nickname)
@@ -129,6 +131,10 @@ export function Room({
                   peers={state.snapshot.peers}
                   nickname={state.nickname}
                   onAddress={address}
+                  onReply={(message) => {
+                    setReply(message)
+                    input.current?.focus()
+                  }}
                   onReaction={(id, emoji, active) => {
                     connection.setReaction(id, emoji, active)
                   }}
@@ -210,13 +216,21 @@ export function Room({
           {joined && (
             <Composer
               draft={draft}
+              reply={reply}
+              onCancelReply={() => {
+                setReply(null)
+                input.current?.focus()
+              }}
               onDraft={(text) => {
                 setDraft(text)
                 connection.typing(text.length > 0)
               }}
               input={input}
               onSend={() => {
-                if (command.execute(draft) || connection.send(draft)) setDraft("")
+                if (command.execute(draft) || connection.send(draft, reply?.id)) {
+                  setDraft("")
+                  setReply(null)
+                }
               }}
               onLeave={() => {
                 connection.leave()

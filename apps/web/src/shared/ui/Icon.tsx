@@ -1,4 +1,7 @@
 const icons = {
+  reply: (
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 14 4.5 9.5 9 5m-4.5 4.5H15a4.5 4.5 0 0 1 4.5 4.5V17" />
+  ),
   pause: <path d="M8 5v14M16 5v14" strokeWidth="3" strokeLinecap="round" />,
   "forward-step": (
     <>

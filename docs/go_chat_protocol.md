@@ -19,7 +19,7 @@ connections. The server sends `ready` with session ID, nickname, generation,
 connection ID, the latest 100 messages and active/reconnecting peers.
 
 Commands: `{type:"heartbeat",visibility:"visible"|"hidden"}`,
-`{type:"send",client_id,body}`, `{type:"leave"}`. Server replies include
+`{type:"send",client_id,body,reply_to_id?}`, `{type:"leave"}`. Server replies include
 `ack` with the durable message, `snapshot` with the current bounded room window
 and peers, `left`, or `error` with a stable code. The server-issued connection
 ID describes this transport; it is not a credential or chosen by the client.
@@ -82,6 +82,10 @@ original durable appearance. No Phoenix writes or proxy are involved.
 - `send` с префиксом `^nickname, body` проходит отдельную private ветку. Ошибка
   никогда не превращает private текст в публичный. ACK и адресный `private`
   frame используют отрицательный временный ID. Reload удаляет private feed.
+- `send.reply_to_id` ссылается только на существующее публичное сообщение той же
+  комнаты. Rooms сохраняет ID, автора и текстовый фрагмент цитаты в новом
+  сообщении; private и system сообщения нельзя выбрать. Цитата не зависит от
+  дальнейшего удаления или retention исходного сообщения.
 - `typing {active}` проверяет generation; индикатор истекает через пять секунд.
 - `media {client_id,media}` принимает только разрешённые provider URL и сохраняет
   существующие `media_*` поля Rooms. Поиск — authenticated HTTP по контракту.

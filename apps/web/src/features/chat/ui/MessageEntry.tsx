@@ -105,6 +105,7 @@ export function MessageEntry({
   message,
   nickname,
   onAddress,
+  onReply,
   frame = true,
   emojis = [],
   peers = [],
@@ -127,6 +128,7 @@ export function MessageEntry({
   message: Message
   nickname: string
   onAddress: (nickname: string) => void
+  onReply?: ((message: Message) => void) | undefined
 }) {
   const [reactionsOpen, setReactionsOpen] = useState(false)
   const privateMessage = message.kind === "private"
@@ -137,6 +139,7 @@ export function MessageEntry({
   if (privateMessage) frame = true
   const entryID = domID ?? String(message.id)
   const canDelete = !!onDelete && message.id > 0 && !system && !privateMessage
+  const canReply = message.id > 0 && !system && !privateMessage
   return (
     <div
       id={`message-${entryID}`}
@@ -162,25 +165,36 @@ export function MessageEntry({
       ) : !frame && message.kind === "gif" ? (
         <MediaBody message={message} onAddress={onAddress} frame={false} />
       ) : !frame ? (
-        <p className="break-words text-sm leading-5" data-compact-message>
-          <button
-            type="button"
-            onDoubleClick={() => {
-              onAddress(`^${message.author}`)
-            }}
-            onClick={() => {
-              onAddress(message.author)
-            }}
-            className="chat-message-author font-semibold hover:underline"
-            style={appearanceStyle(message.appearance)}
-          >
-            {message.author}:
-          </button>
-          <span className="chat-message-body" style={appearanceStyle(message.appearance)}>
-            {" "}
-            <AddressedBody body={message.body} emojis={emojis} peers={peers} recipient={message.recipient} />
-          </span>
-        </p>
+        <>
+          {message.reply_to && (
+            <blockquote
+              className="chat-message-reply mb-1 border-l-2 border-amber-300/70 pl-2 text-xs leading-4 text-zinc-400"
+              data-reply-to={message.reply_to.id}
+            >
+              <span className="font-semibold text-amber-200">{message.reply_to.author}: </span>
+              <span className="line-clamp-1 break-words">{message.reply_to.body}</span>
+            </blockquote>
+          )}
+          <p className="break-words text-sm leading-5" data-compact-message>
+            <button
+              type="button"
+              onDoubleClick={() => {
+                onAddress(`^${message.author}`)
+              }}
+              onClick={() => {
+                onAddress(message.author)
+              }}
+              className="chat-message-author font-semibold hover:underline"
+              style={appearanceStyle(message.appearance)}
+            >
+              {message.author}:
+            </button>
+            <span className="chat-message-body" style={appearanceStyle(message.appearance)}>
+              {" "}
+              <AddressedBody body={message.body} emojis={emojis} peers={peers} recipient={message.recipient} />
+            </span>
+          </p>
+        </>
       ) : (
         <>
           <button
@@ -208,6 +222,15 @@ export function MessageEntry({
               {message.recipient === nickname ? "Лично вам" : `Лично для ${message.recipient}`}
             </p>
           )}
+          {message.reply_to && (
+            <blockquote
+              className="chat-message-reply mb-1.5 border-l-2 border-amber-300/70 bg-zinc-950/45 px-2 py-1 text-xs leading-4 text-zinc-300"
+              data-reply-to={message.reply_to.id}
+            >
+              <span className="block truncate font-semibold text-amber-200">{message.reply_to.author}</span>
+              <span className="block line-clamp-2 break-words">{message.reply_to.body}</span>
+            </blockquote>
+          )}
           {["music", "gif", "youtube"].includes(message.kind) ? (
             <MediaBody message={message} onAddress={onAddress} />
           ) : (
@@ -220,85 +243,101 @@ export function MessageEntry({
           )}
         </>
       )}
-      {!system && !privateMessage && (onReaction || canDelete || Object.keys(message.reactions).length > 0) && (
-        <div
-          className={`chat-message-actions z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1 ${frame ? "absolute right-2 -bottom-2.5" : "relative ml-auto"}`}
-        >
-          {Object.entries(message.reactions)
-            .filter(([, count]) => count > 0)
-            .map(([emoji, count]) => (
-              <button
-                key={emoji}
-                type="button"
-                aria-pressed={message.reacted.includes(emoji)}
-                disabled={message.author === nickname}
-                onClick={() => onReaction?.(message.id, emoji, !message.reacted.includes(emoji))}
-                className={`chat-reaction-entry inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] shadow-sm transition ${
-                  message.reacted.includes(emoji)
-                    ? "border-amber-300/70 bg-amber-950 text-amber-100"
-                    : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500"
-                }`}
-              >
-                {emoji} {count}
-              </button>
-            ))}
-          {onReaction && message.author !== nickname && (
-            <div className="relative">
-              <button
-                id={`reaction-toggle-${entryID}`}
-                type="button"
-                aria-label="Добавить реакцию"
-                title="Добавить реакцию"
-                aria-expanded={reactionsOpen}
-                aria-controls={`reaction-picker-${entryID}`}
-                onClick={() => {
-                  setReactionsOpen(!reactionsOpen)
-                }}
-                className="flex size-5 cursor-pointer items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200"
-              >
-                <Icon name="face-smile" className="size-3" />
-              </button>
-              {reactionsOpen && (
-                <div
-                  id={`reaction-picker-${entryID}`}
-                  role="group"
-                  aria-label="Выбор реакции"
-                  className="absolute bottom-full right-0 z-30 mb-1.5 flex gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-1.5 shadow-2xl"
+      {!system &&
+        !privateMessage &&
+        (canReply || onReaction || canDelete || Object.keys(message.reactions).length > 0) && (
+          <div
+            className={`chat-message-actions z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1 opacity-100 transition-opacity motion-reduce:transition-none md:opacity-0 md:group-hover/message:opacity-100 md:group-focus-within/message:opacity-100 ${frame ? "absolute right-2 -bottom-2.5" : "relative ml-auto"}`}
+          >
+            {Object.entries(message.reactions)
+              .filter(([, count]) => count > 0)
+              .map(([emoji, count]) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  aria-pressed={message.reacted.includes(emoji)}
+                  disabled={message.author === nickname}
+                  onClick={() => onReaction?.(message.id, emoji, !message.reacted.includes(emoji))}
+                  className={`chat-reaction-entry inline-flex h-5 items-center gap-1 rounded-full border px-1.5 text-[11px] shadow-sm transition ${
+                    message.reacted.includes(emoji)
+                      ? "border-amber-300/70 bg-amber-950 text-amber-100"
+                      : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-500"
+                  }`}
                 >
-                  {["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      aria-label={`Поставить реакцию ${emoji}`}
-                      onClick={() => {
-                        onReaction(message.id, emoji, !message.reacted.includes(emoji))
-                        setReactionsOpen(false)
-                      }}
-                      className="flex size-8 items-center justify-center rounded-lg text-lg transition hover:bg-amber-300/15 hover:scale-110"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {canDelete && (
-            <button
-              type="button"
-              id={`message-delete-${entryID}`}
-              aria-label="Удалить сообщение"
-              title="Удалить для всех"
-              onClick={() => {
-                if (window.confirm("Удалить это сообщение для всех?")) onDelete(message.id)
-              }}
-              className="chat-message-delete flex size-6 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-red-300/60 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
-            >
-              <Icon name="trash" className="size-3" />
-            </button>
-          )}
-        </div>
-      )}
+                  {emoji} {count}
+                </button>
+              ))}
+            {onReaction && message.author !== nickname && (
+              <div className="relative">
+                <button
+                  id={`reaction-toggle-${entryID}`}
+                  type="button"
+                  aria-label="Добавить реакцию"
+                  title="Добавить реакцию"
+                  aria-expanded={reactionsOpen}
+                  aria-controls={`reaction-picker-${entryID}`}
+                  onClick={() => {
+                    setReactionsOpen(!reactionsOpen)
+                  }}
+                  className="flex size-5 cursor-pointer items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200"
+                >
+                  <Icon name="face-smile" className="size-3" />
+                </button>
+                {reactionsOpen && (
+                  <div
+                    id={`reaction-picker-${entryID}`}
+                    role="group"
+                    aria-label="Выбор реакции"
+                    className="absolute bottom-full right-0 z-30 mb-1.5 flex gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-1.5 shadow-2xl"
+                  >
+                    {["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        aria-label={`Поставить реакцию ${emoji}`}
+                        onClick={() => {
+                          onReaction(message.id, emoji, !message.reacted.includes(emoji))
+                          setReactionsOpen(false)
+                        }}
+                        className="flex size-8 items-center justify-center rounded-lg text-lg transition hover:bg-amber-300/15 hover:scale-110"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {canReply && (
+              <button
+                type="button"
+                id={`message-reply-${entryID}`}
+                aria-label={`Ответить ${message.author}`}
+                title="Ответить"
+                onClick={() => {
+                  onReply?.(message)
+                }}
+                className="chat-message-reply-action flex size-6 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-amber-300/60 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+              >
+                <Icon name="reply" className="size-3" />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                id={`message-delete-${entryID}`}
+                aria-label="Удалить сообщение"
+                title="Удалить для всех"
+                onClick={() => {
+                  if (window.confirm("Удалить это сообщение для всех?")) onDelete(message.id)
+                }}
+                className="chat-message-delete flex size-6 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-400 shadow-sm transition hover:border-red-300/60 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+              >
+                <Icon name="trash" className="size-3" />
+              </button>
+            )}
+          </div>
+        )}
     </div>
   )
 }

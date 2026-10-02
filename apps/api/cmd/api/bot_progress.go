@@ -27,7 +27,7 @@ func sendBotMessage(ctx context.Context, pool *pgxpool.Pool, author roomdomain.A
 		if err != nil {
 			return err
 		}
-		message, err = rooms.NewService(roompg.NewStore(tx)).Send(ctx, author, clientID, body)
+		message, err = rooms.NewService(roompg.NewStore(tx)).Send(ctx, author, clientID, body, 0)
 		if err != nil || !message.Inserted {
 			return err
 		}

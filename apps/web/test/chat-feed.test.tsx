@@ -69,6 +69,39 @@ test("message text stays inert while HTTP links stop at quotes", () => {
   assert.ok(document.querySelector(".chat-message-body")?.textContent.includes("<script>alert(1)</script>"))
 })
 
+test("a public reply renders a compact inert quote and exposes its reply action", () => {
+  const html = renderToStaticMarkup(
+    createElement(MessageEntry, {
+      nickname: "reader",
+      onAddress: () => undefined,
+      onReply: () => undefined,
+      message: {
+        id: 4,
+        recipient: "",
+        reactions: {},
+        reacted: [],
+        client_id: "reply",
+        kind: "text",
+        author: "guest",
+        body: "Согласен",
+        reply_to: { id: 3, author: "friend", body: "<script>не код</script>" },
+        sent_at: "2026-09-22T10:20:30Z",
+        font_id: "theme",
+        font_style: "normal",
+        appearance: {
+          dark: { nickname_color: "#fcd34d", text_color: "#e4e4e7" },
+          light: { nickname_color: "#9a3412", text_color: "#1f2937" },
+        },
+      },
+    }),
+  )
+  const document = new JSDOM(html).window.document
+  assert.equal(document.querySelector("script"), null)
+  assert.equal(document.querySelector("[data-reply-to]")?.getAttribute("data-reply-to"), "3")
+  assert.match(document.querySelector("[data-reply-to]")?.textContent ?? "", /<script>не код<\/script>/)
+  assert.equal(document.querySelector("#message-reply-4")?.getAttribute("aria-label"), "Ответить guest")
+})
+
 test("inline emoji shares the text-bottom alignment box", () => {
   const html = renderToStaticMarkup(
     createElement(MessageEntry, {

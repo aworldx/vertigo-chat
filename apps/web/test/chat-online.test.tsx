@@ -91,6 +91,8 @@ test("dropping a file on the composer starts attachment delivery", () => {
   const view = render(
     <Composer
       draft=""
+      reply={null}
+      onCancelReply={() => undefined}
       onDraft={() => undefined}
       input={React.createRef<HTMLInputElement>()}
       onSend={() => undefined}

@@ -21,13 +21,20 @@ type Store struct{ db Database }
 
 func NewStore(db Database) Store { return Store{db} }
 
-const columns = `id,COALESCE(client_id,''),kind,author,body,sent_at,appearance,font_id,font_style,reactions,COALESCE(recipient,''),COALESCE(media_url,''),COALESCE(media_artist,''),COALESCE(media_duration,''),COALESCE(media_source_url,'')`
+const columns = `id,COALESCE(client_id,''),kind,author,body,sent_at,appearance,font_id,font_style,reactions,COALESCE(recipient,''),COALESCE(media_url,''),COALESCE(media_artist,''),COALESCE(media_duration,''),COALESCE(media_source_url,''),reply_to_message_id,reply_author,reply_body`
 
 const recentMessageLimit = 100
 
-func (s Store) Send(ctx context.Context, author domain.Author, clientID, body string) (domain.Message, error) {
+func (s Store) Send(ctx context.Context, author domain.Author, clientID, body string, replyToID int64) (domain.Message, error) {
 	var message domain.Message
 	var appearance, reactions []byte
+	var replyID *int64
+	var replyAuthor, replyBody *string
+	if replyToID > 0 {
+		if err := s.db.QueryRow(ctx, `SELECT id,author,body FROM room_messages WHERE id=$1 AND room_id=$2 AND kind IN ('text','gif','music','youtube','tetris')`, replyToID, author.RoomID).Scan(&replyID, &replyAuthor, &replyBody); err != nil {
+			return message, application.ErrInvalidMessage
+		}
+	}
 
 	var limited bool
 	err := s.db.QueryRow(ctx, `SELECT NOT EXISTS(SELECT 1 FROM room_messages WHERE room_id=$1 AND author_identity=$2 AND client_id=$3) AND (count(*) FILTER (WHERE sent_at>(NOW() AT TIME ZONE 'UTC')-interval '2 seconds')>=3 OR count(*)>=12) FROM room_messages WHERE room_id=$1 AND author_identity=$2 AND kind IN ('text','gif','music','youtube') AND sent_at>(NOW() AT TIME ZONE 'UTC')-interval '1 minute'`, author.RoomID, author.Identity, clientID).Scan(&limited)
@@ -52,8 +59,11 @@ func (s Store) Send(ctx context.Context, author domain.Author, clientID, body st
 		style = "normal"
 	}
 	// Conflict returns the original body. Replayed outbox IDs never edit history.
-	err = s.db.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,client_id,author_identity,theme_id,appearance,reactions,font_id,font_style,recipient,sent_at,inserted_at,updated_at) VALUES($1,'text',$2,$3,$4,$5,'vertigo',$6,'{}',$7,$8,NULLIF($9,''),(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC')) ON CONFLICT(room_id,author_identity,client_id) WHERE client_id IS NOT NULL DO UPDATE SET client_id=room_messages.client_id RETURNING `+columns+`,(xmax=0)`, author.RoomID, author.Nickname, body, clientID, author.Identity, storedAppearance, font, style, author.Recipient).Scan(&message.ID, &message.ClientID, &message.Kind, &message.Author, &message.Body, &message.SentAt, &appearance, &message.FontID, &message.FontStyle, &reactions, &message.Recipient, &message.MediaURL, &message.Artist, &message.Duration, &message.SourceURL, &message.Inserted)
+	err = s.db.QueryRow(ctx, `INSERT INTO room_messages(room_id,kind,author,body,client_id,author_identity,theme_id,appearance,reactions,font_id,font_style,recipient,reply_to_message_id,reply_author,reply_body,sent_at,inserted_at,updated_at) VALUES($1,'text',$2,$3,$4,$5,'vertigo',$6,'{}',$7,$8,NULLIF($9,''),$10,$11,$12,(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC')) ON CONFLICT(room_id,author_identity,client_id) WHERE client_id IS NOT NULL DO UPDATE SET client_id=room_messages.client_id RETURNING `+columns+`,(xmax=0)`, author.RoomID, author.Nickname, body, clientID, author.Identity, storedAppearance, font, style, author.Recipient, replyID, replyAuthor, replyBody).Scan(&message.ID, &message.ClientID, &message.Kind, &message.Author, &message.Body, &message.SentAt, &appearance, &message.FontID, &message.FontStyle, &reactions, &message.Recipient, &message.MediaURL, &message.Artist, &message.Duration, &message.SourceURL, &replyID, &replyAuthor, &replyBody, &message.Inserted)
 	_ = json.Unmarshal(reactions, &message.Reactions)
+	if replyID != nil && replyAuthor != nil && replyBody != nil {
+		message.Reply = &domain.Reply{ID: *replyID, Author: *replyAuthor, Body: *replyBody}
+	}
 	message.Appearance = decodeAppearance(appearance)
 	normalizeTypography(&message)
 	return message, err
@@ -72,12 +82,17 @@ func readMessages(rows pgx.Rows) ([]domain.Message, error) {
 	for rows.Next() {
 		var m domain.Message
 		var appearance, reactions []byte
-		if err := rows.Scan(&m.ID, &m.ClientID, &m.Kind, &m.Author, &m.Body, &m.SentAt, &appearance, &m.FontID, &m.FontStyle, &reactions, &m.Recipient, &m.MediaURL, &m.Artist, &m.Duration, &m.SourceURL); err != nil {
+		var replyID *int64
+		var replyAuthor, replyBody *string
+		if err := rows.Scan(&m.ID, &m.ClientID, &m.Kind, &m.Author, &m.Body, &m.SentAt, &appearance, &m.FontID, &m.FontStyle, &reactions, &m.Recipient, &m.MediaURL, &m.Artist, &m.Duration, &m.SourceURL, &replyID, &replyAuthor, &replyBody); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(reactions, &m.Reactions)
 		m.Appearance = decodeAppearance(appearance)
 		normalizeTypography(&m)
+		if replyID != nil && replyAuthor != nil && replyBody != nil {
+			m.Reply = &domain.Reply{ID: *replyID, Author: *replyAuthor, Body: *replyBody}
+		}
 		messages = append(messages, m)
 	}
 	return messages, rows.Err()
