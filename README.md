@@ -115,9 +115,10 @@ OPENAI_BOT_UTC_OFFSET_MINUTES=180
 
 ## Media and YouTube worker
 
-Для music search можно задать `MUSIC_PROXY_HOST_FILE`: это путь к файлу вне
-репозитория, по одной записи `host:port:username:password` на строку. Compose
-монтирует его read-only как `/run/secrets/music_proxies`.
+Для music search и загрузки YouTube можно задать `MUSIC_PROXY_HOST_FILE`: это
+путь к файлу вне репозитория, по одной записи
+`host:port:username:password` на строку. Compose монтирует его read-only как
+секрет; worker выбирает до трёх прокси для скачивания сегментов YouTube.
 
 Фото, превью галереи и аудио чарта хранятся в S3; параметры эксплуатации
 описаны в [docs/s3_media.md](docs/s3_media.md). ImageMagick включён в образ

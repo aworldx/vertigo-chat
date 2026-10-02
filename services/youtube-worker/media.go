@@ -80,6 +80,7 @@ type media interface {
 type downloader struct {
 	ytDLP, ffmpeg string
 	maxBytes      int64
+	proxies       *proxyPool
 }
 
 const ytDLPJSRuntime = "deno"
@@ -168,10 +169,28 @@ func (d downloader) Download(ctx context.Context, id, path string) error {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 	input := filepath.Join(dir, "source.mp4")
-	args := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--no-part", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", ytDLPJSRuntime, "--ffmpeg-location", d.ffmpeg,
+	baseArgs := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--no-part", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", ytDLPJSRuntime, "--ffmpeg-location", d.ffmpeg,
 		"--max-filesize", fmt.Sprint(d.maxBytes), "--format", "bestvideo[vcodec^=avc1][height<=360]+bestaudio[acodec^=mp4a]/best[ext=mp4][height<=360]", "--merge-output-format", "mp4", "--output", input, "--", sourceURL(id)}
-	if err := command(ctx, d.ytDLP, args...).Run(); err != nil {
-		return err
+	attempts := d.proxies.candidates()
+	if len(attempts) == 0 {
+		attempts = []string{""}
+	}
+	var downloadErr error
+	for _, proxy := range attempts {
+		args := append([]string{}, baseArgs[:len(baseArgs)-2]...)
+		if proxy != "" {
+			args = append(args, "--proxy", proxy)
+		}
+		args = append(args, baseArgs[len(baseArgs)-2:]...)
+		if err := command(ctx, d.ytDLP, args...).Run(); err == nil {
+			downloadErr = nil
+			break
+		} else {
+			downloadErr = err
+		}
+	}
+	if downloadErr != nil {
+		return downloadErr
 	}
 	output := filepath.Join(dir, "ready.mp4")
 	if err := command(ctx, d.ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", input, "-c", "copy", "-movflags", "+faststart", "-f", "mp4", output).Run(); err != nil {

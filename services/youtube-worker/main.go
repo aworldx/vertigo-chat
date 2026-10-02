@@ -188,7 +188,7 @@ func run() error {
 		return err
 	}
 	maxBytes := envInt("YOUTUBE_CACHE_MAX_BYTES", 2*1024*1024*1024)
-	media := downloader{yt, ffmpeg, maxBytes}
+	media := downloader{ytDLP: yt, ffmpeg: ffmpeg, maxBytes: maxBytes, proxies: newProxyPool(os.Getenv("YOUTUBE_PROXY_FILE"))}
 	cache, err := newCache(ctx, env("YOUTUBE_CACHE_DIR", filepath.Join(os.TempDir(), "chat-youtube-cache")), maxBytes, int(envInt("YOUTUBE_CACHE_MAX_PREPARATIONS", 1)), 6*time.Hour, time.Duration(envInt("YOUTUBE_DOWNLOAD_TIMEOUT_MS", 120000))*time.Millisecond, media.Download)
 	if err != nil {
 		return err

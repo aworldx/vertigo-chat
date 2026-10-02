@@ -94,8 +94,10 @@ services:
       YOUTUBE_CACHE_DIR: /var/cache/chat-youtube
       YOUTUBE_CACHE_MAX_PREPARATIONS: ${YOUTUBE_CACHE_MAX_PREPARATIONS:-1}
       YOUTUBE_CACHE_MAX_BYTES: ${YOUTUBE_CACHE_MAX_BYTES:-2147483648}
+      YOUTUBE_PROXY_FILE: /run/secrets/youtube_proxies
     volumes:
       - youtube_cache:/var/cache/chat-youtube
+      - ${MUSIC_PROXY_HOST_FILE:-../.music_proxies}:/run/secrets/youtube_proxies:ro
     depends_on:
       youtube-cache-init:
         condition: service_completed_successfully

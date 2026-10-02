@@ -37,7 +37,7 @@ func TestDownloadPublishesOnlyValidatedOutput(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
 			output := filepath.Join(dir, "video.mp4")
-			d := downloader{yt, executable(t, tc.body), tc.limit}
+			d := downloader{ytDLP: yt, ffmpeg: executable(t, tc.body), maxBytes: tc.limit}
 			err := d.Download(context.Background(), "jNQXAC9IVRw", output)
 			if (err == nil) != tc.success {
 				t.Fatalf("success=%v error=%v", tc.success, err)
@@ -55,7 +55,7 @@ func TestDownloadPublishesOnlyValidatedOutput(t *testing.T) {
 			}
 		})
 	}
-	d := downloader{yt, "/unused", 10}
+	d := downloader{ytDLP: yt, ffmpeg: "/unused", maxBytes: 10}
 	if err := d.Download(context.Background(), "jNQXAC9IVRw", filepath.Join(t.TempDir(), "missing", "video.mp4")); err == nil {
 		t.Fatal("missing parent accepted")
 	}
