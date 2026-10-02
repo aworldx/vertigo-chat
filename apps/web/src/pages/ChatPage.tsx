@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Room, readSession } from "../features/chat"
 import { useAccountSession } from "../features/accounts"
 import { RoomProfileViewer } from "../features/profiles"
+import { useNotesSummary } from "../features/notes"
 function chatToken() {
   return readSession()?.resume_token ?? ""
 }
@@ -14,6 +15,7 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
     if (initialGame) openGame(initialGame, false)
   }, [initialGame, openGame])
   const account = useAccountSession()
+  const unreadNotes = useNotesSummary(Boolean(account.session?.principal))
   const [profile, setProfile] = useState<{ nickname: string; editable: boolean } | null>(null)
   const closeProfile = useCallback(() => {
     setProfile(null)
@@ -23,6 +25,7 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
       <Room
         onGame={tetris.command}
         csrf={account.session?.csrf_token ?? ""}
+        unreadNotes={unreadNotes}
         onProfile={(nickname, editable) => {
           setProfile({ nickname, editable })
         }}

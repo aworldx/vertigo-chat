@@ -26,17 +26,20 @@ export function Room({
   csrf,
   children,
   onGame,
+  unreadNotes,
 }: {
   onProfile: (nickname: string, editable: boolean) => void
   csrf: string
   children?: ReactNode
   onGame?: (argument: string) => void
+  unreadNotes: number
 }) {
   const { state, connection } = useRoom()
   const publishedMessages = timelineMessages(state.timeline)
   const feedEntries = feedTimeline(state.timeline, state.ephemeral)
   const [draft, setDraft] = useState("")
   const [reply, setReply] = useState<Message | null>(null)
+  const [notesNoticeDismissed, setNotesNoticeDismissed] = useState(false)
   const settings = usePreferences(state.snapshot.preferences, connection)
   const emoji = useEmojis()
   const media = useMediaTransfer(connection, state.snapshot.peers, state.nickname)
@@ -89,6 +92,7 @@ export function Room({
         >
           <TopMenu
             registered={registered}
+            unreadNotes={unreadNotes}
             onRegister={() => {
               forms.open("register")
             }}
@@ -96,6 +100,31 @@ export function Room({
               forms.open("feedback")
             }}
           />
+          {unreadNotes > 0 && !notesNoticeDismissed && (
+            <div
+              id="notes-arrival-notice"
+              role="status"
+              className="absolute right-4 top-16 z-40 flex max-w-sm items-start gap-3 rounded-xl border border-amber-300/50 bg-zinc-950/95 p-4 text-sm text-amber-100 shadow-2xl backdrop-blur-sm"
+            >
+              <p className="min-w-0 flex-1">
+                Тебя ждут {unreadNotes} {unreadNotes === 1 ? "записка" : "записки"}.{" "}
+                <a href="/notes" target="vertigo-notes" className="font-semibold underline">
+                  Открыть
+                </a>
+              </p>
+              <button
+                id="dismiss-notes-arrival"
+                type="button"
+                aria-label="Закрыть уведомление о записках"
+                className="text-zinc-400 hover:text-zinc-100"
+                onClick={() => {
+                  setNotesNoticeDismissed(true)
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
           <div className="chat-room-content">
             {joined ? (
               <main

@@ -3,15 +3,18 @@ const links = [
   ["Хит-парад", "/music-chart", "vertigo-music-chart"],
   ["Анкеты", "/profiles", "vertigo-profiles"],
   ["Библиотека", "/library", "vertigo-library"],
+  ["Записки", "/notes", "vertigo-notes"],
   ["Фотоальбом", "/gallery", "vertigo-gallery"],
   ["Кто был", "/visits", "vertigo-visits"],
 ] as const
 export function TopMenu({
   registered,
+  unreadNotes,
   onRegister,
   onFeedback,
 }: {
   registered: boolean
+  unreadNotes: number
   onRegister: () => void
   onFeedback: () => void
 }) {
@@ -39,6 +42,17 @@ export function TopMenu({
           className="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
         >
           Библиотека
+        </a>
+        <a
+          id="menu-notes"
+          href="/notes"
+          target="vertigo-notes"
+          className="hidden items-center gap-1 whitespace-nowrap transition hover:text-amber-300 lg:inline-flex"
+        >
+          Записки{" "}
+          {unreadNotes > 0 && (
+            <span className="rounded-full bg-amber-300 px-1.5 text-xs font-semibold text-zinc-950">{unreadNotes}</span>
+          )}
         </a>
         <a
           href="/gallery"

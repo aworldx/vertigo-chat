@@ -33,6 +33,7 @@ var helpSubjects = []struct {
 	{"bots", regexp.MustCompile(`(^|[^\p{L}])бот|клэр|хичкок|токен`)},
 	{"gallery", regexp.MustCompile(`альбом|галере`)},
 	{"library", regexp.MustCompile(`библиотек|стать[юяи]|статей|сери[яию]`)},
+	{"notes", regexp.MustCompile(`запис(к|очн)|офлайн.*сообщен|оставить.*сообщен`)},
 	{"chart", regexp.MustCompile(`хит.?парад|топ.*(музык|трек)|коммент.*трек`)},
 	{"connection", regexp.MustCompile(`связ|соединени|не отправ|не достав|не уход|переподключ|другой вклад|лимит|ошибк`)},
 	{"leave", regexp.MustCompile(`выйти|выход|покинуть`)},

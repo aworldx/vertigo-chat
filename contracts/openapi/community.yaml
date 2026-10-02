@@ -710,6 +710,29 @@
         }
       }
     },
+    "/api/v1/notes/summary": {
+      "get": {
+        "operationId": "notesSummary",
+        "summary": "notesSummary",
+        "security": [{"accountSession": []}],
+        "responses": {"200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/NotesSummary"}}}}, "401": {"description": "Not authenticated"}}
+      }
+    },
+    "/api/v1/notes": {
+      "get": {
+        "operationId": "listNotes",
+        "summary": "listNotes",
+        "security": [{"accountSession": []}],
+        "responses": {"200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Notes"}}}}, "401": {"description": "Not authenticated"}}
+      },
+      "post": {
+        "operationId": "createNote",
+        "summary": "createNote",
+        "security": [{"accountSession": [], "csrfToken": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/NoteInput"}}}},
+        "responses": {"201": {"description": "Created", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Created"}}}}, "401": {"description": "Not authenticated"}, "404": {"description": "Recipient not found"}, "422": {"description": "Invalid note"}, "429": {"description": "Daily limit reached"}}
+      }
+    },
     "/api/v1/admin/database": {
       "get": {
         "operationId": "readAdminDatabase",
@@ -1687,6 +1710,30 @@
       }
     },
     "schemas": {
+      "NoteInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["recipient", "body"],
+        "properties": {"recipient": {"type": "string", "minLength": 1, "maxLength": 40}, "body": {"type": "string", "minLength": 1, "maxLength": 1000}}
+      },
+      "Note": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sender", "recipient", "body", "read", "inserted_at"],
+        "properties": {"id": {"type": "integer"}, "sender": {"type": "string"}, "recipient": {"type": "string"}, "body": {"type": "string"}, "read": {"type": "boolean"}, "inserted_at": {"type": "string", "format": "date-time"}}
+      },
+      "Notes": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["incoming", "outgoing"],
+        "properties": {"incoming": {"type": "array", "items": {"$ref": "#/components/schemas/Note"}}, "outgoing": {"type": "array", "items": {"$ref": "#/components/schemas/Note"}}}
+      },
+      "NotesSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unread"],
+        "properties": {"unread": {"type": "integer", "minimum": 0}}
+      },
       "GalleryPhoto": {
         "type": "object",
         "additionalProperties": false,

@@ -14,12 +14,13 @@ import { LoginPage } from "../pages/LoginPage"
 import { ProfilesPage } from "../pages/ProfilesPage"
 import { LandingPage } from "../pages/LandingPage"
 import { ChatPage } from "../pages/ChatPage"
+import { NotesPage } from "../pages/NotesPage"
 const container = document.getElementById("root")
 const path = window.location.pathname
 const help = path === "/help" || path === "/ranks"
 const login = path.startsWith("/account/")
 if (!path.startsWith("/articles"))
-  document.title = `${path === "/history" ? "История сообщений" : path === "/admin" ? "Админка" : path === "/library" ? "Библиотека" : path === "/gallery" ? "Фотоальбом" : path === "/visits" ? "Кто был" : path === "/account" ? "Настройки аккаунта" : help ? "Помощь" : login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
+  document.title = `${path === "/history" ? "История сообщений" : path === "/admin" ? "Админка" : path === "/library" ? "Библиотека" : path === "/notes" ? "Записная книжка" : path === "/gallery" ? "Фотоальбом" : path === "/visits" ? "Кто был" : path === "/account" ? "Настройки аккаунта" : help ? "Помощь" : login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
 if (container)
   createRoot(container).render(
     path.startsWith("/games/tetris") ? (
@@ -30,6 +31,8 @@ if (container)
       <ArticlesPage />
     ) : path === "/library" ? (
       <LibraryPage />
+    ) : path === "/notes" ? (
+      <NotesPage />
     ) : path === "/gallery" ? (
       <GalleryPage />
     ) : path === "/history" ? (

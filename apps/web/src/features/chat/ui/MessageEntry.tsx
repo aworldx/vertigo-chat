@@ -168,11 +168,11 @@ export function MessageEntry({
         <>
           {message.reply_to && (
             <blockquote
-              className="chat-message-reply mb-1 border-l-2 border-amber-300/70 pl-2 text-xs leading-4 text-zinc-400"
+              className="chat-message-reply mb-1 flex max-w-full items-baseline gap-1.5 border-l-2 border-amber-300/70 py-0.5 pl-2 text-[11px] leading-4 text-zinc-500"
               data-reply-to={message.reply_to.id}
             >
-              <span className="font-semibold text-amber-200">{message.reply_to.author}: </span>
-              <span className="line-clamp-1 break-words">{message.reply_to.body}</span>
+              <span className="shrink-0 font-semibold text-amber-200">{message.reply_to.author}</span>
+              <span className="min-w-0 truncate text-zinc-400">{message.reply_to.body}</span>
             </blockquote>
           )}
           <p className="break-words text-sm leading-5" data-compact-message>

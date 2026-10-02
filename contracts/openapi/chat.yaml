@@ -528,7 +528,7 @@ components:
 
     HelpTopic:
       type: string
-      enum: [music, video, font, colors, files, private, commands, gif, emoji, address, reply, ignore, clear, online, appearance, profile, account, ranks, karma, bots, gallery, library, chart, connection, leave, games, admin, history]
+      enum: [music, video, font, colors, files, private, notes, commands, gif, emoji, address, reply, ignore, clear, online, appearance, profile, account, ranks, karma, bots, gallery, library, chart, connection, leave, games, admin, history]
     HelpTopics:
       type: array
       maxItems: 28

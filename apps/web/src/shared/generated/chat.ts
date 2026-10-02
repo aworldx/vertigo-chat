@@ -375,7 +375,7 @@ export interface components {
             peers: components["schemas"]["Peer"][];
         };
         /** @enum {string} */
-        HelpTopic: "music" | "video" | "font" | "colors" | "files" | "private" | "commands" | "gif" | "emoji" | "address" | "reply" | "ignore" | "clear" | "online" | "appearance" | "profile" | "account" | "ranks" | "karma" | "bots" | "gallery" | "library" | "chart" | "connection" | "leave" | "games" | "admin" | "history";
+        HelpTopic: "music" | "video" | "font" | "colors" | "files" | "private" | "notes" | "commands" | "gif" | "emoji" | "address" | "reply" | "ignore" | "clear" | "online" | "appearance" | "profile" | "account" | "ranks" | "karma" | "bots" | "gallery" | "library" | "chart" | "connection" | "leave" | "games" | "admin" | "history";
         /** @description Sender-only assistance on public-message acknowledgement; never included in room snapshots. */
         HelpTopics: components["schemas"]["HelpTopic"][];
         Rank: {
