@@ -1,6 +1,7 @@
 import { verifyChatGuide } from "./chat-guide-verification"
 import { verifyBotAdmin } from "./bot-admin-verification"
 import { verifyLibraryEditor } from "./library-editor-verification"
+import { verifyLibraryImport } from "./library-import-verification"
 import assert from "node:assert/strict"
 import { mkdir, writeFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
@@ -85,12 +86,15 @@ try {
   }
   await galleryFlows(pair)
   await libraryFlows(pair)
+  sql("UPDATE library_articles SET inserted_at='2026-10-03',updated_at='2026-10-03',work_author='Uniform' WHERE id=3;")
   await verifyLibraryEditor(newPage, origin)
   await adminFlows(pair)
   await verifyBotAdmin(newPage, origin)
   await verifyPolls(browser, origin)
   await uploadAndModerate(pair)
   await failureRecovery(pair)
+  assert.ok(databases[0])
+  await verifyLibraryImport(newPage, origin, databases[0])
   await first.close()
   await second.close()
 } finally {

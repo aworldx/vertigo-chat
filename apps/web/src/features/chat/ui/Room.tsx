@@ -21,25 +21,28 @@ import { OnlineList } from "./OnlineList"
 import { MessageFeed } from "./MessageFeed"
 import { useRoom } from "../model/useRoom"
 import { feedTimeline, timelineMessages } from "../model/timeline"
+
+type PollNotice = { id: number; question: string }
 export function Room({
   onProfile,
   csrf,
   children,
   onGame,
   unreadNotes,
+  pollNotices,
 }: {
   onProfile: (nickname: string, editable: boolean) => void
   csrf: string
   children?: ReactNode
   onGame?: (argument: string) => void
   unreadNotes: number
+  pollNotices: PollNotice[]
 }) {
   const { state, connection } = useRoom()
   const publishedMessages = timelineMessages(state.timeline)
   const feedEntries = feedTimeline(state.timeline, state.ephemeral)
   const [draft, setDraft] = useState("")
   const [reply, setReply] = useState<Message | null>(null)
-  const [notesNoticeDismissed, setNotesNoticeDismissed] = useState(false)
   const settings = usePreferences(state.snapshot.preferences, connection)
   const emoji = useEmojis()
   const media = useMediaTransfer(connection, state.snapshot.peers, state.nickname)
@@ -100,31 +103,6 @@ export function Room({
               forms.open("feedback")
             }}
           />
-          {unreadNotes > 0 && !notesNoticeDismissed && (
-            <div
-              id="notes-arrival-notice"
-              role="status"
-              className="absolute right-4 top-16 z-40 flex max-w-sm items-start gap-3 rounded-xl border border-amber-300/50 bg-zinc-950/95 p-4 text-sm text-amber-100 shadow-2xl backdrop-blur-sm"
-            >
-              <p className="min-w-0 flex-1">
-                Тебя ждут {unreadNotes} {unreadNotes === 1 ? "записка" : "записки"}.{" "}
-                <a href="/notes" target="vertigo-notes" className="font-semibold underline">
-                  Открыть
-                </a>
-              </p>
-              <button
-                id="dismiss-notes-arrival"
-                type="button"
-                aria-label="Закрыть уведомление о записках"
-                className="text-zinc-400 hover:text-zinc-100"
-                onClick={() => {
-                  setNotesNoticeDismissed(true)
-                }}
-              >
-                ×
-              </button>
-            </div>
-          )}
           <div className="chat-room-content">
             {joined ? (
               <main
@@ -191,6 +169,59 @@ export function Room({
                     }}
                   />
                   <CommandResults results={command.results} onAddress={address} onDismiss={command.dismiss} />
+                  {unreadNotes > 0 && (
+                    <p
+                      id="notes-system-notice"
+                      data-message-kind="system"
+                      data-private-notice="true"
+                      className="chat-message-entry mt-3 px-3 py-0.5 text-center"
+                    >
+                      <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs leading-4 text-zinc-500">
+                        <span aria-hidden="true" className="text-amber-300">
+                          ✦
+                        </span>
+                        <span>
+                          {unreadNotes === 1 ? "Тебя ждёт 1 записка." : `Тебя ждут ${String(unreadNotes)} записки.`}
+                        </span>
+                        <a
+                          href="/notes"
+                          target="vertigo-notes"
+                          className="font-semibold text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
+                        >
+                          Открыть
+                        </a>
+                        <span className="sr-only">Видно только вам.</span>
+                      </span>
+                    </p>
+                  )}
+                  {pollNotices.length > 0 && (
+                    <div id="poll-system-notices" className="mt-3 space-y-1.5" aria-live="polite">
+                      {pollNotices.map((poll) => (
+                        <p
+                          id={`poll-system-notice-${String(poll.id)}`}
+                          key={poll.id}
+                          data-message-kind="system"
+                          data-private-notice="true"
+                          className="chat-message-entry px-3 py-0.5 text-center"
+                        >
+                          <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs leading-4 text-zinc-500">
+                            <span aria-hidden="true" className="text-amber-300">
+                              ✦
+                            </span>
+                            <span>Новый опрос: {poll.question}</span>
+                            <a
+                              href="/polls"
+                              target="vertigo-polls"
+                              className="font-semibold text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
+                            >
+                              Открыть
+                            </a>
+                            <span className="sr-only">Видно только вам.</span>
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </MessageFeed>
                 <p
                   id="typing-indicator"

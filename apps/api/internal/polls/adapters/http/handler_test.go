@@ -19,7 +19,11 @@ func (s *memoryStore) Create(_ context.Context, _ int64, input domain.Input) (do
 	return domain.Poll{ID: 1, Question: input.Question, Status: "open"}, nil
 }
 func (s *memoryStore) List(context.Context, string) ([]domain.Poll, error) {
-	return []domain.Poll{}, nil
+	return []domain.Poll{
+		{ID: 1, Question: "Открытый", Status: "open"},
+		{ID: 2, Question: "Отвеченный", Status: "open", SelectedOptionID: 4},
+		{ID: 3, Question: "Завершённый", Status: "closed"},
+	}, nil
 }
 func (s *memoryStore) Vote(_ context.Context, pollID int64, nickname string, optionID int64) error {
 	if pollID != 1 || optionID != 2 {
@@ -72,6 +76,11 @@ func TestPollHTTPAuthorizationVoteAndClose(t *testing.T) {
 	}
 	if w := req("GET", "/api/v1/polls", "", "", "", ""); w.Code != 200 || w.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("public list: %d %s", w.Code, w.Header().Get("Cache-Control"))
+	}
+	assertPollStatus(t, req("GET", "/api/v1/polls/notices", "", "", "", ""), 403, "forbidden")
+	w := req("GET", "/api/v1/polls/notices", "", "", "", "chat")
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "Открытый") || strings.Contains(w.Body.String(), "Отвеченный") || strings.Contains(w.Body.String(), "Завершённый") {
+		t.Fatalf("notices: %d %s", w.Code, w.Body.String())
 	}
 	assertPollStatus(t, req("POST", "/api/v1/admin/polls", `{"question":"q","options":["a","b"]}`, "csrf", "", ""), 403, "")
 	assertPollStatus(t, req("POST", "/api/v1/admin/polls", `{"question":"q","options":["a","b"]}`, "csrf", "admin", ""), 201, "")

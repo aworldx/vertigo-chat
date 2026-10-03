@@ -1,6 +1,6 @@
-import { Icon } from "../../../shared/ui/Icon"
 import type { Series } from "../api/library"
 import { seriesURL } from "./ArticleCard"
+
 export function SeriesList({
   series,
   selected,
@@ -13,23 +13,25 @@ export function SeriesList({
   navigate: (url: string) => void
 }) {
   return (
-    <aside className="self-start rounded-2xl border border-amber-950/60 bg-stone-950/85 p-5 shadow-xl backdrop-blur-sm lg:sticky lg:top-6">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg text-amber-100">Серии</h2>
-        <span className="rounded-full bg-amber-300/10 px-2 py-1 text-xs text-amber-300">{series.length}</span>
+    <aside className="library-series-panel">
+      <div className="library-series-head">
+        <h2 className="library-series-title">Серии</h2>
+        <span className="library-series-count">{series.length}</span>
       </div>
       <a
         id="all-library-articles"
+        className="library-all"
+        data-selected={!selected}
+        aria-current={!selected ? "page" : undefined}
         href="/library"
         onClick={(e) => {
           e.preventDefault()
           navigate("/library")
         }}
-        className={`mt-4 flex items-center justify-between rounded-xl border px-3 py-3 text-sm transition ${selected ? "border-stone-800 text-stone-400 hover:border-amber-700" : "border-amber-400/60 bg-amber-300/10 text-amber-100"}`}
       >
-        Все статьи <Icon name="book-open" className="size-4" />
+        Все статьи <span aria-hidden="true">↗</span>
       </a>
-      <nav id="library-series" className="mt-3 space-y-2" aria-label="Серии статей">
+      <nav id="library-series" aria-label="Серии статей">
         {series.map((s) => (
           <a
             key={seriesURL(s.author_id, s.name)}
@@ -39,12 +41,14 @@ export function SeriesList({
               navigate(e.currentTarget.href)
             }}
             data-series-name={s.name}
-            className={`block rounded-xl border px-3 py-3 transition ${selected === s.name && author === s.author_id ? "border-amber-400/60 bg-amber-300/10" : "border-stone-800 bg-stone-900/60 hover:border-amber-800"}`}
+            aria-current={selected === s.name && author === s.author_id ? "page" : undefined}
+            className="library-series-link"
           >
-            <span className="block truncate text-sm text-amber-100">{s.name}</span>
-            <span className="mt-1 flex justify-between gap-2 text-xs text-stone-500">
-              <span className="truncate">{s.author}</span>
-              <span>{s.count}</span>
+            <img src="/images/library-cover-books.png" alt="" width="48" height="60" />
+            <span>
+              <strong>{s.name}</strong>
+              <small>{s.author}</small>
+              <small>Статей: {s.count}</small>
             </span>
           </a>
         ))}

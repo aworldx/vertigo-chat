@@ -1,0 +1,462 @@
+/* Design-first specification. Frozen with mock PNGs before React implementation. */
+@font-face {
+  font-family: "Library Serif";
+  src: url("/fonts/cormorant-garamond-variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+#library-page.library-shell {
+  min-height: 100vh;
+  background: #0d100f;
+  color: #eee9df;
+}
+#library-page > .library-reading-room {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: url("/images/library-room-v2.png") right center / cover no-repeat;
+  filter: none;
+  pointer-events: none;
+}
+#library-page > .library-reading-room::after {
+  content: none;
+}
+#library-page .library-main {
+  width: 77%;
+  max-width: 1280px;
+  margin: 0 0 0 9%;
+  padding: 30px 0 64px;
+}
+#library-page .library-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow: visible;
+}
+#library-page .library-kicker {
+  color: #d6ad72;
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+#library-page .library-title {
+  margin: 3px 0 8px;
+  color: #f7f1e4;
+  font:
+    500 54px/1.04 "Library Serif",
+    serif;
+  letter-spacing: -0.025em;
+}
+#library-page .library-description {
+  max-width: 660px;
+  color: #b9b6af;
+  font-size: 13px;
+  line-height: 22px;
+}
+#library-page .library-create {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 46px;
+  padding: 10px 22px;
+  border: 1px solid #a54c66;
+  border-radius: 7px;
+  background: linear-gradient(120deg, #842b45, #6a2437);
+  color: #fff1eb;
+  font:
+    600 13px/22px "Vertigo Text",
+    sans-serif;
+  letter-spacing: 0;
+  box-shadow: 0 4px 20px #0004;
+  cursor: pointer;
+}
+#library-page .library-create:hover {
+  background: #96334f;
+}
+#library-page .library-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 24px;
+  align-items: start;
+}
+#library-page .library-feed {
+  min-width: 0;
+}
+#library-page .library-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+  margin-bottom: 12px;
+}
+#library-page .library-section-heading h2,
+#library-page .library-series-title {
+  font:
+    500 28px/1.1 "Library Serif",
+    serif;
+  letter-spacing: -0.01em;
+  color: #eee8dc;
+}
+#library-page .library-section-heading span,
+#library-page .library-section-heading a {
+  color: #b9b5ad;
+  font-size: 11px;
+}
+#library-page #library-articles {
+  display: grid;
+  gap: 12px;
+}
+#library-page .library-card {
+  overflow: hidden;
+  border: 1px solid #76604375;
+  border-radius: 8px;
+  background: linear-gradient(120deg, #171815f2, #1b1814eb);
+  box-shadow: 0 4px 20px #0003;
+}
+#library-page .library-card:hover {
+  border-color: #af875c9c;
+}
+#library-page .library-card-summary {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  padding: 13px;
+}
+#library-page .library-cover {
+  width: 120px;
+  height: 144px;
+  border: 1px solid #86735855;
+  border-radius: 5px;
+  object-fit: cover;
+}
+#library-page .library-card-copy {
+  min-width: 0;
+}
+#library-page .library-card-series {
+  display: block;
+  overflow: hidden;
+  color: #d2ad7c;
+  font-size: 9px;
+  line-height: 16px;
+  letter-spacing: 0.11em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+#library-page .library-article-title {
+  margin: 2px 0 3px;
+  overflow-wrap: anywhere;
+  color: #f0eade;
+  font:
+    500 25px/1.1 "Library Serif",
+    serif;
+  letter-spacing: 0;
+}
+#library-page .library-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #aaa69d;
+  font-size: 10px;
+  line-height: 18px;
+}
+#library-page .library-excerpt {
+  height: 40px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+#library-page .library-excerpt .library-prose {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #b9b6ae;
+  font:
+    400 12px/20px "Vertigo Text",
+    sans-serif;
+}
+#library-page .library-excerpt .library-prose > * {
+  margin: 0;
+  font: inherit;
+}
+#library-page .library-excerpt .library-prose p {
+  white-space: normal;
+}
+#library-page .library-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+#library-page .library-card-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #d4b88d;
+  font:
+    500 11px/18px "Vertigo Text",
+    sans-serif;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+#library-page .library-card-actions .library-edit {
+  color: #b6b1a7;
+}
+#library-page button:focus-visible,
+#library-page a:focus-visible {
+  outline: 2px solid #e7bc79;
+  outline-offset: 3px;
+}
+#library-page .library-full-text {
+  padding: 22px 28px 28px;
+  border-top: 1px solid #76604375;
+}
+#library-page .library-full-text .library-prose {
+  max-width: 65ch;
+  color: #e4ddd0;
+  font:
+    400 20px/1.65 "Library Serif",
+    serif;
+  overflow-wrap: anywhere;
+}
+#library-page .library-series-panel {
+  align-self: start;
+  padding: 19px;
+  border: 1px solid #76604375;
+  border-radius: 8px;
+  background: #141613eb;
+  box-shadow: 0 4px 20px #0003;
+}
+#library-page .library-series-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #84745c38;
+}
+#library-page .library-series-count {
+  color: #bbb29f;
+  font-size: 11px;
+}
+#library-page .library-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0 10px;
+  border: 1px solid #b4935e77;
+  border-radius: 5px;
+  color: #e6cd9f;
+  font-size: 12px;
+  background: #bb965e12;
+}
+#library-page .library-all[data-selected="false"] {
+  border-color: transparent;
+  background: none;
+  color: #c0b9ac;
+}
+#library-page .library-series-link {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #84745c38;
+}
+#library-page .library-series-link:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+#library-page .library-series-link img {
+  width: 48px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid #76604375;
+}
+#library-page .library-series-link span {
+  min-width: 0;
+}
+#library-page .library-series-link strong {
+  display: block;
+  color: #e2dbce;
+  font-size: 12px;
+  line-height: 19px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+#library-page .library-series-link small {
+  display: block;
+  color: #a8a397;
+  font-size: 10px;
+  line-height: 18px;
+}
+#library-page .library-series-link[aria-current="page"] strong {
+  color: #f0c988;
+}
+#library-page .library-empty {
+  border: 1px dashed #766043;
+  border-radius: 8px;
+  background: #141613e6;
+  padding: 40px 24px;
+  color: #b9b5ab;
+  font-size: 14px;
+  line-height: 24px;
+}
+#library-page .library-status {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 8px;
+  background: #141613e6;
+}
+@media (min-width: 1600px) {
+  #library-page .library-main {
+    width: 76%;
+    margin-left: 10%;
+  }
+}
+@media (max-width: 1100px) {
+  #library-page .library-main {
+    width: 82%;
+    margin-left: 5%;
+  }
+  #library-page .library-grid {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 18px;
+  }
+  #library-page .library-card-summary {
+    grid-template-columns: 94px minmax(0, 1fr);
+    gap: 12px;
+  }
+  #library-page .library-cover {
+    width: 94px;
+  }
+}
+@media (max-width: 760px) {
+  #library-page > .library-reading-room {
+    background-size: auto 580px;
+    background-position: right -45px;
+    background-color: #101310;
+  }
+  #library-page .library-main {
+    width: auto;
+    margin: 0 16px;
+    padding-top: 22px;
+    padding-bottom: 32px;
+  }
+  #library-page .library-intro {
+    display: block;
+    margin-bottom: 20px;
+    min-height: 192px;
+  }
+  #library-page .library-title {
+    font-size: 44px;
+  }
+  #library-page .library-kicker {
+    font-size: 9px;
+  }
+  #library-page .library-description {
+    max-width: 260px;
+    font-size: 12px;
+    line-height: 20px;
+  }
+  #library-page .library-create {
+    margin-top: 16px;
+    min-height: 44px;
+    padding: 8px 16px;
+  }
+  #library-page .library-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  #library-page .library-feed,
+  #library-page .library-series-panel {
+    width: 100%;
+  }
+  #library-page .library-series-panel {
+    order: -1;
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 8px;
+    padding: 12px;
+  }
+  #library-page .library-series-head {
+    grid-column: 1 / -1;
+    padding-bottom: 8px;
+  }
+  #library-page .library-series-title {
+    font-size: 23px;
+  }
+  #library-page .library-all {
+    margin: 0;
+    font-size: 11px;
+  }
+  #library-page #library-series {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+  }
+  #library-page .library-series-link {
+    flex-shrink: 0;
+    padding: 0 10px;
+    border: 1px solid #76604375;
+    border-radius: 5px;
+  }
+  #library-page .library-series-link:last-child {
+    padding-bottom: 0;
+    border: 1px solid #76604375;
+  }
+  #library-page .library-series-link img,
+  #library-page .library-series-link small {
+    display: none;
+  }
+  #library-page .library-series-link strong {
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  #library-page .library-section-heading {
+    margin-bottom: 10px;
+  }
+  #library-page .library-section-heading h2 {
+    font-size: 26px;
+  }
+  #library-page .library-card-summary {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 12px;
+    padding: 11px;
+  }
+  #library-page .library-cover {
+    width: 82px;
+    height: 142px;
+  }
+  #library-page .library-article-title {
+    font-size: 23px;
+  }
+  #library-page .library-card-actions button {
+    font-size: 10px;
+  }
+  #library-page .library-full-text {
+    padding: 18px;
+  }
+}

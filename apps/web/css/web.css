@@ -7,4 +7,6 @@
 @import "./autumn.css";
 @import "./controls.css";
 @import "./chat-help.css";
+@import "./library.css";
+@import "./library-editor-design.css";
 @source "../src";

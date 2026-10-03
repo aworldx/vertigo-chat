@@ -714,23 +714,96 @@
       "get": {
         "operationId": "notesSummary",
         "summary": "notesSummary",
-        "security": [{"accountSession": []}],
-        "responses": {"200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/NotesSummary"}}}}, "401": {"description": "Not authenticated"}}
+        "security": [
+          {
+            "accountSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotesSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        }
       }
     },
     "/api/v1/notes": {
       "get": {
         "operationId": "listNotes",
         "summary": "listNotes",
-        "security": [{"accountSession": []}],
-        "responses": {"200": {"description": "Success", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Notes"}}}}, "401": {"description": "Not authenticated"}}
+        "security": [
+          {
+            "accountSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notes"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        }
       },
       "post": {
         "operationId": "createNote",
         "summary": "createNote",
-        "security": [{"accountSession": [], "csrfToken": []}],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/NoteInput"}}}},
-        "responses": {"201": {"description": "Created", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Created"}}}}, "401": {"description": "Not authenticated"}, "404": {"description": "Recipient not found"}, "422": {"description": "Invalid note"}, "429": {"description": "Daily limit reached"}}
+        "security": [
+          {
+            "accountSession": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Created"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Recipient not found"
+          },
+          "422": {
+            "description": "Invalid note"
+          },
+          "429": {
+            "description": "Daily limit reached"
+          }
+        }
       }
     },
     "/api/v1/admin/database": {
@@ -1462,6 +1535,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBots"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Request rejected or dependency unavailable",
             "content": {
@@ -1498,16 +1581,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminBots"
                 }
               }
             }
@@ -1526,6 +1599,25 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "401": {
             "description": "Request rejected or dependency unavailable",
             "content": {
@@ -1562,25 +1654,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "ok"
-                  ],
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    }
-                  }
                 }
               }
             }
@@ -1609,6 +1682,25 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "ok"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "401": {
             "description": "Request rejected or dependency unavailable",
             "content": {
@@ -1645,25 +1737,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "ok"
-                  ],
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    }
-                  }
                 }
               }
             }
@@ -1696,17 +1769,192 @@
       }
     },
     "/api/v1/polls": {
-      "get": {"operationId":"listPolls","summary":"List polls","security":[],"responses":{"200":{"description":"Polls","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Polls"}}}}}}
+      "get": {
+        "operationId": "listPolls",
+        "summary": "List polls",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Polls",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Polls"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/polls/notices": {
+      "get": {
+        "operationId": "listPollNotices",
+        "summary": "List unanswered open polls for the current chat session",
+        "description": "Requires the active chat-session token in X-Chat-Session. The response is private to that session and must never be published to chat history.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Unanswered open polls for this chat user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Polls"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     },
     "/api/v1/polls/{id}/votes": {
-      "post": {"operationId":"votePoll","summary":"Vote in a poll","description":"Chat-session token in X-Chat-Session supplies the nickname; account cookie CSRF protects the write.","security":[{"accountSession":[],"csrfToken":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","additionalProperties":false,"required":["option_id"],"properties":{"option_id":{"type":"integer","minimum":1}}}}}},"responses":{"201":{"description":"Vote recorded"},"409":{"$ref":"#/components/responses/Error"},"422":{"$ref":"#/components/responses/Error"}}}
+      "post": {
+        "operationId": "votePoll",
+        "summary": "Vote in a poll",
+        "description": "Chat-session token in X-Chat-Session supplies the nickname; account cookie CSRF protects the write.",
+        "security": [
+          {
+            "accountSession": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "option_id"
+                ],
+                "properties": {
+                  "option_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vote recorded"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     },
     "/api/v1/admin/polls": {
-      "get": {"operationId":"listAdminPolls","summary":"List polls for administrators","security":[{"accountSession":[]}],"responses":{"200":{"description":"Polls","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Polls"}}}}}},
-      "post": {"operationId":"createAdminPoll","summary":"Create a poll","security":[{"accountSession":[],"csrfToken":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PollInput"}}}},"responses":{"201":{"description":"Created"},"403":{"$ref":"#/components/responses/Error"},"422":{"$ref":"#/components/responses/Error"}}}
+      "get": {
+        "operationId": "listAdminPolls",
+        "summary": "List polls for administrators",
+        "security": [
+          {
+            "accountSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Polls",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Polls"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAdminPoll",
+        "summary": "Create a poll",
+        "security": [
+          {
+            "accountSession": [],
+            "csrfToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     },
     "/api/v1/admin/polls/{id}/close": {
-      "post": {"operationId":"closePoll","summary":"Close a poll","security":[{"accountSession":[],"csrfToken":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer","minimum":1}}],"responses":{"200":{"description":"Closed"},"403":{"$ref":"#/components/responses/Error"},"404":{"$ref":"#/components/responses/Error"},"409":{"$ref":"#/components/responses/Error"}}}
+      "post": {
+        "operationId": "closePoll",
+        "summary": "Close a poll",
+        "security": [
+          {
+            "accountSession": [],
+            "csrfToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Closed"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1723,36 +1971,219 @@
       }
     },
     "responses": {
-      "Error": {"description":"Request rejected or unavailable","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Error"}}}}
+      "Error": {
+        "description": "Request rejected or unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
     },
     "schemas": {
-      "PollInput": {"type":"object","additionalProperties":false,"required":["question","options"],"properties":{"question":{"type":"string","minLength":1,"maxLength":500},"options":{"type":"array","minItems":2,"maxItems":10,"items":{"type":"string","minLength":1,"maxLength":200}}}},
-      "PollOption": {"type":"object","additionalProperties":false,"required":["id","body","position","votes"],"properties":{"id":{"type":"integer"},"body":{"type":"string"},"position":{"type":"integer"},"votes":{"type":"integer"}}},
-      "Poll": {"type":"object","additionalProperties":false,"required":["id","question","status","options","totalVotes","selectedOptionID","createdAt","closedAt"],"properties":{"id":{"type":"integer"},"question":{"type":"string"},"status":{"type":"string","enum":["open","closed"]},"options":{"type":"array","items":{"$ref":"#/components/schemas/PollOption"}},"totalVotes":{"type":"integer"},"selectedOptionID":{"type":"integer"},"createdAt":{"type":"string"},"closedAt":{"type":["string","null"]}}},
-      "Polls": {"type":"object","additionalProperties":false,"required":["polls"],"properties":{"polls":{"type":"array","items":{"$ref":"#/components/schemas/Poll"}}}},
+      "PollInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question",
+          "options"
+        ],
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "options": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        }
+      },
+      "PollOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "body",
+          "position",
+          "votes"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "votes": {
+            "type": "integer"
+          }
+        }
+      },
+      "Poll": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "question",
+          "status",
+          "options",
+          "totalVotes",
+          "selectedOptionID",
+          "createdAt",
+          "closedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "question": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PollOption"
+            }
+          },
+          "totalVotes": {
+            "type": "integer"
+          },
+          "selectedOptionID": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "closedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Polls": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "polls"
+        ],
+        "properties": {
+          "polls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Poll"
+            }
+          }
+        }
+      },
       "NoteInput": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["recipient", "body"],
-        "properties": {"recipient": {"type": "string", "minLength": 1, "maxLength": 40}, "body": {"type": "string", "minLength": 1, "maxLength": 1000}}
+        "required": [
+          "recipient",
+          "body"
+        ],
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
       },
       "Note": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "sender", "recipient", "body", "read", "inserted_at"],
-        "properties": {"id": {"type": "integer"}, "sender": {"type": "string"}, "recipient": {"type": "string"}, "body": {"type": "string"}, "read": {"type": "boolean"}, "inserted_at": {"type": "string", "format": "date-time"}}
+        "required": [
+          "id",
+          "sender",
+          "recipient",
+          "body",
+          "read",
+          "inserted_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "inserted_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "Notes": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["incoming", "outgoing"],
-        "properties": {"incoming": {"type": "array", "items": {"$ref": "#/components/schemas/Note"}}, "outgoing": {"type": "array", "items": {"$ref": "#/components/schemas/Note"}}}
+        "required": [
+          "incoming",
+          "outgoing"
+        ],
+        "properties": {
+          "incoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Note"
+            }
+          },
+          "outgoing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Note"
+            }
+          }
+        }
       },
       "NotesSummary": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["unread"],
-        "properties": {"unread": {"type": "integer", "minimum": 0}}
+        "required": [
+          "unread"
+        ],
+        "properties": {
+          "unread": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
       },
       "GalleryPhoto": {
         "type": "object",
@@ -1929,6 +2360,11 @@
             ],
             "minimum": 1,
             "maximum": 999
+          },
+          "work_author": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Автор произведения; пустая строка означает собственный текст загрузившего."
           }
         }
       },
@@ -1976,6 +2412,15 @@
               "integer",
               "null"
             ]
+          },
+          "work_author": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "cover_image": {
+            "type": "string"
           }
         }
       },

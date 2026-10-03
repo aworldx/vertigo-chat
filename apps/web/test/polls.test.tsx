@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { closePoll, createPoll, loadPolls, pollError, vote } from "../src/features/polls/api/polls"
+import { closePoll, createPoll, loadPollNotices, loadPolls, pollError, vote } from "../src/features/polls/api/polls"
 import { AdminPolls, Polls } from "../src/features/polls/ui/Polls"
 
 const poll = {
@@ -26,12 +26,15 @@ test("poll API validates data and attaches chat session plus CSRF to mutations",
     return Promise.resolve(new Response(JSON.stringify({ polls: [poll] }), { status: 200 }))
   })
   assert.deepEqual(await loadPolls("chat-token", false, new AbortController().signal), [poll])
+  assert.deepEqual(await loadPollNotices("chat-token", new AbortController().signal), [poll])
   await vote(1, 2, "chat-token", "csrf-token")
   await createPoll("Вопрос", ["Да", "Нет"], "csrf-token")
   await closePoll(1, "csrf-token")
   assert.equal(requests[0]?.url, "/api/v1/polls")
   assert.equal(new Headers(requests[0].init?.headers).get("X-Chat-Session"), "chat-token")
-  for (const request of requests.slice(1)) {
+  assert.equal(requests[1]?.url, "/api/v1/polls/notices")
+  assert.equal(new Headers(requests[1].init?.headers).get("X-Chat-Session"), "chat-token")
+  for (const request of requests.slice(2)) {
     assert.equal(new Headers(request.init?.headers).get("X-CSRF-Token"), "csrf-token")
   }
   const requestBody = (index: number) => {
@@ -39,8 +42,8 @@ test("poll API validates data and attaches chat session plus CSRF to mutations",
     if (typeof body !== "string") throw new Error(`request ${String(index)} has no JSON body`)
     return body
   }
-  const voteBody = requestBody(1),
-    createBody = requestBody(2)
+  const voteBody = requestBody(2),
+    createBody = requestBody(3)
   assert.deepEqual(JSON.parse(voteBody), { option_id: 2 })
   assert.deepEqual(JSON.parse(createBody), { question: "Вопрос", options: ["Да", "Нет"] })
 })
@@ -48,6 +51,7 @@ test("poll API validates data and attaches chat session plus CSRF to mutations",
 test("poll UI gives guests clear access guidance and admin form keeps usable fields", () => {
   const guest = renderToStaticMarkup(<Polls token="" csrf="" />)
   assert.match(guest, /Откройте эту страницу из активной вкладки чата/)
+  assert.match(guest, /Мнение сообщества/)
   assert.match(guest, /Загружаем опросы/)
   const admin = renderToStaticMarkup(<AdminPolls csrf="csrf" />)
   assert.match(admin, /placeholder="Например, какую встречу провести следующей\?"/)

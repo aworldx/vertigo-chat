@@ -62,5 +62,8 @@ test("notes page keeps unauthenticated visitors on the sign-in prompt", () => {
 
 test("notes page asks for the chatlan's nickname", () => {
   const html = renderToStaticMarkup(<Notes nickname="Сова" csrf="csrf" login={null} />)
+  assert.match(html, /role="tab"/)
+  assert.match(html, /Входящие/)
+  assert.match(html, /Отправленные/)
   assert.match(html, /placeholder="Ник чатланина"/)
 })

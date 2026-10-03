@@ -61,35 +61,35 @@ export function RichTextEditor({
     {
       id: "bold",
       label: "Жирный",
-      text: "Ж",
+      text: "Жирный",
       active: state.bold,
       run: () => editor.chain().focus().toggleBold().run(),
     },
     {
       id: "italic",
       label: "Курсив",
-      text: "К",
+      text: "Курсив",
       active: state.italic,
       run: () => editor.chain().focus().toggleItalic().run(),
     },
     {
       id: "strike",
       label: "Зачёркнутый",
-      text: "З̶",
+      text: "Зачёркнутый",
       active: state.strike,
       run: () => editor.chain().focus().toggleStrike().run(),
     },
     {
       id: "heading",
       label: "Заголовок",
-      text: "H2",
+      text: "Заголовок",
       active: state.heading,
       run: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
     },
     {
       id: "subheading",
       label: "Подзаголовок",
-      text: "H3",
+      text: "Подзаголовок",
       active: state.subheading,
       run: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
     },
@@ -110,14 +110,14 @@ export function RichTextEditor({
     {
       id: "quote",
       label: "Цитата",
-      text: "❝",
+      text: "Цитата",
       active: state.quote,
       run: () => editor.chain().focus().toggleBlockquote().run(),
     },
     {
       id: "code",
       label: "Блок кода",
-      text: "</>",
+      text: "Код",
       active: state.code,
       run: () => editor.chain().focus().toggleCodeBlock().run(),
     },
@@ -198,6 +198,7 @@ export function RichTextEditor({
             onClick={() => editor.chain().focus().undo().run()}
             className="library-format-button"
             aria-label="Отменить"
+            title="Отменить"
           >
             ↶
           </button>
@@ -208,6 +209,7 @@ export function RichTextEditor({
             onClick={() => editor.chain().focus().redo().run()}
             className="library-format-button"
             aria-label="Повторить"
+            title="Повторить"
           >
             ↷
           </button>

@@ -5,6 +5,7 @@ import { Room, readSession } from "../features/chat"
 import { useAccountSession } from "../features/accounts"
 import { RoomProfileViewer } from "../features/profiles"
 import { useNotesSummary } from "../features/notes"
+import { usePollNotices } from "../features/polls"
 function chatToken() {
   return readSession()?.resume_token ?? ""
 }
@@ -16,6 +17,7 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
   }, [initialGame, openGame])
   const account = useAccountSession()
   const unreadNotes = useNotesSummary(Boolean(account.session?.principal))
+  const pollNotices = usePollNotices(chatToken())
   const [profile, setProfile] = useState<{ nickname: string; editable: boolean } | null>(null)
   const closeProfile = useCallback(() => {
     setProfile(null)
@@ -26,6 +28,7 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
         onGame={tetris.command}
         csrf={account.session?.csrf_token ?? ""}
         unreadNotes={unreadNotes}
+        pollNotices={pollNotices}
         onProfile={(nickname, editable) => {
           setProfile({ nickname, editable })
         }}

@@ -1,0 +1,60 @@
+/* Implements the frozen editor addendum in docs/design/library-v2. */
+#library-editor.library-editor-modal {
+  background:
+    linear-gradient(90deg, #070a0ce6, #070a0c80),
+    url("/images/library-room-v2.png") right center / cover no-repeat;
+  backdrop-filter: none;
+}
+#library-editor #library-editor-title,
+#library-editor .library-preview-title {
+  font-family: "Library Serif", serif;
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+#library-editor .library-prose {
+  font-family: "Library Serif", serif;
+  font-size: 20px;
+  line-height: 1.6;
+}
+#library-editor #article_body {
+  min-height: 192px;
+}
+#library-editor .library-editor-preview {
+  padding-right: 28px;
+}
+#library-editor input {
+  background: #1c201d;
+  border-color: #76694f80;
+  color: #eee9df;
+}
+#library-editor input::placeholder {
+  color: #aaa597;
+}
+@media (max-width: 760px) {
+  #library-editor.library-editor-modal {
+    background-size:
+      auto,
+      auto 580px;
+    background-position:
+      center,
+      right -45px;
+    background-color: #101310;
+  }
+  #library-editor .library-editor-preview {
+    padding-bottom: 100px;
+  }
+  #library-editor .library-editor-series {
+    grid-template-columns: minmax(0, 1fr) 84px;
+    gap: 12px;
+  }
+  #library-editor .library-editor-series label > span {
+    font-size: 12px;
+    line-height: 20px;
+  }
+  #library-editor .library-format-button {
+    font-size: 11px;
+    padding-inline: 7px;
+  }
+}

@@ -29,7 +29,7 @@ func (s Store) List(ctx context.Context, author int64, series string) ([]domain.
 	if series != "" {
 		order = `part_number ASC NULLS LAST,inserted_at,id`
 	}
-	rows, err := s.db.Query(ctx, `SELECT id,user_id,title,body,COALESCE(series,''),part_number,inserted_at FROM library_articles WHERE $2='' OR (user_id=$1 AND series=$2) ORDER BY `+order, author, series)
+	rows, err := s.db.Query(ctx, `SELECT id,user_id,title,body,COALESCE(series,''),part_number,inserted_at,work_author,source_url,cover_image FROM library_articles WHERE $2='' OR (user_id=$1 AND series=$2) ORDER BY `+order, author, series)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -37,7 +37,7 @@ func (s Store) List(ctx context.Context, author int64, series string) ([]domain.
 	articles := []domain.Article{}
 	for rows.Next() {
 		var a domain.Article
-		if err := rows.Scan(&a.ID, &a.UserID, &a.Title, &a.Body, &a.Series, &a.Part, &a.InsertedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.UserID, &a.Title, &a.Body, &a.Series, &a.Part, &a.InsertedAt, &a.WorkAuthor, &a.SourceURL, &a.CoverImage); err != nil {
 			return nil, nil, err
 		}
 		articles = append(articles, a)
@@ -63,7 +63,7 @@ func (s Store) List(ctx context.Context, author int64, series string) ([]domain.
 }
 func (s Store) Save(ctx context.Context, user, id int64, v domain.Input) (int64, error) {
 	if id > 0 {
-		err := s.db.QueryRow(ctx, `UPDATE library_articles SET title=$3,body=$4,series=NULLIF($5,''),part_number=$6,updated_at=NOW() AT TIME ZONE 'UTC' WHERE id=$1 AND user_id=$2 RETURNING id`, id, user, v.Title, v.Body, v.Series, v.Part).Scan(&id)
+		err := s.db.QueryRow(ctx, `UPDATE library_articles SET title=$3,body=$4,series=NULLIF($5,''),part_number=$6,work_author=$7,updated_at=NOW() AT TIME ZONE 'UTC' WHERE id=$1 AND user_id=$2 RETURNING id`, id, user, v.Title, v.Body, v.Series, v.Part, v.WorkAuthor).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			err = domain.ErrForbidden
 		}
@@ -81,7 +81,7 @@ func (s Store) Save(ctx context.Context, user, id int64, v domain.Input) (int64,
 		if err := domain.Quota(allowed, total, daily); err != nil {
 			return err
 		}
-		return tx.QueryRow(ctx, `INSERT INTO library_articles(user_id,title,body,series,part_number,inserted_at,updated_at) VALUES($1,$2,$3,NULLIF($4,''),$5,NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC') RETURNING id`, user, v.Title, v.Body, v.Series, v.Part).Scan(&id)
+		return tx.QueryRow(ctx, `INSERT INTO library_articles(user_id,title,body,series,part_number,work_author,inserted_at,updated_at) VALUES($1,$2,$3,NULLIF($4,''),$5,$6,NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC') RETURNING id`, user, v.Title, v.Body, v.Series, v.Part, v.WorkAuthor).Scan(&id)
 	})
 	return id, err
 }

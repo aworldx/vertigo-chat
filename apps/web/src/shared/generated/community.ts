@@ -342,6 +342,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/polls/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List unanswered open polls for the current chat session
+         * @description Requires the active chat-session token in X-Chat-Session. The response is private to that session and must never be published to chat history.
+         */
+        get: operations["listPollNotices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/polls/{id}/votes": {
         parameters: {
             query?: never;
@@ -487,6 +507,8 @@ export interface components {
             body: string;
             series: string;
             part_number: number | null;
+            /** @description Автор произведения; пустая строка означает собственный текст загрузившего. */
+            work_author?: string;
         };
         LibraryArticle: {
             id: number;
@@ -498,6 +520,9 @@ export interface components {
             body: string;
             series: string;
             part_number: number | null;
+            work_author?: string;
+            source_url?: string;
+            cover_image?: string;
         };
         LibrarySeries: {
             author_id: number;
@@ -2070,6 +2095,27 @@ export interface operations {
                     "application/json": components["schemas"]["Polls"];
                 };
             };
+        };
+    };
+    listPollNotices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unanswered open polls for this chat user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Polls"];
+                };
+            };
+            403: components["responses"]["Error"];
         };
     };
     votePoll: {

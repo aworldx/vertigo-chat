@@ -1,0 +1,20 @@
+{
+  ".library-intro": {
+    "x": 16,
+    "y": 203,
+    "width": 358,
+    "height": 192
+  },
+  ".library-feed": {
+    "x": 16,
+    "y": 547.296875,
+    "width": 358,
+    "height": 631.890625
+  },
+  ".library-series-panel": {
+    "x": 16,
+    "y": 415,
+    "width": 358,
+    "height": 112.296875
+  }
+}

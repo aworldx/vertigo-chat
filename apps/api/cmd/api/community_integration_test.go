@@ -75,15 +75,17 @@ func TestCommunityPostgres(t *testing.T) {
 	t.Run("registered feedback identity and CSRF", f.registeredFeedback)
 	t.Run("library normalization ownership and validation", func(t *testing.T) {
 		communityRequest(t, &f, "POST", "/api/v1/library", `{"title":"x","body":"y"}`, 403, false)
-		body := communityRequest(t, &f, "POST", "/api/v1/library", `{"title":" Заголовок ","body":" Текст ","series":"","part_number":2}`, 201, true)
+		body := communityRequest(t, &f, "POST", "/api/v1/library", `{"title":" Заголовок ","body":" Текст ","series":"","part_number":2,"work_author":" Uniform "}`, 201, true)
 		var v struct{ ID int64 }
 		_ = json.Unmarshal(body, &v)
+		assertLibraryAuthorship(t, &f)
+		communityRequest(t, &f, "PUT", fmt.Sprintf("/api/v1/library/%d", v.ID), `{"title":"x","body":"y","work_author":"Other","cover_image":"https://evil.example/x.png"}`, 422, true)
 		communityRequest(t, &f, "PUT", fmt.Sprintf("/api/v1/library/%d", v.ID), `{"title":"x","body":"y","user_id":2}`, 422, true)
 		f.post(t, "/api/v1/auth/login", `{"nickname":"fixture02","password":"secret123"}`, 200)
 		communityRequest(t, &f, "PUT", fmt.Sprintf("/api/v1/library/%d", v.ID), `{"title":"чужая","body":"x"}`, 403, true)
-		var title string
+		var title, workAuthor string
 		var part *int
-		if err := pool.QueryRow(ctx, `SELECT title,part_number FROM library_articles WHERE id=$1`, v.ID).Scan(&title, &part); err != nil || title != "Заголовок" || part != nil {
+		if err := pool.QueryRow(ctx, `SELECT title,part_number,work_author FROM library_articles WHERE id=$1`, v.ID).Scan(&title, &part, &workAuthor); err != nil || title != "Заголовок" || part != nil || workAuthor != "Uniform" {
 			t.Fatal(title, part, err)
 		}
 	})
@@ -129,6 +131,14 @@ func TestCommunityPostgres(t *testing.T) {
 			t.Fatal(res.StatusCode)
 		}
 	})
+}
+
+func assertLibraryAuthorship(t *testing.T, f *chatFixture) {
+	t.Helper()
+	listing := communityRequest(t, f, "GET", "/api/v1/library", "", 200, false)
+	if !bytes.Contains(listing, []byte(`"work_author":"Uniform"`)) || !bytes.Contains(listing, []byte(`"author":"fixture01"`)) {
+		t.Fatal(string(listing))
+	}
 }
 
 func communityNotes(t *testing.T, sender *chatFixture) {

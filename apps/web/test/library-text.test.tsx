@@ -4,6 +4,23 @@ import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { ArticleText } from "../src/features/library/ui/ArticleText"
 import { initialArticleContent, richTextPrefix, safeArticleLink } from "../src/features/library/model/articleText"
+import { articleCover } from "../src/features/library/model/articleCover"
+
+test("decorative article covers are stable across filtering and have a safe fallback", () => {
+  assert.equal(articleCover(1), "/images/library-cover-books.png")
+  assert.equal(articleCover(2), "/images/library-cover-path.png")
+  assert.equal(articleCover(3), "/images/library-cover-window.png")
+  assert.equal(articleCover(4), articleCover(1))
+  assert.equal(articleCover(1, "/images/otrada-project.png"), "/images/otrada-project.png")
+  for (const image of [
+    "https://evil.example/a.png",
+    "//evil.example/a.png",
+    "/images/../secret.png",
+    "javascript:alert(1)",
+  ])
+    assert.equal(articleCover(1, image), articleCover(1))
+  for (const id of [0, -1, NaN, Infinity, 1.5]) assert.equal(articleCover(id), articleCover(1))
+})
 
 test("legacy article text stays literal, including Markdown and HTML", () => {
   const body = "## Старый заголовок\n**звёздочки** <script>alert(1)</script>"

@@ -29,6 +29,7 @@ func NewHandler(s application.Service, a Identity, session Identity, c ChatIdent
 }
 func (h Handler) Register(m *http.ServeMux) {
 	m.HandleFunc("GET /api/v1/polls", h.list)
+	m.HandleFunc("GET /api/v1/polls/notices", h.notices)
 	m.HandleFunc("POST /api/v1/polls/{id}/votes", h.vote)
 	m.HandleFunc("GET /api/v1/admin/polls", h.list)
 	m.HandleFunc("POST /api/v1/admin/polls", h.create)
@@ -40,6 +41,30 @@ func respond(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+func (h Handler) notices(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("X-Chat-Session")
+	if token == "" {
+		respond(w, 403, map[string]string{"error": "forbidden"})
+		return
+	}
+	nickname, err := h.chat(r.Context(), token)
+	if err != nil {
+		respond(w, 403, map[string]string{"error": "forbidden"})
+		return
+	}
+	polls, err := h.service.List(r.Context(), nickname)
+	if err != nil {
+		respond(w, 503, map[string]string{"error": "unavailable"})
+		return
+	}
+	notices := make([]domain.Poll, 0, len(polls))
+	for _, poll := range polls {
+		if poll.Status == "open" && poll.SelectedOptionID == 0 {
+			notices = append(notices, poll)
+		}
+	}
+	respond(w, 200, map[string]any{"polls": notices})
 }
 func (h Handler) list(w http.ResponseWriter, r *http.Request) {
 	nickname := ""
@@ -117,14 +142,6 @@ func (h Handler) close(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond(w, 200, map[string]string{"status": "closed"})
-}
-func (h Handler) authorizedMutation(w http.ResponseWriter, r *http.Request) bool {
-	_, status := h.account(r, true)
-	if status != 0 {
-		respond(w, status, map[string]string{"error": "forbidden"})
-		return false
-	}
-	return true
 }
 func (h Handler) authorizedVote(w http.ResponseWriter, r *http.Request) bool {
 	_, status := h.session(r, true)

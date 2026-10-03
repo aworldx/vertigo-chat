@@ -26,3 +26,15 @@ func TestLibraryValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkAuthorAttribution(t *testing.T) {
+	v, err := Normalize(Input{Title: "История", Body: "Текст", WorkAuthor: " Uniform "})
+	if err != nil || v.WorkAuthor != "Uniform" {
+		t.Fatal(v, err)
+	}
+	for _, name := range []string{strings.Repeat("я", 121), "Alice\nBob", "Alice\tBob", string([]byte{0xff})} {
+		if _, err := Normalize(Input{Title: "История", Body: "Текст", WorkAuthor: name}); err != ErrInvalid {
+			t.Fatal(name, err)
+		}
+	}
+}

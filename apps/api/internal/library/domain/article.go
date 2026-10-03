@@ -16,12 +16,14 @@ var ErrDaily = errors.New("daily_article_limit_reached")
 
 type Input struct {
 	Title, Body, Series string
+	WorkAuthor          string
 	Part                *int
 }
 type Article struct {
 	ID, UserID int64
 	Input
-	InsertedAt time.Time
+	InsertedAt            time.Time
+	SourceURL, CoverImage string
 }
 type Series struct {
 	UserID int64
@@ -33,7 +35,11 @@ func Normalize(v Input) (Input, error) {
 	v.Title = strings.TrimSpace(v.Title)
 	v.Body = strings.TrimSpace(v.Body)
 	v.Series = strings.TrimSpace(v.Series)
+	v.WorkAuthor = strings.TrimSpace(v.WorkAuthor)
 	if !valid(v.Title, 160, true) || !valid(v.Body, 12000, true) || !valid(v.Series, 120, false) {
+		return v, ErrInvalid
+	}
+	if !valid(v.WorkAuthor, 120, false) || strings.ContainsAny(v.WorkAuthor, "\r\n\t") {
 		return v, ErrInvalid
 	}
 	if v.Part != nil && (*v.Part < 1 || *v.Part > 999) {

@@ -10,6 +10,9 @@ function article(v: unknown): v is Article {
     typeof v.id === "number" &&
     typeof v.author_id === "number" &&
     typeof v.author === "string" &&
+    (v.work_author === undefined || typeof v.work_author === "string") &&
+    (v.source_url === undefined || typeof v.source_url === "string") &&
+    (v.cover_image === undefined || typeof v.cover_image === "string") &&
     typeof v.date === "string" &&
     typeof v.own === "boolean" &&
     typeof v.title === "string" &&
@@ -48,7 +51,7 @@ export function libraryError(e: unknown) {
   const messages: Record<string, string> = {
     invalid_article: "Проверь название, текст, серию и номер части.",
     kinoman_required: "Добавлять статьи могут чатлане со званием «Киноман».",
-    forbidden: "Редактировать статью может только автор.",
+    forbidden: "Редактировать статью может только опубликовавший её чатланин.",
     daily_article_limit_reached: "За сутки можно добавить не больше 10 статей.",
     article_limit_reached: "Один автор может хранить не больше 50 статей.",
   }

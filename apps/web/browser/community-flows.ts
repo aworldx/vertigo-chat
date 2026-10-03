@@ -80,11 +80,14 @@ export async function libraryFlows(p: Pair) {
   }
   await compare("library-series")
   for (const page of [oldPage, newPage]) {
-    await page.locator("#articles-1 summary").click()
+    await page.locator("#read-article-1").click()
+    await expect(page.locator("#read-article-1")).toHaveAttribute("aria-expanded", "true")
+    await expect(page.locator("#article-text-1")).toBeVisible()
   }
   await compare("library-expanded")
   for (const page of [oldPage, newPage]) {
-    await page.locator("#articles-1 summary").click()
+    await page.locator("#read-article-1").click()
+    await expect(page.locator("#article-text-1")).toBeHidden()
     await page.locator("#new-library-article").click()
     await expect(page.locator("#library-editor")).toBeVisible()
     await page.locator("#article_title").fill("Новая глава")

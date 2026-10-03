@@ -1,0 +1,98 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "state": "top",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0.05406712962962963
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "state": "viewport",
+    "changedPixels": 1,
+    "changedPercent": 0.00007716049382716049,
+    "meanChannelError": 0.05275360082304527
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "state": "bottom",
+    "changedPixels": 1,
+    "changedPercent": 0.00007716049382716049,
+    "meanChannelError": 0.05275360082304527
+  },
+  {
+    "width": 1280,
+    "height": 676,
+    "state": "top",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0.06472933616863906
+  },
+  {
+    "width": 1280,
+    "height": 676,
+    "state": "viewport",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0.06216176651873767
+  },
+  {
+    "width": 1280,
+    "height": 676,
+    "state": "bottom",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0.06216176651873767
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "state": "top",
+    "changedPixels": 3,
+    "changedPercent": 0.0003814697265625,
+    "meanChannelError": 0.03845045301649305
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "state": "viewport",
+    "changedPixels": 3,
+    "changedPercent": 0.0003814697265625,
+    "meanChannelError": 0.03845045301649305
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "state": "bottom",
+    "changedPixels": 3,
+    "changedPercent": 0.0003814697265625,
+    "meanChannelError": 0.0384474860297309
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "top",
+    "changedPixels": 2,
+    "changedPercent": 0.0006076072426783327,
+    "meanChannelError": 0.08626908899420747
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "viewport",
+    "changedPixels": 2,
+    "changedPercent": 0.0006076072426783327,
+    "meanChannelError": 0.06367420099647587
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "bottom",
+    "changedPixels": 1,
+    "changedPercent": 0.0003038036213391664,
+    "meanChannelError": 0.0636681249240491
+  }
+]

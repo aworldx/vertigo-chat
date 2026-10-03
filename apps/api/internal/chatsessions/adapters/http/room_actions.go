@@ -26,6 +26,10 @@ func (h Socket) roomAction(ctx context.Context, conn *websocket.Conn, session do
 	if cmd.Type == "delete" {
 		h.hub.rememberDeletion(session.RoomID, cmd.MessageID)
 	}
+	// Refresh the shared projection after the durable action before returning a
+	// snapshot to its initiator. Other sockets can then observe the same updated
+	// cache on their next refresh rather than receiving the pre-action value.
+	h.cache.invalidate()
 	current, err := h.snapshot(ctx, session)
 	if err != nil {
 		return false

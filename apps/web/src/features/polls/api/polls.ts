@@ -29,6 +29,15 @@ export async function loadPolls(token: string, admin = false, signal?: AbortSign
   if (!record(v) || !Array.isArray(v.polls) || !v.polls.every(poll)) throw new Error("unavailable")
   return v.polls
 }
+export async function loadPollNotices(token: string, signal?: AbortSignal): Promise<Poll[]> {
+  if (!token) return []
+  const v = await requestJSON("/api/v1/polls/notices", {
+    ...(signal ? { signal } : {}),
+    headers: { "X-Chat-Session": token },
+  })
+  if (!record(v) || !Array.isArray(v.polls) || !v.polls.every(poll)) throw new Error("unavailable")
+  return v.polls
+}
 export async function vote(id: number, optionID: number, token: string, csrf: string) {
   await requestJSON(`/api/v1/polls/${String(id)}/votes`, {
     ...jsonMutation("POST", csrf, { option_id: optionID }),

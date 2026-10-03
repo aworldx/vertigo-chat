@@ -28,17 +28,20 @@ func (h Handler) Register(m *http.ServeMux) {
 }
 
 type inputDTO struct {
-	Title  string `json:"title"`
-	Body   string `json:"body"`
-	Series string `json:"series"`
-	Part   *int   `json:"part_number"`
+	Title      string `json:"title"`
+	Body       string `json:"body"`
+	Series     string `json:"series"`
+	Part       *int   `json:"part_number"`
+	WorkAuthor string `json:"work_author"`
 }
 type articleDTO struct {
-	ID       int64  `json:"id"`
-	AuthorID int64  `json:"author_id"`
-	Author   string `json:"author"`
-	Date     string `json:"date"`
-	Own      bool   `json:"own"`
+	ID         int64  `json:"id"`
+	AuthorID   int64  `json:"author_id"`
+	Author     string `json:"author"`
+	Date       string `json:"date"`
+	Own        bool   `json:"own"`
+	SourceURL  string `json:"source_url"`
+	CoverImage string `json:"cover_image"`
 	inputDTO
 }
 type seriesDTO struct {
@@ -65,7 +68,7 @@ func (h Handler) list(w http.ResponseWriter, r *http.Request) {
 	}
 	data := []articleDTO{}
 	for _, a := range articles {
-		data = append(data, articleDTO{a.ID, a.UserID, names[a.UserID], a.InsertedAt.Format("02.01.2006"), a.UserID == user, inputDTO{a.Title, a.Body, a.Series, a.Part}})
+		data = append(data, articleDTO{a.ID, a.UserID, names[a.UserID], a.InsertedAt.Format("02.01.2006"), a.UserID == user, a.SourceURL, a.CoverImage, inputDTO{a.Title, a.Body, a.Series, a.Part, a.WorkAuthor}})
 	}
 	tags := []seriesDTO{}
 	for _, g := range groups {
@@ -103,7 +106,7 @@ func (h Handler) save(w http.ResponseWriter, r *http.Request) {
 		failure(w, domain.ErrInvalid)
 		return
 	}
-	saved, err := h.s.Save(r.Context(), user, id, domain.Input{Title: v.Title, Body: v.Body, Series: v.Series, Part: v.Part})
+	saved, err := h.s.Save(r.Context(), user, id, domain.Input{Title: v.Title, Body: v.Body, Series: v.Series, Part: v.Part, WorkAuthor: v.WorkAuthor})
 	if err != nil {
 		failure(w, err)
 		return

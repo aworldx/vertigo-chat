@@ -1,82 +1,153 @@
 import { useState, type ReactNode, type SyntheticEvent } from "react"
 import { closePoll, createPoll, pollError, vote, type Poll } from "../api/polls"
+import { announcePollsChanged } from "../model/usePollNotices"
 import { usePolls } from "../model/usePolls"
+
 function Results({ poll }: { poll: Poll }) {
   return (
-    <div className="mt-4 space-y-2">
-      {poll.options.map((o) => (
-        <div key={o.id} className="rounded border border-zinc-700 p-3">
-          <div className="flex justify-between gap-3">
-            <span>
-              {o.body}
-              {poll.selectedOptionID === o.id && " · ваш выбор"}
+    <div className="mt-6 space-y-4">
+      {poll.options.map((option) => (
+        <div key={option.id} className="poll-result" data-selected={poll.selectedOptionID === option.id}>
+          <div className="flex items-baseline justify-between gap-4 text-sm">
+            <span className="min-w-0 font-medium text-stone-200">
+              {option.body}
+              {poll.selectedOptionID === option.id && (
+                <span className="ml-2 text-xs font-semibold text-amber-200">Ваш выбор</span>
+              )}
             </span>
-            <strong>{o.votes}</strong>
+            <span className="shrink-0 text-stone-400">
+              <strong className="font-semibold text-stone-100">{option.votes}</strong> ·{" "}
+              {poll.totalVotes ? Math.round((option.votes / poll.totalVotes) * 100) : 0}%
+            </span>
           </div>
-          <div className="mt-2 h-1.5 rounded bg-zinc-800">
+          <div className="mt-2 h-1.5 overflow-hidden bg-zinc-800" aria-hidden="true">
             <div
-              className="h-full rounded bg-amber-300"
-              style={{ width: `${String(poll.totalVotes ? Math.round((o.votes / poll.totalVotes) * 100) : 0)}%` }}
+              className="h-full bg-amber-300 transition-[width] duration-300"
+              style={{ width: `${String(poll.totalVotes ? Math.round((option.votes / poll.totalVotes) * 100) : 0)}%` }}
             />
           </div>
         </div>
       ))}
-      <p className="text-sm text-stone-400">Всего голосов: {poll.totalVotes}</p>
+      <p className="border-t border-zinc-800 pt-4 text-sm text-stone-400">
+        Всего голосов <strong className="ml-1 font-semibold text-stone-100">{poll.totalVotes}</strong>
+      </p>
     </div>
   )
 }
+
+function PollCard({
+  poll,
+  busy,
+  token,
+  csrf,
+  onVote,
+}: {
+  poll: Poll
+  busy: boolean
+  token: string
+  csrf: string
+  onVote: (optionID: number) => void
+}) {
+  const answered = poll.selectedOptionID > 0
+  const closed = poll.status === "closed"
+  return (
+    <article
+      id={`poll-${String(poll.id)}`}
+      className="poll-card"
+      data-poll-state={closed ? "closed" : answered ? "answered" : "open"}
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+        <span className={closed ? "text-stone-500" : "text-amber-200"}>
+          <span
+            aria-hidden="true"
+            className={`mr-2 inline-block h-2 w-2 rounded-full ${closed ? "bg-stone-600" : "bg-amber-300"}`}
+          />
+          {closed ? "Завершён" : answered ? "Ваш голос принят" : "Открыт"}
+        </span>
+        <span className="text-zinc-500">
+          {new Date(poll.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}
+        </span>
+      </div>
+      <h2 className="mt-4 max-w-3xl font-serif text-2xl leading-tight text-stone-100 sm:text-3xl">{poll.question}</h2>
+      {closed || answered ? (
+        <Results poll={poll} />
+      ) : (
+        <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem] lg:items-end lg:gap-8">
+          <div className="space-y-2">
+            <p className="text-sm text-stone-400">Выберите один вариант</p>
+            {poll.options.map((option, index) => (
+              <button
+                key={option.id}
+                id={`poll-${String(poll.id)}-option-${String(option.id)}`}
+                disabled={busy || !token || !csrf}
+                onClick={() => {
+                  onVote(option.id)
+                }}
+                className="poll-option group"
+              >
+                <span className="poll-option__number" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="min-w-0 flex-1">{option.body}</span>
+                <span
+                  aria-hidden="true"
+                  className="text-amber-300 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100"
+                >
+                  →
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="border-l border-zinc-800 pl-5 text-sm leading-6 text-stone-400 lg:pb-1">
+            Один голос от текущего ника. Результаты откроются сразу после ответа.
+          </p>
+        </div>
+      )}
+    </article>
+  )
+}
+
 export function Polls({ token, csrf }: { token: string; csrf: string }) {
-  const { data, error, refresh } = usePolls(token),
-    [notice, setNotice] = useState(""),
-    [busy, setBusy] = useState(0)
-  const cast = async (p: Poll, o: number) => {
-    setBusy(p.id)
+  const { data, error, refresh } = usePolls(token)
+  const [notice, setNotice] = useState("")
+  const [busy, setBusy] = useState(0)
+  const cast = async (poll: Poll, optionID: number) => {
+    setBusy(poll.id)
     try {
-      await vote(p.id, o, token, csrf)
+      await vote(poll.id, optionID, token, csrf)
+      announcePollsChanged()
       refresh()
-    } catch (e) {
-      setNotice(pollError(e))
+    } catch (reason) {
+      setNotice(pollError(reason))
     } finally {
       setBusy(0)
     }
   }
   return (
     <PollsLayout title="Опросы" error={error} notice={notice}>
-      {!token && <p role="alert">Откройте эту страницу из активной вкладки чата, чтобы голосовать.</p>}
-      {!data && !error && <p>Загружаем опросы…</p>}
-      {data?.length === 0 && <p>Опросов пока нет.</p>}
-      {data?.map((p) => (
-        <article
-          id={`poll-${String(p.id)}`}
-          key={p.id}
-          className="rounded-2xl border border-amber-900/40 bg-stone-950/80 p-5"
-        >
-          <h2 className="text-xl font-semibold text-amber-100">{p.question}</h2>
-          {p.status === "closed" || p.selectedOptionID > 0 ? (
-            <Results poll={p} />
-          ) : (
-            <div className="mt-4 space-y-2">
-              {p.options.map((o) => (
-                <button
-                  key={o.id}
-                  id={`poll-${String(p.id)}-option-${String(o.id)}`}
-                  disabled={busy === p.id || !token || !csrf}
-                  onClick={() => {
-                    void cast(p, o.id)
-                  }}
-                  className="block w-full rounded border border-zinc-700 px-3 py-2 text-left hover:border-amber-300 disabled:opacity-50"
-                >
-                  {o.body}
-                </button>
-              ))}
-            </div>
-          )}
-          <p className="mt-4 text-xs text-stone-500">{p.status === "closed" ? "Опрос завершён" : "Опрос открыт"}</p>
-        </article>
+      {!token && (
+        <p role="alert" className="poll-alert">
+          Откройте эту страницу из активной вкладки чата, чтобы голосовать.
+        </p>
+      )}
+      {!data && !error && <p className="poll-loading">Загружаем опросы…</p>}
+      {data?.length === 0 && <p className="poll-loading">Опросов пока нет.</p>}
+      {data?.map((poll) => (
+        <PollCard
+          key={poll.id}
+          poll={poll}
+          busy={busy === poll.id}
+          token={token}
+          csrf={csrf}
+          onVote={(optionID) => {
+            void cast(poll, optionID)
+          }}
+        />
       ))}
     </PollsLayout>
   )
 }
+
 function PollsLayout({
   title,
   children,
@@ -90,44 +161,64 @@ function PollsLayout({
 }) {
   return (
     <section id="polls-page" className="chat-shell min-h-screen bg-zinc-950 text-stone-100">
-      <header className="flex min-h-16 items-center border-b border-zinc-800 bg-zinc-900 px-4 sm:px-8">
-        <a href="/chat" className="vertigo-wordmark uppercase">
-          Vertigo
+      <header className="flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 sm:px-8">
+        <a href="/chat" target="vertigo-chat" className="flex items-center gap-3">
+          <span className="vertigo-mark" aria-hidden="true" />
+          <span className="vertigo-wordmark uppercase">Vertigo</span>
+        </a>
+        <a href="/chat" target="vertigo-chat" className="notes-back-link">
+          Вернуться в чат
         </a>
       </header>
-      <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8">
-        <h1 className="text-3xl font-semibold text-amber-100">{title}</h1>
-        {notice && <p role="alert">{notice}</p>}
-        {error && <p role="alert">Не удалось загрузить опросы.</p>}
-        {children}
+      <main className="polls-book mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-12">
+        <div className="polls-intro">
+          <p className="notes-kicker">Мнение сообщества</p>
+          <h1 className="font-serif text-4xl leading-none text-amber-100 sm:text-5xl">{title}</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-300 sm:text-base">
+            Здесь мы принимаем решения вместе. Выберите вариант — и сразу увидите, как ответило сообщество.
+          </p>
+        </div>
+        {notice && (
+          <p role="alert" className="poll-alert mt-7">
+            {notice}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="poll-alert mt-7">
+            Не удалось загрузить опросы.
+          </p>
+        )}
+        <div className="mt-8 space-y-5">{children}</div>
       </main>
     </section>
   )
 }
+
 export function AdminPolls({ csrf }: { csrf: string }) {
-  const { data, error, refresh } = usePolls("", true),
-    [question, setQuestion] = useState(""),
-    [options, setOptions] = useState(["", ""]),
-    [notice, setNotice] = useState("")
-  const save = async (e: SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const { data, error, refresh } = usePolls("", true)
+  const [question, setQuestion] = useState("")
+  const [options, setOptions] = useState(["", ""])
+  const [notice, setNotice] = useState("")
+  const save = async (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
     try {
       await createPoll(question, options, csrf)
+      announcePollsChanged()
       setQuestion("")
       setOptions(["", ""])
       refresh()
-    } catch (e) {
-      setNotice(pollError(e))
+    } catch (reason) {
+      setNotice(pollError(reason))
     }
   }
   return (
     <PollsLayout title="Опросы" error={error} notice={notice}>
       <form
         id="admin-polls-form"
-        onSubmit={(e) => {
-          void save(e)
+        onSubmit={(event) => {
+          void save(event)
         }}
-        className="space-y-5 rounded-2xl border border-amber-900/40 bg-stone-950/80 p-5 sm:p-6"
+        className="poll-card space-y-5"
       >
         <label className="block text-sm font-medium text-stone-200">
           <span>Вопрос</span>
@@ -136,25 +227,25 @@ export function AdminPolls({ csrf }: { csrf: string }) {
             required
             maxLength={500}
             value={question}
-            onChange={(e) => {
-              setQuestion(e.target.value)
+            onChange={(event) => {
+              setQuestion(event.target.value)
             }}
             placeholder="Например, какую встречу провести следующей?"
             className="mt-2 block min-h-28 w-full resize-y rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-base leading-6 text-stone-100 outline-none transition placeholder:text-stone-600 focus:border-amber-300 focus:ring-1 focus:ring-amber-300"
           />
         </label>
-        {options.map((v, i) => (
-          <label key={i} className="block text-sm font-medium text-stone-200">
-            <span>Вариант {i + 1}</span>
+        {options.map((option, index) => (
+          <label key={index} className="block text-sm font-medium text-stone-200">
+            <span>Вариант {index + 1}</span>
             <input
-              id={`poll-option-${String(i + 1)}`}
+              id={`poll-option-${String(index + 1)}`}
               required
               maxLength={200}
-              value={v}
-              onChange={(e) => {
-                setOptions(options.map((x, n) => (n === i ? e.target.value : x)))
+              value={option}
+              onChange={(event) => {
+                setOptions(options.map((value, optionIndex) => (optionIndex === index ? event.target.value : value)))
               }}
-              placeholder={`Текст варианта ${String(i + 1)}`}
+              placeholder={`Текст варианта ${String(index + 1)}`}
               className="mt-2 block h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-base text-stone-100 outline-none transition placeholder:text-stone-600 focus:border-amber-300 focus:ring-1 focus:ring-amber-300"
             />
           </label>
@@ -180,19 +271,22 @@ export function AdminPolls({ csrf }: { csrf: string }) {
           </button>
         </div>
       </form>
-      {data?.map((p) => (
-        <article id={`admin-poll-${String(p.id)}`} key={p.id} className="rounded-xl border border-zinc-700 p-4">
-          <h2 className="font-semibold">{p.question}</h2>
-          <Results poll={p} />
-          {p.status === "open" && (
+      {data?.map((poll) => (
+        <article id={`admin-poll-${String(poll.id)}`} key={poll.id} className="poll-card">
+          <h2 className="font-serif text-2xl text-stone-100">{poll.question}</h2>
+          <Results poll={poll} />
+          {poll.status === "open" && (
             <button
-              id={`close-poll-${String(p.id)}`}
-              className="mt-3"
+              id={`close-poll-${String(poll.id)}`}
+              className="mt-5 text-sm font-semibold text-amber-200 underline decoration-amber-300/50 underline-offset-4 hover:text-amber-100"
               onClick={() => {
-                void closePoll(p.id, csrf)
-                  .then(refresh)
-                  .catch((e: unknown) => {
-                    setNotice(pollError(e))
+                void closePoll(poll.id, csrf)
+                  .then(() => {
+                    announcePollsChanged()
+                    refresh()
+                  })
+                  .catch((reason: unknown) => {
+                    setNotice(pollError(reason))
                   })
               }}
             >

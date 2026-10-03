@@ -1,0 +1,98 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "state": "top",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "state": "viewport",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "state": "bottom",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 1280,
+    "height": 676,
+    "state": "top",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 1280,
+    "height": 676,
+    "state": "viewport",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 1280,
+    "height": 676,
+    "state": "bottom",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "state": "top",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "state": "viewport",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "state": "bottom",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "top",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "viewport",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "state": "bottom",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "meanChannelError": 0
+  }
+]

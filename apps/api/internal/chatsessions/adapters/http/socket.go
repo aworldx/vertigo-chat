@@ -196,7 +196,7 @@ func (h Socket) refreshSnapshot(ctx context.Context, conn *websocket.Conn, sessi
 
 func (h Socket) command(ctx context.Context, conn *websocket.Conn, session domain.Session, cmd command, visibility string) bool {
 	switch cmd.Type {
-	case "send", "media", "reaction", "delete", "preferences", "leave":
+	case "send", "media", "preferences", "leave":
 		defer h.cache.invalidate()
 	}
 	if h.messageLimited(session, cmd) {

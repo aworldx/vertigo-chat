@@ -12,6 +12,8 @@ export function ArticleText({ body, compact = false }: { body: string; compact?:
           disallowedElements={["img"]}
           urlTransform={(url) => (safeArticleLink(url) ? url : "")}
           components={{
+            p: ({ children }) => (compact ? <>{children} </> : <p>{children}</p>),
+            br: () => (compact ? <> </> : <br />),
             a: ({ children, href }) =>
               href ? (
                 <a href={href} target="_blank" rel="noopener noreferrer">
