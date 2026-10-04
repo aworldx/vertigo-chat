@@ -1,3 +1,4 @@
+import { verifyLibraryActions } from "./library-actions-verification"
 import { verifyChatGuide } from "./chat-guide-verification"
 import { verifyBotAdmin } from "./bot-admin-verification"
 import { verifyLibraryEditor } from "./library-editor-verification"
@@ -88,6 +89,7 @@ try {
   await libraryFlows(pair)
   sql("UPDATE library_articles SET inserted_at='2026-10-03',updated_at='2026-10-03',work_author='Uniform' WHERE id=3;")
   await verifyLibraryEditor(newPage, origin)
+  await verifyLibraryActions(browser, origin)
   await adminFlows(pair)
   await verifyBotAdmin(newPage, origin)
   await verifyPolls(browser, origin)

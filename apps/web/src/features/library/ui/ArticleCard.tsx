@@ -1,3 +1,4 @@
+import { ArticleActions } from "./ArticleActions"
 import { useState } from "react"
 import { ArticleText } from "./ArticleText"
 import { articleCover } from "../model/articleCover"
@@ -12,8 +13,14 @@ export function ArticleCard({
   article: a,
   onEdit,
   navigate,
+  csrf,
+  signedIn,
+  onChanged,
 }: {
   article: Article
+  csrf: string
+  signedIn: boolean
+  onChanged: () => void
   onEdit: (a: Article) => void
   navigate: (url: string) => void
 }) {
@@ -81,6 +88,7 @@ export function ArticleCard({
               </button>
             )}
           </div>
+          <ArticleActions article={a} csrf={csrf} signedIn={signedIn} onChanged={onChanged} />
         </div>
       </div>
       <div id={`article-text-${String(a.id)}`} hidden={!expanded} className="library-full-text">

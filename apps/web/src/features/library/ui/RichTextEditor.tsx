@@ -1,18 +1,27 @@
+import { ArticleImage } from "../model/articleImage"
+import { useImageUpload } from "../model/useImageUpload"
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { Markdown } from "@tiptap/markdown"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { initialArticleContent, isRichText, richTextPrefix, safeArticleLink } from "../model/articleText"
 
 export function RichTextEditor({
   initialBody,
   onChange,
   disabled,
+  csrf,
+  onBusy,
 }: {
   initialBody: string
   onChange: (value: string) => void
   disabled: boolean
+  csrf: string
+  onBusy: (busy: boolean) => void
 }) {
+  const imageInput = useRef<HTMLInputElement>(null)
+  const uploadPosition = useRef(0)
+  const { upload, error: imageError } = useImageUpload(csrf, onBusy)
   const [link, setLink] = useState<string | null>(null)
   const [linkError, setLinkError] = useState("")
   const editor = useEditor({
@@ -23,6 +32,7 @@ export function RichTextEditor({
         link: { openOnClick: false, autolink: false, isAllowedUri: safeArticleLink },
       }),
       Markdown,
+      ArticleImage,
     ],
     content: initialArticleContent(initialBody),
     contentType: isRichText(initialBody) ? "markdown" : "json",
@@ -174,6 +184,17 @@ export function RichTextEditor({
             Ссылка
           </button>
           <button
+            id="article-format-image"
+            type="button"
+            className="library-format-button"
+            onClick={() => {
+              uploadPosition.current = editor.state.selection.from
+              imageInput.current?.click()
+            }}
+          >
+            Картинка
+          </button>
+          <button
             id="article-format-rule"
             type="button"
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
@@ -272,6 +293,32 @@ export function RichTextEditor({
               </button>
             </div>
           </div>
+        )}
+        <input
+          ref={imageInput}
+          id="article-image-file"
+          className="library-upload-input"
+          type="file"
+          accept="image/jpeg,image/png"
+          aria-label="Картинка в текст"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = ""
+            if (file)
+              void upload(file).then((url) => {
+                if (url && !editor.isDestroyed)
+                  editor
+                    .chain()
+                    .focus()
+                    .insertContentAt(uploadPosition.current, { type: "image", attrs: { src: url, alt: "Иллюстрация" } })
+                    .run()
+              })
+          }}
+        />
+        {imageError && (
+          <p role="alert" className="library-feedback px-3">
+            {imageError}
+          </p>
         )}
         <EditorContent editor={editor} inert={disabled} />
       </fieldset>

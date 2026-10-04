@@ -1,6 +1,6 @@
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { isRichText, markdownBody, safeArticleLink } from "../model/articleText"
+import { isRichText, markdownBody, safeArticleLink, safeArticleImage } from "../model/articleText"
 
 export function ArticleText({ body, compact = false }: { body: string; compact?: boolean }) {
   return (
@@ -9,9 +9,13 @@ export function ArticleText({ body, compact = false }: { body: string; compact?:
         <Markdown
           remarkPlugins={[remarkGfm]}
           skipHtml
-          disallowedElements={["img"]}
-          urlTransform={(url) => (safeArticleLink(url) ? url : "")}
+
+          urlTransform={(url, key) => ((key === "src" ? safeArticleImage(url) : safeArticleLink(url)) ? url : "")}
           components={{
+            img: ({ src, alt }) =>
+              !compact && typeof src === "string" && safeArticleImage(src) ? (
+                <img src={src} alt={alt ?? "Иллюстрация"} loading="lazy" />
+              ) : null,
             p: ({ children }) => (compact ? <>{children} </> : <p>{children}</p>),
             br: () => (compact ? <> </> : <br />),
             a: ({ children, href }) =>

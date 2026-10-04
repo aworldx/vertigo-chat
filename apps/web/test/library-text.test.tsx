@@ -51,3 +51,15 @@ test("article links accept only complete http addresses without credentials", ()
   for (const url of ["", "/local", "javascript:alert(1)", "data:text/html,hi", "https://user:pass@example.com"])
     assert.equal(safeArticleLink(url), false)
 })
+
+test("uploaded images render only on local safe media paths, never in compact excerpts", () => {
+  const body =
+    richTextPrefix +
+    "![Описание](/library/images/12)\n\n![outside](https://tracker.example/image.png)\n\n![script](data:image/svg+xml,x)"
+  const html = renderToStaticMarkup(<ArticleText body={body} />)
+  assert.ok(html.includes('src="/library/images/12"'))
+  assert.ok(html.includes('alt="Описание"'))
+  assert.equal((html.match(/<img/g) ?? []).length, 1)
+  assert.ok(!renderToStaticMarkup(<ArticleText body={body} compact />).includes("<img"))
+  assert.equal(articleCover(1, "/library/images/12"), "/library/images/12")
+})

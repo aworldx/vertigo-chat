@@ -13,7 +13,7 @@ import (
 
 type libraryStore struct{ err error }
 
-func (s libraryStore) List(context.Context, int64, string) ([]domain.Article, []domain.Series, error) {
+func (s libraryStore) List(context.Context, int64, int64, string, bool) ([]domain.Article, []domain.Series, error) {
 	return nil, []domain.Series{{UserID: 1, Name: "Z"}, {UserID: 2, Name: "B"}, {UserID: 1, Name: "A"}}, s.err
 }
 func (s libraryStore) Save(context.Context, int64, int64, domain.Input) (int64, error) {
@@ -60,4 +60,11 @@ func TestLibraryFailuresAndSeriesOrdering(t *testing.T) {
 			}
 		})
 	}
+}
+
+func (s libraryStore) UpdateSeries(context.Context, int64, domain.SeriesInput) error { return s.err }
+func (s libraryStore) Reaction(context.Context, int64, int64, string, bool) error    { return s.err }
+func (s libraryStore) AddImage(context.Context, int64, domain.Image) (int64, error)  { return 1, s.err }
+func (s libraryStore) Image(context.Context, int64) (domain.Image, error) {
+	return domain.Image{}, s.err
 }

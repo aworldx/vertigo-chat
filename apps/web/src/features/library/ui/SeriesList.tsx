@@ -6,8 +6,12 @@ export function SeriesList({
   selected,
   author,
   navigate,
+  bookmarks,
+  signedIn,
 }: {
   series: Series[]
+  bookmarks: boolean
+  signedIn: boolean
   selected: string
   author: number
   navigate: (url: string) => void
@@ -21,8 +25,8 @@ export function SeriesList({
       <a
         id="all-library-articles"
         className="library-all"
-        data-selected={!selected}
-        aria-current={!selected ? "page" : undefined}
+        data-selected={!selected && !bookmarks}
+        aria-current={!selected && !bookmarks ? "page" : undefined}
         href="/library"
         onClick={(e) => {
           e.preventDefault()
@@ -31,6 +35,21 @@ export function SeriesList({
       >
         Все статьи <span aria-hidden="true">↗</span>
       </a>
+      {signedIn && (
+        <a
+          id="library-bookmarks"
+          className="library-all"
+          data-selected={bookmarks || undefined}
+          aria-current={bookmarks ? "page" : undefined}
+          href="/library?bookmarks=1"
+          onClick={(e) => {
+            e.preventDefault()
+            navigate("/library?bookmarks=1")
+          }}
+        >
+          Мои закладки <span aria-hidden="true">↗</span>
+        </a>
+      )}
       <nav id="library-series" aria-label="Серии статей">
         {series.map((s) => (
           <a

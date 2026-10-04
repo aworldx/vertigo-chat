@@ -56,7 +56,7 @@ func (f *chatFixture) cancelledPersistence(t *testing.T) {
 		}},
 		{"gallery caption", func() error { err := gallerypg.NewStore(f.pool, nil, nil).Caption(ctx, 1, 1, "Caption"); return err }},
 		{"gallery media", func() error { _, err := gallerypg.NewStore(f.pool, nil, nil).Media(ctx, 1, false); return err }},
-		{"library list", func() error { _, _, err := librarypg.NewStore(f.pool, nil).List(ctx, 1, ""); return err }},
+		{"library list", func() error { _, _, err := librarypg.NewStore(f.pool, nil).List(ctx, 1, 1, "", false); return err }},
 		{"library save", func() error {
 			_, err := librarypg.NewStore(f.pool, nil).Save(ctx, 1, 0, librarydomain.Input{Title: "Title", Body: "Body"})
 			return err

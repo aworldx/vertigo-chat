@@ -1,3 +1,4 @@
+import { CoverUpload } from "./CoverUpload"
 import { RichTextEditor } from "./RichTextEditor"
 import { ArticleText } from "./ArticleText"
 import { articleBodyLimit } from "../model/articleText"
@@ -30,18 +31,23 @@ export function Editor({
     [pending, setPending] = useState(false),
     [mobileView, setMobileView] = useState<"editor" | "preview">("editor"),
     [confirmClose, setConfirmClose] = useState(false)
+  const [cover, setCover] = useState(article?.cover_image ?? "")
+  const [coverUploading, setCoverUploading] = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
+  const busy = pending || coverUploading || imageUploading
   const keepEditingRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (confirmClose) keepEditingRef.current?.focus()
   }, [confirmClose])
   const changed =
+    cover !== (article?.cover_image ?? "") ||
     title !== (article?.title ?? "") ||
     workAuthor !== (article?.work_author ?? "") ||
     body !== (article?.body ?? "") ||
     group !== (article?.series ?? "") ||
     part !== (article?.part_number?.toString() ?? "")
   function requestClose() {
-    if (pending) return
+    if (busy) return
     if (confirmClose) {
       setConfirmClose(false)
       return
@@ -54,6 +60,7 @@ export function Editor({
   }
   async function submit(e: SyntheticEvent) {
     e.preventDefault()
+    if (busy) return
     if (!body.trim() || Array.from(body).length > articleBodyLimit) {
       setError("Текст должен содержать от 1 до 12000 символов с форматированием.")
       return
@@ -63,7 +70,14 @@ export function Editor({
     try {
       await saveArticle(
         article?.id,
-        { title, body, series: group, part_number: part ? Number(part) : null, work_author: workAuthor },
+        {
+          title,
+          body,
+          series: group,
+          part_number: part ? Number(part) : null,
+          work_author: workAuthor,
+          cover_image: cover,
+        },
         csrf,
       )
       onSaved()
@@ -155,6 +169,7 @@ export function Editor({
                 setWorkAuthor(e.target.value)
               }}
             />
+            <CoverUpload value={cover} onChange={setCover} csrf={csrf} disabled={busy} onBusy={setCoverUploading} />
             <div className="library-editor-series grid gap-5 sm:grid-cols-[minmax(0,1fr)_10rem]">
               <Field
                 id="article_series"
@@ -186,7 +201,13 @@ export function Editor({
               ))}
             </datalist>
             <div>
-              <RichTextEditor initialBody={article?.body ?? ""} onChange={setBody} disabled={pending} />
+              <RichTextEditor
+                initialBody={article?.body ?? ""}
+                onChange={setBody}
+                disabled={busy}
+                csrf={csrf}
+                onBusy={setImageUploading}
+              />
               <div className="mt-2 flex items-center justify-between gap-4 text-xs">
                 <span className="text-stone-500">
                   Лимит включает форматирование. Большой текст можно разделить на части.
@@ -203,10 +224,10 @@ export function Editor({
             )}
             <button
               id="save-library-article"
-              disabled={pending || !body.trim() || Array.from(body).length > articleBodyLimit}
+              disabled={busy || !body.trim() || Array.from(body).length > articleBodyLimit}
               className="hidden w-full rounded-xl bg-amber-300 px-5 py-3.5 font-semibold text-stone-950 shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-60 lg:block"
             >
-              {pending ? "Сохраняем…" : "Сохранить статью"}
+              {pending ? "Сохраняем…" : coverUploading || imageUploading ? "Загружаем картинку…" : "Сохранить статью"}
             </button>
           </div>
           <aside
@@ -216,6 +237,7 @@ export function Editor({
           >
             <div className="relative z-10">
               <p className="text-xs uppercase tracking-[0.2em] text-stone-500">Предпросмотр</p>
+              {cover && <img className="library-preview-cover" src={cover} alt="Обложка статьи" />}
               <h3 className="library-preview-title mt-3 text-3xl leading-tight text-amber-50">
                 {title || "Название статьи"}
               </h3>
@@ -232,10 +254,10 @@ export function Editor({
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
               <button
                 id="save-library-article-mobile"
-                disabled={pending || !body.trim() || Array.from(body).length > articleBodyLimit}
+                disabled={busy || !body.trim() || Array.from(body).length > articleBodyLimit}
                 className="min-h-11 rounded-xl bg-amber-300 px-4 text-sm font-semibold text-stone-950 transition hover:bg-amber-200 disabled:opacity-60"
               >
-                {pending ? "Сохраняем…" : "Сохранить статью"}
+                {pending ? "Сохраняем…" : coverUploading || imageUploading ? "Загружаем картинку…" : "Сохранить статью"}
               </button>
               <button
                 id="close-library-editor-mobile"

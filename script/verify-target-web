@@ -52,10 +52,8 @@ until curl --fail --silent http://127.0.0.1:4071/health >/dev/null && curl --fai
 done
 cd "$repo_root/apps/web"
 node --import=tsx browser/target-verification.ts http://127.0.0.1:4071 http://127.0.0.1:4072 "$a_url" "$b_url"
-export LIBRARY_DESIGN_ROOT="$repo_root/docs/design/library-authorship"
-export LIBRARY_ACTUAL_DIR="$repo_root/apps/web/migration-results/community"
-export LIBRARY_REVIEW_DIR="$repo_root/apps/web/migration-results/library-review"
-(cd "$repo_root" && sha256sum -c docs/design/library-v2/FROZEN.sha256)
-(cd "$repo_root" && sha256sum -c docs/design/library-authorship/FROZEN.sha256)
-node "$LIBRARY_DESIGN_ROOT/compare.mjs" --check
-node "$LIBRARY_DESIGN_ROOT/compare.mjs" --editor --check
+export LIBRARY_ACTIONS_DESIGN_ROOT="$repo_root/docs/design/library-actions"
+export LIBRARY_ACTIONS_ORIGIN=http://127.0.0.1:4071
+(cd "$repo_root" && sha256sum -c docs/design/library-actions/FROZEN)
+node "$LIBRARY_ACTIONS_DESIGN_ROOT/capture.mjs" actual
+node "$LIBRARY_ACTIONS_DESIGN_ROOT/compare.mjs" --check

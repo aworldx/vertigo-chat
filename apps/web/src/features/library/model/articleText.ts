@@ -26,3 +26,7 @@ export function safeArticleLink(value: string): boolean {
     return false
   }
 }
+
+export function safeArticleImage(value: string): boolean {
+  return /^\/library\/images\/[1-9][0-9]*$/.test(value) || /^\/images\/[a-z0-9-]+\.(png|webp|jpg)$/.test(value)
+}

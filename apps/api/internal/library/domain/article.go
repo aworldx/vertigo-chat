@@ -18,17 +18,21 @@ type Input struct {
 	Title, Body, Series string
 	WorkAuthor          string
 	Part                *int
+	CoverImage          *string
 }
 type Article struct {
 	ID, UserID int64
 	Input
 	InsertedAt            time.Time
 	SourceURL, CoverImage string
+	Likes                 int
+	Liked, Bookmarked     bool
 }
 type Series struct {
-	UserID int64
-	Name   string
-	Count  int
+	UserID      int64
+	Name        string
+	Count       int
+	Description string
 }
 
 func Normalize(v Input) (Input, error) {
@@ -47,6 +51,9 @@ func Normalize(v Input) (Input, error) {
 	}
 	if v.Series == "" {
 		v.Part = nil
+	}
+	if v.CoverImage != nil && !ValidCover(*v.CoverImage) {
+		return v, ErrInvalid
 	}
 	return v, nil
 }

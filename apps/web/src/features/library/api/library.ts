@@ -15,6 +15,9 @@ function article(v: unknown): v is Article {
     (v.cover_image === undefined || typeof v.cover_image === "string") &&
     typeof v.date === "string" &&
     typeof v.own === "boolean" &&
+    typeof v.likes === "number" &&
+    typeof v.liked === "boolean" &&
+    typeof v.bookmarked === "boolean" &&
     typeof v.title === "string" &&
     typeof v.body === "string" &&
     typeof v.series === "string" &&
@@ -27,7 +30,9 @@ function series(v: unknown): v is Series {
     typeof v.author_id === "number" &&
     typeof v.author === "string" &&
     typeof v.name === "string" &&
-    typeof v.count === "number"
+    typeof v.count === "number" &&
+    typeof v.description === "string" &&
+    typeof v.own === "boolean"
   )
 }
 export async function loadLibrary(query: string, signal: AbortSignal): Promise<Library> {
@@ -49,9 +54,13 @@ export async function saveArticle(id: number | undefined, value: Input, csrf: st
 export function libraryError(e: unknown) {
   const code = e instanceof Error ? e.message : "unavailable"
   const messages: Record<string, string> = {
-    invalid_article: "Проверь название, текст, серию и номер части.",
+    invalid_article: "Проверь название, текст, серию, обложку и номер части.",
+    invalid_image: "Выбери JPEG или PNG до 2 МБ, не больше 4096 пикселей по каждой стороне.",
+    image_limit_reached: "Можно загрузить до 30 изображений за сутки и 200 всего.",
+    series_exists: "У тебя уже есть серия с таким названием. Выбери другое.",
+    not_found: "Статья или серия не найдена. Обнови страницу.",
     kinoman_required: "Добавлять статьи могут чатлане со званием «Киноман».",
-    forbidden: "Редактировать статью может только опубликовавший её чатланин.",
+    forbidden: "Недостаточно прав или сессия истекла. Обнови страницу и войди в аккаунт.",
     daily_article_limit_reached: "За сутки можно добавить не больше 10 статей.",
     article_limit_reached: "Один автор может хранить не больше 50 статей.",
   }

@@ -25,7 +25,7 @@ for database in "$accounts_url" "$application_url"; do
 done
 psql "$application_url" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/go-web.sql"
 cd "$repo_root/apps/api"
-GO_TETRIS_TEST_DATABASE_URL="$application_url" GO_POLLS_TEST_DATABASE_URL="$application_url" GO_ACCOUNTS_TEST_DATABASE_URL="$accounts_url" GO_CHAT_TEST_DATABASE_URL="$application_url" GO_COMMUNITY_TEST_DATABASE_URL="$application_url" \
+GO_LIBRARY_TEST_DATABASE_URL="$application_url" GO_TETRIS_TEST_DATABASE_URL="$application_url" GO_POLLS_TEST_DATABASE_URL="$application_url" GO_ACCOUNTS_TEST_DATABASE_URL="$accounts_url" GO_CHAT_TEST_DATABASE_URL="$application_url" GO_COMMUNITY_TEST_DATABASE_URL="$application_url" \
   "$go_command" test -count=1 -p 4 -race -covermode=atomic -coverpkg=./... -coverprofile="$output/api-unit.cover" ./...
 cd "$repo_root/services/youtube-worker"
 "$go_command" test -count=1 -race -covermode=atomic -coverprofile="$output/worker.cover" ./...
