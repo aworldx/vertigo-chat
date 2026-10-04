@@ -25,7 +25,7 @@ export class GameStore {
     }
   }
   getSnapshot = () => this.ui
-  getConnectionSnapshot = () => this.online && !this.stalled
+  getConnectionSnapshot = () => this.online && (!!this.current?.client_clock || !this.stalled)
   private publish() {
     const game = this.current
     const key =
@@ -66,12 +66,23 @@ export class GameStore {
   receive(game: Game, now: number) {
     if (this.identity && game.id !== this.identity) return
     if (this.confirmed && game.revision < this.confirmed.revision) return
-    const first = !this.online
+    const local = game.client_clock && this.current?.client_clock && this.current.status === "running"
+    const first = !this.online && !local
     const old = this.current
     const self = game.players.find((player) => player.id === game.self)
     this.sequence = Math.max(this.sequence, self?.sequence ?? 0)
     this.pending = first ? [] : this.pending.filter((input) => input.sequence > (self?.sequence ?? 0))
     this.confirmed = game
+    if (local && this.current) {
+      this.online = true
+      // Acknowledgements retire journal entries; they never move the live solo board.
+      if (game.status === "finished" || game.status === "cancelled") {
+        this.current = game
+        this.pending = []
+      }
+      this.publish()
+      return
+    }
     this.online = true
     this.stalled = false
     this.receivedAt = this.lastFrame = now
@@ -91,7 +102,12 @@ export class GameStore {
   }
   private advance(game: Game, target: number) {
     let state = game
-    while (state.status === "running" && !state.paused && state.elapsed_ms + 50 <= target)
+    while (
+      state.status === "running" &&
+      !state.paused &&
+      state.elapsed_ms + 50 <= target &&
+      !(state.client_clock && state.players.find((p) => p.id === state.self)?.dead)
+    )
       state = predict(state, "tick")
     return state
   }
@@ -100,6 +116,7 @@ export class GameStore {
     this.lastFrame = now
     if (
       this.online &&
+      !this.current?.client_clock &&
       this.current?.status === "running" &&
       !this.current.paused &&
       now - this.receivedAt > horizonMS &&
@@ -109,9 +126,8 @@ export class GameStore {
       this.publish()
     }
     if (
-      !this.online ||
       !this.current ||
-      now - this.receivedAt > horizonMS ||
+      (!this.current.client_clock && (!this.online || now - this.receivedAt > horizonMS)) ||
       this.current.paused ||
       this.current.status !== "running"
     )
@@ -124,8 +140,14 @@ export class GameStore {
     this.publish()
   }
   input(type: Action, now: number): Input | null {
-    if (!this.online || !this.current || this.pending.length >= 80) return null
-    if (this.current.status === "running" && !this.current.paused && now - this.receivedAt > horizonMS) return null
+    if (!this.current || (!this.current.client_clock && (!this.online || this.pending.length >= 80))) return null
+    if (
+      !this.current.client_clock &&
+      this.current.status === "running" &&
+      !this.current.paused &&
+      now - this.receivedAt > horizonMS
+    )
+      return null
     const game = this.current
     const player = game.players.find((p) => p.id === game.self)
     const administrative = ["join", "ready", "unready", "start", "leave"].includes(type)
@@ -145,14 +167,28 @@ export class GameStore {
     }
     return input
   }
+  replay() {
+    const game = this.current
+    const confirmed = this.confirmed
+    if (!game?.client_clock || !confirmed || game.status !== "running") return null
+    const through = Math.min(game.elapsed_ms, confirmed.elapsed_ms + 10000)
+    const eligible = this.pending.filter((input) => input.at <= through)
+    const inputs = eligible.slice(0, 128)
+    const next = eligible[128]
+    const through_ms = next ? Math.min(through, next.at) : through
+    if (!inputs.length && through_ms <= confirmed.elapsed_ms) return null
+    return { type: "replay" as const, through_ms, inputs: inputs.map(({ at, ...input }) => ({ ...input, at_ms: at })) }
+  }
   disconnect() {
     this.online = false
-    this.pending = []
+    if (!this.current?.client_clock) this.pending = []
     this.remainder = 0
     this.publish()
-    // Never replay offline input into a different piece after reconnect.
+    // Multiplayer drops stale input; local solo retains its ordered replay journal.
   }
   reject() {
+    if (this.current?.client_clock)
+      this.sequence = this.confirmed?.players.find((p) => p.id === this.confirmed?.self)?.sequence ?? 0
     this.pending = []
     this.current = this.confirmed
     this.publish()

@@ -1,3 +1,4 @@
+import { verifySoloAsync } from "./tetris-solo-async"
 import { verifyLocalCycle } from "./tetris-cycle"
 import { verifyFirstSoloWindow } from "./tetris-first-open"
 import { launchBrowser } from "./coverage"
@@ -61,6 +62,7 @@ async function verifyResults(page: Page, mode: string) {
   await page.setViewportSize({ width: 1440, height: 900 })
 }
 try {
+  await verifySoloAsync(browser, origin, screenshots)
   await verifyLocalCycle(browser, origin, screenshots)
   await verifyFirstSoloWindow(browser, origin, screenshots)
   const contexts = await Promise.all(

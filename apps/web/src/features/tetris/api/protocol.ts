@@ -87,6 +87,7 @@ export function isGame(v: unknown): v is Game {
     typeof v.host === "string" &&
     typeof v.paused === "boolean" &&
     integer(v.countdown, 0, 3) &&
+    (v.client_clock === undefined || typeof v.client_clock === "boolean") &&
     integer(v.elapsed_ms) &&
     integer(v.revision) &&
     Array.isArray(v.players) &&

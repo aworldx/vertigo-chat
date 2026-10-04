@@ -179,7 +179,7 @@ func (s *Service) CommandForPiece(a domain.Actor, id, action string, seq, pieceI
 	return err
 }
 
-// Run advances all games at a fixed step. Network clients never supply elapsed time or scores.
+// Run advances competitive/legacy games at a fixed step. Local solo uses bounded decision replay; clients never supply scores.
 // One API process owns active matches; a process restart cancels those matches without ranking them.
 func (s *Service) Run(ctx context.Context) {
 	ticker := time.NewTicker(50 * time.Millisecond)

@@ -52,7 +52,8 @@ export class GameConnection {
     const socket = new WebSocket(url)
     this.socket = socket
     socket.onopen = () => {
-      if (!this.stopped && this.socket === socket) socket.send(JSON.stringify({ type: "auth", token: this.token }))
+      if (!this.stopped && this.socket === socket)
+        socket.send(JSON.stringify({ type: "auth", token: this.token, client_clock: true }))
     }
     socket.onmessage = (event: MessageEvent<unknown>) => {
       if (this.stopped || this.socket !== socket || typeof event.data !== "string") return
@@ -98,6 +99,12 @@ export class GameConnection {
       this.socket.bufferedAmount < 16384 &&
       this.sentAt.length < 35
     )
+  }
+  replay(batch: { type: "replay"; through_ms: number; inputs: (Input & { at_ms: number })[] }, now: number) {
+    if (!this.available(now) || !this.socket) return false
+    this.socket.send(JSON.stringify(batch))
+    this.sentAt.push(now)
+    return true
   }
   send(input: Input, now: number) {
     if (!this.available(now) || !this.socket) return false

@@ -37,7 +37,7 @@ type Match struct {
 	Players                            []*Player
 	CreatedAt, StartedAt, FinishedAt   time.Time
 	Elapsed                            int64
-	Paused                             bool
+	Paused, ClientClock                bool
 	Seed                               uint32
 	Revision                           int64
 }
@@ -179,6 +179,18 @@ func (m *Match) InputForPiece(key, action string, seq, pieceID int64, now time.T
 	return nil
 }
 func (m *Match) Tick(ms int, now time.Time) {
+	if m.ClientClock && m.Mode == "solo" && m.Status == "running" {
+		// An abandoned local game expires; a network gap never advances its board.
+		if m.Status == "running" && now.Sub(m.Players[0].LastSeen) > time.Hour {
+			m.Status = "cancelled"
+			m.FinishedAt = now
+			m.Revision++
+		}
+		return
+	}
+	m.advance(ms, now)
+}
+func (m *Match) advance(ms int, now time.Time) {
 	if m.Status == "countdown" && !now.Before(m.StartedAt) {
 		m.Status = "running"
 		m.Revision++

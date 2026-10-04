@@ -159,6 +159,7 @@ components:
         host: {type: string}
         paused: {type: boolean}
         countdown: {type: integer, minimum: 0, maximum: 3}
+        client_clock: {type: boolean, description: "Solo decisions and elapsed ticks are replayed in background; the browser owns live simulation."}
         elapsed_ms: {type: integer, minimum: 0}
         revision: {type: integer, minimum: 0}
         players: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/TetrisPlayer'}}

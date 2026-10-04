@@ -41,8 +41,14 @@ export function useGame(id: string, token: string, join: boolean, clockWindow: W
   }, [id, token, join, store])
   useEffect(() => {
     let frame = 0
+    let flushedAt = 0
     const tick = () => {
-      store.frame(performance.now())
+      const now = performance.now()
+      store.frame(now)
+      if (now - flushedAt >= 250) {
+        const batch = store.replay()
+        if (batch && connection.current?.replay(batch, now)) flushedAt = now
+      }
       frame = clockWindow.requestAnimationFrame(tick)
     }
     frame = clockWindow.requestAnimationFrame(tick)
@@ -54,10 +60,11 @@ export function useGame(id: string, token: string, join: boolean, clockWindow: W
     (action: Action) => {
       const now = performance.now()
       const transport = connection.current
-      if (!transport?.available(now)) return false
+      const local = store.current?.client_clock && !["join", "ready", "unready", "start", "leave"].includes(action)
+      if (!local && !transport?.available(now)) return false
       const input = store.input(action, now)
       if (!input) return false
-      if (!transport.send(input, now)) {
+      if (!local && !transport?.send(input, now)) {
         store.reject()
         return false
       }

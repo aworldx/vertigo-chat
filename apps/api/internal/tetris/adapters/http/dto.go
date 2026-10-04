@@ -49,24 +49,25 @@ type playerDTO struct {
 	Sequence   int64          `json:"sequence"`
 }
 type gameDTO struct {
-	Revision  int64       `json:"revision"`
-	ID        string      `json:"id"`
-	Code      string      `json:"code"`
-	Mode      string      `json:"mode"`
-	Status    string      `json:"status"`
-	Self      string      `json:"self"`
-	Host      string      `json:"host"`
-	Paused    bool        `json:"paused"`
-	Countdown int         `json:"countdown"`
-	Elapsed   int64       `json:"elapsed_ms"`
-	Players   []playerDTO `json:"players"`
+	ClientClock bool        `json:"client_clock,omitempty"`
+	Revision    int64       `json:"revision"`
+	ID          string      `json:"id"`
+	Code        string      `json:"code"`
+	Mode        string      `json:"mode"`
+	Status      string      `json:"status"`
+	Self        string      `json:"self"`
+	Host        string      `json:"host"`
+	Paused      bool        `json:"paused"`
+	Countdown   int         `json:"countdown"`
+	Elapsed     int64       `json:"elapsed_ms"`
+	Players     []playerDTO `json:"players"`
 }
 
 func piece(p domain.Piece) pieceDTO {
 	return pieceDTO{Kind: p.Kind, Rotation: p.Rotation, X: p.X, Y: p.Y}
 }
 func encode(m *domain.Match, a domain.Actor) gameDTO {
-	g := gameDTO{Revision: m.Revision, ID: m.ID, Code: m.Code, Mode: m.Mode, Status: m.Status, Paused: m.Paused, Elapsed: m.Elapsed, Players: []playerDTO{}}
+	g := gameDTO{ClientClock: m.ClientClock, Revision: m.Revision, ID: m.ID, Code: m.Code, Mode: m.Mode, Status: m.Status, Paused: m.Paused, Elapsed: m.Elapsed, Players: []playerDTO{}}
 	if m.Status == "countdown" {
 		g.Countdown = max(0, int(time.Until(m.StartedAt).Milliseconds()+999)/1000)
 	}

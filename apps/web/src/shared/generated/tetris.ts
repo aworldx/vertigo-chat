@@ -130,6 +130,8 @@ export interface components {
             host: string;
             paused: boolean;
             countdown: number;
+            /** @description Solo decisions and elapsed ticks are replayed in background; the browser owns live simulation. */
+            client_clock?: boolean;
             elapsed_ms: number;
             revision: number;
             players: components["schemas"]["TetrisPlayer"][];

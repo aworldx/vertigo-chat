@@ -11,10 +11,13 @@ import (
 )
 
 type command struct {
-	Type     string `json:"type"`
-	Token    string `json:"token"`
-	Sequence int64  `json:"sequence"`
-	PieceID  int64  `json:"piece_id"`
+	ClientClock bool                 `json:"client_clock"`
+	Through     int64                `json:"through_ms"`
+	Inputs      []domain.ReplayInput `json:"inputs"`
+	Type        string               `json:"type"`
+	Token       string               `json:"token"`
+	Sequence    int64                `json:"sequence"`
+	PieceID     int64                `json:"piece_id"`
 }
 
 func (h *Handler) socket(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +30,7 @@ func (h *Handler) socket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = conn.CloseNow() }()
-	conn.SetReadLimit(4096)
+	conn.SetReadLimit(32768)
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	authCtx, done := context.WithTimeout(ctx, 5*time.Second)
@@ -40,6 +43,10 @@ func (h *Handler) socket(w http.ResponseWriter, r *http.Request) {
 	a, err := h.authenticate(ctx, first.Token)
 	if err != nil {
 		_ = conn.Close(websocket.StatusPolicyViolation, "Войди в чат")
+		return
+	}
+	if err := h.service.ClientClock(a, r.PathValue("id"), first.ClientClock); err != nil {
+		_ = conn.Close(websocket.StatusPolicyViolation, "Игра недоступна")
 		return
 	}
 	game, err := h.service.View(a, r.PathValue("id"), false)
@@ -121,7 +128,7 @@ func (h *Handler) run(ctx context.Context, conn *websocket.Conn, a domain.Actor,
 				_ = conn.Close(websocket.StatusPolicyViolation, "Слишком много команд")
 				return
 			}
-			if err := h.service.CommandForPiece(a, id, c.Type, c.Sequence, c.PieceID); err != nil {
+			if err := h.applyCommand(a, id, c); err != nil {
 				if send(ctx, conn, map[string]string{"type": "error", "message": actionError(err)}) != nil {
 					return
 				}
@@ -187,4 +194,11 @@ func (h *Handler) checkConnection(ctx context.Context, conn *websocket.Conn, tok
 		return false
 	}
 	return true
+}
+
+func (h *Handler) applyCommand(a domain.Actor, id string, c command) error {
+	if c.Type == "replay" {
+		return h.service.Replay(a, id, c.Through, c.Inputs)
+	}
+	return h.service.CommandForPiece(a, id, c.Type, c.Sequence, c.PieceID)
 }

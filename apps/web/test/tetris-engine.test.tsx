@@ -114,3 +114,68 @@ test("idle lobby and long solo pause remain controllable; stalled live play repo
   store.receive({ ...acknowledged, revision: 102 }, 63002)
   assert.equal(store.getConnectionSnapshot(), true)
 })
+
+test("solo owns its clock beyond two seconds, across disconnect and delayed acknowledgements", () => {
+  const game = { ...initial, mode: "solo" as const, client_clock: true }
+  const store = new GameStore()
+  store.receive(game, 0)
+  for (let now = 50; now <= 3000; now += 50) store.frame(now)
+  assert.equal(store.current?.elapsed_ms, game.elapsed_ms + 3000)
+  assert.equal(store.getConnectionSnapshot(), true)
+  assert.ok(store.input("drop", 3001))
+  const locked = structuredClone(self(store.current).cells)
+  store.disconnect()
+  for (let now = 3050; now <= 6000; now += 50) store.frame(now)
+  assert.ok(store.input("rotate", 6001))
+  const live = store.current
+  store.receive({ ...game, revision: game.revision + 1 }, 6100)
+  assert.equal(store.current, live, "acknowledgement rewound live solo")
+  assert.deepEqual(self(store.current).cells, locked)
+  const replay = store.replay()
+  assert.ok(replay)
+  assert.equal(replay.inputs.length, 2)
+  assert.equal(replay.inputs[0]?.at_ms, game.elapsed_ms + 3000)
+  store.receive(
+    {
+      ...game,
+      revision: game.revision + 2,
+      elapsed_ms: replay.through_ms,
+      players: game.players.map((p) => ({ ...p, sequence: replay.inputs.at(-1)?.sequence ?? 0 })),
+    },
+    6200,
+  )
+  assert.equal(store.replay(), null)
+})
+test("solo does not drop inputs at the multiplayer pending limit and bounds background replay batches", () => {
+  const store = new GameStore()
+  store.receive({ ...initial, mode: "solo", client_clock: true }, 0)
+  for (let i = 0; i < 140; i++) assert.ok(store.input("rotate", 0))
+  const batch = store.replay()
+  assert.equal(batch?.inputs.length, 128)
+  assert.equal(batch.through_ms, initial.elapsed_ms)
+})
+test("local solo countdown transitions to running when the server starts the round", () => {
+  const store = new GameStore()
+  store.receive({ ...initial, mode: "solo", client_clock: true, status: "countdown" }, 0)
+  store.receive({ ...initial, mode: "solo", client_clock: true, revision: initial.revision + 1 }, 3000)
+  assert.equal(store.current?.status, "running")
+  store.frame(3050)
+  assert.equal(store.current.elapsed_ms, initial.elapsed_ms + 50)
+})
+
+test("offline solo catches up in bounded background chunks and can restart a rejected journal", () => {
+  const store = new GameStore()
+  const game = { ...initial, mode: "solo" as const, client_clock: true }
+  store.receive(game, 0)
+  store.disconnect()
+  for (let now = 50; now <= 20000; now += 50) store.frame(now)
+  const live = store.current
+  assert.equal(store.replay()?.through_ms, game.elapsed_ms + 10000)
+  store.receive({ ...game, revision: game.revision + 1, elapsed_ms: game.elapsed_ms + 10000 }, 20001)
+  assert.equal(store.current, live)
+  assert.equal(store.replay()?.through_ms, game.elapsed_ms + 20000)
+  store.input("rotate", 20002)
+  store.reject()
+  const input = store.input("rotate", 20003)
+  assert.equal(input?.sequence, self(game).sequence + 1)
+})
