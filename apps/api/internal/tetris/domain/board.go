@@ -6,6 +6,7 @@ const Width, Height = 10, 20
 type Cell struct{ X, Y int }
 type Piece struct{ Kind, Rotation, X, Y int }
 type Board struct {
+	PieceID                   int64
 	Cells                     [Height][Width]int
 	Active                    Piece
 	Next                      []int
@@ -87,6 +88,7 @@ func (b *Board) spawn() {
 	b.CanHold = true
 }
 func (b *Board) setPiece(kind int) {
+	b.PieceID++
 	b.Active = Piece{Kind: kind, X: 3, Y: 0}
 	b.FallMS = 0
 	b.LockMS = 0

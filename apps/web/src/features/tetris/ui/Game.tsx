@@ -26,9 +26,9 @@ export function TetrisGame({
   onRematch: () => void
   popup?: GameWindow | null | undefined
 }) {
-  const { game, error, connected, send, latest } = useGame(id, token, join)
   const gameWindow = useGameWindow(popup)
   const keyboardWindow = gameWindow.container?.ownerDocument.defaultView ?? window
+  const { game, error, connected, send, latest, store } = useGame(id, token, join, keyboardWindow)
   const sound = useTetrisAudio(game)
   const playInput = sound.input
   const [focus, setFocus] = useState("")
@@ -148,6 +148,7 @@ export function TetrisGame({
                   <Board
                     key={player.id}
                     player={player}
+                    store={store}
                     mine={player.id === game.self}
                     prominent={player.id === prominent}
                   />
@@ -201,7 +202,9 @@ export function TetrisGame({
                     onPointerCancel={controls.stop}
                     onLostPointerCapture={controls.stop}
                     onClick={(e) => {
-                      if (e.detail === 0) action(value)
+                      // Touch click may have detail=0 too; its pointerdown already handled the action.
+                      if (e.detail === 0 && !("pointerType" in e.nativeEvent && e.nativeEvent.pointerType))
+                        action(value)
                     }}
                   >
                     <span className="tetris-control-label">{label}</span>

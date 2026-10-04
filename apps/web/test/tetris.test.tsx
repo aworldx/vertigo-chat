@@ -43,6 +43,7 @@ function player(): Player {
     incoming: 0,
     target: "",
     sequence: 0,
+    simulation: { piece_id: 1, fall_ms: 0, lock_ms: 0, resets: 0, combo: -1, random: 123, bag: [7], pending: [] },
   }
 }
 function game(): Game {
@@ -56,6 +57,7 @@ function game(): Game {
     paused: false,
     countdown: 0,
     elapsed_ms: 0,
+    revision: 0,
     players: [player()],
   }
 }
@@ -164,11 +166,13 @@ test("input prediction respects walls and does not mutate authoritative score or
   state = predict(state, "rotate")
   assert.equal(state.players[0]?.active.rotation, 1)
   state = predict(state, "drop")
-  assert.equal(state.players[0]?.active.y, state.players[0]?.ghost.y)
+  assert.equal(state.players[0]?.active.y, 0)
   const dropped = state.players[0]
   assert.ok(dropped)
-  assert.deepEqual(dropped.cells, originalPlayer.cells)
-  assert.equal(dropped.score, 0)
+  assert.notDeepEqual(dropped.cells, originalPlayer.cells)
+  assert.ok(dropped.score > 0)
+  assert.equal(originalPlayer.score, 0)
+  assert.ok(originalPlayer.cells.every((row) => row.every((cell) => cell === 0)))
   assert.equal(predict({ ...original, paused: true }, "left").players[0]?.active.x, 3)
 })
 test("protocol rejects malformed board, pieces and counter values", () => {
@@ -230,7 +234,7 @@ test("slash commands dispatch solo, memorable code and rankings without becoming
   assert.deepEqual(commands, ["", "соло", "ЛИСА-27", "топ", "settings"])
 })
 
-test("reconnect preserves local input and resends only unacknowledged sequences", async (t) => {
+test("reconnect discards unconfirmed and offline input instead of moving a successor", async (t) => {
   const { useGame } = await import("../src/features/tetris/model/useGame")
   const onlineDescriptor = Object.getOwnPropertyDescriptor(navigator, "onLine")
   Object.defineProperty(navigator, "onLine", { value: true, configurable: true })
@@ -242,6 +246,7 @@ test("reconnect preserves local input and resends only unacknowledged sequences"
   class FakeSocket {
     static OPEN = 1
     readyState = 1
+    bufferedAmount = 0
     onopen: (() => void) | null = null
     onmessage: ((event: { data: string }) => void) | null = null
     onclose: ((event: { code: number; reason: string }) => void) | null = null
@@ -265,6 +270,8 @@ test("reconnect preserves local input and resends only unacknowledged sequences"
     Object.defineProperty(globalThis, "WebSocket", { value: originalSocket, configurable: true, writable: true })
   })
   t.mock.timers.enable({ apis: ["setTimeout", "setInterval"] })
+  window.requestAnimationFrame = () => 1
+  window.cancelAnimationFrame = () => undefined
   const view = renderHook(() => useGame("a".repeat(32), "token", false))
   const first = sockets[0]
   assert.ok(first)
@@ -273,7 +280,7 @@ test("reconnect preserves local input and resends only unacknowledged sequences"
     first.state(game())
     view.result.current.send("left")
   })
-  assert.equal(view.result.current.game?.players[0]?.active.x, 2)
+  assert.equal(view.result.current.latest.current?.players[0]?.active.x, 2)
   act(() => {
     t.mock.timers.tick(35)
   })
@@ -283,7 +290,7 @@ test("reconnect preserves local input and resends only unacknowledged sequences"
     first.onclose?.({ code: 1006, reason: "" })
     view.result.current.send("left")
   })
-  assert.equal(view.result.current.game.players[0].active.x, 1)
+  assert.equal(view.result.current.latest.current.players[0].active.x, 2)
   act(() => {
     t.mock.timers.tick(1000)
   })
@@ -299,10 +306,10 @@ test("reconnect preserves local input and resends only unacknowledged sequences"
     second.state(confirmed)
     t.mock.timers.tick(35)
   })
-  assert.equal(view.result.current.game.players[0].active.x, 1)
+  assert.equal(view.result.current.latest.current.players[0].active.x, 2)
   assert.deepEqual(
     second.sent.filter((entry) => entry.type === "left"),
-    [{ type: "left", sequence: 2 }],
+    [],
   )
   act(() => {
     view.result.current.send("right")
@@ -313,7 +320,8 @@ test("reconnect preserves local input and resends only unacknowledged sequences"
     t.mock.timers.tick(100)
   })
   assert.equal(view.result.current.error, "")
-  assert.equal(second.sent.filter((entry) => entry.type === "right" || entry.type === "drop").length, 0)
+  assert.equal(second.sent.filter((entry) => entry.type === "right").length, 1)
+  assert.equal(second.sent.filter((entry) => entry.type === "drop").length, 0)
   view.unmount()
 })
 
@@ -330,4 +338,33 @@ test("changing a dialog callback does not steal game focus", async () => {
   field.focus()
   view.rerender(show())
   assert.equal(document.activeElement, field)
+})
+
+test("pointer toolbar clicks restore game focus; keyboard activation retains button focus", () => {
+  const sent: string[] = []
+  const hook = renderHook(() =>
+    useControls(true, (action) => {
+      sent.push(action)
+    }),
+  )
+  const view = render(
+    <section id="tetris-game">
+      <button id="sound">Звук</button>
+      <div id="tetris-keyboard" tabIndex={-1} />
+    </section>,
+  )
+  const button = view.getByRole("button")
+  const field = document.getElementById("tetris-keyboard")
+  button.focus()
+  fireEvent.click(button, { detail: 1 })
+  assert.equal(document.activeElement, field)
+  fireEvent.keyDown(field ?? window, { code: "Space" })
+  fireEvent.keyUp(window, { code: "Space" })
+  assert.deepEqual(sent, ["drop"])
+  button.focus()
+  fireEvent.click(button, { detail: 0 })
+  assert.equal(document.activeElement, button)
+  fireEvent.keyDown(button, { code: "Space" })
+  assert.deepEqual(sent, ["drop"])
+  hook.unmount()
 })

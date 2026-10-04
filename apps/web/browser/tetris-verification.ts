@@ -1,3 +1,4 @@
+import { verifyLocalCycle } from "./tetris-cycle"
 import { verifyFirstSoloWindow } from "./tetris-first-open"
 import { launchBrowser } from "./coverage"
 import { expect, type Dialog, type Page } from "@playwright/test"
@@ -60,6 +61,7 @@ async function verifyResults(page: Page, mode: string) {
   await page.setViewportSize({ width: 1440, height: 900 })
 }
 try {
+  await verifyLocalCycle(browser, origin, screenshots)
   await verifyFirstSoloWindow(browser, origin, screenshots)
   const contexts = await Promise.all(
     Array.from({ length: 4 }, () =>

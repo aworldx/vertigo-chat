@@ -32,6 +32,7 @@ func TestConcurrentSeatsPrivacyAndCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	s.flush(ctx)
 	if len(invites.sent) != 1 {
 		t.Fatal("no invitation")
 	}

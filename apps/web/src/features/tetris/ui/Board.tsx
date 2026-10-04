@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from "react"
+import type { GameStore } from "../model/gameStore"
 import type { Player } from "../api/protocol"
 import { blocks, colors } from "../model/pieces"
 
@@ -46,12 +47,39 @@ function draw(context: CanvasRenderingContext2D, player: Player) {
     })
   }
 }
-export function Board({ player, mine, prominent }: { player: Player; mine: boolean; prominent: boolean }) {
+export function Board({
+  player,
+  mine,
+  prominent,
+  store,
+}: {
+  player: Player
+  mine: boolean
+  prominent: boolean
+  store: GameStore
+}) {
   const canvas = useRef<HTMLCanvasElement>(null)
   useLayoutEffect(() => {
-    const context = canvas.current?.getContext("2d")
-    if (context) draw(context, player)
-  }, [player])
+    const element = canvas.current
+    const context = element?.getContext("2d")
+    const owner = element?.ownerDocument.defaultView
+    if (!context || !owner) return
+    let frame = 0
+    const paint = () => {
+      frame = 0
+      const current = store.current?.players.find((p) => p.id === player.id) ?? player
+      draw(context, current)
+    }
+    // Paint on mount, including a popup whose opener has stopped producing frames.
+    paint()
+    const unsubscribe = store.subscribe(() => {
+      if (!frame) frame = owner.requestAnimationFrame(paint)
+    })
+    return () => {
+      unsubscribe()
+      owner.cancelAnimationFrame(frame)
+    }
+  }, [player, store])
   return (
     <div className={`tetris-player ${prominent ? "tetris-mine" : ""}`} data-player-id={player.id}>
       <div className="tetris-player-heading">

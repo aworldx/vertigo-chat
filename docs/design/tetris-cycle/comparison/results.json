@@ -1,0 +1,32 @@
+[
+  {
+    "size": "1440x900",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "768x1024",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "390x844",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "844x390",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "520x760",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  }
+]

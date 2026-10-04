@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Vertigo Tetris
-  version: 1.0.0
+  version: 1.1.0
   description: Server-authoritative solo and multiplayer falling-block game. Socket protocol is documented in docs/tetris.md.
 servers: [{url: /}]
 security: [{chatCredential: []}]
@@ -90,6 +90,29 @@ components:
         rotation: {type: integer, minimum: 0, maximum: 3}
         x: {type: integer}
         y: {type: integer}
+    TetrisSimulation:
+      type: object
+      additionalProperties: false
+      description: Owner-only deterministic simulation checkpoint; never accepted as client authority.
+      required: [piece_id, fall_ms, lock_ms, resets, combo, random, bag, pending]
+      properties:
+        piece_id: {type: integer, minimum: 1}
+        fall_ms: {type: integer, minimum: 0}
+        lock_ms: {type: integer, minimum: 0, maximum: 500}
+        resets: {type: integer, minimum: 0, maximum: 15}
+        combo: {type: integer, minimum: -1}
+        random: {type: integer, minimum: 1, maximum: 4294967295}
+        bag: {type: array, maxItems: 7, items: {type: integer, minimum: 1, maximum: 7}}
+        pending:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [lines, due, hole]
+            properties:
+              lines: {type: integer, minimum: 1}
+              due: {type: integer, minimum: 0}
+              hole: {type: integer, minimum: 0, maximum: 9}
     TetrisPlayer:
       type: object
       additionalProperties: false
@@ -122,10 +145,11 @@ components:
         incoming: {type: integer, minimum: 0}
         target: {type: string}
         sequence: {type: integer, minimum: 0}
+        simulation: {$ref: '#/components/schemas/TetrisSimulation'}
     TetrisGame:
       type: object
       additionalProperties: false
-      required: [id, code, mode, status, self, host, paused, countdown, elapsed_ms, players]
+      required: [id, code, mode, status, self, host, paused, countdown, elapsed_ms, revision, players]
       properties:
         id: {type: string}
         code: {type: string}
@@ -136,6 +160,7 @@ components:
         paused: {type: boolean}
         countdown: {type: integer, minimum: 0, maximum: 3}
         elapsed_ms: {type: integer, minimum: 0}
+        revision: {type: integer, minimum: 0}
         players: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/TetrisPlayer'}}
     TetrisInvitation:
       type: object

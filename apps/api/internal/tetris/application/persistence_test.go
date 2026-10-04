@@ -70,8 +70,13 @@ func TestCreationFailureAndAccessBoundaries(t *testing.T) {
 	invites := &unreliableInvites{fail: true}
 	s := NewService(&memoryResults{}, invites)
 	a := domain.Actor{Key: "host", Room: "room"}
-	if _, err := s.Create(ctx, a, false); err == nil || len(s.games) != 0 {
-		t.Fatal("failed invitation must not leave an invisible active match")
+	created, err := s.Create(ctx, a, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.flush(ctx)
+	if !s.games[created.ID].invitationDirty {
+		t.Fatal("failed initial invitation must remain queued for retry")
 	}
 	invites.fail = false
 	m, err := s.Create(ctx, a, false)
@@ -109,4 +114,45 @@ func TestCreationFailureAndAccessBoundaries(t *testing.T) {
 	if _, err := s.Create(ctx, a, false); err != domain.ErrLimit {
 		t.Fatal("cancelled lobbies must obey the creation cooldown")
 	}
+}
+
+type blockedInvites struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (i blockedInvites) Publish(ctx context.Context, _ Invitation) error {
+	close(i.started)
+	select {
+	case <-i.release:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+func TestSlowInvitationDoesNotBlockGameInput(t *testing.T) {
+	invites := blockedInvites{started: make(chan struct{}), release: make(chan struct{})}
+	s := NewService(&memoryResults{}, invites)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	a := domain.Actor{Key: "a", Room: "room"}
+	game, err := s.Create(ctx, a, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	flushed := make(chan struct{})
+	go func() { s.flush(ctx); close(flushed) }()
+	<-invites.started
+	commanded := make(chan error, 1)
+	go func() { commanded <- s.Command(a, game.ID, "ready", 0) }()
+	select {
+	case err := <-commanded:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("invitation held the simulation lock")
+	}
+	close(invites.release)
+	<-flushed
 }

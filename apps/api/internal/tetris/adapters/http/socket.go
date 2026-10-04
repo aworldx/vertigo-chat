@@ -14,6 +14,7 @@ type command struct {
 	Type     string `json:"type"`
 	Token    string `json:"token"`
 	Sequence int64  `json:"sequence"`
+	PieceID  int64  `json:"piece_id"`
 }
 
 func (h *Handler) socket(w http.ResponseWriter, r *http.Request) {
@@ -90,15 +91,13 @@ func (h *Handler) run(ctx context.Context, conn *websocket.Conn, a domain.Actor,
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	incoming := commands(ctx, conn)
-	ticks := time.NewTicker(50 * time.Millisecond)
-	defer ticks.Stop()
+	go h.streamStates(ctx, cancel, conn, a, id)
 	auth := time.NewTicker(10 * time.Second)
 	defer auth.Stop()
 	// Ping waits for the reader to consume a pong. Keep draining commands
 	// concurrently, or input arriving before that pong deadlocks the reader.
 	probe := make(chan bool, 1)
 	window, count := time.Now(), 0
-	previous := ""
 	for {
 		select {
 		case <-ctx.Done():
@@ -122,16 +121,31 @@ func (h *Handler) run(ctx context.Context, conn *websocket.Conn, a domain.Actor,
 				_ = conn.Close(websocket.StatusPolicyViolation, "Слишком много команд")
 				return
 			}
-			if err := h.service.Command(a, id, c.Type, c.Sequence); err != nil {
+			if err := h.service.CommandForPiece(a, id, c.Type, c.Sequence, c.PieceID); err != nil {
 				if send(ctx, conn, map[string]string{"type": "error", "message": actionError(err)}) != nil {
 					return
 				}
 			}
-		case <-ticks.C:
-			if !h.pushState(ctx, conn, a, id, &previous) {
-				return
-			}
 
+		}
+	}
+}
+
+// A slow writer cannot stop command consumption. There is no snapshot FIFO:
+// after each write we sample the latest state, skipping obsolete frames.
+func (h *Handler) streamStates(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, a domain.Actor, id string) {
+	defer cancel()
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+	previous := ""
+	for {
+		if !h.pushState(ctx, conn, a, id, &previous) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
 		}
 	}
 }

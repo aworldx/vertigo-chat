@@ -3,6 +3,7 @@ import type { components } from "../../../shared/generated/tetris"
 
 export type Game = components["schemas"]["TetrisGame"]
 export type Player = components["schemas"]["TetrisPlayer"]
+export type Simulation = components["schemas"]["TetrisSimulation"]
 export type Piece = components["schemas"]["TetrisPiece"]
 export type Leader = components["schemas"]["TetrisLeader"]
 export type Action =
@@ -24,6 +25,24 @@ const integer = (v: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): v is numbe
 function piece(v: unknown): v is Piece {
   return record(v) && integer(v.kind, 1, 7) && integer(v.rotation, 0, 3) && integer(v.x, -4, 10) && integer(v.y, -4, 20)
 }
+function simulation(v: unknown): v is Simulation {
+  return (
+    record(v) &&
+    integer(v.piece_id, 1) &&
+    integer(v.fall_ms) &&
+    integer(v.lock_ms, 0, 500) &&
+    integer(v.resets, 0, 15) &&
+    integer(v.combo, -1) &&
+    integer(v.random, 1, 4294967295) &&
+    Array.isArray(v.bag) &&
+    v.bag.length <= 7 &&
+    v.bag.every((kind: unknown) => integer(kind, 1, 7)) &&
+    Array.isArray(v.pending) &&
+    v.pending.every(
+      (item: unknown) => record(item) && integer(item.lines, 1) && integer(item.due) && integer(item.hole, 0, 9),
+    )
+  )
+}
 function player(v: unknown): v is Player {
   return (
     record(v) &&
@@ -42,6 +61,7 @@ function player(v: unknown): v is Player {
     integer(v.incoming) &&
     typeof v.target === "string" &&
     integer(v.sequence) &&
+    (v.simulation === undefined || simulation(v.simulation)) &&
     piece(v.active) &&
     piece(v.ghost) &&
     Array.isArray(v.next) &&
@@ -68,6 +88,7 @@ export function isGame(v: unknown): v is Game {
     typeof v.paused === "boolean" &&
     integer(v.countdown, 0, 3) &&
     integer(v.elapsed_ms) &&
+    integer(v.revision) &&
     Array.isArray(v.players) &&
     v.players.length <= 3 &&
     v.players.every(player)

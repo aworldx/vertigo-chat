@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type testStore struct{}
@@ -64,5 +65,24 @@ func TestHTTPAuthorizationAndPrivateSolo(t *testing.T) {
 	}
 	if w := request("GET", "/api/v1/tetris/leaderboard", "", "", ""); w.Code != 200 || w.Body.String() != "[]\n" {
 		t.Fatal("public empty rankings", w.Body.String())
+	}
+}
+
+func TestSimulationCheckpointIsOwnerOnly(t *testing.T) {
+	a := domain.Actor{Key: "a", Room: "r"}
+	b := domain.Actor{Key: "b", Room: "r"}
+	m := domain.NewMatch("game", "code", a, false, 42, time.Now())
+	if err := m.Join(b, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	own := encode(m, a)
+	if own.Players[0].Simulation == nil || own.Players[1].Simulation != nil {
+		t.Fatal("checkpoint missing or exposed to opponent")
+	}
+	observer := encode(m, domain.Actor{Key: "observer", Room: "r"})
+	for _, p := range observer.Players {
+		if p.Simulation != nil {
+			t.Fatal("checkpoint exposed to observer")
+		}
 	}
 }

@@ -141,3 +141,27 @@ func TestRankingTiesAndRatings(t *testing.T) {
 		}
 	}
 }
+
+func TestLateInputDoesNotControlSuccessor(t *testing.T) {
+	now := time.Now()
+	m := NewMatch("game", "code", Actor{Key: "a", Room: "r"}, true, 42, now)
+	m.Tick(50, now.Add(3*time.Second))
+	p := m.Players[0]
+	first := p.Board.PieceID
+	if err := m.InputForPiece("a", "drop", 1, first, now); err != nil {
+		t.Fatal(err)
+	}
+	before := p.Board.Active
+	if err := m.InputForPiece("a", "rotate", 2, first, now); err != nil {
+		t.Fatal(err)
+	}
+	if p.Sequence != 2 || p.Board.Active != before || p.Board.PieceID != first+1 {
+		t.Fatal("late input moved successor or was not acknowledged")
+	}
+	if err := m.InputForPiece("a", "right", 3, first+1, now); err != nil {
+		t.Fatal(err)
+	}
+	if p.Board.Active.X != before.X+1 {
+		t.Fatal("current piece input rejected")
+	}
+}

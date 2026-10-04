@@ -61,7 +61,7 @@ func (s *Service) Create(ctx context.Context, a domain.Actor, solo bool) (*domai
 	if e := s.active(a.Key); e != nil {
 		return clone(e.match), nil
 	}
-	return s.create(ctx, a, solo)
+	return s.create(a, solo)
 }
 func (s *Service) active(key string) *entry {
 	for _, e := range s.games {
@@ -71,7 +71,7 @@ func (s *Service) active(key string) *entry {
 	}
 	return nil
 }
-func (s *Service) create(ctx context.Context, a domain.Actor, solo bool) (*domain.Match, error) {
+func (s *Service) create(a domain.Actor, solo bool) (*domain.Match, error) {
 	for _, e := range s.games {
 		if e.match.Host == a.Key && e.match.Status == "cancelled" && time.Since(e.match.CreatedAt) < 10*time.Second {
 			return nil, domain.ErrLimit
@@ -87,12 +87,7 @@ func (s *Service) create(ctx context.Context, a domain.Actor, solo bool) (*domai
 	id := hex.EncodeToString(bytes)
 	code := s.code(bytes)
 	m := domain.NewMatch(id, code, a, solo, binary.LittleEndian.Uint32(bytes[:4]), time.Now())
-	if !solo {
-		if err := s.invitations.Publish(ctx, invitation(m)); err != nil {
-			return nil, err
-		}
-	}
-	s.games[id] = &entry{match: m}
+	s.games[id] = &entry{match: m, invitationDirty: !solo}
 	return clone(m), nil
 }
 func (s *Service) code(bytes []byte) string {
@@ -143,6 +138,11 @@ func (s *Service) View(a domain.Actor, id string, touch bool) (*domain.Match, er
 	return clone(e.match), nil
 }
 func (s *Service) Command(a domain.Actor, id, action string, seq int64) error {
+	return s.CommandForPiece(a, id, action, seq, 0)
+}
+
+// CommandForPiece rejects late input for an already replaced piece. Zero is the legacy protocol.
+func (s *Service) CommandForPiece(a domain.Actor, id, action string, seq, pieceID int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	e := s.find(id)
@@ -171,7 +171,7 @@ func (s *Service) Command(a domain.Actor, id, action string, seq int64) error {
 	case "leave":
 		m.Leave(a.Key, now)
 	default:
-		err = m.Input(a.Key, action, seq, now)
+		err = m.InputForPiece(a.Key, action, seq, pieceID, now)
 	}
 	if err == nil && (action == "join" || action == "leave" || action == "start" || before != m.Status) {
 		e.invitationDirty = true
@@ -297,7 +297,7 @@ func (s *Service) Rematch(ctx context.Context, a domain.Actor, id string) (*doma
 	if active := s.active(a.Key); active != nil {
 		return nil, domain.ErrLimit
 	}
-	next, err := s.create(ctx, a, previous.match.Mode == "solo")
+	next, err := s.create(a, previous.match.Mode == "solo")
 	if err != nil {
 		return nil, err
 	}

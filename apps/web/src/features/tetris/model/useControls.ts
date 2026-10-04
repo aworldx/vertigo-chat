@@ -54,11 +54,17 @@ export function useControls(enabled: boolean, send: (action: Action) => void, ke
     const up = (event: KeyboardEvent) => {
       if (keys[event.code]) stop()
     }
+    const restoreGameFocus = (event: MouseEvent) => {
+      if (enabled && event.detail > 0 && keyboardWindow.document.activeElement?.closest("#tetris-game button"))
+        keyboardWindow.document.getElementById("tetris-keyboard")?.focus({ preventScroll: true })
+    }
+    keyboardWindow.addEventListener("click", restoreGameFocus)
     keyboardWindow.addEventListener("keydown", down)
     keyboardWindow.addEventListener("keyup", up)
     keyboardWindow.addEventListener("blur", stop)
     return () => {
       stop()
+      keyboardWindow.removeEventListener("click", restoreGameFocus)
       keyboardWindow.removeEventListener("keydown", down)
       keyboardWindow.removeEventListener("keyup", up)
       keyboardWindow.removeEventListener("blur", stop)

@@ -82,6 +82,21 @@ export interface components {
             x: number;
             y: number;
         };
+        /** @description Owner-only deterministic simulation checkpoint; never accepted as client authority. */
+        TetrisSimulation: {
+            piece_id: number;
+            fall_ms: number;
+            lock_ms: number;
+            resets: number;
+            combo: number;
+            random: number;
+            bag: number[];
+            pending: {
+                lines: number;
+                due: number;
+                hole: number;
+            }[];
+        };
         TetrisPlayer: {
             id: string;
             nickname: string;
@@ -102,6 +117,7 @@ export interface components {
             incoming: number;
             target: string;
             sequence: number;
+            simulation?: components["schemas"]["TetrisSimulation"];
         };
         TetrisGame: {
             id: string;
@@ -115,6 +131,7 @@ export interface components {
             paused: boolean;
             countdown: number;
             elapsed_ms: number;
+            revision: number;
             players: components["schemas"]["TetrisPlayer"][];
         };
         TetrisInvitation: {

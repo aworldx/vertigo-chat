@@ -1,3 +1,4 @@
+import { canvasCells } from "./tetris-cycle"
 import assert from "node:assert/strict"
 import { expect, type Page } from "@playwright/test"
 
@@ -38,7 +39,13 @@ export async function installFeedbackProbe(page: Page) {
     await page.locator("#tetris-audio-toggle").click()
     await expect(page.locator("#tetris-audio-toggle")).toHaveAttribute("aria-pressed", "true")
     await expect.poll(() => page.evaluate(() => Reflect.get(window, "tetrisSoundStarts") as number[])).toContain(1046.5)
-    await page.locator("#tetris-keyboard").focus()
+    await expect(page.locator("#tetris-keyboard")).toBeFocused()
+    // Pointer toolbar activation must leave Space assigned to the game.
+    await page.locator("#tetris-audio-toggle").click()
+    await expect(page.locator("#tetris-keyboard")).toBeFocused()
+    await page.locator("#tetris-audio-toggle").click()
+    await expect(page.locator("#tetris-keyboard")).toBeFocused()
+    await expect(page.locator("#tetris-audio-toggle")).toHaveAttribute("aria-pressed", "true")
     paused = true
     try {
       const latency = await page.evaluate(async () => {
@@ -77,6 +84,15 @@ export async function installFeedbackProbe(page: Page) {
       })
       assert.ok(latency < 250, `Local movement waited ${String(latency)}ms with server replies withheld`)
       await expect.poll(() => page.evaluate(() => Reflect.get(window, "tetrisSoundStarts") as number[])).toContain(600)
+      await page.keyboard.press("Space")
+      await expect.poll(async () => (await canvasCells(page)).length, { timeout: 500, intervals: [10] }).toBe(8)
+      const locked = (await canvasCells(page)).filter((cell) => (cell[1] ?? 0) > 10)
+      await page.keyboard.press("ArrowUp")
+      assert.deepEqual(
+        (await canvasCells(page)).filter((cell) => (cell[1] ?? 0) > 10),
+        locked,
+      )
+      await expect(page.locator("#tetris-audio-toggle")).toHaveAttribute("aria-pressed", "true")
       console.log(
         `Tetris feedback: local canvas moved in ${String(Math.round(latency))}ms without a server reply; Web Audio preview and movement scheduled.`,
       )

@@ -142,6 +142,10 @@ func (m *Match) Leave(key string, now time.Time) {
 	}
 }
 func (m *Match) Input(key, action string, seq int64, now time.Time) error {
+	return m.InputForPiece(key, action, seq, 0, now)
+}
+
+func (m *Match) InputForPiece(key, action string, seq, pieceID int64, now time.Time) error {
 	p := m.Player(key)
 	if p == nil || p.Board.Dead || m.Status != "running" {
 		return ErrInvalid
@@ -163,6 +167,11 @@ func (m *Match) Input(key, action string, seq int64, now time.Time) error {
 	case "left", "right", "down", "rotate", "counterrotate", "drop", "hold":
 	default:
 		return ErrInvalid
+	}
+	if pieceID != 0 && pieceID != p.Board.PieceID {
+		// Acknowledge, but never apply an old piece's input to its successor.
+		m.Revision++
+		return nil
 	}
 	m.outcome(p, p.Board.Apply(action, 0))
 	m.finish(now)
