@@ -27,7 +27,9 @@ export function colors(value: unknown) {
 export function isPreferences(value: unknown): value is Preferences {
   return (
     record(value) &&
-    ["vertigo", "dark", "night_sky", "autumn", "autumn_sunny", "newspaper"].includes(String(value.theme_id)) &&
+    ["vertigo", "vertigo_glass", "dark", "night_sky", "autumn", "autumn_sunny", "newspaper"].includes(
+      String(value.theme_id),
+    ) &&
     ["theme", "sans", "display", "serif"].includes(String(value.font_id)) &&
     (value.font_style === "normal" || value.font_style === "italic") &&
     typeof value.message_sound_enabled === "boolean" &&
@@ -42,6 +44,7 @@ export function isPreferences(value: unknown): value is Preferences {
 }
 export const themes = [
   { id: "vertigo", name: "Vertigo · Тёмная" },
+  { id: "vertigo_glass", name: "Vertigo · Стекло" },
   { id: "dark", name: "Тёмная · Тёмная" },
   { id: "night_sky", name: "Ночное небо · Тёмная" },
   { id: "autumn", name: "Осень · Тёмная" },

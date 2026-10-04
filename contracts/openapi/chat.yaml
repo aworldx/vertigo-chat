@@ -545,7 +545,7 @@ components:
       type: object
       required: [theme_id, appearance, font_id, font_style, message_sound_enabled]
       properties:
-        theme_id: {type: string, enum: [vertigo, dark, night_sky, autumn, autumn_sunny, newspaper]}
+        theme_id: {type: string, enum: [vertigo, vertigo_glass, dark, night_sky, autumn, autumn_sunny, newspaper]}
         font_id: {type: string, enum: [theme, sans, display, serif]}
         font_style: {type: string, enum: [normal, italic]}
         message_sound_enabled: {type: boolean}

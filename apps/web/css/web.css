@@ -12,5 +12,6 @@
 @source "../src";
 
 @import "./poll-notice.css";
+@import "./chat-glass.css";
 
 @import "./library-actions.css";

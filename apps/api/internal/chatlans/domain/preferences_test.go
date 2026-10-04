@@ -23,6 +23,9 @@ func TestDefaultThemePreservesExplicitChoice(t *testing.T) {
 	if Normalize(Preferences{Theme: "vertigo"}).Theme != "vertigo" {
 		t.Fatal("explicit existing theme must be preserved")
 	}
+	if Normalize(Preferences{Theme: "vertigo_glass"}).Theme != "vertigo_glass" {
+		t.Fatal("glass theme selection must be preserved")
+	}
 }
 
 func TestNormalizePreservesSunnyAutumn(t *testing.T) {
