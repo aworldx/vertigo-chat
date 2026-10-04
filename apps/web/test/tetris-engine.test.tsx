@@ -179,3 +179,22 @@ test("offline solo catches up in bounded background chunks and can restart a rej
   const input = store.input("rotate", 20003)
   assert.equal(input?.sequence, self(game).sequence + 1)
 })
+
+test("input landing on a natural top-out tick does not poison the solo journal", () => {
+  const game = structuredClone(initial)
+  game.mode = "solo"
+  game.client_clock = true
+  const player = self(game)
+  player.cells = Array.from({ length: 20 }, (_, y) =>
+    Array.from({ length: 10 }, (_, x) => (y < 2 && x >= 3 && x <= 6 ? 8 : 0)),
+  )
+  player.active = { kind: 2, rotation: 0, x: 3, y: 18 }
+  assert.ok(player.simulation)
+  player.simulation.lock_ms = 450
+  const store = new GameStore()
+  store.receive(game, 0)
+  assert.equal(store.input("rotate", 50), null)
+  assert.equal(self(store.current).dead, true)
+  assert.equal(store.replay()?.inputs.length, 0)
+  assert.equal(store.replay()?.through_ms, game.elapsed_ms + 50)
+})

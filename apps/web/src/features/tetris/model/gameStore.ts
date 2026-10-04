@@ -148,12 +148,12 @@ export class GameStore {
       now - this.receivedAt > horizonMS
     )
       return null
+    this.frame(now)
     const game = this.current
     const player = game.players.find((p) => p.id === game.self)
     const administrative = ["join", "ready", "unready", "start", "leave"].includes(type)
     if (!administrative && (game.status !== "running" || !player || player.dead || (game.paused && type !== "pause")))
       return null
-    this.frame(now)
     const input = {
       type,
       sequence: ++this.sequence,
