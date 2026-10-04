@@ -38,7 +38,7 @@ legacy-ветке и не является fallback или proxy целевой 
 - Воспроизведён и исправлен двойной сброс от одного touch: синтетический click с detail=0 повторял pointerdown. После pointer-нажатия кнопки звука и других кнопок фокус возвращается полю; Tab/Space сохраняют нативную семантику кнопки.
 - Отправка снимков отделена от обработки команд. Начальные приглашения используют фоновую retry-очередь вне mutex симуляции; медленная публикация больше не блокирует игровой ввод.
 - Docker target tests: общий Go/TypeScript replay, HTTP/приватность, PostgreSQL race, замедленная публикация, reconnect/границы предсказания; browser: реальные multiplayer/observer/solo/popup/mobile/звук/результаты и удержанные ответы сервера. Визуальный отчёт: `docs/design/tetris-cycle/REVIEW.md`.
-- Пользователь разрешил commit и production-обновление 4 октября. Готовится patch-релиз 0.21.1 поверх опубликованной темы 0.21.0; перед публикацией выполняется повторная проверка точного состава релиза в Docker. Финальная сверка пяти пар PNG — 0 отличий; Go vet/golangci-lint, React typecheck/lint, 20 целевых тестов, OpenAPI и генерация DTO — PASS.
+- Релиз 0.21.1 опубликован в GitHub/GitLab и установлен на production 4 октября: API `23632d3`, healthy, worker не менялся. Backup проверен; Docker browser smoke реального production прошёл на desktop popup и mobile. Подробности — `docs/design/tetris-cycle/RELEASE.md`. Финальная сверка пяти пар PNG — 0 отличий; Go vet/golangci-lint, React typecheck/lint, 20 целевых тестов, OpenAPI и генерация DTO — PASS.
 
 
 ### Vertigo Glass — релиз 0.21.0 (4 октября 2026)
