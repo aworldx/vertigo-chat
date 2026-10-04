@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { readDismissedNotices, saveDismissedNotices } from "./dismissedNotices"
+import { useEffect, useMemo, useState } from "react"
 import { loadPollNotices, type Poll } from "../api/polls"
 
 const channelName = "vertigo-polls"
@@ -10,8 +11,22 @@ export function announcePollsChanged() {
   channel.close()
 }
 
-export function usePollNotices(token: string) {
-  const [notices, setNotices] = useState<Poll[]>([])
+export function usePollNotices(token: string, nickname: string) {
+  const [result, setResult] = useState<{ token: string; polls: Poll[] }>({ token: "", polls: [] })
+  const [dismissed, setDismissed] = useState(() => ({ nickname, ids: readDismissedNotices(nickname) }))
+  const ids = useMemo(
+    () => (dismissed.nickname === nickname ? dismissed.ids : readDismissedNotices(nickname)),
+    [dismissed, nickname],
+  )
+  const notices = useMemo(
+    () => (result.token === token && token ? result.polls.filter((poll) => !ids.includes(poll.id)) : []),
+    [result, token, ids],
+  )
+  const dismiss = (id: number) => {
+    const next = [...new Set([...ids, id])]
+    setDismissed({ nickname, ids: next })
+    saveDismissedNotices(nickname, next)
+  }
   useEffect(() => {
     if (!token) {
       return
@@ -21,10 +36,11 @@ export function usePollNotices(token: string) {
       const controller = new AbortController()
       void loadPollNotices(token, controller.signal)
         .then((value) => {
-          if (active) setNotices(value)
+          if (active && !controller.signal.aborted) setResult({ token, polls: value })
         })
-        .catch(() => {
-          if (active) setNotices([])
+        .catch((reason: unknown) => {
+          if (active && !controller.signal.aborted && reason instanceof Error && reason.message === "forbidden")
+            setResult({ token, polls: [] })
         })
       return controller
     }
@@ -39,13 +55,15 @@ export function usePollNotices(token: string) {
       request = refresh()
     }
     channel?.addEventListener("message", receive)
+    window.addEventListener("focus", receive)
     return () => {
       active = false
       request.abort()
       window.clearInterval(interval)
+      window.removeEventListener("focus", receive)
       channel?.removeEventListener("message", receive)
       channel?.close()
     }
   }, [token])
-  return notices
+  return { notices, dismiss }
 }

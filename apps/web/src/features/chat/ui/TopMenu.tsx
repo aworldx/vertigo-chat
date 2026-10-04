@@ -1,3 +1,4 @@
+import { openPolls } from "../model/openPolls"
 import { Icon } from "../../../shared/ui/Icon"
 const links = [
   ["Хит-парад", "/music-chart", "vertigo-music-chart"],
@@ -57,6 +58,10 @@ export function TopMenu({
         </a>
         <a
           href="/polls"
+          onClick={(event) => {
+            event.preventDefault()
+            openPolls()
+          }}
           target="vertigo-polls"
           className="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
         >
@@ -124,6 +129,14 @@ export function TopMenu({
                 key={target}
                 id={`mobile-menu-${target}`}
                 href={href}
+                onClick={
+                  href === "/polls"
+                    ? (event) => {
+                        event.preventDefault()
+                        openPolls()
+                      }
+                    : undefined
+                }
                 target={target}
                 className="block rounded-lg px-3 py-2.5 transition hover:bg-zinc-800 hover:text-amber-200"
               >

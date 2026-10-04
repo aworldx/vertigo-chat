@@ -1,0 +1,31 @@
+.chat-poll-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  background: #18181b;
+  font-size: 12px;
+  line-height: 20px;
+  color: #d4d4d8;
+  flex-shrink: 0;
+}
+.chat-poll-notice__star { color: #fcd34d; }
+.chat-poll-notice__body { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.chat-poll-notice a { color: #fde68a; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.chat-poll-notice button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: #a1a1aa;
+  font-size: 20px;
+}
+.chat-poll-notice button:hover { background: #27272a; color: #fafafa; }
+.chat-poll-notice a:hover { color: #fef3c7; }
+.chat-poll-notice :focus-visible { outline: 2px solid #fcd34d; outline-offset: 2px; }

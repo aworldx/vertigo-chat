@@ -47,6 +47,7 @@ func TestPollStorePostgresConcurrentVote(t *testing.T) {
 	if optionID == 0 {
 		t.Fatalf("created poll not listed: %#v", listed)
 	}
+	assertPollSelections(t, store, ctx, poll.ID, listed)
 	assertConcurrentVote(t, store, ctx, poll.ID, optionID)
 	if err := store.Close(ctx, poll.ID); err != nil {
 		t.Fatal(err)
@@ -82,5 +83,30 @@ func assertConcurrentVote(t *testing.T, store Store, ctx context.Context, pollID
 	}
 	if succeeded != 1 || duplicated != 1 {
 		t.Fatalf("concurrent votes: success=%d duplicate=%d", succeeded, duplicated)
+	}
+}
+
+func assertPollSelections(t *testing.T, store Store, ctx context.Context, pollID int64, listed []domain.Poll) {
+	t.Helper()
+	// Every option must restore the voter's selection, including non-first rows.
+	for _, value := range listed {
+		if value.ID != pollID {
+			continue
+		}
+		for _, option := range value.Options {
+			nickname := "voter-" + option.Body
+			if err := store.Vote(ctx, pollID, nickname, option.ID); err != nil {
+				t.Fatal(err)
+			}
+			results, err := store.List(ctx, nickname)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, result := range results {
+				if result.ID == pollID && result.SelectedOptionID != option.ID {
+					t.Fatalf("selection for %q: got %d, want %d", nickname, result.SelectedOptionID, option.ID)
+				}
+			}
+		}
 	}
 }

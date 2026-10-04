@@ -1,3 +1,5 @@
+import { PollNotice } from "./PollNotice"
+import type { PositionedPollNotice } from "../model/pollNoticeTimeline"
 import { Fragment, type ReactNode } from "react"
 import type { Emoji } from "../api/emojis"
 import { KarmikHelp } from "./KarmikHelp"
@@ -10,6 +12,8 @@ import { mergeMediaTimeline, type PositionedFile } from "../model/mediaTimeline"
 import { FeedContentContext } from "./feedContent"
 
 export function MessageFeed({
+  notices = [],
+  onDismissPoll = () => undefined,
   help = [],
   onSettings,
   entries,
@@ -27,6 +31,8 @@ export function MessageFeed({
   onRetry,
   onCancel,
 }: {
+  notices?: PositionedPollNotice[]
+  onDismissPoll?: (id: number) => void
   help?: { messageID: number; topics: HelpTopic[] }[]
   onSettings?: () => void
   onReaction?: (id: number, emoji: string, active: boolean) => void
@@ -44,7 +50,9 @@ export function MessageFeed({
   onAddress: (nickname: string) => void
   onReply: (message: Message) => void
 }) {
-  const entryVersion = entries.map((entry) => `${entry.key}:${entry.delivery}`).join(",")
+  const entryVersion =
+    entries.map((entry) => `${entry.key}:${entry.delivery}`).join(",") +
+    notices.map((notice) => `poll:${String(notice.id)}`).join(",")
   const { list, publishContent } = useMessageScroll(entryVersion)
   return (
     <div
@@ -56,9 +64,11 @@ export function MessageFeed({
       className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3"
     >
       <FeedContentContext.Provider value={publishContent}>
-        {mergeMediaTimeline(entries, files).map((item) => {
+        {mergeMediaTimeline(entries, files, notices).map((item) => {
           if (item.kind === "file")
             return <SharedMedia key={item.key} file={item.file} onRequest={() => onRequestFile?.(item.file.id)} />
+          if (item.kind === "notice")
+            return <PollNotice key={item.key} notice={item.notice} onDismiss={onDismissPoll} />
           const { entry } = item
           return (
             <Fragment key={entry.key}>

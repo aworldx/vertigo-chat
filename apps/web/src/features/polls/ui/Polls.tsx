@@ -112,6 +112,7 @@ export function Polls({ token, csrf }: { token: string; csrf: string }) {
   const [notice, setNotice] = useState("")
   const [busy, setBusy] = useState(0)
   const cast = async (poll: Poll, optionID: number) => {
+    setNotice("")
     setBusy(poll.id)
     try {
       await vote(poll.id, optionID, token, csrf)
@@ -119,6 +120,10 @@ export function Polls({ token, csrf }: { token: string; csrf: string }) {
       refresh()
     } catch (reason) {
       setNotice(pollError(reason))
+      if (reason instanceof Error && (reason.message === "already_voted" || reason.message === "poll_closed")) {
+        announcePollsChanged()
+        refresh()
+      }
     } finally {
       setBusy(0)
     }

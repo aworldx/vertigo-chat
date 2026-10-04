@@ -10,3 +10,5 @@
 @import "./library.css";
 @import "./library-editor-design.css";
 @source "../src";
+
+@import "./poll-notice.css";

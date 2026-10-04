@@ -56,8 +56,10 @@ func (s Store) List(ctx context.Context, nickname string) ([]domain.Poll, error)
 		if !ok {
 			i = len(values)
 			index[p.ID] = i
-			p.SelectedOptionID = selected
 			values = append(values, p)
+		}
+		if selected != 0 {
+			values[i].SelectedOptionID = selected
 		}
 		values[i].Options = append(values[i].Options, o)
 	}

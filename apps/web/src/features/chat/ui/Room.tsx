@@ -22,7 +22,7 @@ import { MessageFeed } from "./MessageFeed"
 import { useRoom } from "../model/useRoom"
 import { feedTimeline, timelineMessages } from "../model/timeline"
 
-type PollNotice = { id: number; question: string }
+import { usePollNoticePositions, type PollNotice } from "../model/pollNoticeTimeline"
 export function Room({
   onProfile,
   csrf,
@@ -30,6 +30,7 @@ export function Room({
   onGame,
   unreadNotes,
   pollNotices,
+  onDismissPoll,
 }: {
   onProfile: (nickname: string, editable: boolean) => void
   csrf: string
@@ -37,10 +38,17 @@ export function Room({
   onGame?: (argument: string) => void
   unreadNotes: number
   pollNotices: PollNotice[]
+  onDismissPoll: (id: number) => void
 }) {
   const { state, connection } = useRoom()
   const publishedMessages = timelineMessages(state.timeline)
   const feedEntries = feedTimeline(state.timeline, state.ephemeral)
+  const positionedNotices = usePollNoticePositions(
+    pollNotices,
+    feedEntries,
+    state.nickname,
+    state.status === "ready" || state.status === "reconnecting",
+  )
   const [draft, setDraft] = useState("")
   const [reply, setReply] = useState<Message | null>(null)
   const settings = usePreferences(state.snapshot.preferences, connection)
@@ -122,6 +130,8 @@ export function Room({
                   </div>
                 )}
                 <MessageFeed
+                  notices={positionedNotices}
+                  onDismissPoll={onDismissPoll}
                   help={state.help}
                   onSettings={settings.show}
                   files={media.files}
@@ -193,34 +203,6 @@ export function Room({
                         <span className="sr-only">Видно только вам.</span>
                       </span>
                     </p>
-                  )}
-                  {pollNotices.length > 0 && (
-                    <div id="poll-system-notices" className="mt-3 space-y-1.5" aria-live="polite">
-                      {pollNotices.map((poll) => (
-                        <p
-                          id={`poll-system-notice-${String(poll.id)}`}
-                          key={poll.id}
-                          data-message-kind="system"
-                          data-private-notice="true"
-                          className="chat-message-entry px-3 py-0.5 text-center"
-                        >
-                          <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs leading-4 text-zinc-500">
-                            <span aria-hidden="true" className="text-amber-300">
-                              ✦
-                            </span>
-                            <span>Новый опрос: {poll.question}</span>
-                            <a
-                              href="/polls"
-                              target="vertigo-polls"
-                              className="font-semibold text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
-                            >
-                              Открыть
-                            </a>
-                            <span className="sr-only">Видно только вам.</span>
-                          </span>
-                        </p>
-                      ))}
-                    </div>
                   )}
                 </MessageFeed>
                 <p

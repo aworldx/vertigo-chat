@@ -17,7 +17,7 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
   }, [initialGame, openGame])
   const account = useAccountSession()
   const unreadNotes = useNotesSummary(Boolean(account.session?.principal))
-  const pollNotices = usePollNotices(chatToken())
+  const pollNotices = usePollNotices(chatToken(), readSession()?.nickname ?? "")
   const [profile, setProfile] = useState<{ nickname: string; editable: boolean } | null>(null)
   const closeProfile = useCallback(() => {
     setProfile(null)
@@ -28,7 +28,8 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
         onGame={tetris.command}
         csrf={account.session?.csrf_token ?? ""}
         unreadNotes={unreadNotes}
-        pollNotices={pollNotices}
+        pollNotices={pollNotices.notices}
+        onDismissPoll={pollNotices.dismiss}
         onProfile={(nickname, editable) => {
           setProfile({ nickname, editable })
         }}
