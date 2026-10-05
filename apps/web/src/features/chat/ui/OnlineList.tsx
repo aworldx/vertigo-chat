@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from "react"
 import type { Peer } from "../api/protocol"
-import { useKarmikPet } from "../model/useKarmikPet"
+import { Karmik } from "./Karmik"
 import { Icon } from "../../../shared/ui/Icon"
 
 const defaultAppearance: CSSProperties & Record<`--${string}`, string> = {
@@ -42,6 +42,7 @@ export function OnlineList({
   onProfile,
   onSettings,
   hideKarmik = false,
+  glassKarmik = false,
 }: {
   mood?: "resting" | "happy" | "angry"
   onPet?: () => void
@@ -51,8 +52,8 @@ export function OnlineList({
   onProfile?: (nickname: string) => void
   onSettings?: () => void
   hideKarmik?: boolean
+  glassKarmik?: boolean
 }) {
-  const pet = useKarmikPet(onPet)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(
     () => () => {
@@ -189,43 +190,12 @@ export function OnlineList({
           )
         })}
       </div>
-      {!hideKarmik && (
-        <section
-          id="karmik"
-          data-mood={mood}
-          className="karmik mt-auto hidden lg:flex"
-          aria-label="Кармик, хранитель кармы чатлан"
-        >
-          <div
-            id="karmik-sprite"
-            className="karmik-sprite"
-            role="button"
-            tabIndex={0}
-            aria-label="Погладить Кармика курсором"
-            aria-describedby="karmik-name"
-            onPointerMove={() => {
-              pet()
-            }}
-            onPointerDown={() => {
-              pet(true)
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault()
-                pet(true)
-              }
-            }}
-          />
-          {mood === "happy" && (
-            <span id="karmik-purr" className="karmik-purr" aria-live="polite">
-              Мур-р-р!
-            </span>
-          )}
-          <span id="karmik-name" className="karmik-tooltip" role="tooltip">
-            Котик Кармик
-          </span>
-        </section>
-      )}
+      {!hideKarmik &&
+        (glassKarmik ? (
+          <div className="karmik glass-karmik-placeholder mt-auto hidden lg:flex" aria-hidden="true" />
+        ) : (
+          <Karmik mood={mood} onPet={onPet} />
+        ))}
     </aside>
   )
 }

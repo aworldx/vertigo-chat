@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-05
+
+### Changed
+
+- Glass theme: Karmik sits on the woman's lap with a yin-yang pendant; the illustration is interactive and hiding the cat uses a corrected empty-lap background.
+- Translucent music player; collapsing it makes Karmik accessible again. Help instructions updated.
+
 ## [0.21.3] — 2026-10-04
 
 ### Исправлено

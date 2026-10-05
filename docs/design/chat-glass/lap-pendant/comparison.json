@@ -1,0 +1,554 @@
+[
+  {
+    "name": "scene",
+    "file": "1440-bottom.png",
+    "reference": "mock-partial-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "1440-commands.png",
+    "reference": "mock-partial-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "1440-settings.png",
+    "reference": "mock-partial-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "1440-top.png",
+    "reference": "mock-partial-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "1440-viewport.png",
+    "reference": "mock-partial-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "320-bottom.png",
+    "reference": "mock-partial-glass",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "320-commands.png",
+    "reference": "mock-partial-glass",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "320-settings.png",
+    "reference": "mock-partial-glass",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "320-top.png",
+    "reference": "mock-partial-glass",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "320-viewport.png",
+    "reference": "mock-partial-glass",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "390-bottom.png",
+    "reference": "mock-partial-glass",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "390-commands.png",
+    "reference": "mock-partial-glass",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "390-settings.png",
+    "reference": "mock-partial-glass",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "390-top.png",
+    "reference": "mock-partial-glass",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "390-viewport.png",
+    "reference": "mock-partial-glass",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "768-bottom.png",
+    "reference": "mock-partial-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "768-commands.png",
+    "reference": "mock-partial-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "768-settings.png",
+    "reference": "mock-partial-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "768-top.png",
+    "reference": "mock-partial-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "768-viewport.png",
+    "reference": "mock-partial-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "844-bottom.png",
+    "reference": "mock-partial-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "844-commands.png",
+    "reference": "mock-partial-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "844-settings.png",
+    "reference": "mock-partial-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "844-top.png",
+    "reference": "mock-partial-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "scene",
+    "file": "844-viewport.png",
+    "reference": "mock-partial-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "1440-compact-bottom.png",
+    "reference": "player-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "1440-compact-top.png",
+    "reference": "player-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "1440-compact-viewport.png",
+    "reference": "player-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "1440-expanded-bottom.png",
+    "reference": "player-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "1440-expanded-top.png",
+    "reference": "player-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "1440-expanded-viewport.png",
+    "reference": "player-glass",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "390-inline-only.png",
+    "reference": "player-glass",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "768-compact-bottom.png",
+    "reference": "player-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "768-compact-top.png",
+    "reference": "player-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "768-compact-viewport.png",
+    "reference": "player-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "768-expanded-bottom.png",
+    "reference": "player-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "768-expanded-top.png",
+    "reference": "player-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "768-expanded-viewport.png",
+    "reference": "player-glass",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "844-compact-bottom.png",
+    "reference": "player-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "844-compact-top.png",
+    "reference": "player-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "844-compact-viewport.png",
+    "reference": "player-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "844-expanded-bottom.png",
+    "reference": "recovered-reference-player",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "844-expanded-top.png",
+    "reference": "player-glass",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "player",
+    "file": "844-expanded-viewport.png",
+    "reference": "recovered-reference-player",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "1440-bottom.png",
+    "reference": "mock-hidden-v5",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "1440-commands.png",
+    "reference": "mock-hidden-v5",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "1440-settings.png",
+    "reference": "mock-hidden-v5",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "1440-top.png",
+    "reference": "mock-hidden-v5",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "1440-viewport.png",
+    "reference": "mock-hidden-v5",
+    "width": 1440,
+    "height": 900,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "320-bottom.png",
+    "reference": "mock-hidden-v5",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "320-commands.png",
+    "reference": "mock-hidden-v5",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "320-settings.png",
+    "reference": "mock-hidden-v5",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "320-top.png",
+    "reference": "mock-hidden-v5",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "320-viewport.png",
+    "reference": "mock-hidden-v5",
+    "width": 320,
+    "height": 568,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "390-bottom.png",
+    "reference": "mock-hidden-v5",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "390-commands.png",
+    "reference": "mock-hidden-v5",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "390-settings.png",
+    "reference": "mock-hidden-v5",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "390-top.png",
+    "reference": "mock-hidden-v5",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "390-viewport.png",
+    "reference": "mock-hidden-v5",
+    "width": 390,
+    "height": 844,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "768-bottom.png",
+    "reference": "mock-hidden-v5",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "768-commands.png",
+    "reference": "mock-hidden-v5",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "768-settings.png",
+    "reference": "mock-hidden-v5",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "768-top.png",
+    "reference": "mock-hidden-v5",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "768-viewport.png",
+    "reference": "mock-hidden-v5",
+    "width": 768,
+    "height": 1024,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "844-bottom.png",
+    "reference": "mock-hidden-v5",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "844-commands.png",
+    "reference": "mock-hidden-v5",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "844-settings.png",
+    "reference": "mock-hidden-v5",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "844-top.png",
+    "reference": "mock-hidden-v5",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  },
+  {
+    "name": "hidden",
+    "file": "844-viewport.png",
+    "reference": "mock-hidden-v5",
+    "width": 844,
+    "height": 390,
+    "changedPercent": 0
+  }
+]

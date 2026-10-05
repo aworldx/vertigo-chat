@@ -17,6 +17,7 @@ import { CommandResults } from "./CommandResults"
 import { usePreferences } from "../model/usePreferences"
 import { useRoomCommands } from "../model/useRoomCommands"
 import { useEmojis } from "../model/useEmojis"
+import { Karmik } from "./Karmik"
 import { OnlineList } from "./OnlineList"
 import { MessageFeed } from "./MessageFeed"
 import { useRoom } from "../model/useRoom"
@@ -99,6 +100,7 @@ export function Room({
             ["newspaper", "autumn_sunny"].includes(state.snapshot.preferences.theme_id) ? "light" : "dark"
           }
           data-chat-joined={joined}
+          data-hide-karmik={state.snapshot.preferences.appearance.hide_karmik ?? false}
           className="chat-shell relative isolate flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100"
         >
           <TopMenu
@@ -242,6 +244,7 @@ export function Room({
             {joined && <PlayerDock />}
             <div className="chat-room-sidebar">
               <OnlineList
+                glassKarmik={state.snapshot.preferences.theme_id === "vertigo_glass"}
                 hideKarmik={state.snapshot.preferences.appearance.hide_karmik ?? false}
                 mood={state.karmikMood}
                 onPet={() => {
@@ -293,6 +296,17 @@ export function Room({
               }}
             />
           )}
+          {joined &&
+            state.snapshot.preferences.theme_id === "vertigo_glass" &&
+            !state.snapshot.preferences.appearance.hide_karmik && (
+              <Karmik
+                inScene
+                mood={state.karmikMood}
+                onPet={() => {
+                  connection.petKarmik()
+                }}
+              />
+            )}
           <RoomForms form={forms} nickname={state.nickname} registered={registered} />
           {children}
           {settings.draft && (

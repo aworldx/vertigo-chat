@@ -59,3 +59,5 @@ npm-debug.log
 
 # Local authenticated music proxies (credentials).
 /music-proxies.txt
+
+/docs/design/chat-glass/functional/

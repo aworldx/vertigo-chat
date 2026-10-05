@@ -45,10 +45,17 @@ try {
         const box = await menu.boundingBox()
         assert.ok(box && box.x >= 0 && box.x + box.width <= width, "Mobile navigation fits inside the screen")
       }
-      if (width >= 1024) {
+      if (width >= 768 && height > 480) {
         const cat = page.locator("#karmik-sprite")
         await expect(cat).toBeVisible()
-        assert.ok(await cat.evaluate((el) => getComputedStyle(el).backgroundImage.includes("karmik-black-concept-v1")))
+        await expect(cat).toHaveCSS("background-image", "none")
+        assert.ok(
+          await page
+            .locator("#chat-room")
+            .evaluate((el) => getComputedStyle(el).backgroundImage.includes("vertigo-glass-lap-v3")),
+        )
+        const box = await cat.boundingBox()
+        assert.ok(box && box.x >= width - 320 && box.x + box.width <= width && box.y > 0 && box.y + box.height < height)
         await page.emulateMedia({ reducedMotion: "no-preference" })
         await cat.click()
         await expect(page.locator("#karmik")).toHaveAttribute("data-mood", "happy")
@@ -57,7 +64,40 @@ try {
         await page.screenshot({ path: `${output}/karmik-happy.png` })
         await page.emulateMedia({ reducedMotion: "reduce" })
         assert.equal(await cat.evaluate((el) => getComputedStyle(el).animationName), "none")
+        await page.mouse.move(0, 0)
+        await page.reload()
+        await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
+        await expect(cat).toBeVisible()
+        await cat.focus()
+        await expect(cat).toBeFocused()
+        await page.keyboard.press("Enter")
+        await expect(page.locator("#karmik")).toHaveAttribute("data-mood", "happy")
+        await settings(page)
+        await page.locator("#use-player").check()
+        await page.locator("#save-preferences").click()
+        await page.locator("#chat-tv-toggle").click()
+        await expect(page.locator("#chat-tv")).toHaveAttribute("data-mode", "expanded")
+        await expect(cat).toBeHidden()
+        await expect(page.locator("#chat-tv-panel")).toHaveCSS("backdrop-filter", "blur(5px) saturate(1.1)")
+        await page.locator("#chat-tv-collapse").click()
+        await expect(cat).toBeVisible()
+        await page.locator("#chat-tv-mini-off").click()
       }
+      await settings(page)
+      await page.locator("#hide-karmik").check()
+      await page.locator("#save-preferences").click()
+      await expect(page.locator("#karmik")).toHaveCount(0)
+      await expect(page.locator("#chat-room")).toHaveAttribute("data-hide-karmik", "true")
+      assert.ok(
+        await page
+          .locator("#chat-room")
+          .evaluate((el) => getComputedStyle(el).backgroundImage.includes("lap-empty-v5")),
+      )
+      await page.reload()
+      await expect(page.locator("#chat-room")).toHaveAttribute("data-hide-karmik", "true")
+      await settings(page)
+      await page.locator("#hide-karmik").uncheck()
+      await page.locator("#save-preferences").click()
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
       const input = await page.locator("#message-body").boundingBox()
       assert.ok(input && input.x >= 0 && input.y + input.height <= height)
