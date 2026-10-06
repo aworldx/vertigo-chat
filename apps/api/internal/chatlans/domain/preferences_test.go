@@ -43,3 +43,9 @@ func TestSharedPlayerIsOptIn(t *testing.T) {
 		t.Fatal("normalization must preserve the explicit player preference")
 	}
 }
+
+func TestNormalizePreservesNice(t *testing.T) {
+	if Normalize(Preferences{Theme: "nice"}).Theme != "nice" {
+		t.Fatal("Nice theme selection must be preserved")
+	}
+}

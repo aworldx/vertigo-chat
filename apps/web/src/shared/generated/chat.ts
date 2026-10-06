@@ -384,7 +384,7 @@ export interface components {
         };
         Preferences: {
             /** @enum {string} */
-            theme_id: "vertigo" | "vertigo_glass" | "dark" | "night_sky" | "autumn" | "autumn_sunny" | "newspaper";
+            theme_id: "vertigo" | "vertigo_glass" | "nice" | "dark" | "night_sky" | "autumn" | "autumn_sunny" | "newspaper";
             /** @enum {string} */
             font_id: "theme" | "sans" | "display" | "serif";
             /** @enum {string} */

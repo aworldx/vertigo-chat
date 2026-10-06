@@ -1,0 +1,10 @@
+/* Illustration preview only; production animation and behavior remain unchanged. */
+.chat-shell[data-chat-theme="vertigo_glass"] .karmik-sprite {
+  background-image: url("/images/karmik-black-concept-v1.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  animation: none;
+  image-rendering: auto;
+  filter: drop-shadow(0 6px 12px rgb(0 0 0 / 30%));
+}

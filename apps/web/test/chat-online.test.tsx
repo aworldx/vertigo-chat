@@ -27,6 +27,7 @@ test("typing visibility accepts legacy preferences and requires a boolean when p
   }
   assert.equal(isPreferences({ ...defaultPreferences, appearance: { ...legacy, hide_typing: "false" } }), false)
   assert.equal(isPreferences({ ...defaultPreferences, theme_id: "vertigo_glass" }), true)
+  assert.equal(isPreferences({ ...defaultPreferences, theme_id: "nice" }), true)
 })
 const guest: Peer = {
   bot: false,

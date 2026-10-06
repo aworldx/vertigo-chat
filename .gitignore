@@ -61,3 +61,17 @@ npm-debug.log
 /music-proxies.txt
 
 /docs/design/chat-glass/functional/
+
+# Local design mockups, source illustrations and browser evidence.
+# Application runtime assets remain tracked in apps/web/public/.
+/docs/design/**/*.png
+/docs/design/**/*.jpg
+/docs/design/**/*.jpeg
+/docs/design/**/*.webp
+/docs/design/**/*.gif
+/docs/design/**/*.mp4
+/docs/design/**/*.webm
+/docs/design/**/*.pdf
+/docs/design/**/*.psd
+/docs/design/**/*.fig
+/docs/design/**/*.zip

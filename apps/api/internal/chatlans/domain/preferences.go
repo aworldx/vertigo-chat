@@ -36,7 +36,7 @@ func color(value, fallback string) string {
 }
 func Normalize(p Preferences) Preferences {
 	switch p.Theme {
-	case "vertigo", "vertigo_glass", "dark", "night_sky", "autumn", "autumn_sunny", "newspaper":
+	case "vertigo", "vertigo_glass", "nice", "dark", "night_sky", "autumn", "autumn_sunny", "newspaper":
 	case "light":
 		p.Theme = "newspaper"
 	default:

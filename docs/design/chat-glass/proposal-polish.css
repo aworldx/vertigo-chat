@@ -1,0 +1,19 @@
+/* Complete interaction states for the approved black-cat direction. */
+.chat-shell[data-chat-theme="vertigo_glass"] #dialogue-frame { -webkit-backdrop-filter: blur(6px); }
+.chat-shell[data-chat-theme="vertigo_glass"] .karmik-sprite { transition: filter 180ms ease; }
+.chat-shell[data-chat-theme="vertigo_glass"] .karmik-sprite:hover,
+.chat-shell[data-chat-theme="vertigo_glass"] .karmik-sprite:focus-visible {
+  filter: drop-shadow(0 0 10px rgb(232 175 81 / 32%));
+}
+.chat-shell[data-chat-theme="vertigo_glass"] .karmik[data-mood="happy"] .karmik-sprite {
+  animation: karmik-glass-pet 800ms ease-in-out;
+}
+.chat-shell[data-chat-theme="vertigo_glass"] .karmik[data-mood="angry"] .karmik-sprite {
+  filter: drop-shadow(0 0 9px rgb(213 92 75 / 38%));
+}
+@keyframes karmik-glass-pet {
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+@media(max-width:767px) {
+  .chat-shell[data-chat-theme="vertigo_glass"] #dialogue-frame { -webkit-backdrop-filter: blur(2px); }
+}

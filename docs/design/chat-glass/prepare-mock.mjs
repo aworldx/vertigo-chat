@@ -1,0 +1,14 @@
+import {cp,readFile,writeFile,mkdtemp} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+const dir=await mkdtemp('/tmp/glass-mock-');
+await cp('/app/apps/web/css',`${dir}/css`,{recursive:true});
+let css=await readFile(`${dir}/css/site.css`,'utf8');
+const start=css.indexOf('/* Separate personal theme:');
+const end=css.indexOf('.chat-shell[data-chat-theme="vertigo"] .border-zinc-800',start);
+if(start<0||end<0) throw new Error('Cannot locate previous glass styles');
+await writeFile(`${dir}/css/site.css`,css.slice(0,start)+css.slice(end));
+let entry=await readFile(`${dir}/css/web.css`,'utf8');
+entry=entry.replace('@import "tailwindcss"','@import "/app/apps/web/node_modules/tailwindcss/index.css"').replace('@source "../src"','@source "/app/apps/web/src"');
+entry+='\n'+await readFile('/app/docs/design/chat-glass/proposal.css','utf8');
+await writeFile(`${dir}/css/web.css`,entry);
+execFileSync('node',['/app/apps/web/node_modules/@tailwindcss/cli/dist/index.mjs','-i',`${dir}/css/web.css`,'-o','/app/docs/design/chat-glass/mock-app.css','--minify'],{stdio:'inherit'});

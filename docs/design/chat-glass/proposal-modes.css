@@ -1,0 +1,59 @@
+/* The figure starts beneath navigation and the short participant list. */
+.chat-shell[data-chat-theme="vertigo_glass"] {
+  background-color: #0b1714;
+  background-image: linear-gradient(180deg, #0b1714 0, #0b1714 240px, transparent 360px),
+    linear-gradient(90deg, #0b1714 0, #0b1714 28%, transparent 75%),
+    url("/images/vertigo-glass-evening-v2.png");
+  background-size: 100% 100%, 100% 100%, auto calc(100% - 240px);
+  background-position: center, center, right bottom;
+  background-repeat: no-repeat;
+}
+.chat-shell[data-chat-theme="vertigo_glass"] #chat-online-sidebar {
+  background: linear-gradient(180deg, rgb(13 25 21 / 74%), rgb(13 25 21 / 30%) 170px, rgb(13 25 21 / 4%) 280px);
+}
+.chat-shell[data-chat-theme="vertigo_glass"] .karmik-sprite { background-position: center bottom; }
+
+/* One frame level: cards OR a shared reading pane, never both. */
+.chat-shell[data-chat-theme="vertigo_glass"] #dialogue-frame:has(#messages[data-message-frame="true"]) {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.chat-shell[data-chat-theme="vertigo_glass"] #messages[data-message-frame="true"] { padding: 12px 0; }
+.chat-shell[data-chat-theme="vertigo_glass"] #messages > .chat-message-entry[data-message-frame="true"][data-message-kind="text"] {
+  border: 1px solid rgb(230 237 222 / 18%);
+  border-radius: 12px;
+  background: rgb(10 23 19 / 88%);
+  padding: 28px 16px 14px;
+  box-shadow: inset 0 1px rgb(255 255 255 / 3%);
+}
+.chat-shell[data-chat-theme="vertigo_glass"] #messages [data-message-frame="true"][data-message-kind="text"] .chat-message-author {
+  top: 7px;
+  left: 16px;
+}
+.chat-shell[data-chat-theme="vertigo_glass"] #messages > .chat-message-entry[data-private="true"] {
+  background: rgb(12 32 43 / 94%);
+  border-left: 2px solid #7abddc;
+}
+.chat-shell[data-chat-theme="vertigo_glass"] #messages > .chat-message-entry[data-message-kind="text"][data-addressed-to-me="true"] {
+  background: rgb(48 39 23 / 94%);
+  border-left: 2px solid #d9b775;
+}
+.chat-shell[data-chat-theme="vertigo_glass"] #messages > .chat-message-entry:has([data-delivery-state="failed"]) { padding-top: 44px; }
+@media(max-width:767px) {
+  .chat-shell[data-chat-theme="vertigo_glass"] {
+    background-image: linear-gradient(180deg, #0b1714 0, #0b1714 120px, transparent 240px), url("/images/vertigo-glass-evening-v2.png");
+    background-size: 100% 100%, auto calc(100% - 120px);
+    background-position: center, 82% bottom;
+  }
+}
+@media(max-height:480px) {
+  .chat-shell[data-chat-theme="vertigo_glass"] {
+    background-image: linear-gradient(180deg, #0b1714 0, #0b1714 72px, transparent 140px), linear-gradient(90deg, #0b1714 0, #0b1714 35%, transparent 75%), url("/images/vertigo-glass-evening-v2.png");
+    background-size: 100% 100%, 100% 100%, auto calc(100% - 72px);
+    background-position: center, center, right bottom;
+  }
+}

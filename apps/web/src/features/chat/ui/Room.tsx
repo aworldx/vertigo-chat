@@ -97,7 +97,7 @@ export function Room({
           id="chat-room"
           data-chat-theme={state.snapshot.preferences.theme_id}
           data-chat-mode={
-            ["newspaper", "autumn_sunny"].includes(state.snapshot.preferences.theme_id) ? "light" : "dark"
+            ["newspaper", "autumn_sunny", "nice"].includes(state.snapshot.preferences.theme_id) ? "light" : "dark"
           }
           data-chat-joined={joined}
           data-hide-karmik={state.snapshot.preferences.appearance.hide_karmik ?? false}
@@ -244,7 +244,7 @@ export function Room({
             {joined && <PlayerDock />}
             <div className="chat-room-sidebar">
               <OnlineList
-                glassKarmik={state.snapshot.preferences.theme_id === "vertigo_glass"}
+                glassKarmik={["vertigo_glass", "nice"].includes(state.snapshot.preferences.theme_id)}
                 hideKarmik={state.snapshot.preferences.appearance.hide_karmik ?? false}
                 mood={state.karmikMood}
                 onPet={() => {
@@ -297,7 +297,7 @@ export function Room({
             />
           )}
           {joined &&
-            state.snapshot.preferences.theme_id === "vertigo_glass" &&
+            ["vertigo_glass", "nice"].includes(state.snapshot.preferences.theme_id) &&
             !state.snapshot.preferences.appearance.hide_karmik && (
               <Karmik
                 inScene

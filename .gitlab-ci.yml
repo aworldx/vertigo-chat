@@ -1,4 +1,4 @@
-# Run script/check locally before pushing; CI only publishes production images.
+# Run targeted Docker release checks before pushing; CI only publishes production images.
 stages:
   - build
 

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vertigo chat — airy glass mock</title>
+    <style>
+      @font-face { font-family: Display; src: url("assets/fonts/oswald-variable.ttf") format("truetype"); }
+      @font-face { font-family: Text; src: url("assets/fonts/manrope-variable.ttf") format("truetype"); }
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body { margin: 0; overflow: hidden; background: #07110f; color: #f5f0df; font-family: Text, sans-serif; }
+      .screen { position: relative; isolation: isolate; display: flex; min-height: 100vh; flex-direction: column; overflow: hidden; background: linear-gradient(90deg, rgba(2,9,10,.52), rgba(2,9,10,.18) 54%, rgba(8,14,15,.08)), url("assets/images/vertigo-glass-silhouette-v1.png") right center / cover no-repeat, url("assets/images/noir-hero.png") 72% center / cover no-repeat; }
+      .screen::before { position: absolute; z-index: -1; inset: 0; content: ""; background: radial-gradient(circle at 27% 18%, rgba(190, 53, 90, .34), transparent 28%), radial-gradient(circle at 79% 72%, rgba(53, 166, 132, .30), transparent 30%), linear-gradient(180deg, rgba(7,17,15,.05), rgba(7,17,15,.24)); }
+      .glass { border: 1px solid rgba(255, 239, 222, .36); background: linear-gradient(120deg, rgba(37, 69, 59, .38), rgba(57, 37, 44, .29)); box-shadow: 0 16px 42px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.18), inset 0 0 35px rgba(255,255,255,.035); backdrop-filter: blur(20px) saturate(1.2); }
+      header { display: flex; min-height: 72px; align-items: center; justify-content: space-between; margin: 14px 16px 0; border-radius: 18px; padding: 0 22px; }
+      .brand { display: flex; align-items: center; gap: 11px; font-family: Display, sans-serif; font-size: 21px; font-weight: 550; letter-spacing: .18em; }
+      .spiral { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(251,113,133,.75); border-radius: 50%; color: #fb7185; font-size: 28px; line-height: 1; }
+      nav { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 700; letter-spacing: .07em; }
+      .chart { border: 1px solid rgba(244,114,182,.55); border-radius: 9px; padding: 9px 13px; color: #fce7f3; }
+      .menu { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; font-size: 18px; }
+      .workspace { display: grid; min-height: 0; flex: 1; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; padding: 14px 16px; }
+      .conversation { display: flex; min-width: 0; flex-direction: column; border-radius: 20px; padding: 24px clamp(20px, 4vw, 62px) 15px; }
+      .room-label { display: flex; align-items: baseline; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid rgba(252,224,198,.12); }
+      .room-label h1 { margin: 0; font-family: Display, sans-serif; font-size: 23px; font-weight: 520; letter-spacing: .05em; }
+      .room-label span { color: #bbdfd2; font-size: 12px; }
+      .feed { display: flex; flex: 1; flex-direction: column; justify-content: flex-end; gap: 10px; padding: 24px 0 14px; }
+      .system { align-self: center; color: rgba(217, 238, 229, .62); font-size: 12px; }
+      .message { position: relative; max-width: min(680px, 82%); border: 1px solid rgba(252,224,198,.28); border-radius: 14px; padding: 12px 46px 12px 14px; background: rgba(8, 19, 16, .64); box-shadow: inset 0 1px rgba(255,255,255,.08); }
+      .message.mine { align-self: flex-end; border-color: rgba(253,164,175,.52); background: linear-gradient(135deg, rgba(137,38,65,.62), rgba(62,38,44,.67)); }
+      .meta { display: flex; gap: 8px; align-items: center; margin-bottom: 5px; font-size: 11px; }
+      .name { color: #f9a8d4; font-family: Display, sans-serif; font-size: 14px; letter-spacing: .035em; }
+      .time { color: rgba(211,239,227,.58); }
+      .copy { color: #f5f0df; font-size: 14px; line-height: 1.52; }
+      .actions { position: absolute; right: 13px; bottom: 11px; color: rgba(211,239,227,.66); font-size: 15px; }
+      .side { display: flex; flex-direction: column; gap: 12px; border-radius: 20px; padding: 18px; }
+      .side h2 { margin: 0; color: #a7f3d0; font-size: 11px; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+      .self { display: flex; align-items: center; gap: 10px; margin-top: 4px; border-radius: 13px; padding: 10px; background: rgba(255,255,255,.11); }
+      .avatar { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(251,113,133,.6); border-radius: 50%; background: rgba(251,113,133,.13); color: #fecdd3; font-weight: 750; }
+      .person { display: flex; align-items: center; gap: 9px; color: #f5f0df; font-size: 14px; }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: #86efac; box-shadow: 0 0 9px #86efac; }
+      .muted { color: rgba(211,239,227,.62); font-size: 12px; }
+      .separator { height: 1px; margin: 5px 0; background: rgba(252,224,198,.12); }
+      .composer { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; gap: 10px; align-items: center; margin: 0 16px 16px; border-radius: 18px; padding: 10px; }
+      .composer button { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgba(255,255,255,.29); border-radius: 11px; background: rgba(255,255,255,.11); color: #ecfdf5; font-size: 18px; }
+      .input { min-height: 42px; border: 1px solid rgba(252,224,198,.28); border-radius: 11px; padding: 11px 14px; background: rgba(4,13,11,.42); color: rgba(245,240,223,.70); font-size: 14px; }
+      .composer .send { border-color: rgba(251,113,133,.70); background: linear-gradient(135deg, #c13b5c, #8c2941); color: white; box-shadow: 0 6px 18px rgba(190,24,93,.25); }
+      @media (max-width: 767px) {
+        .screen { background-position: center, 66% center, 66% center; }
+        header { min-height: 58px; margin: 10px 10px 0; border-radius: 15px; padding: 0 14px; }
+        .brand { gap: 8px; font-size: 17px; }
+        .spiral { width: 29px; height: 29px; font-size: 24px; }
+        .chart { display: none; }
+        .workspace { display: block; padding: 10px; }
+        .conversation { min-height: 0; height: calc(100dvh - 164px); border-radius: 17px; padding: 16px 13px 12px; }
+        .room-label { padding-bottom: 12px; }
+        .room-label h1 { font-size: 19px; }
+        .feed { gap: 8px; padding: 14px 0 8px; }
+        .message { max-width: 92%; border-radius: 13px; padding: 10px 38px 10px 11px; }
+        .copy { font-size: 13px; }
+        .side { display: none; }
+        .composer { grid-template-columns: auto minmax(0,1fr) auto; gap: 7px; margin: 0 10px 10px; border-radius: 15px; padding: 8px; }
+        .composer button { width: 39px; height: 39px; border-radius: 10px; }
+        .composer .attach { display: none; }
+        .input { min-height: 39px; padding: 10px 11px; font-size: 13px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screen">
+      <header class="glass">
+        <div class="brand"><span class="spiral">◉</span>VERTIGO</div>
+        <nav><span class="chart">ХИТ-ПАРАД</span><span class="menu">☰</span></nav>
+      </header>
+      <div class="workspace">
+        <main class="conversation glass">
+          <div class="room-label"><h1>ОБЩАЯ КОМНАТА</h1><span>4 человека онлайн</span></div>
+          <div class="feed">
+            <div class="system">Сегодня · 21:46</div>
+            <article class="message"><div class="meta"><span class="name">Клэр</span><span class="time">21:49</span></div><div class="copy">Ты когда-нибудь дочитывал книгу только ради финала?</div><span class="actions">◌ ↩</span></article>
+            <article class="message mine"><div class="meta"><span class="name">design-review</span><span class="time">21:50</span></div><div class="copy">Да. Иногда именно финал оставляет послевкусие на весь вечер.</div><span class="actions">◌ ↩</span></article>
+            <article class="message"><div class="meta"><span class="name">Хичкок</span><span class="time">21:51</span></div><div class="copy">А иногда он объясняет, зачем была нужна вся эта история.</div><span class="actions">◌ ↩</span></article>
+          </div>
+        </main>
+        <aside class="side glass"><h2>Сейчас в комнате</h2><div class="self"><span class="avatar">D</span><div><div class="person"><span class="dot"></span>design-review</div><div class="muted">Вы в сети</div></div></div><div class="separator"></div><div class="person"><span class="dot"></span>Клэр</div><div class="person"><span class="dot"></span>Хичкок</div><div class="person"><span class="dot"></span>moon</div></aside>
+      </div>
+      <footer class="composer glass"><button aria-label="Смайл">☺</button><div class="input">Напиши сообщение…</div><button class="attach" aria-label="Прикрепить">⌇</button><button class="send" aria-label="Отправить">➤</button></footer>
+    </div>
+  </body>
+</html>

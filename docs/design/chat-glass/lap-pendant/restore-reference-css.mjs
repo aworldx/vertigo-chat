@@ -1,0 +1,12 @@
+import {cp,readFile,writeFile,mkdtemp} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+const dir=await mkdtemp('/tmp/glass-prechange-');
+await cp('/app/apps/web/css',`${dir}/css`,{recursive:true});
+let css=await readFile(`${dir}/css/chat-glass.css`,'utf8');
+css=css.slice(0,css.indexOf('/* The lap illustration and its pet target'));
+css=css.replace('  --glass-scene: url("/images/vertigo-glass-lap-v3.png");\n','').replaceAll('var(--glass-scene)','url("/images/vertigo-glass-evening-v2.png")');
+await writeFile(`${dir}/css/chat-glass.css`,css);
+let entry=await readFile(`${dir}/css/web.css`,'utf8');
+entry=entry.replace('@import "tailwindcss"','@import "/app/apps/web/node_modules/tailwindcss/index.css"').replace('@source "../src"','@source "/app/apps/web/src"');
+await writeFile(`${dir}/css/web.css`,entry);
+execFileSync('node',['/app/apps/web/node_modules/@tailwindcss/cli/dist/index.mjs','-i',`${dir}/css/web.css`,'-o','/app/docs/design/chat-glass/lap-pendant/prechange-app.css','--minify'],{stdio:'inherit'});

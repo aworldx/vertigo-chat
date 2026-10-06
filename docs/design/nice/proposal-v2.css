@@ -1,0 +1,69 @@
+/* Design-only Nice theme. Loaded into browser, never imported by the application. */
+#chat-room.chat-shell {
+  color:#203e50; --tool-surface:#fffaf0; --tool-inset:#f0f6f5; --tool-border:#92afb8; --tool-accent:#176295;
+  background:#e9f3f4 url('/nice-promenade.png') right bottom / cover no-repeat !important;
+}
+#chat-room > header, #chat-room .chat-composer {
+  background:rgb(255 251 240 / 91%) !important; border-color:rgb(66 112 137 / 28%) !important;
+  box-shadow:0 6px 24px #204a6110,inset 0 1px #fff !important; backdrop-filter:blur(18px) !important;
+}
+#chat-room #dialogue-frame { background:transparent !important; }
+#chat-room #messages > .chat-message-entry[data-message-frame="true"][data-message-kind="text"] {
+  background:rgb(255 253 245 / 93%) !important; border:1px solid #b4c9cb !important;
+  box-shadow:0 4px 16px #204a610a !important; backdrop-filter:blur(10px) !important;
+}
+#chat-room .chat-message-body { color:#203e50 !important; }
+#chat-room .chat-message-author, #chat-room #chat-online-sidebar button { color:#155b89 !important; }
+#chat-room #messages time { color:#536e7a !important; }
+#chat-room [data-message-kind="system"] > p { color:#3c5f70 !important; }
+#chat-room #chat-online-sidebar { background:linear-gradient(#fffaf0ed,#fffaf0bd 190px,#fffaf01f 260px) !important; border-color:#8bacb75c !important; }
+#chat-room .text-zinc-100, #chat-room .text-zinc-200, #chat-room .text-zinc-300, #chat-room .text-zinc-400,
+#chat-room > header a, #chat-room > header button, #chat-room > header summary { color:#294f64 !important; }
+#chat-room .hit-parade-button { background:#e7f2f7 !important; border-color:#87adbf !important; color:#155b89 !important; }
+#chat-room #message-body { color:#203e50 !important; background:#fffef8 !important; border-color:#91acb5 !important; }
+#chat-room #message-body::placeholder {color:#56717a !important;}
+#chat-room #send-message { background:#175f96 !important; border-color:#175f96 !important; color:#fff !important; }
+#chat-room #send-message:hover { background:#104b78 !important; }
+#chat-room .chat-composer button:not(#send-message) {color:#2b5267 !important; border-color:#96b0b8 !important; background:#fffaf0b3 !important;}
+#chat-room .chat-poll-notice {background:#fff9e9e8 !important; border-left-color:#c58152 !important; color:#294f64 !important;}
+#chat-room .chat-poll-notice a {color:#175f96 !important;}
+#chat-room #karmik { position:relative !important; display:flex; margin:24px auto 0 !important; padding:0 !important; }
+#chat-room .karmik-sprite {position:relative !important;top:auto !important;right:auto !important;width:110px !important;height:145px !important;background:url('/images/karmik-black-concept-v1.png') center / contain no-repeat !important;}
+#chat-room .glass-karmik-placeholder::before {display:none !important;}
+#chat-room :focus-visible {outline-color:#175f96 !important;}
+@media(max-width:767px) {
+ #chat-room.chat-shell {background-position:78% bottom !important;}
+ #chat-room #messages > .chat-message-entry[data-message-kind="text"] {background:rgb(255 253 245 / 91%) !important;}
+}
+/* Preserve the baseline flex geometry; decorative pet must not consume a row. */
+#chat-room #karmik {position:absolute !important;right:62px !important;bottom:150px !important;top:auto !important;margin:0 !important;width:110px !important;height:145px !important;}
+#chat-room .karmik-tooltip, #chat-room .karmik-purr {position:absolute !important;right:0 !important;top:-20px !important;}
+#chat-room #chat-online-sidebar .bg-emerald-500\/10 {background:#dcefe5 !important;color:#226044 !important;}
+@media(max-width:767px) { #chat-room #karmik {display:none !important;} }
+#chat-room [id^="reaction-toggle-"], #chat-room .chat-message-reply-action, #chat-room .chat-message-delete {
+ background:#fffaf0 !important;border-color:#98b2bc !important;color:#315d74 !important;
+}
+#chat-room #chat-online-sidebar .text-emerald-300 {color:#226044 !important;}
+/* v2: white chairs and light Karmik are part of the same illustration. */
+#chat-room #karmik {display:none !important;}
+@media(min-width:768px) and (min-height:481px) {
+ #chat-room.chat-shell {
+  background-color:#e8f0f0 !important;
+  background-image:linear-gradient(180deg,#e8f0f0 0%,#e8f0f000 40%),url('/nice-promenade.png') !important;
+  background-size:100% 100%,auto calc(100% - 170px) !important;
+  background-position:center,right -70px bottom !important;
+  background-repeat:no-repeat !important;
+ }
+}
+@media(min-width:768px) and (min-height:481px) {
+ #chat-room.chat-shell {
+  background-image:linear-gradient(90deg,#e8f0f0 30%,#e8f0f000 58%),linear-gradient(180deg,#e8f0f0 170px,#e8f0f000 320px),url('/nice-promenade.png') !important;
+  background-size:100% 100%,100% 100%,auto calc(100% - 170px) !important;
+  background-position:center,center,right -70px bottom !important;
+ }
+}
+@media(min-width:768px) and (max-width:1099px) and (min-height:481px) {
+ #chat-room.chat-shell {
+  background-image:linear-gradient(90deg,#e8f0f060,#e8f0f000 40%),linear-gradient(180deg,#e8f0f0 170px,#e8f0f000 320px),url('/nice-promenade.png') !important;
+ }
+}

@@ -1,0 +1,22 @@
+/* Additional states, designed before implementation. */
+#chat-room {--tool-text:#203e50;--tool-muted:#526d79;}
+#chat-room #dialogue-frame:has(#messages[data-message-frame="false"]) {
+ background:rgb(255 253 245 / 93%) !important;border:1px solid #b4c9cb !important;border-radius:20px !important;
+}
+#chat-room [role="dialog"] {color:#203e50;background:rgb(25 49 65 / 45%);}
+#chat-room [role="dialog"] :is(.bg-zinc-900,.bg-zinc-950,.bg-zinc-950\/70,.bg-zinc-900\/80),
+#chat-room :is(#emoji-picker,#command-autocomplete-menu,[id^="reaction-picker-"],#mobile-main-menu > div) {
+ background:#fffaf0 !important;color:#203e50 !important;border-color:#a7bec5 !important;
+}
+#chat-room [role="dialog"] :is(.text-zinc-100,.text-zinc-200,.text-zinc-300,.text-zinc-400,.text-zinc-500) {color:#426276 !important;}
+#chat-room [role="dialog"] :is(.text-amber-300,.text-amber-200),#chat-room #command-autocomplete-menu :is(.text-amber-300,.text-amber-200) {color:#806126 !important;}
+#chat-room [role="dialog"] :is(input,select,textarea) {color:#203e50 !important;background:#fffef8 !important;border-color:#8da9b4 !important;accent-color:#175f96;}
+#chat-room #save-preferences {background:#175f96 !important;color:#fff !important;}
+#chat-room [role="dialog"] :is(.border-zinc-800,.border-zinc-700) {border-color:#b4c9cb !important;}
+#chat-room #messages > [data-private="true"] {background:#e8f3fa !important;border-left:2px solid #3179a1 !important;}
+#chat-room #messages > [data-addressed-to-me="true"] {background:#fff2d9 !important;border-left:2px solid #a56d24 !important;}
+#chat-room .chat-tv {--tv-text:#203e50;--tv-muted:#426276;--tv-border:#a7bec5;}
+#chat-room :is(.chat-tv-panel,.chat-tv-mini,.chat-tv-dashboard,.chat-tv-heading) {color:#203e50 !important;background:#fffaf0ed !important;border-color:#a7bec5 !important;text-shadow:none;}
+/* Respect participants' existing light-theme colour preferences. */
+#chat-room .chat-message-body {color:var(--text-light,#203e50) !important;}
+#chat-room .chat-message-author,#chat-room #online-list .chat-user-nickname {color:var(--nick-light,#155b89) !important;}

@@ -58,3 +58,6 @@ erl_crash.dump
 music-proxies.txt
 /apps/phoenix/priv/static/assets/
 /apps/phoenix/priv/static/cache_manifest.json
+
+# Local design references and browser evidence are not build inputs.
+/docs/design/
