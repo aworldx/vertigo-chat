@@ -1,0 +1,9 @@
+export function panel(state) {
+ const map=['map','expanded'].includes(state);
+ const tiles=Array.from({length:9},(_,i)=>`<img src='/geo-design-assets/tile-${15+i%3}-${10+Math.floor(i/3)}.png'>`).join('');
+ return `<div class="geo-mini"><span>◎ Где мы? · 2/5 · <strong>00:38</strong></span><span>Открыть ↗</span></div>
+ <div class="geo-head"><div><div class="geo-title">Где мы?</div><div class="geo-kicker">Раунд 2 из 5 · Отвечать может каждый</div></div><div class="geo-tools"><button class="geo-people">В чате · 3</button><span class="geo-time">00:38</span><button class="geo-icon">${state==='expanded'?'↙':'↗'}</button><button class="geo-icon">−</button></div></div>
+ <div class="geo-tabs"><button class="${map?'':'active'}">Место</button><button class="${map?'active':''}">Карта${map?' · 1 метка':''}</button></div>
+ <div class="geo-scene">${map?`<div class="geo-map">${tiles}</div><div class="geo-zoom"><span>+</span><span>−</span></div><div class="geo-pin"></div><div class="geo-pin-label">Ваша метка</div><div class="geo-attribution">© OpenStreetMap contributors</div>`:'<img class="geo-photo" src="/geo-design-assets/location.jpg"><div class="geo-caption">Рассмотрите детали. Где это снято?</div>'}</div>
+ <div class="geo-footer">${state==='answered'?'<div class="geo-answer-saved"><strong>✓ Ответ принят: Италия, Манарола</strong><span>Виден только вам до конца раунда</span></div><button class="geo-edit">Изменить ответ</button>':'<label class="geo-answer-label" for="geo-answer">Ваш ответ <span>· страна или город</span></label><div class="geo-answer-row"><input id="geo-answer" placeholder="Ваша версия…"><button class="geo-submit">Ответить</button></div><div class="geo-private">Ответ скрыт до конца раунда</div>'}<div class="geo-status">Ответили 2 человека · Можно пропустить раунд</div></div>`;
+}

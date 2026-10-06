@@ -17,7 +17,8 @@
     "test:coverage": "c8 --all --include=\"src/**/*.ts\" --include=\"src/**/*.tsx\" --exclude=\"src/shared/generated/**\" --reporter=json --reporter=text --reports-dir=coverage/unit node --import=tsx --test test/*.test.tsx",
     "coverage:check": "node scripts/coverage.mjs",
     "generate:tetris-types": "openapi-typescript ../../contracts/openapi/tetris.yaml -o src/shared/generated/tetris.ts",
-    "test:browser:legacy": "playwright test"
+    "test:browser:legacy": "playwright test",
+    "generate:geo-types": "openapi-typescript ../../contracts/openapi/geo.yaml -o src/shared/generated/geo.ts"
   },
   "dependencies": {
     "@tiptap/markdown": "^3.31.3",

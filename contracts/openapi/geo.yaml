@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: Vertigo shared geography game
+  version: 1.0.0
+  description: Room-scoped timed game. Only the caller's answer is returned before disclosure.
+servers:
+  - url: /
+security:
+  - ChatSession: []
+paths:
+  /api/v1/geo/leaderboard:
+    get:
+      security: []
+      operationId: geoLeaderboard
+      summary: Permanent geography leaderboard of registered players
+      responses:
+        '200':
+          description: Top 100 by total points, fewer played rounds breaks ties
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GeoRanking'
+        '503':
+          description: Ranking unavailable
+  /api/v1/geo:
+    get:
+      operationId: getGeoGame
+      summary: Current room game, advancing expired server deadlines
+      responses:
+        '200': {$ref: '#/components/responses/Snapshot'}
+        '401': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /api/v1/geo/start:
+    post:
+      operationId: startGeoGame
+      summary: Reserve the room and prepare five community locations
+      description: Requires matching Origin. Returns 503 until Google is configured. Concurrent starts are rejected.
+      responses:
+        '200': {$ref: '#/components/responses/Snapshot'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /api/v1/geo/answer:
+    put:
+      operationId: answerGeoGame
+      summary: Replace caller's private answer before the server deadline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [id, round, text]
+              properties:
+                id: {type: string}
+                round: {type: integer, minimum: 1, maximum: 5}
+                text: {type: string, minLength: 1, maxLength: 120}
+      responses:
+        '200': {$ref: '#/components/responses/Snapshot'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    ChatSession: {type: apiKey, in: header, name: X-Chat-Session}
+  responses:
+    Error:
+      description: Human readable failure; private answers and provider credentials are never included
+      content:
+        text/plain:
+          schema: {type: string}
+    Snapshot:
+      description: Private no-store snapshot. No target coordinates, names or future places during active round.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/GeoSnapshot'}
+  schemas:
+    GeoRanking:
+      type: object
+      required: [nickname, points, rounds]
+      properties:
+        nickname: {type: string}
+        points: {type: integer, minimum: 0}
+        rounds: {type: integer, minimum: 0}
+    GeoSnapshot:
+      type: object
+      additionalProperties: false
+      required: [id, phase, round, total, deadline, server_time, cooldown, configured, own_answer, answered, leaders]
+      properties:
+        id: {type: string}
+        phase: {type: string, enum: [idle, preparing, active, reveal, finished, unavailable]}
+        round: {type: integer}
+        total: {type: integer}
+        deadline: {type: string, format: date-time}
+        server_time: {type: string, format: date-time}
+        cooldown: {type: string, format: date-time}
+        configured: {type: boolean}
+        browser_key: {type: string, description: "Public browser-restricted key, never the server key"}
+        own_answer: {type: string}
+        answered: {type: integer}
+        scene:
+          type: object
+          required: [pano_id, heading, pitch]
+          properties:
+            pano_id: {type: string}
+            heading: {type: number}
+            pitch: {type: number}
+        solution:
+          type: object
+          required: [country, city, position, points, source, author]
+          properties:
+            country: {type: string}
+            city: {type: string}
+            points: {type: integer}
+            source: {type: string}
+            author: {type: string}
+            position:
+              type: object
+              required: [lat, lng]
+              properties:
+                lat: {type: number}
+                lng: {type: number}
+        leaders:
+          type: array
+          items:
+            type: object
+            required: [nickname, points]
+            properties:
+              nickname: {type: string}
+              points: {type: integer}

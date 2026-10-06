@@ -1,0 +1,706 @@
+[
+  {
+    "file": "1440x900-place-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-place-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-place-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-collapsed-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-collapsed-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-collapsed-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-collapsed-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-collapsed-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-collapsed-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-map-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "UNVERIFIED_GOOGLE_KEY_REQUIRED"
+  },
+  {
+    "file": "1440x900-answered-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "answered",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-answered-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-answered-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-answered-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-answered-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-answered-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-idle-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "idle",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-idle-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-idle-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-idle-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-idle-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-idle-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-loading-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "loading",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-loading-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-loading-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-loading-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-loading-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-loading-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-error-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "error",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-error-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-error-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-error-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-error-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-error-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-reveal-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "reveal",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-reveal-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-reveal-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-reveal-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-reveal-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-reveal-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-finished-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "finished",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-finished-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-finished-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-finished-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-finished-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-finished-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-people-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "people",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 4,
+    "changedPercent": 0.00030864197530864197,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/1440x900-people-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/1440x900-people-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-people-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-people-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/1440x900-people-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-place-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.00025431315104166663,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/768x1024-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/768x1024-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-place-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.00025431315104166663,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/768x1024-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/768x1024-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-place-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.00025431315104166663,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/768x1024-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/768x1024-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-collapsed-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/768x1024-collapsed-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/768x1024-collapsed-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-collapsed-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-collapsed-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/768x1024-collapsed-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "UNVERIFIED_GOOGLE_KEY_REQUIRED"
+  },
+  {
+    "file": "390x844-place-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-place-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x844-place-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "390x844-collapsed-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 1,
+    "changedPercent": 0.0003038036213391664,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-collapsed-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-collapsed-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-collapsed-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-collapsed-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-collapsed-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-answered-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "answered",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-answered-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-answered-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-answered-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-answered-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-answered-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-idle-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "idle",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-idle-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-idle-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-idle-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-idle-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-idle-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-loading-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "loading",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-loading-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-loading-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-loading-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-loading-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-loading-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-error-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "error",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-error-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-error-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-error-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-error-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-error-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-reveal-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "reveal",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-reveal-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-reveal-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-reveal-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-reveal-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-reveal-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-finished-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "finished",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-finished-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-finished-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-finished-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-finished-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-finished-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-expanded-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-expanded-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x844-expanded-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x844-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x844-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x844-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "844x390-place-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/844x390-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/844x390-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-top-diff.png"
+    }
+  },
+  {
+    "file": "844x390-place-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/844x390-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/844x390-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "844x390-place-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/844x390-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/844x390-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "844x390-collapsed-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/844x390-collapsed-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/844x390-collapsed-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-collapsed-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-collapsed-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/844x390-collapsed-top-diff.png"
+    }
+  },
+  {
+    "file": "390x544-keyboard-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "keyboard",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 12,
+    "changedPercent": 0.005656108597285068,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v3/autumn/mock/390x544-keyboard-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v3/autumn/actual/390x544-keyboard-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x544-keyboard-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x544-keyboard-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v3/autumn/compare/390x544-keyboard-top-diff.png"
+    }
+  }
+]

@@ -1,4 +1,5 @@
 import { MessageHistoryPage } from "../pages/MessageHistoryPage"
+import { RankingsPage } from "../pages/RankingsPage"
 import { TetrisPage } from "../pages/TetrisPage"
 import { AdminPage } from "../pages/AdminPage"
 import { ArticlesPage } from "../pages/ArticlesPage"
@@ -21,10 +22,12 @@ const path = window.location.pathname
 const help = path === "/help" || path === "/ranks"
 const login = path.startsWith("/account/")
 if (!path.startsWith("/articles"))
-  document.title = `${path === "/history" ? "История сообщений" : path === "/admin" ? "Админка" : path === "/library" ? "Библиотека" : path === "/notes" ? "Записная книжка" : path === "/polls" ? "Опросы" : path === "/gallery" ? "Фотоальбом" : path === "/visits" ? "Кто был" : path === "/account" ? "Настройки аккаунта" : help ? "Помощь" : login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
+  document.title = `${path === "/rankings" ? "Рейтинги" : path === "/history" ? "История сообщений" : path === "/admin" ? "Админка" : path === "/library" ? "Библиотека" : path === "/notes" ? "Записная книжка" : path === "/polls" ? "Опросы" : path === "/gallery" ? "Фотоальбом" : path === "/visits" ? "Кто был" : path === "/account" ? "Настройки аккаунта" : help ? "Помощь" : login ? "Вход" : path === "/music-chart" ? "Хит-парад" : path === "/profiles" ? "Анкеты" : path === "/chat" ? "Чат" : "Общение, знакомства и игры"} · Vertigo chat`
 if (container)
   createRoot(container).render(
-    path.startsWith("/games/tetris") ? (
+    path === "/rankings" ? (
+      <RankingsPage />
+    ) : path.startsWith("/games/tetris") ? (
       <TetrisPage />
     ) : path === "/admin" ? (
       <AdminPage />

@@ -1,0 +1,17 @@
+{
+  "source": {
+    "id": "GeoGuess/GeoGuess-Maps/public/geojson/maps/aaw-5000.geojson",
+    "title": "An Arbitrary World",
+    "author": "Nathan",
+    "url": "https://github.com/GeoGuess/GeoGuess-Maps",
+    "license": "MIT",
+    "revision": "67fc11c578566eae97f2b1e6fcb4d2ee9e938867",
+    "download_url": "https://raw.githubusercontent.com/GeoGuess/GeoGuess-Maps/67fc11c578566eae97f2b1e6fcb4d2ee9e938867/public/geojson/maps/aaw-5000.geojson",
+    "sha256": "87f82405ec97ce815ca2e44f3ad4252721be8be1a98fea8df39c7a603078d7a9",
+    "provider": "google-streetview",
+    "format": "geojson",
+    "selection": "community computer-generated distribution",
+    "map_id": "aaw-5000"
+  },
+  "file": "locations.geojson"
+}

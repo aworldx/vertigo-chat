@@ -1,0 +1,458 @@
+[
+  {
+    "file": "1440x900-geo-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "geo",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/1440x900-geo-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/1440x900-geo-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-geo-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/1440x900-geo-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/1440x900-geo-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-geo-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/1440x900-geo-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/1440x900-geo-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-geo-bottom-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-tetris-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 38,
+    "changedPercent": 0.002932098765432099,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/1440x900-tetris-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/1440x900-tetris-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-tetris-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 38,
+    "changedPercent": 0.002932098765432099,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/1440x900-tetris-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/1440x900-tetris-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-tetris-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 38,
+    "changedPercent": 0.002932098765432099,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/1440x900-tetris-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/1440x900-tetris-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/1440x900-tetris-bottom-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-geo-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "geo",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/768x1024-geo-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/768x1024-geo-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-geo-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/768x1024-geo-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/768x1024-geo-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-viewport-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-geo-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/768x1024-geo-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/768x1024-geo-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-geo-bottom-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-tetris-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 34,
+    "changedPercent": 0.004323323567708334,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/768x1024-tetris-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/768x1024-tetris-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-tetris-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 34,
+    "changedPercent": 0.004323323567708334,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/768x1024-tetris-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/768x1024-tetris-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-viewport-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-tetris-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 34,
+    "changedPercent": 0.004323323567708334,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/768x1024-tetris-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/768x1024-tetris-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/768x1024-tetris-bottom-diff.png"
+    }
+  },
+  {
+    "file": "390x844-geo-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "geo",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/390x844-geo-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/390x844-geo-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-geo-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/390x844-geo-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/390x844-geo-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x844-geo-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/390x844-geo-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/390x844-geo-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-geo-bottom-diff.png"
+    }
+  },
+  {
+    "file": "390x844-tetris-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 22,
+    "changedPercent": 0.00668367966946166,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/390x844-tetris-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/390x844-tetris-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-tetris-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 22,
+    "changedPercent": 0.00668367966946166,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/390x844-tetris-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/390x844-tetris-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x844-tetris-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 22,
+    "changedPercent": 0.00668367966946166,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/390x844-tetris-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/390x844-tetris-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/390x844-tetris-bottom-diff.png"
+    }
+  },
+  {
+    "file": "844x390-geo-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "geo",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/844x390-geo-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/844x390-geo-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-top-diff.png"
+    }
+  },
+  {
+    "file": "844x390-geo-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/844x390-geo-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/844x390-geo-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-viewport-diff.png"
+    }
+  },
+  {
+    "file": "844x390-geo-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/844x390-geo-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/844x390-geo-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-geo-bottom-diff.png"
+    }
+  },
+  {
+    "file": "844x390-tetris-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 116,
+    "changedPercent": 0.0352412200753433,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/844x390-tetris-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/844x390-tetris-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-top-diff.png"
+    }
+  },
+  {
+    "file": "844x390-tetris-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 116,
+    "changedPercent": 0.0352412200753433,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/844x390-tetris-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/844x390-tetris-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-viewport-diff.png"
+    }
+  },
+  {
+    "file": "844x390-tetris-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 116,
+    "changedPercent": 0.0352412200753433,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/rankings/844x390-tetris-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/rankings/actual/844x390-tetris-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/rankings/compare/844x390-tetris-bottom-diff.png"
+    }
+  }
+]

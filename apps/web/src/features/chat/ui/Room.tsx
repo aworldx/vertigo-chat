@@ -29,6 +29,8 @@ export function Room({
   csrf,
   children,
   onGame,
+  onGeoGame,
+  gamePanel,
   unreadNotes,
   pollNotices,
   onDismissPoll,
@@ -37,6 +39,8 @@ export function Room({
   csrf: string
   children?: ReactNode
   onGame?: (argument: string) => void
+  onGeoGame?: () => void
+  gamePanel?: (peers: { nickname: string }[]) => ReactNode
   unreadNotes: number
   pollNotices: PollNotice[]
   onDismissPoll: (id: number) => void
@@ -73,6 +77,7 @@ export function Room({
     search.search,
     settings.show,
     onGame,
+    onGeoGame,
   )
   useNotification(
     [...publishedMessages, ...state.ephemeral],
@@ -131,91 +136,96 @@ export function Room({
                     </p>
                   </div>
                 )}
-                <MessageFeed
-                  notices={positionedNotices}
-                  onDismissPoll={onDismissPoll}
-                  help={state.help}
-                  onSettings={settings.show}
-                  files={media.files}
-                  onRequestFile={media.request}
-                  entries={feedEntries.filter((entry) => command.isVisible(entry.message))}
-                  frame={state.snapshot.preferences.appearance.message_frame}
-                  onRetry={(id) => {
-                    connection.retryMessage(id)
-                  }}
-                  onCancel={(id) => {
-                    connection.cancelMessage(id)
-                  }}
-                  emojis={emoji.emojis}
-                  peers={state.snapshot.peers}
-                  nickname={state.nickname}
-                  onAddress={address}
-                  onReply={(message) => {
-                    setReply(message)
-                    input.current?.focus()
-                  }}
-                  onReaction={(id, emoji, active) => {
-                    connection.setReaction(id, emoji, active)
-                  }}
-                  onDelete={
-                    state.snapshot.admin
-                      ? (id) => {
-                          connection.deleteMessage(id)
-                        }
-                      : undefined
-                  }
-                >
-                  <MediaSearchResults
-                    frame={state.snapshot.preferences.appearance.message_frame}
-                    result={search.result}
-                    onClose={() => {
-                      search.close()
-                      input.current?.focus()
-                    }}
-                    onRetry={search.retry}
-                    onPage={search.page}
-                    onSend={(item) => {
-                      search.close()
-                      connection.sendMedia(item)
-                      input.current?.focus()
-                    }}
-                  />
-                  <CommandResults results={command.results} onAddress={address} onDismiss={command.dismiss} />
-                  {unreadNotes > 0 && (
-                    <p
-                      id="notes-system-notice"
-                      data-message-kind="system"
-                      data-private-notice="true"
-                      className="chat-message-entry mt-3 px-3 py-0.5 text-center"
+                <div className={gamePanel ? "geo-layout" : "contents"}>
+                  <div className={gamePanel ? "geo-conversation" : "contents"}>
+                    <MessageFeed
+                      notices={positionedNotices}
+                      onDismissPoll={onDismissPoll}
+                      help={state.help}
+                      onSettings={settings.show}
+                      files={media.files}
+                      onRequestFile={media.request}
+                      entries={feedEntries.filter((entry) => command.isVisible(entry.message))}
+                      frame={state.snapshot.preferences.appearance.message_frame}
+                      onRetry={(id) => {
+                        connection.retryMessage(id)
+                      }}
+                      onCancel={(id) => {
+                        connection.cancelMessage(id)
+                      }}
+                      emojis={emoji.emojis}
+                      peers={state.snapshot.peers}
+                      nickname={state.nickname}
+                      onAddress={address}
+                      onReply={(message) => {
+                        setReply(message)
+                        input.current?.focus()
+                      }}
+                      onReaction={(id, emoji, active) => {
+                        connection.setReaction(id, emoji, active)
+                      }}
+                      onDelete={
+                        state.snapshot.admin
+                          ? (id) => {
+                              connection.deleteMessage(id)
+                            }
+                          : undefined
+                      }
                     >
-                      <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs leading-4 text-zinc-500">
-                        <span aria-hidden="true" className="text-amber-300">
-                          ✦
-                        </span>
-                        <span>
-                          {unreadNotes === 1 ? "Тебя ждёт 1 записка." : `Тебя ждут ${String(unreadNotes)} записки.`}
-                        </span>
-                        <a
-                          href="/notes"
-                          target="vertigo-notes"
-                          className="font-semibold text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
+                      <MediaSearchResults
+                        frame={state.snapshot.preferences.appearance.message_frame}
+                        result={search.result}
+                        onClose={() => {
+                          search.close()
+                          input.current?.focus()
+                        }}
+                        onRetry={search.retry}
+                        onPage={search.page}
+                        onSend={(item) => {
+                          search.close()
+                          connection.sendMedia(item)
+                          input.current?.focus()
+                        }}
+                      />
+                      <CommandResults results={command.results} onAddress={address} onDismiss={command.dismiss} />
+                      {unreadNotes > 0 && (
+                        <p
+                          id="notes-system-notice"
+                          data-message-kind="system"
+                          data-private-notice="true"
+                          className="chat-message-entry mt-3 px-3 py-0.5 text-center"
                         >
-                          Открыть
-                        </a>
-                        <span className="sr-only">Видно только вам.</span>
-                      </span>
+                          <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs leading-4 text-zinc-500">
+                            <span aria-hidden="true" className="text-amber-300">
+                              ✦
+                            </span>
+                            <span>
+                              {unreadNotes === 1 ? "Тебя ждёт 1 записка." : `Тебя ждут ${String(unreadNotes)} записки.`}
+                            </span>
+                            <a
+                              href="/notes"
+                              target="vertigo-notes"
+                              className="font-semibold text-amber-200 underline decoration-amber-300/50 underline-offset-2 transition hover:text-amber-100"
+                            >
+                              Открыть
+                            </a>
+                            <span className="sr-only">Видно только вам.</span>
+                          </span>
+                        </p>
+                      )}
+                    </MessageFeed>
+                    <p
+                      id="typing-indicator"
+                      aria-live="polite"
+                      className="min-h-6 shrink-0 break-words px-4 text-xs italic leading-6 text-zinc-500"
+                    >
+                      {!state.snapshot.preferences.appearance.hide_typing && state.snapshot.typing.length > 0
+                        ? `${state.snapshot.typing.join(", ")} печатает…`
+                        : ""}
                     </p>
-                  )}
-                </MessageFeed>
-                <p
-                  id="typing-indicator"
-                  aria-live="polite"
-                  className="min-h-6 shrink-0 break-words px-4 text-xs italic leading-6 text-zinc-500"
-                >
-                  {!state.snapshot.preferences.appearance.hide_typing && state.snapshot.typing.length > 0
-                    ? `${state.snapshot.typing.join(", ")} печатает…`
-                    : ""}
-                </p>
+                  </div>
+                  {gamePanel?.(state.snapshot.peers)}
+                </div>
               </main>
             ) : (
               <main

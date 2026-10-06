@@ -6,11 +6,13 @@ import { useAccountSession } from "../features/accounts"
 import { RoomProfileViewer } from "../features/profiles"
 import { useNotesSummary } from "../features/notes"
 import { usePollNotices } from "../features/polls"
+import { GeoPanel, useGeoGame } from "../features/geogame"
 function chatToken() {
   return readSession()?.resume_token ?? ""
 }
 export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
   const tetris = useTetrisLauncher(chatToken)
+  const geo = useGeoGame(chatToken)
   const openGame = tetris.open
   useEffect(() => {
     if (initialGame) openGame(initialGame, false)
@@ -26,6 +28,10 @@ export function ChatPage({ initialGame = "" }: { initialGame?: string }) {
     <GameNavigation.Provider value={tetris.open}>
       <Room
         onGame={tetris.command}
+        onGeoGame={geo.open}
+        {...(geo.visible
+          ? { gamePanel: (peers: { nickname: string }[]) => <GeoPanel controller={geo} peers={peers} /> }
+          : {})}
         csrf={account.session?.csrf_token ?? ""}
         unreadNotes={unreadNotes}
         pollNotices={pollNotices.notices}

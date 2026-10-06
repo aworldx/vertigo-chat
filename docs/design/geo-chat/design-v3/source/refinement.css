@@ -1,0 +1,7 @@
+
+/* Requested space around the game; preserve the existing Glass/Nice shell. */
+.chat-shell:not([data-chat-theme="vertigo_glass"]):not([data-chat-theme="nice"]) .geo-panel:not(.collapsed):not(.expanded){margin:16px 16px 16px 0}
+.geo-panel.expanded{inset:24px;margin:0}
+.geo-caption{top:12px;bottom:auto}
+@media(max-width:1100px) and (min-height:501px){.chat-shell:not([data-chat-theme="vertigo_glass"]):not([data-chat-theme="nice"]) .geo-panel:not(.collapsed):not(.expanded){margin:12px 12px 0}}
+@media(max-width:500px),(max-height:500px){.geo-panel.expanded{inset:12px}.chat-shell:not([data-chat-theme="vertigo_glass"]):not([data-chat-theme="nice"]) .geo-panel:not(.collapsed):not(.expanded){margin:10px}}

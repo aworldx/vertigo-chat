@@ -1,0 +1,602 @@
+[
+  {
+    "file": "1440x900-place-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 49595,
+    "changedPercent": 3.8267746913580245,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/1440x900-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/1440x900-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-place-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/1440x900-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/1440x900-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-place-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/1440x900-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/1440x900-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 390272,
+    "changedPercent": 30.11358024691358,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/1440x900-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/1440x900-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 390272,
+    "changedPercent": 30.11358024691358,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/1440x900-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/1440x900-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 160773,
+    "changedPercent": 12.405324074074073,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/1440x900-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/1440x900-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/1440x900-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-place-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.00025431315104166663,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/768x1024-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/768x1024-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-place-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.00025431315104166663,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/768x1024-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/768x1024-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-place-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.00025431315104166663,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/768x1024-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/768x1024-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-expanded-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/768x1024-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/768x1024-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-expanded-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/768x1024-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/768x1024-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-expanded-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/768x1024-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/768x1024-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/768x1024-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "390x844-place-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.0006076072426783327,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x844-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x844-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-place-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x844-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x844-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x844-place-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 2,
+    "changedPercent": 0.0006076072426783327,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x844-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x844-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "390x844-expanded-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x844-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x844-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "390x844-expanded-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x844-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x844-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x844-expanded-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x844-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x844-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x844-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "844x390-place-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 11132,
+    "changedPercent": 3.3819419127476,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/844x390-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/844x390-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-top-diff.png"
+    }
+  },
+  {
+    "file": "844x390-place-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 11132,
+    "changedPercent": 3.3819419127476,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/844x390-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/844x390-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "844x390-place-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 11132,
+    "changedPercent": 3.3819419127476,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/844x390-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/844x390-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "844x390-expanded-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/844x390-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/844x390-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "844x390-expanded-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/844x390-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/844x390-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "844x390-expanded-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/844x390-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/844x390-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/844x390-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "390x544-place-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 42827,
+    "changedPercent": 20.1861802413273,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x544-place-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x544-place-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-top-diff.png"
+    }
+  },
+  {
+    "file": "390x544-place-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 42827,
+    "changedPercent": 20.1861802413273,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x544-place-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x544-place-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x544-place-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 42827,
+    "changedPercent": 20.1861802413273,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x544-place-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x544-place-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-place-bottom-diff.png"
+    }
+  },
+  {
+    "file": "390x544-expanded-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x544-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x544-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "390x544-expanded-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x544-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x544-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "390x544-expanded-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA",
+    "status": "CAPTURED",
+    "changedPixels": 0,
+    "changedPercent": 0,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-v4/vertigo_glass/mock/390x544-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/actual/390x544-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/v4/vertigo_glass/compare/390x544-expanded-bottom-diff.png"
+    }
+  }
+]

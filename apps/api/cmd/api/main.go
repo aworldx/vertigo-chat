@@ -112,6 +112,7 @@ func main() {
 	go runOpenAICosts(ctx, metrics)
 	chatsessionshttp.NewHistoryHandler(chatsessionsapplication.NewHistory(chatsessionspostgres.NewStore(pool))).Register(mux)
 	chatSessions := chatsessionsapplication.NewService(chatsessionspostgres.NewStore(pool), chatsessionsPolicy())
+	registerGeo(ctx, mux, pool, env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020"))
 	if err := registerTetris(ctx, mux, pool, env("API_PUBLIC_ORIGIN", "http://127.0.0.1:4020")); err != nil {
 		slog.Error("configure tetris", "error", err)
 		os.Exit(1)

@@ -1909,3 +1909,12 @@ generation обновляются атомарно, а resume-secret ротир�
 - Docker: library unit/HTTP/PostgreSQL race tests, vet/golangci-lint, TestCommunityPostgres (11 сценариев), 126 frontend unit tests, typecheck/lint/architecture/format/build и contract checks — PASS. Новый script/verify-go-library проверяет реальные browser-сценарии и прежние функции редактора. Полный script/check в этом локальном этапе не запускался.
 - Макеты и текущие Docker PNG: docs/design/library-actions; итоговый строгий review — REVIEW.md, APPROVED для 1440×900, 768×1024, 390×844, включая верх/прокрутку/низ списка и редактора.
 - Пользователь разрешил commit и production-обновление. Подготовлен релиз 0.20.0 только с изменениями библиотеки; финальные проверки выполняются из изолированного checkout перед публикацией.
+
+## 2026-10-06: выпуск геоигры 0.24.0
+
+По отдельному поручению реализована геоигра. Пользователь разрешил выпуск после
+проверок и попросил исправить отступы панели. Google-ключи настроены отдельно
+от Git; живые Street View/Geocoding/Maps проверены. Состав, ограничения и
+воспроизводимые проверки: [IMPLEMENTATION.md](design/geo-chat/IMPLEMENTATION.md).
+Выпуск готовится в отдельном worktree; параллельное удаление Phoenix не входит.
+Статус приёмки и production фиксируется в design/geo-chat/RELEASE.md.

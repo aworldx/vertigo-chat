@@ -2,6 +2,12 @@ import type { HelpTopic } from "./chatHelp"
 // Menu, autocomplete and public help use the same command inventory.
 export const chatCommands: readonly { input: string; label: string; description: string; topic: HelpTopic }[] = [
   {
+    input: "/гео",
+    label: "/гео",
+    description: "Открывает «Где мы?» — общие раунды с ответами словами, без приглашений.",
+    topic: "geo",
+  },
+  {
     input: "/тетрис",
     label: "/тетрис [соло / код / топ]",
     description: "Создаёт игру до трёх участников; соло — без приглашения, топ — таблица лидеров.",

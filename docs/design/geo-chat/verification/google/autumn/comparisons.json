@@ -1,0 +1,154 @@
+[
+  {
+    "file": "1440x900-map-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 13307,
+    "changedPercent": 1.0267746913580247,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/1440x900-map-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/1440x900-map-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-map-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 65245,
+    "changedPercent": 5.034336419753086,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/1440x900-map-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/1440x900-map-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-map-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 47994,
+    "changedPercent": 3.703240740740741,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/1440x900-map-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/1440x900-map-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-map-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 49157,
+    "changedPercent": 3.792978395061728,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/1440x900-map-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/1440x900-map-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/1440x900-map-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 9418,
+    "changedPercent": 1.1975606282552085,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/768x1024-map-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/768x1024-map-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-expanded-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 43539,
+    "changedPercent": 5.5362701416015625,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/768x1024-map-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/768x1024-map-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-expanded-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 10695,
+    "changedPercent": 1.3599395751953125,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/768x1024-map-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/768x1024-map-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-expanded-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 43853,
+    "changedPercent": 5.576197306315104,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/autumn/mock/768x1024-map-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/autumn/actual/768x1024-map-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/autumn/compare/768x1024-map-expanded-bottom-diff.png"
+    }
+  }
+]

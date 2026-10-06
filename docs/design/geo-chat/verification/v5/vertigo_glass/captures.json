@@ -1,0 +1,152 @@
+[
+  {
+    "file": "1440x900-collapsed-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-collapsed-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "collapsed",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-collapsed-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "collapsed",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-collapsed-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-collapsed-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "collapsed",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-collapsed-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "collapsed",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-collapsed-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-collapsed-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "collapsed",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-collapsed-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "collapsed",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "844x390-collapsed-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "844x390-collapsed-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "collapsed",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "844x390-collapsed-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "collapsed",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x544-collapsed-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x544-collapsed-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "collapsed",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x544-collapsed-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "collapsed",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  }
+]

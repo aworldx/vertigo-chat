@@ -1,0 +1,302 @@
+[
+  {
+    "file": "1440x900-place-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "1440x900-place-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "1440x900-place-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "1440x900-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "1440x900-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "1440x900-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "768x1024-place-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "768x1024-place-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "768x1024-place-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "768x1024-expanded-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "768x1024-expanded-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "768x1024-expanded-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x844-place-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x844-place-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x844-place-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x844-expanded-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x844-expanded-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x844-expanded-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "844x390-place-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "844x390-place-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "844x390-place-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "844x390-expanded-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "844x390-expanded-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "844x390-expanded-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x544-place-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "place",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x544-place-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x544-place-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x544-expanded-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x544-expanded-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  },
+  {
+    "file": "390x544-expanded-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "panoID": "evUbP6Sod_5XlXydmbc_lA"
+  }
+]

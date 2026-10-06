@@ -1,0 +1,10 @@
+# Frozen design contract must survive checkout/transfer. Working renders stay ignored.
+!reference-v1/**/*.png
+!reference-v1/**/*.jpg
+!design-google/**/mock/*.png
+!design-v2/**/mock/*.png
+!design-v3/**/mock/*.png
+!design-v4/**/mock/*.png
+!design-v4/rankings/*.png
+!design-v4-settled/**/mock/*.png
+!design-v5/**/mock/*.png

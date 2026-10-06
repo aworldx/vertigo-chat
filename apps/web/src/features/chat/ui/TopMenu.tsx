@@ -8,6 +8,7 @@ const links = [
   ["Опросы", "/polls", "vertigo-polls"],
   ["Фотоальбом", "/gallery", "vertigo-gallery"],
   ["Кто был", "/visits", "vertigo-visits"],
+  ["Рейтинги", "/rankings", "vertigo-rankings"],
 ] as const
 export function TopMenu({
   registered,
@@ -80,6 +81,14 @@ export function TopMenu({
           className="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
         >
           Кто был
+        </a>
+        <a
+          id="menu-rankings"
+          href="/rankings"
+          target="vertigo-rankings"
+          className="hidden whitespace-nowrap transition hover:text-amber-300 lg:inline"
+        >
+          Рейтинги
         </a>
         <details id="about-main-menu" className="relative hidden lg:block">
           <summary className="cursor-pointer whitespace-nowrap transition hover:text-amber-300 [&::-webkit-details-marker]:hidden">

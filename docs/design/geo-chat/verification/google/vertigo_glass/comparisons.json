@@ -1,0 +1,154 @@
+[
+  {
+    "file": "1440x900-map-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 16983,
+    "changedPercent": 1.3104166666666668,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/1440x900-map-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/1440x900-map-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-map-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 49477,
+    "changedPercent": 3.8176697530864194,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/1440x900-map-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/1440x900-map-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-map-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 37470,
+    "changedPercent": 2.8912037037037037,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/1440x900-map-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/1440x900-map-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "1440x900-map-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 41966,
+    "changedPercent": 3.238117283950617,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/1440x900-map-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/1440x900-map-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/1440x900-map-expanded-bottom-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 4323,
+    "changedPercent": 0.5496978759765625,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/768x1024-map-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/768x1024-map-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-expanded-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "top",
+    "status": "CAPTURED",
+    "changedPixels": 20397,
+    "changedPercent": 2.5936126708984375,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/768x1024-map-expanded-top.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/768x1024-map-expanded-top.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-top-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-top-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-top-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-expanded-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED",
+    "changedPixels": 36917,
+    "changedPercent": 4.694239298502604,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/768x1024-map-expanded-viewport.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/768x1024-map-expanded-viewport.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-viewport-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-viewport-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-viewport-diff.png"
+    }
+  },
+  {
+    "file": "768x1024-map-expanded-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED",
+    "changedPixels": 35650,
+    "changedPercent": 4.533131917317709,
+    "artifacts": {
+      "reference": "/app/docs/design/geo-chat/design-google/vertigo_glass/mock/768x1024-map-expanded-bottom.png",
+      "actual": "/app/docs/design/geo-chat/verification/google/vertigo_glass/actual/768x1024-map-expanded-bottom.png",
+      "side": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-bottom-side.png",
+      "overlay": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-bottom-overlay.png",
+      "diff": "/app/docs/design/geo-chat/verification/google/vertigo_glass/compare/768x1024-map-expanded-bottom-diff.png"
+    }
+  }
+]

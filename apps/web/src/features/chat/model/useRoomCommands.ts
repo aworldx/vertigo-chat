@@ -10,6 +10,7 @@ export function useRoomCommands(
   search: (kind: MediaItem["kind"], query: string) => void,
   onSettings: () => void,
   onGame?: (argument: string) => void,
+  onGeoGame?: () => void,
 ) {
   const sequence = useRef(0)
   const [results, setResults] = useState<CommandResult[]>([]),
@@ -36,6 +37,10 @@ export function useRoomCommands(
       return true
     }
     switch (command) {
+      case "/гео":
+        if (argument) notice("error", "Где мы?", "Напиши /гео без дополнительных слов.")
+        else onGeoGame?.()
+        break
       case "/настройки":
         onSettings()
         break

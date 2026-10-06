@@ -1,16 +1,18 @@
 import { useLeaderboard } from "../model/useLeaderboard"
 
-export function TetrisLeaderboard() {
+export function TetrisLeaderboard({ embedded = false }: { embedded?: boolean }) {
   const { mode, setMode, period, setPeriod, rows, error, loading, reload } = useLeaderboard()
   return (
-    <section id="tetris-leaderboard" className="tetris-shell tetris-leaderboard">
-      <header className="tetris-header">
-        <div>
-          <span className="tetris-eyebrow">VERTIGO / БЛОКИ</span>
-          <h1>Таблица лидеров</h1>
-        </div>
-        <a href="/chat">В чат</a>
-      </header>
+    <section id="tetris-leaderboard" className={embedded ? "" : "tetris-shell tetris-leaderboard"}>
+      {!embedded && (
+        <header className="tetris-header">
+          <div>
+            <span className="tetris-eyebrow">VERTIGO / БЛОКИ</span>
+            <h1>Таблица лидеров</h1>
+          </div>
+          <a href="/chat">В чат</a>
+        </header>
+      )}
       <div className="tetris-toolbar">
         <div role="group" aria-label="Режим рейтинга">
           <button

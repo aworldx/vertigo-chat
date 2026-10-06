@@ -7,10 +7,12 @@ import (
 
 var helpQuestion = regexp.MustCompile(`(^|[^\p{L}])(как|где|куда|почему|какие|что|хочу)([^\p{L}]|$)|подскаж|помог|не (могу|знаю|получается|понимаю)`)
 var helpResolved = regexp.MustCompile(`(не нужна|не надо|не требуется) помощь|я (уже )?(знаю|понял|поняла|разобрал)|расскажу как|объясню как`)
+var gameRankingHelp = regexp.MustCompile(`рейтинг.*(игр|тетрис|гео)|(^|[^\p{L}])(игр|тетрис|гео).*рейтинг|рейтинги[?!. ]*$`)
 var helpSubjects = []struct {
 	id    string
 	words *regexp.Regexp
 }{
+	{"geo", regexp.MustCompile(`геоигр|географическ.*игр|геогесс|геогёсс|geoguess|игр.*где мы|угадать.*(стран|город)|ответ.*гео`)},
 	{"video", regexp.MustCompile(`видео|ролик|клип|ют[ую]б|youtube`)},
 	{"music", regexp.MustCompile(`музык|песн|трек|плеер|плейлист|чатлан тв|(сверну|скрыть|выключ|откры|разверну).*телевизор`)},
 	{"font", regexp.MustCompile(`шрифт|курсив|начертани`)},
@@ -53,7 +55,7 @@ func HelpTopics(body string) []string {
 	}
 	topics := []string{}
 	for _, subject := range helpSubjects {
-		if subject.words.MatchString(text) {
+		if matchesHelpSubject(subject.id, subject.words, text) {
 			topics = append(topics, subject.id)
 		}
 	}
@@ -61,4 +63,12 @@ func HelpTopics(body string) []string {
 		return []string{"commands"}
 	}
 	return topics
+}
+
+func matchesHelpSubject(id string, words *regexp.Regexp, text string) bool {
+	gameRanking := gameRankingHelp.MatchString(text)
+	if id == "karma" && gameRanking && !strings.Contains(text, "карм") {
+		return false
+	}
+	return words.MatchString(text) || (id == "games" && gameRanking)
 }

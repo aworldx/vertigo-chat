@@ -1,0 +1,290 @@
+[
+  {
+    "file": "1440x900-geo-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "geo",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "1440x900-geo-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "1440x900-geo-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "1440x900-tetris-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "1440x900-tetris-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "1440x900-tetris-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "768x1024-geo-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "geo",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "768x1024-geo-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "768x1024-geo-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "768x1024-tetris-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "768x1024-tetris-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "768x1024-tetris-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "390x844-geo-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "geo",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "390x844-geo-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "390x844-geo-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "390x844-tetris-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "390x844-tetris-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "390x844-tetris-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "844x390-geo-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "geo",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "844x390-geo-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "geo",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "844x390-geo-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "geo",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "844x390-tetris-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "tetris",
+    "scroll": "top",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "844x390-tetris-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "tetris",
+    "scroll": "viewport",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  },
+  {
+    "file": "844x390-tetris-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "game": "tetris",
+    "scroll": "bottom",
+    "route": "/rankings",
+    "auth": "public",
+    "fixture": "Клэр, moon as declared in rankings.mjs"
+  }
+]

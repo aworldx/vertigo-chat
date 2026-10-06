@@ -31,6 +31,7 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 		mux.HandleFunc("GET "+route, canonicalPage(origin, page))
 	}
 	files := http.FileServer(http.FS(assets))
+	mux.HandleFunc("GET /rankings", canonicalPage(origin, page))
 	mux.HandleFunc("GET /games/tetris", canonicalPage(origin, page))
 	mux.HandleFunc("GET /games/tetris/leaderboard", canonicalPage(origin, page))
 	mux.HandleFunc("GET /games/tetris/{id}", canonicalPage(origin, page))

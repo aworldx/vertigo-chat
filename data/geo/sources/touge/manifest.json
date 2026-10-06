@@ -1,0 +1,17 @@
+{
+  "source": {
+    "id": "itsjustduc/geoguessr-stuff/gorgeoustougeroads.json",
+    "title": "Gorgeous Touge Roads",
+    "author": "duc",
+    "url": "https://github.com/itsjustduc/geoguessr-stuff",
+    "license": "MIT",
+    "revision": "c5555383b1f7f39448876dd672d09c02c4c5ec8c",
+    "download_url": "https://raw.githubusercontent.com/itsjustduc/geoguessr-stuff/c5555383b1f7f39448876dd672d09c02c4c5ec8c/gorgeoustougeroads.json",
+    "sha256": "45939711d227b2d561574311397cacee80fa562ba34c6674c9d5205b39cd3384",
+    "provider": "google-streetview",
+    "format": "geoguessr-json",
+    "selection": "author-curated; includes work-in-progress tags",
+    "map_id": "6305565fde2667656468e9b2"
+  },
+  "file": "locations.json"
+}

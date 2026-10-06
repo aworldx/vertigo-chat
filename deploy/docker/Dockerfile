@@ -14,6 +14,7 @@ COPY apps/api/go.mod apps/api/go.sum ./
 RUN go mod download
 COPY apps/api/ ./
 COPY contracts/fixtures/ /src/contracts/fixtures/
+COPY data/geo/ /src/data/geo/
 RUN go vet ./... && go test ./... \
   && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /api ./cmd/api \
   && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /migrate ./cmd/migrate
@@ -73,6 +74,7 @@ WORKDIR /app
 COPY --from=api-builder /api /app/bin/api
 COPY --from=api-builder /migrate /app/bin/migrate
 COPY --from=web-builder /src/dist /app/web
+COPY data/geo/catalog.json /app/data/geo/catalog.json
 ENV API_ADDR=0.0.0.0:4020 WEB_ASSETS_DIR=/app/web
 USER nobody
 CMD ["/app/bin/api"]

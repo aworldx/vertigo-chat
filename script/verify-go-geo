@@ -1,0 +1,51 @@
+#!/bin/sh
+# Reproducible geography verification in the pinned Docker toolchain.
+set -eu
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+go_command="${GO:-go}"
+maintenance="${COVERAGE_DATABASE_URL:-postgresql://localhost/postgres}"
+database_name="chat_geo_test_$$"
+database_url="$(node -e 'const u=new URL(process.argv[1]);u.pathname=process.argv[2];console.log(u.href)' "$maintenance" "$database_name")"
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/chat-geo-verification.XXXXXX")"
+cleanup() {
+  if [ -n "${api_pid:-}" ]; then kill "$api_pid" 2>/dev/null || true; wait "$api_pid" 2>/dev/null || true; fi
+  if [ -n "${created_database:-}" ]; then dropdb --maintenance-db="$maintenance" "$database_name"; fi
+  rm -rf "$work_dir"
+}
+trap cleanup EXIT HUP INT TERM
+createdb --maintenance-db="$maintenance" "$database_name"
+created_database=true
+psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/legacy-schema.sql" > "$work_dir/schema.log"
+cd "$repository_root/apps/api"
+DATABASE_URL="$database_url" "$go_command" run ./cmd/migrate
+psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/go-web.sql"
+GO_GEO_TEST_DATABASE_URL="$database_url" "$go_command" test -count=1 -race ./internal/geogame/... ./internal/geocatalog/...
+npm --prefix "$repository_root/apps/web" run build
+"$go_command" test -c -o "$work_dir/api-fixture" ./cmd/api
+DATABASE_URL="$database_url" WEB_ASSETS_DIR="$repository_root/apps/web/dist" GEO_BROWSER_TEST=1 "$work_dir/api-fixture" -test.timeout=0 -test.run='^TestGeoBrowserServer$' > "$work_dir/api.log" 2>&1 &
+api_pid=$!
+attempt=0
+until curl --fail --silent http://127.0.0.1:4094/health >/dev/null 2>&1; do
+  attempt=$((attempt+1))
+  if [ "$attempt" -ge 30 ] || ! kill -0 "$api_pid" 2>/dev/null; then cat "$work_dir/api.log"; exit 1; fi
+  sleep 1
+done
+cd "$repository_root/apps/web"
+node --import=tsx browser/geo-verification.ts http://127.0.0.1:4094
+kill "$api_pid"
+wait "$api_pid" 2>/dev/null || true
+api_pid=
+cd "$repository_root/apps/api"
+"$go_command" build -o "$work_dir/api" ./cmd/api
+DATABASE_URL="$database_url" API_ADDR=127.0.0.1:4094 API_PUBLIC_ORIGIN=http://127.0.0.1:4094 WEB_ASSETS_DIR="$repository_root/apps/web/dist" GEO_GOOGLE_SERVER_KEY= GEO_GOOGLE_BROWSER_KEY= "$work_dir/api" > "$work_dir/unconfigured.log" 2>&1 &
+api_pid=$!
+attempt=0
+until curl --fail --silent http://127.0.0.1:4094/health >/dev/null 2>&1; do
+  attempt=$((attempt+1))
+  if [ "$attempt" -ge 30 ] || ! kill -0 "$api_pid" 2>/dev/null; then cat "$work_dir/unconfigured.log"; exit 1; fi
+  sleep 1
+done
+# Previous fixture game is isolated test data, not a real room.
+psql "$database_url" -q -c 'DELETE FROM geo_room_games'
+cd "$repository_root/apps/web"
+node --import=tsx browser/geo-verification.ts http://127.0.0.1:4094 unconfigured

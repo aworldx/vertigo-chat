@@ -1,0 +1,74 @@
+[
+  {
+    "file": "1440x900-map-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map",
+    "scroll": "top"
+  },
+  {
+    "file": "1440x900-map-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "top"
+  },
+  {
+    "file": "1440x900-map-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "viewport"
+  },
+  {
+    "file": "1440x900-map-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map-expanded",
+    "scroll": "bottom"
+  },
+  {
+    "file": "768x1024-map-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map",
+    "scroll": "top"
+  },
+  {
+    "file": "768x1024-map-expanded-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "top"
+  },
+  {
+    "file": "768x1024-map-expanded-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "viewport"
+  },
+  {
+    "file": "768x1024-map-expanded-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map-expanded",
+    "scroll": "bottom"
+  }
+]

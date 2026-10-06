@@ -1,0 +1,382 @@
+[
+  {
+    "file": "1440x900-place-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-place-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-place-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-collapsed-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-map-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "UNVERIFIED_GOOGLE_KEY_REQUIRED"
+  },
+  {
+    "file": "1440x900-answered-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "answered",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-idle-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "idle",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-loading-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "loading",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-error-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "error",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-reveal-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "reveal",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-finished-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "finished",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "1440x900-people-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "people",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-place-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-place-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-place-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-collapsed-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "768x1024-map-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "map",
+    "scroll": "top",
+    "status": "UNVERIFIED_GOOGLE_KEY_REQUIRED"
+  },
+  {
+    "file": "390x844-place-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-place-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-place-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-collapsed-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-answered-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "answered",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-idle-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "idle",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-loading-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "loading",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-error-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "error",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-reveal-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "reveal",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-finished-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "finished",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-expanded-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-expanded-viewport.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x844-expanded-bottom.png",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "844x390-place-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "844x390-place-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "844x390-place-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "844x390-collapsed-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "collapsed",
+    "scroll": "top",
+    "status": "CAPTURED"
+  },
+  {
+    "file": "390x544-keyboard-top.png",
+    "viewport": {
+      "width": 390,
+      "height": 544
+    },
+    "state": "keyboard",
+    "scroll": "top",
+    "status": "CAPTURED"
+  }
+]
