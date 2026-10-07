@@ -19,12 +19,11 @@ export function AnswerForm({
   submit: () => void
 }) {
   return (
-    <div className="geo-footer">
+    <div className="geo-footer geo-answer-footer">
       {game.own_answer && !editing ? (
-        <>
+        <div className="geo-answer-summary">
           <div className="geo-answer-saved">
-            <strong>✓ Ответ принят: {game.own_answer}</strong>
-            <span>Виден только вам до конца раунда</span>
+            <strong title={game.own_answer}>✓ Ответ принят: {game.own_answer}</strong>
           </div>
           <button
             type="button"
@@ -36,7 +35,7 @@ export function AnswerForm({
           >
             Изменить ответ
           </button>
-        </>
+        </div>
       ) : (
         <form
           onSubmit={(event) => {
@@ -44,13 +43,13 @@ export function AnswerForm({
             submit()
           }}
         >
-          <label className="geo-answer-label" htmlFor="geo-answer">
+          <label className="geo-answer-label geo-visually-hidden" htmlFor="geo-answer">
             Ваш ответ <span>· страна или город</span>
           </label>
           <div className="geo-answer-row">
             <input
               id="geo-answer"
-              placeholder="Ваша версия…"
+              placeholder="Страна или город…"
               autoComplete="off"
               maxLength={120}
               value={draft}
@@ -63,10 +62,12 @@ export function AnswerForm({
               Ответить
             </button>
           </div>
-          <div className="geo-private">Ответ скрыт до конца раунда</div>
         </form>
       )}
-      <div className="geo-status">Ответили {game.answered} человека · Можно пропустить раунд</div>
+      <div className="geo-answer-note">
+        <span>Ответ скрыт до конца раунда</span>
+        <span>Ответили: {game.answered}</span>
+      </div>
     </div>
   )
 }

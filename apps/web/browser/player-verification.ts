@@ -75,11 +75,20 @@ export async function verifyPlayer(browser: Browser, origin: string) {
   audio.writeUInt16LE(16, 34)
   audio.write("data", 36)
   audio.writeUInt32LE(audio.length - 44, 40)
-  for (const width of [320, 390, 767, 768, 1024, 1440]) {
+  for (const [width, height] of [
+    [320, 844],
+    [390, 844],
+    [767, 844],
+    [844, 390],
+    [768, 900],
+    [1024, 900],
+    [1440, 900],
+  ] as const) {
+    const inline = width < 768 || height <= 480
     const context = await browser.newContext({
-      viewport: { width, height: width < 768 ? 844 : 900 },
+      viewport: { width, height },
       reducedMotion: "reduce",
-      hasTouch: width < 768,
+      hasTouch: inline,
     })
     let attempts = 0
     await context.route("**/music-proxy?*", (route) => serveMedia(route, audio, "audio/wav"))
@@ -118,7 +127,7 @@ export async function verifyPlayer(browser: Browser, origin: string) {
       await expect(page.locator("#chat-tv-toggle")).toHaveCount(0)
       await expect(page.locator("#messages audio")).toHaveCount(2)
       await expect(page.locator("#messages video")).toHaveCount(1)
-      if (width < 768) {
+      if (width < 768 || height <= 480) {
         const audio = page.locator("#media-message-20001-audio")
         await audio.evaluate(async (element) => {
           if (element instanceof HTMLAudioElement) await element.play()
@@ -369,7 +378,7 @@ export async function verifyPlayer(browser: Browser, origin: string) {
         assert.equal(await queue.evaluate((element) => element.scrollHeight > element.clientHeight), true)
         const panel = await page.locator("#chat-tv-panel").boundingBox()
         assert.ok(panel && panel.height <= 521, "long queues stay bounded within the chatlan column")
-        for (const height of [480, 640, 900]) {
+        for (const height of [481, 640, 900]) {
           await page.setViewportSize({ width, height })
           await queue.evaluate((element) => {
             element.scrollTop = element.scrollHeight
@@ -388,6 +397,8 @@ export async function verifyPlayer(browser: Browser, origin: string) {
       await page.getByRole("button", { name: "Закрыть поиск музыки" }).click()
       await expect(page.locator("#chat-tv-expand")).toContainText("Из поиска")
       await expect.poll(() => video.evaluate((e) => e instanceof HTMLMediaElement && e.currentTime > 0)).toBe(true)
+      await page.setViewportSize({ width, height: 480 })
+      await expect(page.locator("#chat-tv")).toHaveCount(0)
       await page.setViewportSize({ width: 390, height: 844 })
       await expect(page.locator("#chat-tv")).toHaveCount(0)
       await page.setViewportSize({ width, height: 900 })

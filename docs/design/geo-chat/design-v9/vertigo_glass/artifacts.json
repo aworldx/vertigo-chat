@@ -1,0 +1,338 @@
+[
+  {
+    "file": "1440x900-player-expanded-top.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "player-expanded",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1440x900-player-expanded-viewport.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "player-expanded",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1440x900-player-expanded-bottom.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "state": "player-expanded",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1280x678-player-expanded-top.png",
+    "viewport": {
+      "width": 1280,
+      "height": 678
+    },
+    "state": "player-expanded",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1280x678-player-expanded-viewport.png",
+    "viewport": {
+      "width": 1280,
+      "height": 678
+    },
+    "state": "player-expanded",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1280x678-player-expanded-bottom.png",
+    "viewport": {
+      "width": 1280,
+      "height": 678
+    },
+    "state": "player-expanded",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1024x678-player-expanded-top.png",
+    "viewport": {
+      "width": 1024,
+      "height": 678
+    },
+    "state": "player-expanded",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1024x678-player-expanded-viewport.png",
+    "viewport": {
+      "width": 1024,
+      "height": 678
+    },
+    "state": "player-expanded",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "1024x678-player-expanded-bottom.png",
+    "viewport": {
+      "width": 1024,
+      "height": 678
+    },
+    "state": "player-expanded",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "768x1024-player-expanded-top.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "player-expanded",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "768x1024-player-expanded-viewport.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "player-expanded",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "768x1024-player-expanded-bottom.png",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "state": "player-expanded",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-place-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-place-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-place-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "place",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-answered-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "answered",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-answered-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "answered",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-answered-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "answered",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-answered-expanded-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "answered-expanded",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-answered-expanded-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "answered-expanded",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-answered-expanded-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "answered-expanded",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-player-compact-top.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "player-compact",
+    "scroll": "top",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-player-compact-viewport.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "player-compact",
+    "scroll": "viewport",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  },
+  {
+    "file": "844x390-player-compact-bottom.png",
+    "viewport": {
+      "width": 844,
+      "height": 390
+    },
+    "state": "player-compact",
+    "scroll": "bottom",
+    "route": "/chat",
+    "auth": "guest",
+    "theme": "vertigo_glass",
+    "fixture": "v6: fixed 3 peers + 7 chat rows + panorama fixture image + 2s playing audio",
+    "overflow": false
+  }
+]

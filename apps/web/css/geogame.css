@@ -12,7 +12,7 @@
 .geo-panel{position:relative}.geo-state{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:#14271e;color:#f5f0df}.geo-state h2{font-size:22px;font-weight:650;line-height:1.25;margin:0 0 16px}.geo-state p{font-size:14px;line-height:1.7;white-space:pre-line;max-width:340px;color:#bfd1c2;margin:0}.geo-reveal{display:grid;gap:7px;color:#f5f0df}.geo-reveal strong{font-size:18px}.geo-reveal span{font-size:13px;color:#e7cb8c}.geo-reveal small{font-size:11px;color:#bfd1c2}.geo-popover{position:absolute;top:58px;right:16px;z-index:5;background:#14271e;border:1px solid #64796e;border-radius:12px;padding:16px;width:220px;box-shadow:0 8px 28px #0008}.geo-popover>div{display:flex;align-items:center;justify-content:space-between}.geo-popover ul{display:grid;gap:12px;padding:16px 0 0;margin:0;list-style:none}.geo-popover button{background:transparent;border:0;color:inherit;font-size:22px}.geo-panel.expanded{position:fixed}
 @media(max-width:900px) and (max-height:500px){.geo-tabs{display:none}}
 @media(max-width:500px){.geo-state{padding:16px}.geo-state h2{font-size:18px;margin-bottom:10px}.geo-state p{font-size:12px;line-height:1.55}.geo-reveal strong{font-size:16px}}
-@media(max-width:500px) and (max-height:650px){.geo-panel:has(input:focus){flex-basis:250px}.geo-panel:has(input:focus) .geo-scene{min-height:58px}.geo-panel:has(input:focus) .geo-head{padding-bottom:6px}.geo-panel:has(input:focus) .geo-private,.geo-panel:has(input:focus) .geo-status{display:none}}
+@media(max-width:500px) and (max-height:650px){.geo-panel:has(input):focus-within{flex-basis:250px}.geo-panel:has(input):focus-within .geo-scene{min-height:58px}.geo-panel:has(input):focus-within .geo-head{padding-bottom:6px}.geo-panel:has(input):focus-within .geo-private,.geo-panel:has(input):focus-within .geo-status{display:none}}
 
 .geo-place-view,.geo-map-view{height:100%;width:100%;position:relative}.geo-google-map{position:absolute;inset:0}.geo-hidden-on-wide{display:none}.geo-map-message{position:absolute;bottom:24px;left:8px;right:8px;padding:5px;background:#14271edd;color:#f5f0df;font-size:11px;pointer-events:none}.chat-shell .geo-mini{font-family:inherit;font-weight:400;letter-spacing:normal;line-height:inherit;width:100%;border:0;color:inherit;background:transparent;text-align:left;cursor:pointer}.geo-error{padding:8px 16px;color:#ffd7c0;background:#482a20;font-size:12px}.geo-error button{margin-left:8px;text-decoration:underline}.geo-panel button{cursor:pointer}.geo-panel button:disabled{cursor:default}.geo-panel button:focus-visible{outline:2px solid #ebca82;outline-offset:2px}
 @media(max-width:500px),(max-width:900px) and (max-height:500px),(pointer:coarse) and (max-height:500px){.geo-tabs,.geo-map-view{display:none}.geo-hidden-on-wide{display:block}}
@@ -31,3 +31,76 @@
 .geo-close{width:auto;padding:0 9px;font-size:12px;white-space:nowrap}.geo-panorama{position:absolute;inset:0}.geo-return{position:absolute;top:10px;left:10px;z-index:1;background:#14271eee;color:#f5f0df;border:1px solid #64796e88;border-radius:7px;padding:7px 10px;font-size:11px}.geo-panorama-status{position:absolute;inset:0;display:grid;place-items:center;background:#14271e;color:#f5f0df;font-size:13px;pointer-events:none}
 @media(max-width:1100px) and (min-height:651px){.geo-panel:not(.collapsed):not(.expanded){flex-basis:450px}}
 @media(max-width:500px) and (min-height:651px){.geo-panel:not(.collapsed):not(.expanded){flex-basis:410px}}
+
+/* Scoped repair: the playing dock must not create an implicit second column. */
+.geo-head {padding:8px 10px;gap:8px}
+.geo-head > div:first-child {flex:1;min-width:0}
+.geo-title {font-size:17px;letter-spacing:-.4px}
+.geo-kicker {font-size:10px;line-height:1.3;margin-top:2px;white-space:nowrap}
+.geo-head .geo-tabs {flex:none;margin:0;padding:2px;gap:2px}
+.geo-head .geo-tabs button {font-size:12px;padding:5px 8px;min-width:55px}
+.geo-tools {gap:4px;flex-shrink:0}
+.geo-icon {width:30px;height:30px;font-size:18px}
+.geo-close {width:auto;padding:0 7px;font-size:11px}
+.geo-time {font-size:15px;padding:4px 6px}
+.geo-people {font-size:11px;padding:5px 7px}
+.geo-answer-footer,.geo-panel.expanded .geo-answer-footer {padding:8px 10px}
+.geo-answer-row input {padding:8px 10px}
+.geo-answer-row .geo-submit,.geo-panel.expanded .geo-answer-row .geo-submit {padding:8px 14px}
+.geo-answer-summary {display:flex;align-items:center;gap:8px}
+.geo-answer-summary .geo-answer-saved {flex:1;min-width:0;padding:8px 10px}
+.geo-answer-summary .geo-answer-saved strong {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.geo-answer-summary .geo-edit {flex:none;margin:0;font-size:12px;padding:7px 2px}
+.geo-answer-note {display:flex;justify-content:space-between;gap:8px;margin-top:5px;font-size:10px;line-height:1.3;color:#bfd1c2}
+.geo-visually-hidden {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:500px) {
+  .geo-head {gap:5px}
+  .geo-title {font-size:16px}
+  .geo-icon {width:28px;height:28px}
+  .geo-close {width:auto}
+  .geo-answer-summary .geo-edit {font-size:11px}
+}
+@media(max-width:500px) and (max-height:650px) {
+  .geo-panel:not(.collapsed):not(.expanded) {flex-basis:min(300px,calc(100dvh - 210px))}
+  .geo-panel:not(.collapsed):not(.expanded):has(input):focus-within {flex-basis:250px}
+}
+@media(max-height:500px) {
+  .geo-answer-note {display:none}
+  .geo-head,.geo-answer-footer,.geo-panel.expanded .geo-answer-footer {padding:6px 8px}
+  .geo-answer-row input,.geo-answer-row .geo-submit,.geo-panel.expanded .geo-answer-row .geo-submit {padding:6px 10px}
+}
+.chat-room-content:has(.geo-panel:not(.collapsed)) {
+  position: relative;
+}
+.chat-room-content:has(.geo-panel:not(.collapsed)) > main {
+  grid-row: 1;
+}
+.chat-room-content:has(.geo-panel:not(.collapsed)) > .chat-tv {
+  grid-column: 1;
+  grid-row: 2;
+  position: static;
+}
+@media (min-width: 768px) {
+  .chat-room-content:has(.geo-panel:not(.collapsed)) .chat-tv[data-mode="expanded"] .chat-tv-mini {
+    display: none;
+  }
+  .chat-room-content:has(.geo-panel:not(.collapsed)) .chat-tv-panel {
+    position: absolute;
+    left: 0;
+    right: auto;
+    bottom: 0;
+    width: min(360px, 100%);
+    max-height: min(55%, 520px);
+    border-radius: 16px 16px 0 0;
+    border: 1px solid var(--tv-border);
+    box-shadow: 0 -12px 40px #0005;
+  }
+  .chat-room-content:has(.geo-panel:not(.collapsed)) .chat-player-screen {
+    width: min(100%, calc(min(18dvh, 120px) * var(--media-ratio, 1.7778)));
+    margin: 0 auto 8px;
+  }
+}
+
+.chat-shell:has(.geo-panel:not(.collapsed)) .chat-tv[data-mode="expanded"] { border:0; box-shadow:none; background:transparent; }
+
+.chat-shell:has(.geo-panel:not(.collapsed)) #karmik { display:none; }

@@ -1,3 +1,5 @@
+> Superseded for the game panel after user screenshots on 2026-10-07. See REVIEW-v0241.md for the corrected v7/v9 references and final Docker evidence. Historical rankings review below remains unchanged.
+
 # Final visual review — 2026-10-06
 
 Result: APPROVED for the requested game surfaces. Functional Docker verifier completed before this review. Original proposal sources and PNGs are retained; v4 settled images repair incomplete Google texture loading only (see design-v4-settled/RENDER-REPAIR.md). No implementation was simplified to match incomplete images.

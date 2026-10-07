@@ -113,9 +113,31 @@ function Panel({
         <div>
           <div className="geo-title">Где мы?</div>
           <div className="geo-kicker">
-            {active || reveal ? `Раунд ${String(game.round)} из 5 · ` : ""}Отвечать может каждый
+            {active || reveal ? `Раунд ${String(game.round)} из 5` : "Отвечать может каждый"}
           </div>
         </div>
+        {active && (
+          <div className="geo-tabs">
+            <button
+              type="button"
+              className={tab === "place" ? "active" : ""}
+              onClick={() => {
+                setTab("place")
+              }}
+            >
+              Место
+            </button>
+            <button
+              type="button"
+              className={tab === "map" ? "active" : ""}
+              onClick={() => {
+                setTab("map")
+              }}
+            >
+              Карта
+            </button>
+          </div>
+        )}
         <div className="geo-tools">
           <button
             className="geo-people"
@@ -131,6 +153,19 @@ function Panel({
               {timeLabel(seconds)}
             </span>
           )}
+          <button
+            type="button"
+            className="geo-icon"
+            aria-label="Свернуть игру"
+            title="Свернуть игру"
+            onClick={() => {
+              setCollapsed(true)
+              setExpanded(false)
+              setPeople(false)
+            }}
+          >
+            −
+          </button>
           <button
             type="button"
             className="geo-icon"
@@ -155,28 +190,6 @@ function Panel({
           </button>
         </div>
       </div>
-      {active && (
-        <div className="geo-tabs">
-          <button
-            type="button"
-            className={tab === "place" ? "active" : ""}
-            onClick={() => {
-              setTab("place")
-            }}
-          >
-            Место
-          </button>
-          <button
-            type="button"
-            className={tab === "map" ? "active" : ""}
-            onClick={() => {
-              setTab("map")
-            }}
-          >
-            Карта
-          </button>
-        </div>
-      )}
       <div className="geo-scene">
         {(active || reveal) && game.scene ? (
           <>

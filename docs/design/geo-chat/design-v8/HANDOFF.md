@@ -1,0 +1,2 @@
+# v8 landscape refinement, before implementation
+Only 844×390 replaces v7; all other v7 references remain frozen. Same route `/chat`, guest, scale 1, theme/fixtures/assets from v7. Compact playing dock anchors to the conversation half, without taking a full-height row from panorama. Expanded popup stays in that half. No changes to global chrome, composer, desktop/tablet/portrait. All 15 mock PNGs must precede CSS implementation; review top/viewport/bottom against actual Docker at identical state.
