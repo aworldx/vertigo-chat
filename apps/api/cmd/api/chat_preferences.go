@@ -66,7 +66,7 @@ func preferencesService(db interface {
 }
 func roomExperience(pool *pgxpool.Pool, metrics *observability.Metrics, lifecycle ...context.Context) chathttp.Experience {
 	reply, available := botReplies(pool, metrics, lifecycle...)
-	return chathttp.Experience{HelpTopics: karmik.HelpTopics, BotPresentation: botPresentation(pool), Bot: reply, BotAvailable: available, Media: sendRoomMedia(pool),
+	return chathttp.Experience{ClaireEnabled: claireEnabled(), HelpTopics: karmik.HelpTopics, BotPresentation: botPresentation(pool), Bot: reply, BotAvailable: available, Media: sendRoomMedia(pool),
 		React: func(ctx context.Context, session chatdomain.Session, id int64, emoji string, active bool) error {
 			return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 				if err := chats.NewService(chatspg.NewStore(tx), chatsessionsPolicy()).Touch(ctx, session.ID, session.IdentityKey, session.Generation, "visible", time.Now()); err != nil {

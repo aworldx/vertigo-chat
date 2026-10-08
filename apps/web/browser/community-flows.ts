@@ -1,18 +1,17 @@
 import assert from "node:assert/strict"
 import { expect, type Page } from "@playwright/test"
 export type Pair = {
-  legacyPhoenix?: boolean
   oldPage: Page
   newPage: Page
   origin: string
-  legacy: string
+  reference: string
   compare: (scenario: string) => Promise<void>
   ready: (page: Page, base: string, path: string) => Promise<void>
 }
 export async function galleryFlows(p: Pair) {
-  const { oldPage, newPage, origin, legacy, compare, ready } = p
+  const { oldPage, newPage, origin, reference, compare, ready } = p
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/gallery")
@@ -28,12 +27,10 @@ export async function galleryFlows(p: Pair) {
     await expect(page.locator("#photos-2 [data-gallery-lightbox-open]")).toBeFocused()
   }
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await page.goto(base + "/account/login")
-    if (base === legacy && p.legacyPhoenix !== false)
-      await page.addScriptTag({ url: base + "/assets/js/account_login.js" })
     await page.locator("#react-account-nickname").fill("fixture01")
     await page.locator("#react-account-password").fill("secret123")
     await page.locator("#react-account-login-form button[type=submit]").click()
@@ -60,7 +57,7 @@ export async function galleryFlows(p: Pair) {
   }
   await compare("gallery-caption-saved")
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/gallery")
@@ -68,9 +65,9 @@ export async function galleryFlows(p: Pair) {
   }
 }
 export async function libraryFlows(p: Pair) {
-  const { oldPage, newPage, origin, legacy, compare, ready } = p
+  const { oldPage, newPage, origin, reference, compare, ready } = p
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/library")
@@ -94,9 +91,7 @@ export async function libraryFlows(p: Pair) {
     await page.locator("#article_series").fill("Хроники Vertigo")
     await page.locator("#article_part_number").fill("3")
     await page.locator("#article_body").fill("Проверка авторского редактора.\nВторая строка.")
-    await expect(page.locator("#article-character-count")).toContainText(
-      page === oldPage && p.legacyPhoenix !== false ? "45 / 12000" : "72 / 12000",
-    )
+    await expect(page.locator("#article-character-count")).toContainText("72 / 12000")
     await page.locator("#article_title").focus()
     await page.locator("#library-editor").evaluate((el) => {
       el.scrollTop = 0
@@ -120,7 +115,7 @@ export async function libraryFlows(p: Pair) {
     await page.locator("#flash-info button").click()
   }
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/library")
@@ -129,16 +124,11 @@ export async function libraryFlows(p: Pair) {
   await compare("library-saved")
 }
 export async function adminFlows(p: Pair) {
-  const { oldPage, newPage, origin, legacy, compare, ready } = p
-  await ready(oldPage, legacy, "/admin")
-  if (p.legacyPhoenix !== false) {
-    await oldPage.locator("#admin-login-nickname").fill("fixture01")
-    await oldPage.locator("#admin-login-password").fill("secret123")
-    await oldPage.locator("#admin-login-submit").click()
-  }
+  const { oldPage, newPage, origin, reference, compare, ready } = p
+  await ready(oldPage, reference, "/admin")
   await expect(oldPage.locator("#database")).toBeVisible()
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/admin?section=tags")
@@ -160,7 +150,7 @@ export async function adminFlows(p: Pair) {
     await expect(page.locator("#admin-emoji-tag-1")).toContainText("радость")
   }
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/admin?section=emojis")
@@ -169,7 +159,7 @@ export async function adminFlows(p: Pair) {
   await compare("admin-emojis-empty")
   // Table contents differ for account sessions; compare a deterministic content table separately.
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/admin?table=emoji_tags")
@@ -177,7 +167,7 @@ export async function adminFlows(p: Pair) {
   }
   assert.equal(await newPage.locator("#admin-database-table tbody tr").count(), 1)
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/admin?table=emoji_tag_assignments")

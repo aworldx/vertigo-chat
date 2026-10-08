@@ -9,6 +9,9 @@ import (
 	"chat/api/internal/rooms/domain"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -67,5 +70,21 @@ func assertSummaryTranscript(t *testing.T, input botdomain.Context) {
 	text := input.Messages[0].Content
 	if strings.Contains(text, "SECRET") || strings.Contains(text, "WRONG_TARGET") || strings.Count(text, "Публичная фраза") != 105 {
 		t.Fatal("wrong summary input")
+	}
+}
+
+type historyAI struct{ service bot.Summary }
+
+func (a historyAI) Summarize(ctx context.Context, actor int64, transcript string) (string, error) {
+	return a.service.Summarize(ctx, "history:user:"+strconv.FormatInt(actor, 10), transcript)
+}
+
+func TestHistorySummaryDisabled(t *testing.T) {
+	mux := http.NewServeMux()
+	registerHistorySummary(mux)
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest("POST", "/api/v1/chat/history/summary", strings.NewReader("{}")))
+	if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), "summary_unavailable") {
+		t.Fatalf("summary still available: %d %s", response.Code, response.Body.String())
 	}
 }

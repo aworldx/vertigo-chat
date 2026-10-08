@@ -21,6 +21,7 @@ type Presentation struct {
 type SendMedia func(context.Context, domain.Session, string, media.Item) (rooms.Message, error)
 type BotReply func(domain.Session, rooms.Message, string)
 type Experience struct {
+	ClaireEnabled   bool
 	HelpTopics      func(string) []string
 	BotPresentation func(context.Context, string) (Presentation, error)
 	BotAvailable    func(context.Context) bool

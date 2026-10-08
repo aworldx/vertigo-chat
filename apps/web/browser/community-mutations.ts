@@ -2,25 +2,23 @@ import { expect } from "@playwright/test"
 import type { Pair } from "./community-flows"
 import { prepareGalleryFallback, verifyGalleryFallback } from "./gallery-upload"
 export async function uploadAndModerate(p: Pair) {
-  const { oldPage, newPage, origin, legacy, ready, compare } = p
+  const { oldPage, newPage, origin, reference, ready, compare } = p
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/gallery")
     await page.locator("#gallery-photo-caption").fill("Загруженный снимок")
     await page.locator("#gallery-upload-form input[type=file]").setInputFiles("migration-results/community/photo.png")
-    if (page === newPage && p.legacyPhoenix === false) await prepareGalleryFallback(page)
-    if (base === legacy && p.legacyPhoenix !== false)
-      await expect(page.locator("#gallery-photo-thumbnail")).not.toHaveValue("")
+    if (page === newPage) await prepareGalleryFallback(page)
     await page.locator("#upload-gallery-photo").click()
     await expect(page.locator("#photos-3")).toContainText("Загруженный снимок")
     await expect(page.locator("#photos-3 img")).toHaveAttribute("src", "/gallery/photos/3/thumbnail")
     await page.locator("#flash-info button").click()
-    if (page === newPage && p.legacyPhoenix === false) await verifyGalleryFallback(page)
+    if (page === newPage) await verifyGalleryFallback(page)
   }
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/admin?section=emojis")
@@ -62,7 +60,7 @@ export async function uploadAndModerate(p: Pair) {
     await expect(page.locator("#admin-emoji-1")).toHaveCount(0)
   }
   for (const [page, base] of [
-    [oldPage, legacy],
+    [oldPage, reference],
     [newPage, origin],
   ] as const) {
     await ready(page, base, "/admin?section=tags")

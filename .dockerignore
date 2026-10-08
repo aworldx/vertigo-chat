@@ -25,8 +25,6 @@
 !.git/refs
 
 # Common development/test artifacts
-/apps/phoenix/cover/
-/apps/phoenix/doc/
 /_build/
 /cover/
 /doc/
@@ -37,16 +35,13 @@
 !.env.example
 
 # Mix artifacts
-/apps/phoenix/_build/
-/apps/phoenix/deps/
 /deps/
 *.ez
 
 # Generated on crash by the VM
 erl_crash.dump
 
-# Static artifacts - These should be fetched and built inside the Docker image
-# https://phoenix.hexdocs.pm/Mix.Tasks.Phx.Gen.Release.html#module-docker
+# Generated frontend artifacts are rebuilt in Docker
 /apps/web/node_modules/
 /apps/web/dist/
 /apps/web/coverage/
@@ -56,8 +51,6 @@ erl_crash.dump
 /logs/
 .music_proxies
 music-proxies.txt
-/apps/phoenix/priv/static/assets/
-/apps/phoenix/priv/static/cache_manifest.json
 
 # Local design references and browser evidence are not build inputs.
 /docs/design/

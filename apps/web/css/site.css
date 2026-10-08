@@ -18,27 +18,14 @@
   display: none;
 }
 
-/* LiveView may retain a static icon as an empty SVG while patching the form. */
+/* Keep composer icons fixed-size inside flexible buttons. */
 #message-form button > svg {
   flex: none;
   height: 1.25rem;
   width: 1.25rem;
 }
-/* Required for Tailwind to automatically pick up changes in colocated CSS files in dev */
-
-/* Add variants based on LiveView classes */
-@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
-@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
-@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
-
 /* Use the data attribute for dark mode  */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
-/* Make LiveView wrapper divs transparent for layout */
-[data-phx-session],
-[data-phx-teleported-src] {
-  display: contents;
-}
 
 /* This file is for your main application CSS */
 

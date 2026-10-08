@@ -4,9 +4,8 @@
 
 Целевой стек — Go API на стандартном `net/http`, React со строгим TypeScript,
 PostgreSQL и Caddy. Go отдаёт API и собранный React с одного origin; Caddy
-завершает TLS и проксирует запросы к API. Phoenix сохранён только как pinned
-legacy checkout для сравнения при миграции и не входит в Docker, Compose или CI
-целевого стека.
+завершает TLS и проксирует запросы к API. Phoenix-код удалён из текущей ветки; для истории доступна ветка
+`legacy-phoenix-chat`. Текущие сборка и проверки используют только Go + React.
 
 Архитектурные правила находятся в [docs/architecture.md](docs/architecture.md),
 целевая структура — в [docs/refactoring_target.md](docs/refactoring_target.md),
@@ -25,9 +24,8 @@ DATABASE_URL=postgresql://localhost/chat_dev go run ./cmd/migrate
 DATABASE_URL=postgresql://localhost/chat_dev API_ADDR=127.0.0.1:4020 API_PUBLIC_ORIGIN=http://127.0.0.1:4020 WEB_ASSETS_DIR=../web/dist go run ./cmd/api
 ```
 
-Откройте <http://127.0.0.1:4020/>. Для сравнения с legacy используйте
-`LEGACY_ROOT=/path/to/legacy script/verify-go-web`; сценарии и одинаковые
-viewport описаны в [docs/migration_testing.md](docs/migration_testing.md).
+Откройте <http://127.0.0.1:4020/>. Актуальные Docker-проверки описаны в
+[docs/quality_checks.md](docs/quality_checks.md).
 
 ## Проверки
 
@@ -40,13 +38,12 @@ npm --prefix apps/web test
 script/check-infrastructure
 ```
 
-Перед push запускайте `script/check`. Он собирает закреплённую Linux-среду,
-проверяет Go + React, покрытие, реальные браузерные сценарии, контракты и
-инфраструктуру. На хосте нужен только Docker; локальные Go/Node/Elixir/PostgreSQL
-не используются. Phoenix исключён из обязательного gate. Зависимости и Go build
-cache сохраняются между запусками, тестовые БД изолированы и удаляются автоматически.
-Подробности и расположение отчётов: [Проверки Go + React](docs/quality_checks.md).
-Отдельные команды выше требуют соответствующего локального окружения.
+Перед push выполняйте в закреплённой Linux-среде Docker целевые проверки
+изменений и соседних сценариев: Go/HTTP/PostgreSQL, React и браузер.
+Полный `script/check` запускается только по отдельному запросу.
+Локальные SDK не заменяют Docker-проверки. Подробности и расположение
+отчётов: [Проверки Go + React](docs/quality_checks.md).
+Отдельные команды выше требуют самостоятельно установленного окружения.
 
 GitLab CI только собирает и публикует production-образы после push в `main`;
 полного quality job в CI нет. Проверки обязательны локально перед отправкой.

@@ -61,7 +61,7 @@ try {
   const observer = await context.newPage()
   await enter(observer, "browser-observer")
   await expect(first.locator("#online-list")).toContainText("browser-guest-two")
-  await expect(first.locator("#online-row-bot-claire .chat-rank-icon")).toBeVisible()
+  await expect(first.locator("#online-row-bot-claire")).toHaveCount(0)
   await expect(first.locator("#online-row-bot-hitchcock .chat-rank-icon")).toBeVisible()
   await expect(first.locator("#online-list")).toContainText("browser-guest-one")
   await expect(first.locator("#online-list")).not.toContainText("В сети")
@@ -249,12 +249,9 @@ try {
   await page.locator("#register-user").click()
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
   await expect(page.locator("#online-list")).toContainText("browser-registered")
-  await expect(page.locator('[id^="profile-link-"]')).toHaveCount(3)
-  await expect(page.locator('#profile-link-bot-claire [data-icon="hero-star"]')).toHaveCount(1)
-  for (const [id, nickname] of [
-    ["claire", "Клэр"],
-    ["hitchcock", "Хичкок"],
-  ] as const) {
+  await expect(page.locator('[id^="profile-link-"]')).toHaveCount(2)
+  await expect(page.locator("#profile-link-bot-claire")).toHaveCount(0)
+  for (const [id, nickname] of [["hitchcock", "Хичкок"]] as const) {
     await page.locator(`#profile-link-bot-${id}`).click()
     await expect(page.locator("#profile-title")).toHaveText(nickname)
     const image = page.locator("#profile-avatar-image")

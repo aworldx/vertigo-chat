@@ -1,5 +1,0 @@
-Classic playing-card artwork is supplied by SVG-cards.
-
-Source repository: https://github.com/jarroput/svg-cards
-Card images: png/1x
-License: GNU Lesser General Public License v2.1 or later; see LICENSE.txt.

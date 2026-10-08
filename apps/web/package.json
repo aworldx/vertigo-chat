@@ -7,8 +7,8 @@
     "test:browser": "sh ../../script/verify-go-accounts && sh ../../script/verify-go-chat && sh ../../script/verify-go-tetris && sh ../../script/verify-target-web",
     "browsers:install": "playwright install chromium",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src scripts/render-articles.tsx js/profiles.tsx js/account_login.tsx test browser playwright.config.ts && node scripts/check-architecture.mjs",
-    "format:check": "prettier --check src scripts/render-articles.tsx js/profiles.tsx js/account_login.tsx test browser playwright.config.ts package.json tsconfig.json eslint.config.js",
+    "lint": "eslint src scripts/render-articles.tsx test browser && node scripts/check-architecture.mjs",
+    "format:check": "prettier --check src scripts/render-articles.tsx test browser package.json tsconfig.json eslint.config.js",
     "generate:profiles-types": "openapi-typescript ../../contracts/openapi/profiles.yaml -o src/shared/generated/profiles.ts",
     "generate:accounts-types": "openapi-typescript ../../contracts/openapi/accounts.yaml -o src/shared/generated/accounts.ts",
     "build": "node scripts/build.mjs",
@@ -17,7 +17,6 @@
     "test:coverage": "c8 --all --include=\"src/**/*.ts\" --include=\"src/**/*.tsx\" --exclude=\"src/shared/generated/**\" --reporter=json --reporter=text --reports-dir=coverage/unit node --import=tsx --test test/*.test.tsx",
     "coverage:check": "node scripts/coverage.mjs",
     "generate:tetris-types": "openapi-typescript ../../contracts/openapi/tetris.yaml -o src/shared/generated/tetris.ts",
-    "test:browser:legacy": "playwright test",
     "generate:geo-types": "openapi-typescript ../../contracts/openapi/geo.yaml -o src/shared/generated/geo.ts"
   },
   "dependencies": {

@@ -11,14 +11,5 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": [
-    "js/profiles.tsx",
-    "js/account_login.tsx",
-    "test/**/*.tsx",
-    "browser/**/*.ts",
-    "playwright.config.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "scripts/render-articles.tsx"
-  ]
+  "include": ["test/**/*.tsx", "browser/**/*.ts", "src/**/*.ts", "src/**/*.tsx", "scripts/render-articles.tsx"]
 }

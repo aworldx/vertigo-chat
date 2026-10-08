@@ -1,0 +1,28 @@
+{
+  "revision": "873b3ba7a17035cc65454f64be0c207ba861c654",
+  "origin": "https://vertigo-chat.ru",
+  "productionGameStarted": false,
+  "productionAnswerSubmitted": false,
+  "rankings": true,
+  "actualServerPhase": "idle",
+  "configured": true,
+  "actualEntry": true,
+  "deployedUIFixture": {
+    "collapsed": true,
+    "fold": true,
+    "open": true,
+    "closePersists": true,
+    "mobileWordsOnly": true,
+    "realGoogleDomain": true
+  },
+  "deployment": {
+    "version": "0.24.1",
+    "apiHealth": "healthy",
+    "commit": "873b3ba7a17035cc65454f64be0c207ba861c654"
+  },
+  "nativePanoramaVisual": {
+    "mobile": "confirmed in screenshot",
+    "desktop": "Google controls ready; initial texture download incomplete in screenshot"
+  },
+  "notes": "First navigation and initial panorama load timed out; final functional smoke passed. Production game was not started and no answer was submitted."
+}

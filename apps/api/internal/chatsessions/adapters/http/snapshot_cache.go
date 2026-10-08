@@ -77,6 +77,9 @@ func (h Socket) loadSnapshot(ctx context.Context, room string) (roomSnapshot, er
 	}
 	value.bots = map[string]Presentation{}
 	for _, id := range []string{"hitchcock", "claire"} {
+		if id == "claire" && !h.experience.ClaireEnabled {
+			continue
+		}
 		p := Presentation{Preferences: chatlans.Default()}
 		if h.experience.BotPresentation != nil {
 			p, err = h.experience.BotPresentation(ctx, id)

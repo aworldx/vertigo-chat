@@ -85,6 +85,30 @@ func TestSnapshotDoesNotCacheFailures(t *testing.T) {
 	}
 }
 
+func TestSnapshotClaireEnablement(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		session := domain.Session{ID: "viewer", RoomID: "lobby", Generation: 1}
+		h := NewSocket(application.NewService(storeStub{}), projectionFunc(func(context.Context, string) ([]domain.Session, error) {
+			return []domain.Session{session}, nil
+		}), historyFunc(func(context.Context, string) ([]rooms.Message, error) {
+			return nil, nil
+		}), nil, "")
+		h.experience.ClaireEnabled = enabled
+		view, err := h.snapshot(t.Context(), session)
+		if err != nil {
+			t.Fatal(err)
+		}
+		claire, hitchcock := false, false
+		for _, peer := range view.Peers {
+			claire = claire || peer.ID == "bot-claire"
+			hitchcock = hitchcock || peer.ID == "bot-hitchcock"
+		}
+		if claire != enabled || !hitchcock {
+			t.Fatal("incorrect active bots")
+		}
+	}
+}
+
 func checkConcurrentViewers(t *testing.T, h Socket, sessions []domain.Session) {
 	t.Helper()
 	var workers sync.WaitGroup

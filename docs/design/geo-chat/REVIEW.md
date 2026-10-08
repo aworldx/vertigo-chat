@@ -4,7 +4,7 @@
 
 Result: APPROVED for the requested game surfaces. Functional Docker verifier completed before this review. Original proposal sources and PNGs are retained; v4 settled images repair incomplete Google texture loading only (see design-v4-settled/RENDER-REPAIR.md). No implementation was simplified to match incomplete images.
 
-Routes: /chat/main (guest geo-designer, fixed three-person chat, round 2, 04:38); /rankings (public, fixed registered leaderboard rows). Locale ru-RU, Europe/Moscow, DPR 1, zoom 100%. Desktop 1440×900, tablet 768×1024, mobile 390×844, landscape 844×390; game also short viewport 390×544. Every size has top, viewport-scroll and bottom evidence. Scroll is clamped to the actual content boundary; some states are pixel-identical.
+Routes: /chat (guest geo-designer, fixed three-person chat, round 2, 04:38); /rankings (public, fixed registered leaderboard rows). Locale ru-RU, Europe/Moscow, DPR 1, zoom 100%. Desktop 1440×900, tablet 768×1024, mobile 390×844, landscape 844×390; game also short viewport 390×544. Every size has top, viewport-scroll and bottom evidence. Scroll is clamped to the actual content boundary; some states are pixel-identical.
 
 Personally opened the mock, Docker screenshot, side-by-side and overlay for all rows. Identical screenshot groups were inspected together. Side files contain the two original-size panels; overlay/diff retains the single viewport dimensions. All files are retained on the host outside disposable containers. The report paths are relative to this file.
 

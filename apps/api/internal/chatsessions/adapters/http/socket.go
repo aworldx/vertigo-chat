@@ -260,7 +260,9 @@ func (h Socket) snapshot(ctx context.Context, session domain.Session) (snapshot,
 		return snapshot{}, domain.ErrInvalidSession
 	}
 	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-hitchcock", Nickname: "Хичкок", Status: domain.StatusActive, Preferences: shared.bots["hitchcock"].Preferences, Rank: shared.bots["hitchcock"].Rank, Bot: true})
-	peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-claire", Nickname: "Клэр", Status: domain.StatusActive, Preferences: shared.bots["claire"].Preferences, Rank: shared.bots["claire"].Rank, Bot: true})
+	if h.experience.ClaireEnabled {
+		peers = append(peers, peer{BotBusy: shared.botBusy, ID: "bot-claire", Nickname: "Клэр", Status: domain.StatusActive, Preferences: shared.bots["claire"].Preferences, Rank: shared.bots["claire"].Rank, Bot: true})
+	}
 	sort.Slice(peers, func(i, j int) bool { return peers[i].Nickname < peers[j].Nickname })
 	messages := shared.messages
 	encoded := make([]messageDTO, 0, len(messages))

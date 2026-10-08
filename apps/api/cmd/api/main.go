@@ -130,7 +130,7 @@ func main() {
 	go reapChatSessions(ctx, chatSessions)
 	messageHistory := roomsapp.NewHistory(roomspg.NewStore(pool))
 	chatsessionshttp.NewMessageHistoryHandler(messageHistory).Register(mux)
-	registerHistorySummary(mux, pool, auth, messageHistory, metrics)
+	registerHistorySummary(mux)
 	go pruneMessageHistory(ctx, messageHistory)
 	handler, err := clientip.Wrap(metrics.Wrap(mux), os.Getenv("API_TRUSTED_PROXY_CIDRS"))
 	if err != nil {

@@ -13,8 +13,8 @@ import { galleryFlows, libraryFlows, adminFlows } from "./community-flows"
 import { uploadAndModerate, failureRecovery } from "./community-mutations"
 import { articlesWithoutJS } from "./community-articles"
 import { verifyPolls } from "./polls-verification"
-const [origin, legacy, ...databases] = process.argv.slice(2)
-assert.ok(origin && legacy && databases.length === 2)
+const [origin, reference, ...databases] = process.argv.slice(2)
+assert.ok(origin && reference && databases.length === 2)
 for (const database of databases) assert.match(new URL(database).pathname, /^\/chat_coverage_web_[ab]_\d+$/)
 const output = "migration-results/community"
 await mkdir(output, { recursive: true })
@@ -59,10 +59,10 @@ try {
     console.log("Functional scenario:", scenario)
     return Promise.resolve()
   }
-  const pair = { oldPage, newPage, origin, legacy, ready, compare, legacyPhoenix: false }
+  const pair = { oldPage, newPage, origin, reference, ready, compare }
   fixtures(false)
   for (const page of [oldPage, newPage]) {
-    const base = page === oldPage ? legacy : origin
+    const base = page === oldPage ? reference : origin
     for (const route of ["gallery", "library"]) {
       await ready(page, base, "/" + route)
       await expect(page.locator(`#${route}-empty`)).toBeVisible()
@@ -70,7 +70,7 @@ try {
   }
   fixtures(true)
   for (const page of [oldPage, newPage]) {
-    const base = page === oldPage ? legacy : origin
+    const base = page === oldPage ? reference : origin
     for (const route of [
       "/articles",
       "/articles/chats-vs-messengers",

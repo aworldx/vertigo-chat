@@ -43,7 +43,7 @@ func botReplies(pool *pgxpool.Pool, metrics *observability.Metrics, lifecycle ..
 	claireProvider.ObserveHeaders = metrics.OpenAIHeaders("claire")
 	claire := bot.NewService(store, claireProvider).WithFallback(botdomain.Claire().Fallback)
 	music := claireMedia(pool)
-	if len(lifecycle) > 0 {
+	if len(lifecycle) > 0 && ambientEnabled() {
 		go runAmbient(lifecycle[0], pool, store, service, claire, music)
 	}
 	type work struct {
@@ -71,7 +71,7 @@ func botReplies(pool *pgxpool.Pool, metrics *observability.Metrics, lifecycle ..
 	}()
 	return func(session chatdomain.Session, message roomdomain.Message, ip string) {
 		persona, addressed := botdomain.Addressed(message.Body)
-		if !message.Inserted || !addressed || message.Kind == "private" {
+		if !message.Inserted || !addressed || message.Kind == "private" || (persona.ID == "claire" && !claireEnabled()) {
 			return
 		}
 		select {
@@ -144,4 +144,10 @@ func botUTCOffset() int {
 		return 180
 	}
 	return offset
+}
+
+func claireEnabled() bool { return env("CLAIRE_ENABLED", "false") == "true" }
+
+func ambientEnabled() bool {
+	return claireEnabled() && env("CLAIRE_AMBIENT_ENABLED", "false") == "true"
 }

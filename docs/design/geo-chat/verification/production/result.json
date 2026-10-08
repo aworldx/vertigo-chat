@@ -1,0 +1,17 @@
+{
+  "revision": "48e224163b55ee5acffbdf7518b60ac2f061f88f",
+  "origin": "https://vertigo-chat.ru",
+  "productionGameStarted": false,
+  "productionAnswerSubmitted": false,
+  "rankings": true,
+  "actualServerPhase": "idle",
+  "configured": true,
+  "actualEntry": true,
+  "deployedUIFixture": {
+    "collapsed": true,
+    "open": true,
+    "closePersists": true,
+    "mobileWordsOnly": true,
+    "realGoogleDomain": true
+  }
+}

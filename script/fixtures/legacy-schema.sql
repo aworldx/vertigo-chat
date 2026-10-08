@@ -1,4 +1,5 @@
--- Test-only baseline of the Phoenix-owned schema. No application rows or secrets.
+-- Test-only baseline of the existing PostgreSQL schema, consumed by Go suites.
+-- Historical table names retained; no application rows or secrets.
 -- Go migration compatibility is exercised against this snapshot in coverage CI.
 --
 -- PostgreSQL database dump

@@ -1,0 +1,32 @@
+/* Scoped repair: the playing dock must not create an implicit second column. */
+.chat-room-content:has(.geo-panel:not(.collapsed)) {
+  position: relative;
+}
+.chat-room-content:has(.geo-panel:not(.collapsed)) > main {
+  grid-row: 1;
+}
+.chat-room-content:has(.geo-panel:not(.collapsed)) > .chat-tv {
+  grid-column: 1;
+  grid-row: 2;
+  position: static;
+}
+@media (min-width: 768px) {
+  .chat-room-content:has(.geo-panel:not(.collapsed)) .chat-tv[data-mode="expanded"] .chat-tv-mini {
+    display: flex;
+  }
+  .chat-room-content:has(.geo-panel:not(.collapsed)) .chat-tv-panel {
+    position: absolute;
+    left: auto;
+    right: 0;
+    bottom: 0;
+    width: min(360px, 100%);
+    max-height: min(55%, 520px);
+    border-radius: 16px 16px 0 0;
+    border: 1px solid var(--tv-border);
+    box-shadow: 0 -12px 40px #0005;
+  }
+  .chat-room-content:has(.geo-panel:not(.collapsed)) .chat-player-screen {
+    width: min(100%, calc(min(18dvh, 120px) * var(--media-ratio, 1.7778)));
+    margin: 0 auto 8px;
+  }
+}

@@ -50,7 +50,7 @@ func ambientAudience(pool *pgxpool.Pool) func(context.Context) (bot.Audience, er
 	}
 }
 func runAmbient(ctx context.Context, pool *pgxpool.Pool, store botpg.Store, hitchcock, claire bot.Service, media *bot.Media) {
-	if os.Getenv("OPENAI_API_KEY") == "" || env("CLAIRE_AMBIENT_ENABLED", "true") == "false" {
+	if os.Getenv("OPENAI_API_KEY") == "" || !ambientEnabled() {
 		return
 	}
 	for ctx.Err() == nil {
