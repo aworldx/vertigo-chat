@@ -1,0 +1,62 @@
+[
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "route": "/",
+    "origin": "http://127.0.0.1:4097",
+    "state": "fresh guest; no stored session; untouched entrance form",
+    "deviceScaleFactor": 1,
+    "zoom": 1,
+    "reducedMotion": "reduce",
+    "metrics": {
+      "scrollHeight": 3501,
+      "scrollWidth": 1440,
+      "bodyWidth": 1440,
+      "assets": [
+        "/images/vertigo-poster.png"
+      ]
+    }
+  },
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "route": "/",
+    "origin": "http://127.0.0.1:4097",
+    "state": "fresh guest; no stored session; untouched entrance form",
+    "deviceScaleFactor": 1,
+    "zoom": 1,
+    "reducedMotion": "reduce",
+    "metrics": {
+      "scrollHeight": 3588,
+      "scrollWidth": 768,
+      "bodyWidth": 768,
+      "assets": [
+        "/images/vertigo-poster.png"
+      ]
+    }
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "route": "/",
+    "origin": "http://127.0.0.1:4097",
+    "state": "fresh guest; no stored session; untouched entrance form",
+    "deviceScaleFactor": 1,
+    "zoom": 1,
+    "reducedMotion": "reduce",
+    "metrics": {
+      "scrollHeight": 5390,
+      "scrollWidth": 390,
+      "bodyWidth": 390,
+      "assets": [
+        "/images/vertigo-poster.png"
+      ]
+    }
+  }
+]

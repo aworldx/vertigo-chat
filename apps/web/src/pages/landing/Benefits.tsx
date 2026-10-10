@@ -1,4 +1,5 @@
 import { Icon } from "../../shared/ui/Icon"
+import { landingContent } from "./content"
 
 export function Benefits({ onRegister }: { onRegister: () => void }) {
   return (
@@ -10,30 +11,27 @@ export function Benefits({ onRegister }: { onRegister: () => void }) {
           <br />
           Ник и пароль — для старта.
         </h2>
-        <p className="landing-section-description">
-          Для регистрации не нужны настоящее имя и телефон. Почта необязательна для чата и нужна только для форума —
-          другим участникам её не показываем.
-        </p>
+        <p className="landing-section-description">{landingContent.benefitsDescription}</p>
         <ul className="landing-benefit-list">
           <li>
             <Icon name="finger-print" className="size-5 shrink-0" />
             <div>
               <strong>Ник, который принадлежит тебе</strong>
-              <p>Возвращайся под своим именем — другой гость его не займёт.</p>
+              <p>{landingContent.benefits[0]}</p>
             </div>
           </li>
           <li>
             <Icon name="star" className="size-5 shrink-0" />
             <div>
               <strong>Прогресс, который остаётся</strong>
-              <p>Сохраняй настройки и двигайся по киношным званиям за общение.</p>
+              <p>{landingContent.benefits[1]}</p>
             </div>
           </li>
           <li>
             <Icon name="sparkles" className="size-5 shrink-0" />
             <div>
               <strong>Больше способов проявить себя</strong>
-              <p>Оформи профиль, делись GIF и музыкой. С ростом звания публикуй статьи и фотографии.</p>
+              <p>{landingContent.benefits[2]}</p>
             </div>
           </li>
         </ul>

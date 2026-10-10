@@ -1,0 +1,74 @@
+[
+  {
+    "size": "1440x900-full",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "1440x900-top",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "1440x900-middle",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "1440x900-bottom",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "768x1024-full",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "768x1024-top",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "768x1024-middle",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "768x1024-bottom",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "390x844-full",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "390x844-top",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "390x844-middle",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  },
+  {
+    "size": "390x844-bottom",
+    "changed": 0,
+    "max": 0,
+    "pass": true
+  }
+]

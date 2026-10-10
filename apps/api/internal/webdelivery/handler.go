@@ -49,5 +49,7 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 	for _, prefix := range []string{"/assets/", "/fonts/", "/images/", "/icons/", "/sounds/"} {
 		mux.HandleFunc("GET "+prefix, serve)
 	}
+	// Keep the original Search Console ownership proof available after migration.
+	mux.HandleFunc("GET /google10f6b43daaaddcce.html", serve)
 	return nil
 }

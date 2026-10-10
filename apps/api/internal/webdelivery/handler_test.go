@@ -3,6 +3,7 @@ package webdelivery
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/fstest"
 )
@@ -21,6 +22,36 @@ func TestOnlyPublicPagesAndFilesAreServed(t *testing.T) {
 		}
 		if response.Code != status {
 			t.Errorf("%s status=%d", path, response.Code)
+		}
+	}
+}
+
+func TestGoogleVerificationFile(t *testing.T) {
+	const name = "google10f6b43daaaddcce.html"
+	const want = "google-site-verification: " + name
+	mux := http.NewServeMux()
+	if err := Register(mux, fstest.MapFS{
+		"index.html":        {Data: []byte("React")},
+		name:                {Data: []byte(want)},
+		"google-other.html": {Data: []byte("not public")},
+	}, "https://chat.test"); err != nil {
+		t.Fatal(err)
+	}
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, httptest.NewRequest(method, "/"+name, nil))
+		if response.Code != http.StatusOK || !strings.HasPrefix(response.Header().Get("Content-Type"), "text/html") {
+			t.Fatalf("%s: status=%d headers=%v", method, response.Code, response.Header())
+		}
+		if method == http.MethodGet && response.Body.String() != want {
+			t.Fatalf("unexpected verification response: %q", response.Body.String())
+		}
+	}
+	for _, path := range []string{"/google-other.html", "/" + name + "/extra"} {
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusNotFound {
+			t.Fatalf("%s: status=%d", path, response.Code)
 		}
 	}
 }

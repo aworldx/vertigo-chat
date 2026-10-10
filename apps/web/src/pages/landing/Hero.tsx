@@ -1,4 +1,5 @@
 import { Icon } from "../../shared/ui/Icon"
+import { landingContent } from "./content"
 
 export function Hero() {
   return (
@@ -41,11 +42,7 @@ export function Hero() {
               <br />
               своя <em>история.</em>
             </h1>
-            <p className="landing-hero-description">
-              Иногда всё начинается с простого «привет».
-              <br className="hidden sm:block" /> Знакомься, играй, делись своим —<br className="hidden sm:block" /> и
-              становись частью Vertigo.
-            </p>
+            <p className="landing-hero-description">{landingContent.hero}</p>
             <div className="mt-8 flex flex-wrap items-center gap-5">
               <a id="landing-enter-chat" href="#landing-login" className="landing-button">
                 Присоединиться <Icon name="arrow-right" className="size-4" />
