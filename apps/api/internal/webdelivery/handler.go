@@ -25,9 +25,9 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 				content = bytes.ReplaceAll(rendered, []byte("__SITE_ORIGIN__"), []byte(origin))
 			}
 		}
-		_, _ = w.Write(content)
+		_, _ = w.Write(searchPage(content, origin, r.URL.Path))
 	}
-	for _, route := range []string{"/admin", "/articles", "/articles/chats-vs-messengers", "/articles/chat-platforms-russia", "/articles/how-vertigo-chat-works", "/about", "/library", "/gallery", "/account", "/account/login", "/account/register", "/profiles", "/music-chart", "/notes", "/polls", "/visits", "/history", "/help", "/ranks", "/chat", "/{$}"} {
+	for _, route := range []string{"/admin", "/articles", "/articles/chats-vs-messengers", "/articles/chat-platforms-russia", "/articles/how-vertigo-chat-works", "/library", "/gallery", "/account", "/account/login", "/account/register", "/profiles", "/music-chart", "/notes", "/polls", "/visits", "/history", "/help", "/ranks", "/chat", "/{$}"} {
 		mux.HandleFunc("GET "+route, canonicalPage(origin, page))
 	}
 	files := http.FileServer(http.FS(assets))
@@ -51,5 +51,5 @@ func Register(mux *http.ServeMux, assets fs.FS, origin string) error {
 	}
 	// Keep the original Search Console ownership proof available after migration.
 	mux.HandleFunc("GET /google10f6b43daaaddcce.html", serve)
-	return nil
+	return registerSearch(mux, origin)
 }
