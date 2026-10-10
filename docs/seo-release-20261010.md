@@ -27,3 +27,12 @@ PostgreSQL-логика не менялась, её тесты прошли пе
 Rollback: api-8570f0a2ae8b90af2273105fe36d3fff70c21b72.
 Резервная копия предыдущего выпуска:
 /opt/backups/vertigo-chat/landing-0.24.3-20261010T101317Z.
+
+## Production подтверждён
+
+2026-10-10 выпущен commit b9a2df8def5e29211eb5b72f65cb9b61af3c015d,
+контейнер API healthy, образ соответствует точному SHA. На HTTPS прошёл
+тот же browser search-verification: все 7 страниц с reload и canonical/index,
+/about → /, sitemap/robots и noindex страницы входа. Предыдущий production
+landing smoke также прошёл на 1440×900, 768×1024 и 390×844, файл Google
+совпал побайтно, JS bundle совпал SHA-256 с проверенной сборкой.

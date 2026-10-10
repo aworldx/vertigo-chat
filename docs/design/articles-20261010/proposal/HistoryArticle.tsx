@@ -2,10 +2,15 @@ export function HistoryArticle() {
   return (
     <article id="article-chat-platforms-russia" className="pb-20">
       <header className="mx-auto max-w-4xl px-5 pb-10 pt-12 sm:px-8 sm:pb-14 sm:pt-20">
-        <a href="/articles" className="text-sm font-semibold text-amber-200 transition hover:text-amber-100">
+        <a
+          href="/articles"
+          className="text-sm font-semibold text-amber-200 transition hover:text-amber-100"
+        >
           ← Все статьи
         </a>
-        <p className="mt-9 text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">{"История чатов"}</p>
+        <p className="mt-9 text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+          {"История чатов"}
+        </p>
         <h1 className="mt-4 text-4xl font-black tracking-tight text-balance sm:text-6xl">
           {"От «Кроватки» и ICQ до Telegram: как менялись чаты"}
         </h1>
@@ -14,10 +19,18 @@ export function HistoryArticle() {
             "Комната на сайте, контакт в ICQ, профиль в соцсети и группа в Telegram предлагают разные способы начать разговор. Проследим несколько линий этой истории по документам и свидетельствам участников — без претензии на полный каталог Рунета."
           }
         </p>
-        <p className="mt-7 text-sm text-zinc-500">{"Обновлено 10 октября 2026 · 6 минут чтения"}</p>
+        <p className="mt-7 text-sm text-zinc-500">
+          {"Обновлено 10 октября 2026 · 6 минут чтения"}
+        </p>
       </header>
-      <figure className="mx-auto mt-12 max-w-6xl px-5 sm:px-8" style={{ maxWidth: 464 }}>
-        <a href="/images/article-august-nightcats.jpg" aria-label="Открыть скриншот в полном размере">
+      <figure
+        className="mx-auto mt-12 max-w-6xl px-5 sm:px-8"
+        style={{ maxWidth: 464 }}
+      >
+        <a
+          href="/images/article-august-nightcats.jpg"
+          aria-label="Открыть скриншот в полном размере"
+        >
           <img
             src="/images/article-august-nightcats.jpg"
             width={400}
@@ -27,14 +40,16 @@ export function HistoryArticle() {
           />
         </a>
         <figcaption className="mt-3 text-sm text-zinc-500">
-          NightCats — вариант оформления чата «Женские Тайны» на August4u. Изображение из{" "}
+          NightCats — вариант оформления чата «Женские Тайны» на August4u.
+          Изображение из{" "}
           <a
             href="https://www.secret4u.ru/des.htm"
             className="text-amber-200 underline underline-offset-2 hover:text-amber-100"
           >
             архива владельцев
           </a>
-          ; в описании дизайн датирован 2011 годом. Нажми на снимок, чтобы открыть оригинал.
+          ; в описании дизайн датирован 2011 годом. Нажми на снимок, чтобы
+          открыть оригинал.
         </figcaption>
       </figure>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
@@ -42,7 +57,10 @@ export function HistoryArticle() {
           <p className="font-bold text-zinc-100">О чём статья</p>
           <ol className="mt-3 space-y-2 text-zinc-300 marker:text-amber-300">
             <li>
-              <a href="#first-rooms" className="transition hover:text-amber-200">
+              <a
+                href="#first-rooms"
+                className="transition hover:text-amber-200"
+              >
                 {"IRC: комната описана в протоколе"}
               </a>
             </li>
@@ -67,7 +85,10 @@ export function HistoryArticle() {
               </a>
             </li>
             <li>
-              <a href="#social-networks" className="transition hover:text-amber-200">
+              <a
+                href="#social-networks"
+                className="transition hover:text-amber-200"
+              >
                 {"Соцсети: контекст вокруг человека"}
               </a>
             </li>
@@ -86,7 +107,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="first-rooms" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="first-rooms"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"IRC: комната описана в протоколе"}
           </h2>
           <p>
@@ -110,7 +134,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="krovatka" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="krovatka"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"«Кроватка»: разговор в комнате"}
           </h2>
           <p>
@@ -134,7 +161,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="engines" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="engines"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Веб-чат как собственное место"}
           </h2>
           <p>
@@ -163,7 +193,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="borodin" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="borodin"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Чат Бородина: движок и сообщество — разные вещи"}
           </h2>
           <p>
@@ -187,7 +220,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="icq" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="icq"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"ICQ и Агент: собеседник в списке контактов"}
           </h2>
           <p>
@@ -208,7 +244,9 @@ export function HistoryArticle() {
             {"."}
           </p>
           <p>
-            {"Сегодня оригинальный сервис ICQ уже не работает — это подтверждает "}
+            {
+              "Сегодня оригинальный сервис ICQ уже не работает — это подтверждает "
+            }
             <a
               className="text-amber-200 underline underline-offset-2 hover:text-amber-100"
               href="https://icq.com/desktop/en"
@@ -221,7 +259,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="social-networks" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="social-networks"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Соцсети: контекст вокруг человека"}
           </h2>
           <p>
@@ -238,7 +279,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="messengers" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="messengers"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Личная переписка и общая группа сосуществуют"}
           </h2>
           <p>
@@ -262,7 +306,10 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="today" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="today"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Что сохранил Vertigo"}
           </h2>
           <p>
@@ -273,7 +320,10 @@ export function HistoryArticle() {
         </div>
       </div>
       <figure className="mx-auto mt-12 max-w-6xl px-5 sm:px-8">
-        <a href="/images/article-vertigo-room.png" aria-label="Открыть скриншот в полном размере">
+        <a
+          href="/images/article-vertigo-room.png"
+          aria-label="Открыть скриншот в полном размере"
+        >
           <img
             src="/images/article-vertigo-room.png"
             width={1440}
@@ -299,7 +349,9 @@ export function HistoryArticle() {
       </div>
       <div className="mx-auto max-w-3xl px-5 sm:px-8">
         <aside className="mt-14 rounded-3xl border border-amber-300/35 bg-amber-300/10 p-7 sm:p-9">
-          <h2 className="text-2xl font-bold text-zinc-100">{"Посмотреть современную комнату"}</h2>
+          <h2 className="text-2xl font-bold text-zinc-100">
+            {"Посмотреть современную комнату"}
+          </h2>
           <p className="mt-3 max-w-xl leading-7 text-zinc-300">
             {
               "В Vertigo можно попробовать этот способ общения в браузере. А правила команд и ограничения функций собраны в справке."
@@ -315,5 +367,5 @@ export function HistoryArticle() {
         </aside>
       </div>
     </article>
-  )
+  );
 }

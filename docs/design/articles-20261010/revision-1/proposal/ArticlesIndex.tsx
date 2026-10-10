@@ -1,8 +1,10 @@
-import { Icon } from "../../../shared/ui/Icon"
+import { Icon } from "../../../shared/ui/Icon";
 export function ArticlesIndex() {
   return (
     <section className="mx-auto max-w-6xl px-5 pb-20 pt-14 sm:px-8 sm:pt-20">
-      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">Vertigo пишет</p>
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+        Vertigo пишет
+      </p>
       <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-balance sm:text-6xl">
         {"Общие комнаты, история чатов и устройство Vertigo"}
       </h1>
@@ -11,7 +13,10 @@ export function ArticlesIndex() {
           "Как выбрать формат разговора, что сохранилось от старых веб-чатов и чем публичная история отличается от привата и записок."
         }
       </p>
-      <section className="mt-12 max-w-4xl" aria-labelledby="latest-articles-title">
+      <section
+        className="mt-12 max-w-4xl"
+        aria-labelledby="latest-articles-title"
+      >
         <h2 id="latest-articles-title" className="sr-only">
           Последние статьи
         </h2>
@@ -62,7 +67,9 @@ export function ArticlesIndex() {
             className="h-full w-full object-contain"
           />
           <div className="p-7 sm:p-9">
-            <p className="text-sm font-semibold text-amber-300">{"История чатов"}</p>
+            <p className="text-sm font-semibold text-amber-300">
+              {"История чатов"}
+            </p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
               {"От «Кроватки» и ICQ до Telegram: как менялись чаты"}
             </h2>
@@ -81,7 +88,9 @@ export function ArticlesIndex() {
           href="/articles/how-vertigo-chat-works"
           className="group mt-5 block rounded-3xl border border-zinc-700 bg-zinc-900 p-7 transition hover:border-amber-300 hover:bg-zinc-900/80 sm:p-9"
         >
-          <p className="text-sm font-semibold text-amber-300">{"Как это устроено"}</p>
+          <p className="text-sm font-semibold text-amber-300">
+            {"Как это устроено"}
+          </p>
           <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
             {"Что Vertigo сохраняет: история, приват и офлайн-записки"}
           </h2>
@@ -96,5 +105,5 @@ export function ArticlesIndex() {
         </a>
       </section>
     </section>
-  )
+  );
 }

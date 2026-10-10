@@ -2,10 +2,15 @@ export function TechnologyArticle() {
   return (
     <article id="article-how-vertigo-chat-works" className="pb-20">
       <header className="mx-auto max-w-4xl px-5 pb-10 pt-12 sm:px-8 sm:pb-14 sm:pt-20">
-        <a href="/articles" className="text-sm font-semibold text-amber-200 transition hover:text-amber-100">
+        <a
+          href="/articles"
+          className="text-sm font-semibold text-amber-200 transition hover:text-amber-100"
+        >
           ← Все статьи
         </a>
-        <p className="mt-9 text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">{"Как это устроено"}</p>
+        <p className="mt-9 text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
+          {"Как это устроено"}
+        </p>
         <h1 className="mt-4 text-4xl font-black tracking-tight text-balance sm:text-6xl">
           {"Что Vertigo сохраняет: история, приват и офлайн-записки"}
         </h1>
@@ -14,28 +19,40 @@ export function TechnologyArticle() {
             "У трёх похожих действий разный результат: написать в комнату, отправить приват человеку онлайн и оставить записку на потом. Вот где проходит граница хранения и кто увидит сообщение."
           }
         </p>
-        <p className="mt-7 text-sm text-zinc-500">{"Обновлено 10 октября 2026 · 5 минут чтения"}</p>
+        <p className="mt-7 text-sm text-zinc-500">
+          {"Обновлено 10 октября 2026 · 5 минут чтения"}
+        </p>
       </header>
       <div className="mx-auto max-w-4xl px-5 sm:px-8">
         <section
           aria-labelledby="message-route-title"
           className="rounded-3xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl shadow-black/20 sm:p-8"
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">Короткая схема</p>
-          <h2 id="message-route-title" className="mt-3 text-2xl font-bold text-zinc-100">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">
+            Короткая схема
+          </p>
+          <h2
+            id="message-route-title"
+            className="mt-3 text-2xl font-bold text-zinc-100"
+          >
             Путь сообщения зависит от его типа
           </h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/5 p-5">
               <p className="font-bold text-emerald-200">Публичное сообщение</p>
-              <p className="mt-2 leading-7 text-zinc-300">Браузер → Go → PostgreSQL → участники комнаты.</p>
+              <p className="mt-2 leading-7 text-zinc-300">
+                Браузер → Go → PostgreSQL → участники комнаты.
+              </p>
               <p className="mt-3 text-sm leading-6 text-zinc-400">
-                При входе — последние 100 сообщений; в архиве — три календарных месяца.
+                При входе — последние 100 сообщений; в архиве — три календарных
+                месяца.
               </p>
             </div>
             <div className="rounded-2xl border border-sky-400/30 bg-sky-400/5 p-5">
               <p className="font-bold text-sky-200">Онлайн-приват</p>
-              <p className="mt-2 leading-7 text-zinc-300">Браузер → Go WebSocket → отправитель и адресат.</p>
+              <p className="mt-2 leading-7 text-zinc-300">
+                Браузер → Go WebSocket → отправитель и адресат.
+              </p>
               <p className="mt-3 text-sm leading-6 text-zinc-400">
                 Адресат должен быть онлайн; записи в истории комнаты нет.
               </p>
@@ -53,7 +70,10 @@ export function TechnologyArticle() {
               </a>
             </li>
             <li>
-              <a href="#public-history" className="transition hover:text-amber-200">
+              <a
+                href="#public-history"
+                className="transition hover:text-amber-200"
+              >
                 {"Как найти вчерашний разговор"}
               </a>
             </li>
@@ -63,7 +83,10 @@ export function TechnologyArticle() {
               </a>
             </li>
             <li>
-              <a href="#notes-and-bot" className="transition hover:text-amber-200">
+              <a
+                href="#notes-and-bot"
+                className="transition hover:text-amber-200"
+              >
                 {"Записки и бот — другие режимы"}
               </a>
             </li>
@@ -82,7 +105,10 @@ export function TechnologyArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="realtime" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="realtime"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Как сообщение приходит в комнату"}
           </h2>
           <p>
@@ -99,7 +125,10 @@ export function TechnologyArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="public-history" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="public-history"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Как найти вчерашний разговор"}
           </h2>
           <p>
@@ -125,7 +154,10 @@ export function TechnologyArticle() {
         </div>
       </div>
       <figure className="mx-auto mt-12 max-w-6xl px-5 sm:px-8">
-        <a href="/images/article-vertigo-history.png" aria-label="Открыть скриншот в полном размере">
+        <a
+          href="/images/article-vertigo-history.png"
+          aria-label="Открыть скриншот в полном размере"
+        >
           <img
             src="/images/article-vertigo-history.png"
             width={896}
@@ -145,12 +177,17 @@ export function TechnologyArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="private" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="private"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Приват: только пока адресат в сети"}
           </h2>
           <p>
             {"Дважды нажми на ник в списке чатлан или введи "}
-            <code className="rounded bg-zinc-800 px-1">{"^Ник, текст сообщения"}</code>
+            <code className="rounded bg-zinc-800 px-1">
+              {"^Ник, текст сообщения"}
+            </code>
             {
               ". Сервер находит активного адресата в комнате и передаёт реплику отправителю и получателю. В таблицу публичной истории она не записывается."
             }
@@ -169,7 +206,10 @@ export function TechnologyArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="notes-and-bot" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="notes-and-bot"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Записки и бот — другие режимы"}
           </h2>
           <p>
@@ -186,7 +226,10 @@ export function TechnologyArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="passwords" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="passwords"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Что происходит с паролем"}
           </h2>
           <p>
@@ -203,25 +246,37 @@ export function TechnologyArticle() {
       </div>
       <div className="mx-auto mt-12 max-w-3xl px-5 sm:px-8">
         <div className="space-y-7 text-lg leading-8 text-zinc-300">
-          <h2 id="limits" className="text-3xl font-bold tracking-tight text-zinc-100">
+          <h2
+            id="limits"
+            className="text-3xl font-bold tracking-tight text-zinc-100"
+          >
             {"Короткая проверка перед отправкой"}
           </h2>
           <p>
             {
               "Если реплику должна увидеть комната — отправляй обычное сообщение и учитывай публичную историю. Если человек онлайн и разговор личный — используй приват. Если зарегистрированный адресат вернётся позже — оставь записку и помни, что она сохраняется. Для действий и названий кнопок есть "
             }
-            <a className="text-amber-200 underline underline-offset-2 hover:text-amber-100" href="/help">
+            <a
+              className="text-amber-200 underline underline-offset-2 hover:text-amber-100"
+              href="/help"
+            >
               {"справка"}
             </a>
-            {"; сведения в этой статье проверены по реализации на 10 октября 2026 года."}
+            {
+              "; сведения в этой статье проверены по реализации на 10 октября 2026 года."
+            }
           </p>
         </div>
       </div>
       <div className="mx-auto max-w-3xl px-5 sm:px-8">
         <aside className="mt-14 rounded-3xl border border-amber-300/35 bg-amber-300/10 p-7 sm:p-9">
-          <h2 className="text-2xl font-bold text-zinc-100">{"Проверить нужную команду"}</h2>
+          <h2 className="text-2xl font-bold text-zinc-100">
+            {"Проверить нужную команду"}
+          </h2>
           <p className="mt-3 max-w-xl leading-7 text-zinc-300">
-            {"В справке есть отдельные темы про историю, приват и записки с точными действиями в интерфейсе."}
+            {
+              "В справке есть отдельные темы про историю, приват и записки с точными действиями в интерфейсе."
+            }
           </p>
           <a
             id="technology-enter-chat"
@@ -233,5 +288,5 @@ export function TechnologyArticle() {
         </aside>
       </div>
     </article>
-  )
+  );
 }
