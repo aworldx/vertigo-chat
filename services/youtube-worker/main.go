@@ -129,6 +129,11 @@ func (s *server) handler() http.Handler {
 			sendError(w, err)
 			return
 		}
+		// The link is about to be published. Begin the bounded cache job now so
+		// recipients do not have to wait for their first play request to start it.
+		if ready, err := s.cache.request(id); err == nil && ready != nil {
+			_ = ready.Close()
+		}
 		sendJSON(w, 200, map[string]any{"title": video.Title, "duration": video.Duration})
 	})
 	mux.HandleFunc("GET /youtube-proxy/{id}", func(w http.ResponseWriter, r *http.Request) {

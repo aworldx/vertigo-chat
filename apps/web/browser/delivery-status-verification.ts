@@ -2,6 +2,9 @@ import assert from "node:assert/strict"
 import { expect, type Browser, type WebSocketRoute } from "@playwright/test"
 
 export async function verifyDeliveryStates(browser: Browser, origin: string) {
+  const nonce = Date.now().toString(36)
+  const deliveryBody = `Этапы доставки ${nonce}`
+  const blockedBody = `Отклонено лимитом ${nonce}`
   const context = await browser.newContext()
   let releaseSend: (() => void) | undefined
   let releaseAck: (() => void) | undefined
@@ -17,13 +20,13 @@ export async function verifyDeliveryStates(browser: Browser, origin: string) {
       }
       const value: unknown = JSON.parse(raw)
       if (typeof value === "object" && value !== null && "type" in value && value.type === "send" && "body" in value) {
-        if (value.body === "Этапы доставки") {
+        if (value.body === deliveryBody) {
           releaseSend = () => {
             server.send(raw)
           }
           return
         }
-        if (value.body === "Отклонено лимитом" && "client_id" in value) {
+        if (value.body === blockedBody && "client_id" in value) {
           blockedSends++
           socket.send(JSON.stringify({ type: "error", code: "rate_limited", client_id: value.client_id }))
           return
@@ -32,7 +35,7 @@ export async function verifyDeliveryStates(browser: Browser, origin: string) {
       server.send(raw)
     })
     server.onMessage((raw) => {
-      if (typeof raw === "string" && raw.includes("Этапы доставки") && publicationHeld) {
+      if (typeof raw === "string" && raw.includes(deliveryBody) && publicationHeld) {
         const value: unknown = JSON.parse(raw)
         if (typeof value === "object" && value !== null && "type" in value) {
           if (value.type === "ack") {
@@ -55,12 +58,12 @@ export async function verifyDeliveryStates(browser: Browser, origin: string) {
   })
   const page = await context.newPage()
   await page.goto(origin)
-  await page.locator("#entrance-nickname").fill("delivery-states")
+  await page.locator("#entrance-nickname").fill(`delivery-${nonce}`)
   await page.locator("#enter-chat").click()
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")
-  await page.locator("#message-body").fill("Этапы доставки")
+  await page.locator("#message-body").fill(deliveryBody)
   await page.locator("#send-message").click()
-  const card = page.locator("#messages > [data-client-id]").filter({ hasText: "Этапы доставки" })
+  const card = page.locator("#messages > [data-client-id]").filter({ hasText: deliveryBody })
   const pending = card.locator("[data-delivery-state]")
   await expect(pending).toHaveAttribute("data-delivery-state", "sending")
   await expect(pending.locator('[aria-hidden="true"]')).toHaveText("✓")
@@ -78,12 +81,12 @@ export async function verifyDeliveryStates(browser: Browser, origin: string) {
   releaseHistory()
   await expect(card).toBeAttached()
   await expect(pending).toHaveAttribute("data-delivery-state", "published")
-  const published = page.locator('[data-message-kind="text"]').filter({ hasText: "Этапы доставки" })
+  const published = page.locator('[data-message-kind="text"]').filter({ hasText: deliveryBody })
   await expect(published).toContainText("✓✓")
   await expect(published.locator(".text-sky-400")).toBeVisible()
-  await page.locator("#message-body").fill("Отклонено лимитом")
+  await page.locator("#message-body").fill(blockedBody)
   await page.locator("#send-message").click()
-  const blocked = page.locator("#messages > [data-client-id]").filter({ hasText: "Отклонено лимитом" })
+  const blocked = page.locator("#messages > [data-client-id]").filter({ hasText: blockedBody })
   await expect(blocked.locator("[data-delivery-state]")).toHaveAttribute("data-delivery-state", "blocked")
   await page.reload()
   await expect(page.locator("#chat-room")).toHaveAttribute("data-chat-joined", "true")

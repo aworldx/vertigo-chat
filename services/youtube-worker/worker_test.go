@@ -89,6 +89,40 @@ func TestHTTPContract(t *testing.T) {
 		t.Fatal(w.Code)
 	}
 }
+
+func TestPrepareStartsCacheBeforePlayback(t *testing.T) {
+	started := make(chan string, 1)
+	c := testCache(t, func(_ context.Context, id, path string) error {
+		started <- id
+		return os.WriteFile(path, []byte("0123456789"), 0600)
+	})
+	s := server{&fakeMedia{}, c, make(chan struct{}, 4), time.Second}
+	w := httptest.NewRecorder()
+	s.handler().ServeHTTP(w, httptest.NewRequest("POST", "/youtube/prepare", strings.NewReader(`{"source_url":"https://youtu.be/jNQXAC9IVRw"}`)))
+	if w.Code != http.StatusOK {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	select {
+	case id := <-started:
+		if id != "jNQXAC9IVRw" {
+			t.Fatal(id)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("preparation did not start cache download")
+	}
+	for i := 0; i < 20; i++ {
+		f, err := c.request("jNQXAC9IVRw")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if f != nil {
+			_ = f.Close()
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("prepared video did not enter cache")
+}
 func TestRanges(t *testing.T) {
 	media := &fakeMedia{}
 	c := testCache(t, media.Download)

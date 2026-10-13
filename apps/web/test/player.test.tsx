@@ -117,6 +117,8 @@ test("playback handles seek, volume, queue advance, pause and cleanup without re
 })
 test("YouTube retry is bounded and cancelled by switching tracks and powering off", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] })
+  let ready = false
+  const head = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: ready ? 200 : 202 }))
   const element = document.createElement("video")
   const load = t.mock.method(element, "load", () => {})
   t.mock.method(element, "pause", () => {})
@@ -130,13 +132,21 @@ test("YouTube retry is bounded and cancelled by switching tracks and powering of
   await act(async () => {
     view.rerender({ current: video, requested: true })
   })
-  for (let n = 0; n <= 120; n++)
-    act(() => {
+  assert.equal(load.mock.callCount(), 0, "media must stay detached while cache returns 202")
+  ready = true
+  await act(async () => {
+    t.mock.timers.tick(2000)
+  })
+  assert.equal(load.mock.callCount(), 1)
+  assert.equal(head.mock.callCount(), 2)
+  for (let n = 0; n < 3; n++) {
+    await act(async () => {
       element.dispatchEvent(new dom.window.Event("error"))
-      t.mock.timers.tick(1000)
+      if (n < 2) t.mock.timers.tick(2000)
     })
+  }
   assert.equal(view.result.current.status, "error")
-  assert.equal(load.mock.callCount(), 121)
+  assert.equal(load.mock.callCount(), 3)
   Object.defineProperty(element, "error", { value: { code: 2, message: "Network" }, configurable: true })
   load.mock.mockImplementation(() => {
     Object.defineProperty(element, "error", { value: null, configurable: true })
@@ -146,18 +156,15 @@ test("YouTube retry is bounded and cancelled by switching tracks and powering of
     view.result.current.resume()
   })
   assert.equal(view.result.current.status, "loading")
-  act(() => {
-    element.dispatchEvent(new dom.window.Event("error"))
-    t.mock.timers.tick(1000)
-  })
-  assert.equal(load.mock.callCount(), 123, "manual retry starts a fresh bounded preparation cycle")
+  assert.equal(load.mock.callCount(), 4, "manual retry starts a fresh bounded preparation cycle")
+  ready = false
   act(() => {
     view.rerender({ current: { ...video, key: 2 }, requested: true })
-    element.dispatchEvent(new dom.window.Event("error"))
   })
+  assert.equal(load.mock.callCount(), 4, "new track waits for its own readiness")
   act(() => {
     view.rerender({ current: { ...video, key: 3 }, requested: false })
-    t.mock.timers.tick(1000)
+    t.mock.timers.tick(2000)
   })
   const count = load.mock.callCount()
   view.unmount()

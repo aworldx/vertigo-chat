@@ -90,11 +90,16 @@ export async function verifyPlayer(browser: Browser, origin: string) {
       reducedMotion: "reduce",
       hasTouch: inline,
     })
-    let attempts = 0
+    let readinessChecks = 0
+    let mediaRequestedBeforeReady = false
     await context.route("**/music-proxy?*", (route) => serveMedia(route, audio, "audio/wav"))
     await context.route("**/youtube-proxy/*", (route) => {
-      attempts++
-      return attempts === 1 ? route.fulfill({ status: 503, body: "Preparing" }) : serveMedia(route, bytes, "video/webm")
+      if (route.request().method() === "HEAD") {
+        readinessChecks++
+        if (readinessChecks <= 2) return route.fulfill({ status: 202 })
+        if (readinessChecks === 3) return route.fulfill({ status: 503 })
+      } else if (readinessChecks < 4) mediaRequestedBeforeReady = true
+      return serveMedia(route, bytes, "video/webm")
     })
     let messages = [fixture(20001), fixture(20002, true), fixture(20003)]
     let publish: (() => void) | undefined
@@ -146,6 +151,10 @@ export async function verifyPlayer(browser: Browser, origin: string) {
             { timeout: 10000 },
           )
           .toBe(true)
+        assert.ok(
+          readinessChecks >= 4 && !mediaRequestedBeforeReady,
+          `video was attached before the cache was ready: ${JSON.stringify({ readinessChecks, mediaRequestedBeforeReady })}`,
+        )
         await expect(page.locator("#chat-tv")).toHaveCount(0)
         await page.screenshot({ path: `migration-results/player/${String(width)}-inline.png` })
         await page.locator("#leave-chat").click()
@@ -263,7 +272,7 @@ export async function verifyPlayer(browser: Browser, origin: string) {
           timeout: 10000,
         })
         .toBe(true)
-      assert.ok(attempts >= 2)
+      assert.ok(readinessChecks >= 4 && !mediaRequestedBeforeReady)
       await expect(page.locator("#chat-tv-expand")).toContainText("Видео · только звук")
       await page.locator("#chat-tv-expand").click()
       await expect(video).toBeVisible()
@@ -409,6 +418,7 @@ export async function verifyPlayer(browser: Browser, origin: string) {
       await page.locator("#save-preferences").click()
       await expect(page.locator("#chat-tv")).toHaveCount(0)
       await page.locator("#leave-chat").click()
+      assert.ok(readinessChecks >= 4 && !mediaRequestedBeforeReady, "player requested video before the cache was ready")
     } finally {
       await context.close()
     }

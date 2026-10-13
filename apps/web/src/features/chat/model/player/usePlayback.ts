@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState, useReducer } from "react"
 import { ListeningContext } from "../listeningContext"
+import { waitForVideoReady } from "../videoReadiness"
 import type { QueueEntry } from "./queue"
 export type PlaybackStatus = "idle" | "loading" | "playing" | "paused" | "blocked" | "error"
 export function usePlayback(current: QueueEntry | null, requested: boolean, onEnded: () => void) {
@@ -16,6 +17,7 @@ export function usePlayback(current: QueueEntry | null, requested: boolean, onEn
       attempt = 0,
       hasPlayed = false
     let timer: ReturnType<typeof setTimeout> | undefined
+    const preparation = new AbortController()
     const listening = (active: boolean) => connection?.listening(current.title, active)
     const updateTime = () => {
       setTime({ position: element.currentTime, duration: Number.isFinite(element.duration) ? element.duration : 0 })
@@ -46,10 +48,23 @@ export function usePlayback(current: QueueEntry | null, requested: boolean, onEn
       listening(false)
       onEnded()
     }
+    const prepare = async () => {
+      setStatus("loading")
+      const ready = await waitForVideoReady(current.source, preparation.signal)
+      if (disposed) return
+      if (!ready) {
+        setStatus("error")
+        return
+      }
+      element.dataset.trackKey = String(current.key)
+      element.src = `${current.source}?attempt=${String(attempt)}`
+      element.load()
+      if (requested) play()
+    }
     const error = () => {
       listening(false)
       if (!requested || disposed) return
-      if (!current.prepare || hasPlayed || attempt >= 120) {
+      if (!current.prepare || hasPlayed || attempt >= 2) {
         setStatus("error")
         return
       }
@@ -58,10 +73,8 @@ export function usePlayback(current: QueueEntry | null, requested: boolean, onEn
       timer = setTimeout(() => {
         if (disposed) return
         attempt++
-        element.src = `${current.source}?attempt=${String(attempt)}`
-        element.load()
-        play()
-      }, 1000)
+        void prepare()
+      }, 2000)
     }
     element.addEventListener("loadstart", loading)
     element.addEventListener("waiting", loading)
@@ -71,15 +84,23 @@ export function usePlayback(current: QueueEntry | null, requested: boolean, onEn
     element.addEventListener("error", error)
     element.addEventListener("timeupdate", updateTime)
     element.addEventListener("durationchange", updateTime)
-    if (element.dataset.trackKey !== String(current.key) || element.error) {
-      element.dataset.trackKey = String(current.key)
-      element.src = current.source
-      element.load()
+    if (current.prepare) {
+      if (requested) {
+        if (element.dataset.trackKey === String(current.key) && !element.error && element.readyState > 0) play()
+        else void prepare()
+      } else element.pause()
+    } else {
+      if (element.dataset.trackKey !== String(current.key) || element.error) {
+        element.dataset.trackKey = String(current.key)
+        element.src = current.source
+        element.load()
+      }
+      if (requested) play()
+      else element.pause()
     }
-    if (requested) play()
-    else element.pause()
     return () => {
       disposed = true
+      preparation.abort()
       clearTimeout(timer)
       element.removeEventListener("loadstart", loading)
       element.removeEventListener("waiting", loading)

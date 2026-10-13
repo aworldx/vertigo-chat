@@ -85,6 +85,10 @@ type downloader struct {
 
 const ytDLPJSRuntime = "deno"
 
+// Inline playback is capped at 400px; prefer a smaller AVC stream so a cold
+// cache has fewer bytes to fetch before the browser can start playback.
+const downloadFormat = "bestvideo[vcodec^=avc1][height<=240]+bestaudio[acodec^=mp4a]/bestvideo[vcodec^=avc1][height<=360]+bestaudio[acodec^=mp4a]/best[ext=mp4][height<=360]"
+
 // Kill the process group on cancellation, including yt-dlp's ffmpeg children.
 // The worker targets Linux containers and macOS development machines.
 func command(ctx context.Context, program string, args ...string) *exec.Cmd {
@@ -170,7 +174,7 @@ func (d downloader) Download(ctx context.Context, id, path string) error {
 	defer func() { _ = os.RemoveAll(dir) }()
 	input := filepath.Join(dir, "source.mp4")
 	baseArgs := []string{"--ignore-config", "--quiet", "--no-warnings", "--no-playlist", "--no-part", "--socket-timeout", "15", "--retries", "1", "--js-runtimes", ytDLPJSRuntime, "--ffmpeg-location", d.ffmpeg,
-		"--max-filesize", fmt.Sprint(d.maxBytes), "--format", "bestvideo[vcodec^=avc1][height<=360]+bestaudio[acodec^=mp4a]/best[ext=mp4][height<=360]", "--merge-output-format", "mp4", "--output", input, "--", sourceURL(id)}
+		"--max-filesize", fmt.Sprint(d.maxBytes), "--format", downloadFormat, "--merge-output-format", "mp4", "--output", input, "--", sourceURL(id)}
 	attempts := d.proxies.candidates()
 	if len(attempts) == 0 {
 		attempts = []string{""}

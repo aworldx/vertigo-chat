@@ -45,4 +45,7 @@ func TestDownloadUsesMountedProxySecret(t *testing.T) {
 	if !strings.Contains(string(args), "--proxy http://user:password@proxy.example:8080") {
 		t.Fatalf("yt-dlp was not given the configured proxy: %q", args)
 	}
+	if !strings.Contains(string(args), "--format "+downloadFormat) {
+		t.Fatal("yt-dlp did not use the fast-start AVC format")
+	}
 }
