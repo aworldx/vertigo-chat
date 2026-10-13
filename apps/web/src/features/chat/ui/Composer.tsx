@@ -167,14 +167,14 @@ export function Composer({
                 onClick={() => {
                   insert(emojiToken(emoji.code))
                 }}
-                className="flex size-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-amber-300/15 hover:scale-110"
+                className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-lg px-2 transition hover:bg-amber-300/15"
               >
                 <img
                   src={`/emojis/${String(emoji.id)}`}
                   alt={emojiToken(emoji.code)}
                   width={emoji.width}
                   height={emoji.height}
-                  className="h-auto w-auto max-h-8 max-w-8 object-contain"
+                  className="h-auto max-h-[24px] w-auto max-w-[80px] shrink-0 object-contain"
                 />
               </button>
             ))}

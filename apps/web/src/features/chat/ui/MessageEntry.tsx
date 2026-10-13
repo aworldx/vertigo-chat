@@ -84,7 +84,7 @@ export function MessageBody({ body, emojis }: { body: string; emojis: Emoji[] })
           <img
             src={`/emojis/${String(codes.get(part)?.id)}`}
             alt={part}
-            className="h-auto w-auto max-h-8 max-w-8 object-contain"
+            className="h-auto max-h-[24px] w-auto max-w-[80px] shrink-0 object-contain"
           />
         </span>
       ) : (
