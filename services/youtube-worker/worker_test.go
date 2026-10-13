@@ -49,7 +49,7 @@ func TestYTDLPUsesDenoRuntime(t *testing.T) {
 func TestHTTPContract(t *testing.T) {
 	media := &fakeMedia{}
 	c := testCache(t, media.Download)
-	s := server{media, c, make(chan struct{}, 4), time.Second}
+	s := server{media, c, make(chan struct{}, 4), time.Second, nil}
 	handler := s.handler()
 	for _, test := range []struct {
 		path, body string
@@ -96,7 +96,7 @@ func TestPrepareStartsCacheBeforePlayback(t *testing.T) {
 		started <- id
 		return os.WriteFile(path, []byte("0123456789"), 0600)
 	})
-	s := server{&fakeMedia{}, c, make(chan struct{}, 4), time.Second}
+	s := server{&fakeMedia{}, c, make(chan struct{}, 4), time.Second, nil}
 	w := httptest.NewRecorder()
 	s.handler().ServeHTTP(w, httptest.NewRequest("POST", "/youtube/prepare", strings.NewReader(`{"source_url":"https://youtu.be/jNQXAC9IVRw"}`)))
 	if w.Code != http.StatusOK {
@@ -129,7 +129,7 @@ func TestRanges(t *testing.T) {
 	id := "jNQXAC9IVRw"
 	_ = os.WriteFile(c.path(id), []byte("0123456789"), 0600)
 	c.entries[id] = cacheEntry{10, time.Now()}
-	s := server{media, c, make(chan struct{}, 4), time.Second}
+	s := server{media, c, make(chan struct{}, 4), time.Second, nil}
 	for _, test := range []struct {
 		method, rng        string
 		status             int
@@ -168,7 +168,7 @@ func TestCacheDedupQueueAndFailure(t *testing.T) {
 			return ctx.Err()
 		}
 	})
-	s := server{&fakeMedia{}, c, make(chan struct{}, 4), time.Second}
+	s := server{&fakeMedia{}, c, make(chan struct{}, 4), time.Second, nil}
 	w := httptest.NewRecorder()
 	s.handler().ServeHTTP(w, httptest.NewRequest("GET", "/youtube-proxy/jNQXAC9IVRw", nil))
 	if w.Code != 202 || w.Header().Get("Retry-After") != "1" {

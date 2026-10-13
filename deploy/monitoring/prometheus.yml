@@ -14,6 +14,11 @@ scrape_configs:
     static_configs:
       - targets: ["api:4020"]
 
+  - job_name: youtube-worker
+    metrics_path: /internal/metrics
+    static_configs:
+      - targets: ["youtube-worker:4001"]
+
   - job_name: vps
     static_configs:
       - targets: ["node-exporter:9100"]

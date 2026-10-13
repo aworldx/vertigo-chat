@@ -32,3 +32,19 @@ groups:
           severity: warning
         annotations:
           summary: Chat is returning 5xx responses
+
+      - alert: YoutubeWorkerUnavailable
+        expr: up{job="youtube-worker"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YouTube worker metrics endpoint is unavailable
+
+      - alert: YoutubeProxiesUnavailable
+        expr: chat_youtube_proxies_working{job="youtube-worker"} == 0 or chat_youtube_proxy_source_read_success{job="youtube-worker"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: No working YouTube proxies or the proxy source file is unreadable

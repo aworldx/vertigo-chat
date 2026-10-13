@@ -24,6 +24,7 @@ type server struct {
 	cache          *cache
 	metadataSlots  chan struct{}
 	requestTimeout time.Duration
+	proxies        *proxyPool
 }
 
 func sendJSON(w http.ResponseWriter, status int, body any) {
@@ -73,6 +74,7 @@ func (s *server) metadataContext(w http.ResponseWriter, r *http.Request) (contex
 }
 func (s *server) handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /internal/metrics", s.proxyMetrics)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		_, _ = io.WriteString(w, "ok")
@@ -199,7 +201,11 @@ func run() error {
 		return err
 	}
 	defer cache.close()
-	s := server{media, cache, make(chan struct{}, 4), time.Duration(envInt("YOUTUBE_REQUEST_TIMEOUT_MS", 25000)) * time.Millisecond}
+	if media.proxies != nil {
+		source := env("YOUTUBE_PROXY_SOURCE_FILE", os.Getenv("YOUTUBE_PROXY_FILE"))
+		go media.proxies.monitor(ctx, source, media.probeProxy)
+	}
+	s := server{media, cache, make(chan struct{}, 4), time.Duration(envInt("YOUTUBE_REQUEST_TIMEOUT_MS", 25000)) * time.Millisecond, media.proxies}
 	httpServer := &http.Server{Addr: net.JoinHostPort(env("YOUTUBE_WORKER_HOST", "127.0.0.1"), strconv.FormatInt(envInt("YOUTUBE_WORKER_PORT", 4001), 10)), Handler: s.handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 * 1024}
 	stopped := make(chan error, 1)
 	go func() {
