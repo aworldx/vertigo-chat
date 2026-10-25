@@ -22,11 +22,10 @@ func TestGalleryRules(t *testing.T) {
 		t.Fatal("MIME mismatch")
 	}
 	for _, c := range []struct {
-		allowed      bool
-		total, daily int
+		limit, total int
 		want         error
-	}{{false, 0, 0, ErrRank}, {true, 20, 0, ErrTotal}, {true, 2, 5, ErrDaily}, {true, 19, 4, nil}} {
-		if err := Quota(c.allowed, c.total, c.daily); err != c.want {
+	}{{0, 0, ErrRank}, {1, 0, nil}, {1, 1, ErrTotal}, {3, 2, nil}, {3, 3, ErrTotal}, {3, 50, ErrTotal}, {50, 49, nil}, {50, 50, ErrTotal}} {
+		if err := Quota(c.limit, c.total); err != c.want {
 			t.Fatal(c, err)
 		}
 	}

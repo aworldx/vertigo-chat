@@ -33,7 +33,7 @@ func TestLibraryReadingPostgres(t *testing.T) {
 		}
 	}
 	defer func() { _, _ = db.Exec(ctx, `DELETE FROM registered_users WHERE id=ANY($1)`, users[:]) }()
-	s := NewStore(db, func(context.Context, pgx.Tx, int64) (bool, error) { return true, nil })
+	s := NewStore(db, func(context.Context, pgx.Tx, int64) (int, error) { return 50, nil })
 	first, err := s.Save(ctx, users[0], 0, domain.Input{Title: "First", Body: "Body", Series: "Old"})
 	if err != nil {
 		t.Fatal(err)

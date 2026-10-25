@@ -75,9 +75,12 @@ func (f *chatFixture) cancelledPersistence(t *testing.T) {
 			err := emojipg.NewStore(f.pool).Submit(ctx, emojis.Upload{UserID: 1, Code: "-test-"})
 			return err
 		}},
-		{"chart list", func() error { _, err := chartpg.NewStore(f.pool).List(ctx, 1); return err }},
-		{"chart audio", func() error { _, err := chartpg.NewStore(f.pool).Audio(ctx, 1); return err }},
-		{"chart upload", func() error { err := chartpg.NewStore(f.pool).Add(ctx, 1, "Song", chartdomain.Audio{}); return err }},
+		{"chart list", func() error { _, err := chartpg.NewStore(f.pool, chartGate).List(ctx, 1); return err }},
+		{"chart audio", func() error { _, err := chartpg.NewStore(f.pool, chartGate).Audio(ctx, 1); return err }},
+		{"chart upload", func() error {
+			err := chartpg.NewStore(f.pool, chartGate).Add(ctx, 1, "Song", chartdomain.Audio{})
+			return err
+		}},
 		{"session start", func() error {
 			_, err := chatpg.NewStore(f.pool).Start(ctx, chatdomain.Session{}, "secret", nil)
 			return err

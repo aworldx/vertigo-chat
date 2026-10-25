@@ -90,11 +90,11 @@ func (s Store) AddImage(ctx context.Context, user int64, v domain.Image) (int64,
 		if err := lockAuthor(ctx, tx, user); err != nil {
 			return err
 		}
-		allowed, err := s.gate(ctx, tx, user)
+		limit, err := s.gate(ctx, tx, user)
 		if err != nil {
 			return err
 		}
-		if !allowed {
+		if limit <= 0 {
 			var ownsArticle bool
 			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM library_articles WHERE user_id=$1)`, user).Scan(&ownsArticle); err != nil {
 				return err

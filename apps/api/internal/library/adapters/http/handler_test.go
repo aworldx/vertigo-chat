@@ -40,7 +40,6 @@ func TestLibraryFailuresAndSeriesOrdering(t *testing.T) {
 		{method: "PUT", path: "/api/v1/library/bad", body: `{}`, status: 404},
 		{method: "POST", path: "/api/v1/library", body: `{"title":"Title","body":"Body"}`, storeErr: domain.ErrRank, status: 422},
 		{method: "POST", path: "/api/v1/library", body: `{"title":"Title","body":"Body"}`, storeErr: domain.ErrTotal, status: 422},
-		{method: "POST", path: "/api/v1/library", body: `{"title":"Title","body":"Body"}`, storeErr: domain.ErrDaily, status: 422},
 		{method: "POST", path: "/api/v1/library", body: `{"title":"Title","body":"Body"}`, storeErr: domain.ErrNotFound, status: 404},
 		{method: "POST", path: "/api/v1/library", body: `{}`, status: 422},
 	} {

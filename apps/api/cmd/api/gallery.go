@@ -25,9 +25,9 @@ func (p galleryPeople) Viewer(ctx context.Context, id int64) (gallery.Viewer, er
 func (p galleryPeople) Names(ctx context.Context, ids []int64) (map[int64]string, error) {
 	return p.directory.PublicNames(ctx, ids)
 }
-func galleryUploadGate(ctx context.Context, tx pgx.Tx, id int64) (bool, error) {
+func galleryUploadGate(ctx context.Context, tx pgx.Tx, id int64) (int, error) {
 	v, err := accounts.NewDirectory(accountspg.NewAccounts(tx)).PublicationProfile(ctx, id, true)
-	return profiles.CanAddGalleryPhotos(v.Messages, v.Seconds), err
+	return profiles.Limits(v.Messages, v.Seconds).Photos, err
 }
 func registerGallery(mux *http.ServeMux, pool *pgxpool.Pool, auth accountshttp.Handler) error {
 	var storage gallerypg.Storage

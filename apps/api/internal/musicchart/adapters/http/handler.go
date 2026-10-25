@@ -161,7 +161,7 @@ func failure(w http.ResponseWriter, err error) {
 	case errors.Is(err, domain.ErrInvalid):
 		status, message = 422, "Проверь название (до 120 символов), комментарий (до 280) и файл MP3, OGG или WAV до 20 МБ."
 	case errors.Is(err, domain.ErrLimit):
-		status, message = 422, "Можно загрузить не больше 5 треков."
+		status, message = 422, "Достигнут общий лимит треков для твоего звания. Лимиты — в разделе «Система званий» на странице помощи."
 	case errors.Is(err, domain.ErrForbidden):
 		status, message = 403, "Можно изменять только свои треки и голосовать за чужие."
 	case errors.Is(err, domain.ErrNotFound):

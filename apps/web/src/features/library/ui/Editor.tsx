@@ -244,7 +244,9 @@ export function Editor({
               <p className="mt-3 text-xs text-stone-500">
                 {workAuthor.trim() ? `Автор: ${workAuthor.trim()} · Опубликовал: ${nickname}` : nickname}
               </p>
-              <p className="mt-1 text-xs text-stone-500">До 10 новых статей в сутки и 50 всего.</p>
+              <p className="mt-1 text-xs text-stone-500">
+                Общий лимит статей зависит от звания. Подробности — в помощи.
+              </p>
               <div className="mt-6 font-serif text-base leading-8 text-stone-200">
                 <ArticleText body={body || "Текст появится здесь по мере набора."} />
               </div>

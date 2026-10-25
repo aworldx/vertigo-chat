@@ -71,7 +71,9 @@ export function MusicChart({
           {registered ? (
             <>
               <h2 className="text-lg font-semibold">Добавить в топ</h2>
-              <p className="mt-2 text-sm leading-6 text-zinc-400">До 5 треков от одного чатланина.</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-400">
+                Общий лимит треков зависит от звания. Подробности — в помощи.
+              </p>
               <form
                 id="music-chart-upload-form"
                 className="mt-5 space-y-4"

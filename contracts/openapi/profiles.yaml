@@ -24,13 +24,21 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [title, icon_url, messages, hours, feature_unlock]
+                      required: [title, icon_url, messages, hours, feature_unlock, limits]
                       properties:
                         title: {type: string}
                         icon_url: {type: string}
                         messages: {type: integer, minimum: 0}
                         hours: {type: integer, minimum: 0}
                         feature_unlock: {type: string}
+                        limits:
+                          type: object
+                          description: Total stored items per registered author. No daily limits.
+                          required: [tracks, articles, photos]
+                          properties:
+                            tracks: {type: integer, minimum: 1}
+                            articles: {type: integer, minimum: 1}
+                            photos: {type: integer, minimum: 1}
         '500': {description: Internal server error}
   /api/v1/chat/profiles/{nickname}:
     get:

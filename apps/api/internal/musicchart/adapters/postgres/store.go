@@ -8,9 +8,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Store struct{ pool *pgxpool.Pool }
+// Gate returns the current total limit and locks the author until tx completes.
+type Gate func(context.Context, pgx.Tx, int64) (int, error)
 
-func NewStore(p *pgxpool.Pool) Store { return Store{p} }
+type Store struct {
+	pool *pgxpool.Pool
+	gate Gate
+}
+
+func NewStore(p *pgxpool.Pool, gate Gate) Store { return Store{p, gate} }
 func (s Store) List(ctx context.Context, user int64) ([]domain.Track, error) {
 	rows, err := s.pool.Query(ctx, `SELECT t.id,t.title,u.nickname,t.user_id=$1,(SELECT count(*) FROM music_chart_likes l WHERE l.track_id=t.id),EXISTS(SELECT 1 FROM music_chart_likes l WHERE l.track_id=t.id AND l.user_id=$1) FROM music_chart_tracks t JOIN registered_users u ON u.id=t.user_id ORDER BY 5 DESC,t.inserted_at DESC,t.id DESC`, user)
 	if err != nil {
@@ -61,17 +67,18 @@ func (s Store) Audio(ctx context.Context, id int64) (domain.Audio, error) {
 }
 func (s Store) Add(ctx context.Context, user int64, title string, a domain.Audio) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1)`, user); err != nil {
+		limit, err := s.gate(ctx, tx, user)
+		if err != nil {
 			return err
 		}
 		var count int
 		if err := tx.QueryRow(ctx, `SELECT count(*) FROM music_chart_tracks WHERE user_id=$1`, user).Scan(&count); err != nil {
 			return err
 		}
-		if count >= domain.MaxTracks {
-			return domain.ErrLimit
+		if err := domain.Quota(limit, count); err != nil {
+			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO music_chart_tracks(user_id,title,audio,content_type,audio_key,inserted_at,updated_at) VALUES($1,$2,$3,$4,NULLIF($5,''),NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC')`, user, title, a.Bytes, a.ContentType, a.Key)
+		_, err = tx.Exec(ctx, `INSERT INTO music_chart_tracks(user_id,title,audio,content_type,audio_key,inserted_at,updated_at) VALUES($1,$2,$3,$4,NULLIF($5,''),NOW() AT TIME ZONE 'UTC',NOW() AT TIME ZONE 'UTC')`, user, title, a.Bytes, a.ContentType, a.Key)
 		return err
 	})
 }

@@ -12,7 +12,6 @@ var ErrForbidden = errors.New("forbidden")
 var ErrNotFound = errors.New("not_found")
 var ErrRank = errors.New("kinoman_required")
 var ErrTotal = errors.New("article_limit_reached")
-var ErrDaily = errors.New("daily_article_limit_reached")
 
 type Input struct {
 	Title, Body, Series string
@@ -60,15 +59,12 @@ func Normalize(v Input) (Input, error) {
 func valid(s string, max int, required bool) bool {
 	return utf8.ValidString(s) && utf8.RuneCountInString(s) <= max && (!required || s != "")
 }
-func Quota(allowed bool, total, daily int) error {
-	if !allowed {
+func Quota(limit, total int) error {
+	if limit <= 0 {
 		return ErrRank
 	}
-	if total >= 50 {
+	if total >= limit {
 		return ErrTotal
-	}
-	if daily >= 10 {
-		return ErrDaily
 	}
 	return nil
 }

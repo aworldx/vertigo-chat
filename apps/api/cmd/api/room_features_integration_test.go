@@ -77,7 +77,7 @@ func (f *chatFixture) checkBudgetSnapshot(t *testing.T, store botpg.Store) {
 }
 func (f *chatFixture) chart(t *testing.T) {
 	ctx := context.Background()
-	service := chart.NewService(chartpg.NewStore(f.pool))
+	service := chart.NewService(chartpg.NewStore(f.pool, chartGate))
 	var owner, other int64
 	if err := f.pool.QueryRow(ctx, `SELECT id FROM registered_users WHERE nickname='fixture01'`).Scan(&owner); err != nil {
 		t.Fatal(err)
@@ -85,7 +85,10 @@ func (f *chatFixture) chart(t *testing.T) {
 	if err := f.pool.QueryRow(ctx, `SELECT id FROM registered_users WHERE nickname='fixture02'`).Scan(&other); err != nil {
 		t.Fatal(err)
 	}
-	for i := range 5 {
+	if _, err := f.pool.Exec(ctx, `UPDATE registered_users SET public_message_count=0,chat_seconds=0 WHERE id=$1`, owner); err != nil {
+		t.Fatal(err)
+	}
+	for i := range 1 {
 		if err := service.Add(ctx, owner, fmt.Sprintf("Песня %d", i), chartdomain.Audio{Bytes: []byte("ID3-test"), ContentType: "audio/mpeg"}); err != nil {
 			t.Fatal(err)
 		}
@@ -94,7 +97,7 @@ func (f *chatFixture) chart(t *testing.T) {
 		t.Fatal("track quota bypass")
 	}
 	tracks, err := service.List(ctx, owner)
-	if err != nil || len(tracks) != 5 {
+	if err != nil || len(tracks) != 1 {
 		t.Fatal(tracks, err)
 	}
 	id := tracks[0].ID

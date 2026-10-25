@@ -13,7 +13,7 @@ import (
 )
 
 func registerMusicChart(mux *http.ServeMux, pool *pgxpool.Pool, auth accountshttp.Handler) error {
-	service := application.NewService(postgres.NewStore(pool))
+	service := application.NewService(postgres.NewStore(pool, chartGate))
 	base := os.Getenv("S3_PUBLIC_BASE_URL")
 	if os.Getenv("S3_ENABLED") == "true" {
 		storage, err := charts3.New(charts3.S3Config{Endpoint: os.Getenv("S3_ENDPOINT"), Region: os.Getenv("S3_REGION"), Bucket: os.Getenv("S3_BUCKET"), AccessKeyID: os.Getenv("S3_ACCESS_KEY_ID"), SecretAccessKey: os.Getenv("S3_SECRET_ACCESS_KEY"), PublicBaseURL: base, VirtualHosted: os.Getenv("S3_VIRTUAL_HOSTED") == "true"})

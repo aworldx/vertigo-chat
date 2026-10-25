@@ -12,7 +12,9 @@ type Database interface {
 	Query(context.Context, string, ...any) (pgx.Rows, error)
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
-type UploadGate func(context.Context, pgx.Tx, int64) (bool, error)
+
+// UploadGate returns the current total limit and locks the author until tx completes.
+type UploadGate func(context.Context, pgx.Tx, int64) (int, error)
 type Storage interface {
 	Save(context.Context, domain.Media, string) (domain.Media, error)
 	Load(context.Context, string) ([]byte, error)
@@ -43,15 +45,15 @@ func (s Store) List(ctx context.Context, user int64) ([]domain.Photo, error) {
 func (s Store) Add(ctx context.Context, user int64, u domain.Upload) (int64, error) {
 	var id int64
 	err := pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
-		allowed, err := s.gate(ctx, tx, user)
+		limit, err := s.gate(ctx, tx, user)
 		if err != nil {
 			return err
 		}
-		var total, daily int
-		if err := tx.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE inserted_at >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '1 day') FROM gallery_photos WHERE user_id=$1`, user).Scan(&total, &daily); err != nil {
+		var total int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM gallery_photos WHERE user_id=$1`, user).Scan(&total); err != nil {
 			return err
 		}
-		if err := domain.Quota(allowed, total, daily); err != nil {
+		if err := domain.Quota(limit, total); err != nil {
 			return err
 		}
 		u, err = s.persist(ctx, u)

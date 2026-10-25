@@ -136,7 +136,7 @@ func respond(w http.ResponseWriter, status int, v any) {
 }
 func failure(w http.ResponseWriter, err error) {
 	status, code := 503, "unavailable"
-	for _, e := range []error{domain.ErrInvalid, domain.ErrRank, domain.ErrDaily, domain.ErrTotal, domain.ErrImage, domain.ErrImageQuota} {
+	for _, e := range []error{domain.ErrInvalid, domain.ErrRank, domain.ErrTotal, domain.ErrImage, domain.ErrImageQuota} {
 		if errors.Is(err, e) {
 			status, code = 422, e.Error()
 		}

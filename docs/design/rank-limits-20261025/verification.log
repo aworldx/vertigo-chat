@@ -1,0 +1,12 @@
+ok  	chat/api/cmd/api	1.915s
+ok  	chat/api/internal/library/adapters/postgres	1.115s
+
+> build
+> node scripts/build.mjs
+
+≈ tailwindcss v4.3.0
+
+Done in 177ms
+PASS 1440×900: direct/reload, guest access, three writes, quota rejection, both thresholds, promotion, persistence, no overflow
+PASS 768×1024: direct/reload, guest access, three writes, quota rejection, both thresholds, promotion, persistence, no overflow
+PASS 390×844: direct/reload, guest access, three writes, quota rejection, both thresholds, promotion, persistence, no overflow

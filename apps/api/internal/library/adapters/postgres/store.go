@@ -13,7 +13,9 @@ type Database interface {
 	Query(context.Context, string, ...any) (pgx.Rows, error)
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
-type Gate func(context.Context, pgx.Tx, int64) (bool, error)
+
+// Gate returns the current total limit and locks the author until tx completes.
+type Gate func(context.Context, pgx.Tx, int64) (int, error)
 type Store struct {
 	db   Database
 	gate Gate
@@ -85,15 +87,15 @@ func (s Store) Save(ctx context.Context, user, id int64, v domain.Input) (int64,
 			return ensureSeries(ctx, tx, user, v.Series)
 		}
 
-		allowed, err := s.gate(ctx, tx, user)
+		limit, err := s.gate(ctx, tx, user)
 		if err != nil {
 			return err
 		}
-		var total, daily int
-		if err := tx.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE inserted_at >= (NOW() AT TIME ZONE 'UTC')-INTERVAL '1 day') FROM library_articles WHERE user_id=$1`, user).Scan(&total, &daily); err != nil {
+		var total int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM library_articles WHERE user_id=$1`, user).Scan(&total); err != nil {
 			return err
 		}
-		if err := domain.Quota(allowed, total, daily); err != nil {
+		if err := domain.Quota(limit, total); err != nil {
 			return err
 		}
 		if err := ensureSeries(ctx, tx, user, v.Series); err != nil {

@@ -38,7 +38,7 @@ func (f *chatFixture) remoteGallery(t *testing.T) {
 	if err := f.pool.QueryRow(ctx, `SELECT id FROM registered_users WHERE nickname='fixture13'`).Scan(&user); err != nil {
 		t.Fatal(err)
 	}
-	gate := func(context.Context, pgx.Tx, int64) (bool, error) { return true, nil }
+	gate := func(context.Context, pgx.Tx, int64) (int, error) { return 20, nil }
 	input := gallerydomain.Upload{Caption: "Remote", Image: gallerydomain.Media{Bytes: []byte("image"), ContentType: "image/png"}, Thumbnail: gallerydomain.Media{Bytes: []byte("thumbnail"), ContentType: "image/webp"}}
 	for _, field := range []string{"image", "thumbnail"} {
 		storage := &galleryStorage{fail: field}

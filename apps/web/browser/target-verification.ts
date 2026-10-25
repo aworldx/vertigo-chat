@@ -33,9 +33,10 @@ function sql(command: string) {
   for (const db of databases)
     execFileSync("psql", [db, "-v", "ON_ERROR_STOP=1", "-q", "-c", command], { stdio: "pipe" })
 }
+// Eight publication slots keep these editor/reaction scenarios independent of quota tests.
 function fixtures(populated: boolean) {
   sql(
-    "TRUNCATE gallery_photos,library_articles,emojis,emoji_tags RESTART IDENTITY CASCADE; UPDATE registered_users SET public_message_count=200,chat_seconds=72000,is_admin=(nickname='fixture01'),can_moderate_emojis=(nickname='fixture02');",
+    "TRUNCATE gallery_photos,library_articles,emojis,emoji_tags RESTART IDENTITY CASCADE; UPDATE registered_users SET public_message_count=1500,chat_seconds=540000,is_admin=(nickname='fixture01'),can_moderate_emojis=(nickname='fixture02');",
   )
   if (populated)
     sql(

@@ -104,7 +104,7 @@ func TestCommunityPostgres(t *testing.T) {
 		communityRequest(t, &f, "POST", "/api/v1/admin/emoji-tags", `{"name":"x","triggers":[]}`, 403, true)
 	})
 	t.Run("gallery concurrent quota and idempotent likes", func(t *testing.T) { communityGallery(t, pool) })
-	t.Run("library concurrent daily quota", func(t *testing.T) { communityLibrary(t, pool) })
+	t.Run("library concurrent total quota", func(t *testing.T) { communityLibrary(t, pool) })
 	t.Run("admin table whitelist", func(t *testing.T) {
 		f.post(t, "/api/v1/auth/login", `{"nickname":"fixture01","password":"secret123"}`, 200)
 		communityRequest(t, &f, "GET", "/api/v1/admin/database?table=registered_users%3BDROP%20TABLE%20registered_users", "", 200, false)
@@ -217,13 +217,13 @@ func communityGallery(t *testing.T, pool *pgxpool.Pool) {
 		switch err {
 		case nil:
 			success++
-		case gallerydomain.ErrDaily:
+		case gallerydomain.ErrTotal:
 			limited++
 		default:
 			t.Fatal(err)
 		}
 	}
-	if success != 5 || limited != 3 {
+	if success != 3 || limited != 5 {
 		t.Fatal(success, limited)
 	}
 	communityGalleryOwnership(t, pool, service, input)
@@ -231,7 +231,7 @@ func communityGallery(t *testing.T, pool *pgxpool.Pool) {
 func communityGalleryOwnership(t *testing.T, pool *pgxpool.Pool, service gallery.Service, input gallery.Upload) {
 	ctx := context.Background()
 	photos, _, _, err := service.List(ctx, 2)
-	if err != nil || len(photos) != 5 {
+	if err != nil || len(photos) != 3 {
 		t.Fatal(len(photos), err)
 	}
 	id := photos[0].ID
@@ -253,7 +253,7 @@ func communityGalleryOwnership(t *testing.T, pool *pgxpool.Pool, service gallery
 	if _, err := pool.Exec(ctx, `UPDATE registered_users SET public_message_count=199 WHERE id=3`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.Add(ctx, 3, input); err != gallerydomain.ErrRank {
+	if _, err := service.Add(ctx, 3, input); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -277,13 +277,13 @@ func communityLibrary(t *testing.T, pool *pgxpool.Pool) {
 		switch err {
 		case nil:
 			success++
-		case librarydomain.ErrDaily:
+		case librarydomain.ErrTotal:
 			limited++
 		default:
 			t.Fatal(err)
 		}
 	}
-	if success != 10 || limited != 2 {
+	if success != 3 || limited != 9 {
 		t.Fatal(success, limited)
 	}
 }

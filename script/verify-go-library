@@ -18,7 +18,8 @@ database_created=true
 url="$(database_url)"
 psql "$url" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/legacy-schema.sql"
 psql "$url" -v ON_ERROR_STOP=1 -q -f "$repo_root/script/fixtures/go-web.sql"
-psql "$url" -v ON_ERROR_STOP=1 -q -c "UPDATE registered_users SET public_message_count=200,chat_seconds=72000"
+# Eight publication slots; quota boundaries have their own verify-go-rank-limits suite.
+psql "$url" -v ON_ERROR_STOP=1 -q -c "UPDATE registered_users SET public_message_count=1500,chat_seconds=540000"
 npm --prefix "$repo_root/apps/web" run build
 cd "$repo_root/apps/api"
 DATABASE_URL="$url" "$go_command" run -buildvcs=false ./cmd/migrate

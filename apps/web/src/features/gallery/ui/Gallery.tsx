@@ -31,7 +31,7 @@ export function Gallery({ nickname, csrf, login }: { nickname: string; csrf: str
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-300">Моменты Vertigo</p>
             <h1 className="mt-2 text-4xl font-semibold sm:text-5xl">Фотоальбом</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-              Общая коллекция снимков чатлан. Загружать фотографии могут участники со званием «Статист».
+              Общая коллекция снимков чатлан. Общий лимит фотографий зависит от звания. Подробности — в помощи.
             </p>
           </div>
           {nickname ? (
@@ -49,7 +49,7 @@ export function Gallery({ nickname, csrf, login }: { nickname: string; csrf: str
                 id="gallery-rank-hint"
                 className="max-w-md rounded-2xl border border-zinc-700 bg-zinc-900/70 px-5 py-4 text-sm leading-6 text-zinc-400"
               >
-                Добавлять снимки можно со звания «Статист».
+                Добавлять фото могут зарегистрированные чатлане.
               </div>
             )
           ) : (

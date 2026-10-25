@@ -66,7 +66,7 @@ export function Library({ nickname, csrf, login }: { nickname: string; csrf: str
               </button>
             ) : (
               <p id="library-rank-hint" className="max-w-sm text-sm leading-6 text-stone-400">
-                Добавлять статьи можно со звания «Киноман».
+                Добавлять статьи могут зарегистрированные чатлане.
               </p>
             ))}
         </div>

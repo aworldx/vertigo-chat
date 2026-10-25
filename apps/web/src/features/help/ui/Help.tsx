@@ -82,6 +82,9 @@ export function Help() {
                         <dd>{`${formatNumber(rank.hours)} ч.`}</dd>
                       </div>
                     </dl>
+                    <p className="mt-4 text-xs leading-5 text-zinc-400">
+                      {`Общие лимиты: хит-парад — ${String(rank.limits.tracks)}, статьи — ${String(rank.limits.articles)}, фото — ${String(rank.limits.photos)}.`}
+                    </p>
                     {rank.feature_unlock && (
                       <p className="mt-4 text-xs font-medium text-emerald-300">
                         <Icon name="lock-open" className="mr-1 inline size-4 align-text-bottom" />

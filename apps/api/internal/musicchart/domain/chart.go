@@ -14,7 +14,14 @@ var ErrLimit = errors.New("track limit reached")
 var ErrNotFound = errors.New("track not found")
 
 const MaxAudioBytes = 20_000_000
-const MaxTracks = 5
+
+// Quota applies the current rank limit to the total stored tracks.
+func Quota(limit, total int) error {
+	if limit <= 0 || total >= limit {
+		return ErrLimit
+	}
+	return nil
+}
 
 type Comment struct {
 	ID     int64  `json:"id"`

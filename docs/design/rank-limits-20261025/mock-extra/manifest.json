@@ -1,0 +1,182 @@
+[
+  {
+    "name": "gallery-denied",
+    "width": 1440,
+    "height": 900,
+    "route": "/gallery",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 0,
+    "overflow": false
+  },
+  {
+    "name": "library-denied",
+    "width": 1440,
+    "height": 900,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 0,
+    "overflow": false
+  },
+  {
+    "name": "landing-benefits",
+    "width": 1440,
+    "height": 900,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 652,
+    "overflow": false
+  },
+  {
+    "name": "landing-library",
+    "width": 1440,
+    "height": 900,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 2058,
+    "overflow": false
+  },
+  {
+    "name": "landing-gallery",
+    "width": 1440,
+    "height": 900,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 2058,
+    "overflow": false
+  },
+  {
+    "name": "landing-music-chart",
+    "width": 1440,
+    "height": 900,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 2328,
+    "overflow": false
+  },
+  {
+    "name": "gallery-denied",
+    "width": 768,
+    "height": 1024,
+    "route": "/gallery",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 0,
+    "overflow": false
+  },
+  {
+    "name": "library-denied",
+    "width": 768,
+    "height": 1024,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 0,
+    "overflow": false
+  },
+  {
+    "name": "landing-benefits",
+    "width": 768,
+    "height": 1024,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 597,
+    "overflow": false
+  },
+  {
+    "name": "landing-library",
+    "width": 768,
+    "height": 1024,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 2071,
+    "overflow": false
+  },
+  {
+    "name": "landing-gallery",
+    "width": 768,
+    "height": 1024,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 2071,
+    "overflow": false
+  },
+  {
+    "name": "landing-music-chart",
+    "width": 768,
+    "height": 1024,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 2412,
+    "overflow": false
+  },
+  {
+    "name": "gallery-denied",
+    "width": 390,
+    "height": 844,
+    "route": "/gallery",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 0,
+    "overflow": false
+  },
+  {
+    "name": "library-denied",
+    "width": 390,
+    "height": 844,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 0,
+    "overflow": false
+  },
+  {
+    "name": "landing-benefits",
+    "width": 390,
+    "height": 844,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 700,
+    "overflow": false
+  },
+  {
+    "name": "landing-library",
+    "width": 390,
+    "height": 844,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 3356,
+    "overflow": false
+  },
+  {
+    "name": "landing-gallery",
+    "width": 390,
+    "height": 844,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 3614,
+    "overflow": false
+  },
+  {
+    "name": "landing-music-chart",
+    "width": 390,
+    "height": 844,
+    "route": "/",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=false; can_upload=false; denied fallback retained defensively; no chat session",
+    "scroll": 3871,
+    "overflow": false
+  }
+]

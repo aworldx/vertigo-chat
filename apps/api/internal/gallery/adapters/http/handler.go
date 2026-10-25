@@ -153,7 +153,7 @@ func failureStatus(w http.ResponseWriter, status int, code string) {
 }
 func failure(w http.ResponseWriter, err error) {
 	status, code := 503, "unavailable"
-	for _, e := range []error{domain.ErrCaption, domain.ErrPhoto, domain.ErrThumbnail, domain.ErrRank, domain.ErrTotal, domain.ErrDaily} {
+	for _, e := range []error{domain.ErrCaption, domain.ErrPhoto, domain.ErrThumbnail, domain.ErrRank, domain.ErrTotal} {
 		if errors.Is(err, e) {
 			status, code = 422, e.Error()
 		}

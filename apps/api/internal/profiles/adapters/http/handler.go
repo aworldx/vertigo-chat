@@ -152,11 +152,20 @@ func (h Handler) ranks(w http.ResponseWriter, _ *http.Request) {
 		Messages      int    `json:"messages"`
 		Hours         int    `json:"hours"`
 		FeatureUnlock string `json:"feature_unlock"`
+		Limits        struct {
+			Tracks   int `json:"tracks"`
+			Articles int `json:"articles"`
+			Photos   int `json:"photos"`
+		} `json:"limits"`
 	}
 	definitions := application.RankDefinitions()
 	data := make([]rankDTO, 0, len(definitions))
 	for _, rank := range definitions {
-		data = append(data, rankDTO{rank.Title, "/images/ranks/" + rank.Icon + ".svg", rank.Messages, rank.Hours, rank.FeatureUnlock})
+		dto := rankDTO{Title: rank.Title, IconURL: "/images/ranks/" + rank.Icon + ".svg", Messages: rank.Messages, Hours: rank.Hours, FeatureUnlock: rank.FeatureUnlock}
+		dto.Limits.Tracks = rank.Limits.Tracks
+		dto.Limits.Articles = rank.Limits.Articles
+		dto.Limits.Photos = rank.Limits.Photos
+		data = append(data, dto)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"data": data})
 }

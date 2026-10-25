@@ -1,0 +1,33 @@
+#!/bin/sh
+# Run inside the pinned quality Docker image against a disposable PostgreSQL server.
+set -eu
+repository_root="$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)"
+maintenance="${COVERAGE_DATABASE_URL:-postgresql://localhost/postgres}"
+database_name="chat_rank_limits_$$"
+database_url="$(node -e 'const u=new URL(process.argv[1]);u.pathname=process.argv[2];console.log(u.href)' "$maintenance" "$database_name")"
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/chat-rank-limits.XXXXXX")"
+cleanup() {
+  if [ -n "${api_pid:-}" ]; then kill "$api_pid" 2>/dev/null || true; wait "$api_pid" 2>/dev/null || true; fi
+  if [ -n "${created_database:-}" ]; then dropdb --maintenance-db="$maintenance" "$database_name"; fi
+  rm -rf "$work_dir"
+}
+trap cleanup EXIT HUP INT TERM
+createdb --maintenance-db="$maintenance" "$database_name"
+created_database=true
+psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/legacy-schema.sql" > "$work_dir/schema.log"
+psql "$database_url" -v ON_ERROR_STOP=1 -q -f "$repository_root/script/fixtures/go-web.sql"
+cd "$repository_root/apps/api"
+GO_COMMUNITY_TEST_DATABASE_URL="$database_url" go test -race ./cmd/api -run 'Test(Community|PublicationLimits)Postgres' -count=1
+GO_LIBRARY_TEST_DATABASE_URL="$database_url" go test -race ./internal/library/adapters/postgres -count=1
+go build -buildvcs=false -o "$work_dir/api" ./cmd/api
+npm --prefix "$repository_root/apps/web" run build
+DATABASE_URL="$database_url" API_ADDR=127.0.0.1:4078 API_PUBLIC_ORIGIN=http://127.0.0.1:4078 WEB_ASSETS_DIR="$repository_root/apps/web/dist" "$work_dir/api" > "$work_dir/api.log" 2>&1 &
+api_pid=$!
+attempt=0
+until curl --fail --silent http://127.0.0.1:4078/health >/dev/null; do
+  attempt=$((attempt+1))
+  if [ "$attempt" -ge 30 ] || ! kill -0 "$api_pid" 2>/dev/null; then cat "$work_dir/api.log" >&2; exit 1; fi
+  sleep 1
+done
+cd "$repository_root/apps/web"
+node --import=tsx browser/rank-limits-verification.ts http://127.0.0.1:4078 "$database_url"

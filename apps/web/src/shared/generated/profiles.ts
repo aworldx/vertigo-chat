@@ -223,6 +223,12 @@ export interface operations {
                             messages: number;
                             hours: number;
                             feature_unlock: string;
+                            /** @description Total stored items per registered author. No daily limits. */
+                            limits: {
+                                tracks: number;
+                                articles: number;
+                                photos: number;
+                            };
                         }[];
                     };
                 };

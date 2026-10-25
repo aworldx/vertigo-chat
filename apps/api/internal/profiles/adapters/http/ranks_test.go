@@ -18,17 +18,24 @@ func TestPublicRankContract(t *testing.T) {
 	}
 	var body struct {
 		Data []struct {
-			Title         string `json:"title"`
-			IconURL       string `json:"icon_url"`
-			Messages      int    `json:"messages"`
-			Hours         int    `json:"hours"`
-			FeatureUnlock string `json:"feature_unlock"`
+			Title         string                                 `json:"title"`
+			IconURL       string                                 `json:"icon_url"`
+			Messages      int                                    `json:"messages"`
+			Hours         int                                    `json:"hours"`
+			FeatureUnlock string                                 `json:"feature_unlock"`
+			Limits        struct{ Tracks, Articles, Photos int } `json:"limits"`
 		}
 	}
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if len(body.Data) != 10 || body.Data[1].Messages != 50 || body.Data[1].Hours != 5 || body.Data[1].FeatureUnlock != "Можно добавлять статьи в библиотеку" || body.Data[9].IconURL != "/images/ranks/theater.svg" {
+	if len(body.Data) != 10 || body.Data[1].Messages != 50 || body.Data[1].Hours != 5 || body.Data[1].FeatureUnlock != "" || body.Data[9].IconURL != "/images/ranks/theater.svg" {
 		t.Fatalf("contract: %s", response.Body.String())
+	}
+	for i, limit := range []int{1, 2, 3, 5, 8, 12, 18, 25, 35, 50} {
+		got := body.Data[i].Limits
+		if got.Tracks != limit || got.Articles != limit || got.Photos != limit {
+			t.Fatalf("rank %d: %+v", i, got)
+		}
 	}
 }

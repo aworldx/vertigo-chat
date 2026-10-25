@@ -31,6 +31,23 @@ function isRank(value: unknown): value is Rank {
     Number.isInteger(value.hours) &&
     value.hours >= 0 &&
     "feature_unlock" in value &&
-    typeof value.feature_unlock === "string"
+    typeof value.feature_unlock === "string" &&
+    "limits" in value &&
+    isLimits(value.limits)
   )
+}
+
+function isLimits(value: unknown): value is Rank["limits"] {
+  if (typeof value !== "object" || value === null) return false
+  return (
+    "tracks" in value &&
+    positiveInteger(value.tracks) &&
+    "articles" in value &&
+    positiveInteger(value.articles) &&
+    "photos" in value &&
+    positiveInteger(value.photos)
+  )
+}
+function positiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0
 }

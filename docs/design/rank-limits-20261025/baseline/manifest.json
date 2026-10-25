@@ -1,0 +1,338 @@
+[
+  {
+    "name": "ranks",
+    "state": "start",
+    "width": 1440,
+    "height": 900,
+    "route": "/help",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 2369,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "ranks",
+    "state": "end",
+    "width": 1440,
+    "height": 900,
+    "route": "/help",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 2466,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "chart",
+    "state": "top",
+    "width": 1440,
+    "height": 900,
+    "route": "/music-chart",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "chart",
+    "state": "form",
+    "width": 1440,
+    "height": 900,
+    "route": "/music-chart",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 61,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "gallery",
+    "state": "top",
+    "width": 1440,
+    "height": 900,
+    "route": "/gallery",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "top",
+    "width": 1440,
+    "height": 900,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 0
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "viewport",
+    "width": 1440,
+    "height": 900,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 151
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "bottom",
+    "width": 1440,
+    "height": 900,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 151
+    },
+    "overflow": false
+  },
+  {
+    "name": "ranks",
+    "state": "start",
+    "width": 768,
+    "height": 1024,
+    "route": "/help",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 2589,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "ranks",
+    "state": "end",
+    "width": 768,
+    "height": 1024,
+    "route": "/help",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 2618,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "chart",
+    "state": "top",
+    "width": 768,
+    "height": 1024,
+    "route": "/music-chart",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "chart",
+    "state": "form",
+    "width": 768,
+    "height": 1024,
+    "route": "/music-chart",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 119,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "gallery",
+    "state": "top",
+    "width": 768,
+    "height": 1024,
+    "route": "/gallery",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "top",
+    "width": 768,
+    "height": 1024,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 0
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "viewport",
+    "width": 768,
+    "height": 1024,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 0
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "bottom",
+    "width": 768,
+    "height": 1024,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 0
+    },
+    "overflow": false
+  },
+  {
+    "name": "ranks",
+    "state": "start",
+    "width": 390,
+    "height": 844,
+    "route": "/help",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 4391,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "ranks",
+    "state": "end",
+    "width": 390,
+    "height": 844,
+    "route": "/help",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 5266,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "chart",
+    "state": "top",
+    "width": 390,
+    "height": 844,
+    "route": "/music-chart",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "chart",
+    "state": "form",
+    "width": 390,
+    "height": 844,
+    "route": "/music-chart",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 419,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "gallery",
+    "state": "top",
+    "width": 390,
+    "height": 844,
+    "route": "/gallery",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": null
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "top",
+    "width": 390,
+    "height": 844,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 0
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "viewport",
+    "width": 390,
+    "height": 844,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 0
+    },
+    "overflow": false
+  },
+  {
+    "name": "editor",
+    "state": "bottom",
+    "width": 390,
+    "height": 844,
+    "route": "/library",
+    "auth": "fixture01 registered; user_id=1; roles=[]",
+    "fixture": "empty collections; can_publish=true; can_upload=true; live ranks thresholds/icons; mock limits [1,2,3,5,8,12,18,25,35,50]",
+    "scroll": {
+      "window": 0,
+      "editor": 0
+    },
+    "overflow": false
+  }
+]

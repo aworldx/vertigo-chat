@@ -40,9 +40,9 @@ export async function uploadPhoto(image: Blob, thumbnail: Blob, caption: string,
 export function galleryError(e: unknown): string {
   const code = e instanceof Error ? e.message : "unavailable"
   const messages: Record<string, string> = {
-    statist_required: "Добавлять фото могут чатлане со званием «Статист».",
-    photo_limit_reached: "В альбоме одного автора может быть не больше 20 фотографий.",
-    daily_photo_limit_reached: "Дневной лимит — 5 фотографий. Попробуй завтра.",
+    statist_required: "Добавлять фото могут зарегистрированные чатлане.",
+    photo_limit_reached:
+      "Достигнут общий лимит фотографий для твоего звания. Лимиты — в разделе «Система званий» на странице помощи.",
     invalid_caption: "Название должно быть не длиннее 280 символов.",
     invalid_photo: "Не удалось прочитать изображение. Выберите исправный JPG, PNG или WebP.",
     photo_too_large: "Не удалось уменьшить фотографию до допустимого размера. Выберите снимок меньшего размера.",

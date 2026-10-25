@@ -13,7 +13,6 @@ var (
 	ErrForbidden   = errors.New("forbidden")
 	ErrRank        = errors.New("statist_required")
 	ErrTotal       = errors.New("photo_limit_reached")
-	ErrDaily       = errors.New("daily_photo_limit_reached")
 	ErrCaption     = errors.New("invalid_caption")
 	ErrPhoto       = errors.New("invalid_photo")
 	ErrThumbnail   = errors.New("invalid_thumbnail")
@@ -77,15 +76,12 @@ func Normalize(u Upload) (Upload, error) {
 	}
 	return u, nil
 }
-func Quota(allowed bool, total, daily int) error {
-	if !allowed {
+func Quota(limit, total int) error {
+	if limit <= 0 {
 		return ErrRank
 	}
-	if total >= 20 {
+	if total >= limit {
 		return ErrTotal
-	}
-	if daily >= 5 {
-		return ErrDaily
 	}
 	return nil
 }
