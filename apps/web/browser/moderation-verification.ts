@@ -48,7 +48,7 @@ export async function verifyModeration(browser: Browser, origin: string) {
         await expect(reaction).toHaveCount(0)
         const remove = message.getByRole("button", { name: "Удалить сообщение" })
         await expect(remove).toBeVisible()
-        assert.equal(await remove.evaluate((el) => getComputedStyle(el).opacity), "1")
+        await expect(remove).toHaveCSS("opacity", "1")
         await admin.screenshot({ path: `test-results/moderation-${String(width)}-${String(frame)}.png` })
         await expect(guest.getByRole("button", { name: "Удалить сообщение" })).toHaveCount(0)
         admin.once("dialog", (dialog) => {

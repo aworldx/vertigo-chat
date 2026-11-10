@@ -247,7 +247,7 @@ export function MessageEntry({
         !privateMessage &&
         (canReply || onReaction || canDelete || Object.keys(message.reactions).length > 0) && (
           <div
-            className={`chat-message-actions z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1 opacity-100 transition-opacity motion-reduce:transition-none md:opacity-0 md:group-hover/message:opacity-100 md:group-focus-within/message:opacity-100 ${frame ? "absolute right-2 -bottom-2.5" : "relative ml-auto"}`}
+            className={`chat-message-actions z-20 flex max-w-[90%] flex-wrap items-center justify-end gap-1 ${frame ? "absolute right-2 -bottom-2.5" : "relative ml-auto"}`}
           >
             {Object.entries(message.reactions)
               .filter(([, count]) => count > 0)

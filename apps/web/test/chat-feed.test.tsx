@@ -102,6 +102,40 @@ test("a public reply renders a compact inert quote and exposes its reply action"
   assert.equal(document.querySelector("#message-reply-4")?.getAttribute("aria-label"), "Ответить guest")
 })
 
+test("existing reactions and message actions share the same layout group", () => {
+  const html = renderToStaticMarkup(
+    createElement(MessageEntry, {
+      nickname: "reader",
+      onAddress: () => undefined,
+      onReply: () => undefined,
+      onReaction: () => undefined,
+      message: {
+        id: 8,
+        recipient: "reader",
+        reactions: { "❤️": 2 },
+        reacted: ["❤️"],
+        client_id: "reaction",
+        kind: "text",
+        author: "guest",
+        body: "сообщение с реакцией",
+        sent_at: "2026-09-22T10:20:30Z",
+        font_id: "theme",
+        font_style: "normal",
+        appearance: {
+          dark: { nickname_color: "#fcd34d", text_color: "#e4e4e7" },
+          light: { nickname_color: "#9a3412", text_color: "#1f2937" },
+        },
+      },
+    }),
+  )
+  const document = new JSDOM(html).window.document
+  const actions = document.querySelector(".chat-message-actions")
+  assert.ok(actions)
+  assert.equal(actions.querySelector(":scope > .chat-reaction-entry")?.getAttribute("aria-pressed"), "true")
+  assert.ok(actions.querySelector(":scope > div > #reaction-toggle-8"))
+  assert.ok(actions.querySelector(":scope > #message-reply-8"))
+})
+
 test("inline emoji shares the text-bottom alignment box", () => {
   const html = renderToStaticMarkup(
     createElement(MessageEntry, {
